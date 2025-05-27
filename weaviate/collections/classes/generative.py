@@ -12,26 +12,7 @@ from weaviate.collections.classes.config import (
     _EnumLikeStr,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.proto.v1.base_pb2 import TextArray
-from weaviate.proto.v1.generative_pb2 import (
-    GenerativeAnthropic,
-    GenerativeAnyscale,
-    GenerativeAWS,
-    GenerativeCohere,
-    GenerativeDatabricks,
-    GenerativeDummy,
-    GenerativeFriendliAI,
-    GenerativeGoogle,
-    GenerativeMistral,
-    GenerativeNvidia,
-    GenerativeOllama,
-    GenerativeOpenAI,
-    GenerativeSearch,
-    GenerativeXAI,
-)
-from weaviate.proto.v1.generative_pb2 import (
-    GenerativeProvider as GenerativeProviderGRPC,
-)
+from weaviate.proto.v1 import base_pb2, generative_pb2
 from weaviate.types import BLOB_INPUT
 from weaviate.util import parse_blob
 
@@ -42,8 +23,8 @@ def _parse_anyhttpurl(url: Optional[AnyHttpUrl]) -> Optional[str]:
     return str(url).strip("/")
 
 
-def _to_text_array(values: Optional[Iterable[str]]) -> Optional[TextArray]:
-    return TextArray(values=values) if values is not None else None
+def _to_text_array(values: Optional[Iterable[str]]) -> Optional[base_pb2.TextArray]:
+    return base_pb2.TextArray(values=values) if values is not None else None
 
 
 @dataclass
@@ -56,7 +37,7 @@ class _GenerativeConfigRuntimeOptions:
 class _GenerativeConfigRuntime(BaseModel):
     generative: Union[GenerativeSearches, _EnumLikeStr]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         raise NotImplementedError("This method must be implemented in the child class")
 
     def _validate_multi_modal(self, opts: _GenerativeConfigRuntimeOptions) -> None:
@@ -81,10 +62,10 @@ class _GenerativeAnthropic(_GenerativeConfigRuntime):
     top_p: Optional[float]
     stop_sequences: Optional[List[str]]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
-        return GenerativeProviderGRPC(
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            anthropic=GenerativeAnthropic(
+            anthropic=generative_pb2.GenerativeAnthropic(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
@@ -106,11 +87,11 @@ class _GenerativeAnyscale(_GenerativeConfigRuntime):
     model: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         self._validate_multi_modal(opts)
-        return GenerativeProviderGRPC(
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            anyscale=GenerativeAnyscale(
+            anyscale=generative_pb2.GenerativeAnyscale(
                 base_url=_parse_anyhttpurl(self.base_url),
                 model=self.model,
                 temperature=self.temperature,
@@ -130,10 +111,10 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
     target_variant: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
-        return GenerativeProviderGRPC(
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            aws=GenerativeAWS(
+            aws=generative_pb2.GenerativeAWS(
                 model=self.model,
                 region=self.region,
                 endpoint=_parse_anyhttpurl(self.endpoint),
@@ -160,11 +141,11 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
     stop_sequences: Optional[List[str]]
     temperature: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         self._validate_multi_modal(opts)
-        return GenerativeProviderGRPC(
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            cohere=GenerativeCohere(
+            cohere=generative_pb2.GenerativeCohere(
                 base_url=_parse_anyhttpurl(self.base_url),
                 k=self.k,
                 max_tokens=self.max_tokens,
@@ -193,11 +174,11 @@ class _GenerativeDatabricks(_GenerativeConfigRuntime):
     top_log_probs: Optional[int]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         self._validate_multi_modal(opts)
-        return GenerativeProviderGRPC(
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            databricks=GenerativeDatabricks(
+            databricks=generative_pb2.GenerativeDatabricks(
                 endpoint=_parse_anyhttpurl(self.endpoint),
                 frequency_penalty=self.frequency_penalty,
                 log_probs=self.log_probs or False,
@@ -218,9 +199,11 @@ class _GenerativeDummy(_GenerativeConfigRuntime):
         default=GenerativeSearches.DUMMY, frozen=True, exclude=True
     )
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         self._validate_multi_modal(opts)
-        return GenerativeProviderGRPC(return_metadata=opts.return_metadata, dummy=GenerativeDummy())
+        return generative_pb2.GenerativeProvider(
+            return_metadata=opts.return_metadata, dummy=generative_pb2.GenerativeDummy()
+        )
 
 
 class _GenerativeFriendliai(_GenerativeConfigRuntime):
@@ -234,11 +217,11 @@ class _GenerativeFriendliai(_GenerativeConfigRuntime):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         self._validate_multi_modal(opts)
-        return GenerativeProviderGRPC(
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            friendliai=GenerativeFriendliAI(
+            friendliai=generative_pb2.GenerativeFriendliAI(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
@@ -259,11 +242,11 @@ class _GenerativeMistral(_GenerativeConfigRuntime):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         self._validate_multi_modal(opts)
-        return GenerativeProviderGRPC(
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            mistral=GenerativeMistral(
+            mistral=generative_pb2.GenerativeMistral(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
@@ -283,11 +266,11 @@ class _GenerativeNvidia(_GenerativeConfigRuntime):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         self._validate_multi_modal(opts)
-        return GenerativeProviderGRPC(
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            nvidia=GenerativeNvidia(
+            nvidia=generative_pb2.GenerativeNvidia(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
@@ -305,10 +288,10 @@ class _GenerativeOllama(_GenerativeConfigRuntime):
     model: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
-        return GenerativeProviderGRPC(
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            ollama=GenerativeOllama(
+            ollama=generative_pb2.GenerativeOllama(
                 api_endpoint=_parse_anyhttpurl(self.api_endpoint),
                 model=self.model,
                 temperature=self.temperature,
@@ -335,10 +318,10 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
-        return GenerativeProviderGRPC(
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            openai=GenerativeOpenAI(
+            openai=generative_pb2.GenerativeOpenAI(
                 api_version=self.api_version,
                 base_url=_parse_anyhttpurl(self.base_url),
                 deployment_id=self.deployment_id,
@@ -381,10 +364,10 @@ class _GenerativeGoogle(_GenerativeConfigRuntime):
             else None
         )
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
-        return GenerativeProviderGRPC(
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            google=GenerativeGoogle(
+            google=generative_pb2.GenerativeGoogle(
                 api_endpoint=self._parse_api_endpoint(self.api_endpoint),
                 endpoint_id=self.endpoint_id,
                 frequency_penalty=self.frequency_penalty,
@@ -413,10 +396,10 @@ class _GenerativeXAI(_GenerativeConfigRuntime):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
-        return GenerativeProviderGRPC(
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
-            xai=GenerativeXAI(
+            xai=generative_pb2.GenerativeXAI(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
@@ -898,8 +881,10 @@ class _GroupedTask(BaseModel):
     images: Optional[Iterable[str]]
     metadata: bool = False
 
-    def _to_grpc(self, provider: _GenerativeConfigRuntime) -> GenerativeSearch.Grouped:
-        return GenerativeSearch.Grouped(
+    def _to_grpc(
+        self, provider: _GenerativeConfigRuntime
+    ) -> generative_pb2.GenerativeSearch.Grouped:
+        return generative_pb2.GenerativeSearch.Grouped(
             task=self.prompt,
             properties=_to_text_array(self.non_blob_properties),
             queries=[
@@ -919,8 +904,10 @@ class _SinglePrompt(BaseModel):
     metadata: bool = False
     debug: bool = False
 
-    def _to_grpc(self, provider: _GenerativeConfigRuntime) -> GenerativeSearch.Single:
-        return GenerativeSearch.Single(
+    def _to_grpc(
+        self, provider: _GenerativeConfigRuntime
+    ) -> generative_pb2.GenerativeSearch.Single:
+        return generative_pb2.GenerativeSearch.Single(
             prompt=self.prompt,
             debug=self.debug,
             queries=[

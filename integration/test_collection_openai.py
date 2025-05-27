@@ -20,7 +20,7 @@ from weaviate.collections.classes.generative import (
 )
 from weaviate.collections.classes.grpc import GroupBy, Rerank
 from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
-from weaviate.proto.v1.generative_pb2 import GenerativeOpenAIMetadata
+from weaviate.proto.v1 import generative_pb2
 from weaviate.util import _ServerVersion
 
 
@@ -719,7 +719,7 @@ def test_near_text_generate_with_dynamic_rag(
         assert res.generative.text == "bananas melons"
 
         if isinstance(grouped, _GroupedTask):
-            assert isinstance(res.generative.metadata, GenerativeOpenAIMetadata)
+            assert isinstance(res.generative.metadata, generative_pb2.GenerativeOpenAIMetadata)
         else:
             assert res.generative.metadata is None
 
@@ -733,9 +733,9 @@ def test_near_text_generate_with_dynamic_rag(
 
         if isinstance(single, _SinglePrompt):
             assert g0.debug is not None
-            assert isinstance(g0.metadata, GenerativeOpenAIMetadata)
+            assert isinstance(g0.metadata, generative_pb2.GenerativeOpenAIMetadata)
             assert g1.debug is not None
-            assert isinstance(g1.metadata, GenerativeOpenAIMetadata)
+            assert isinstance(g1.metadata, generative_pb2.GenerativeOpenAIMetadata)
         else:
             assert g0.debug is None
             assert g0.metadata is None
