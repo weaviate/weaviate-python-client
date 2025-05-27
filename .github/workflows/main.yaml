@@ -301,7 +301,7 @@ jobs:
           name: weaviate-python-client-wheel
       - run: |
           pip install -r requirements-devel.txt  # install test dependencies
-          pip install 'weaviate_client-*.whl[${{ matrix.version.extra }}]'  # install the built package with the matrix extra
+          pip install "$(find . -name 'weaviate_client-*.whl')[${{ matrix.version.extra }}]"  # install the built package with the matrix extra
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.version.server }}
