@@ -49,7 +49,7 @@ class _ReplicationAsync:
         *,
         collection: str,
         shard: Optional[str] = None,
-    ) -> ShardingState:
+    ) -> Optional[ShardingState]:
         """Query the sharding state of a collection or shard.
 
         If shard is None, the state of all shards in the collection will be returned.
@@ -59,7 +59,7 @@ class _ReplicationAsync:
             shard: The name of the shard.
 
         Returns:
-            The sharding state.
+            The sharding state or None if the collection or shard does not exist.
         """
         return await executor.aresult(
             self.__executor.query_sharding_state(

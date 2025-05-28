@@ -24,7 +24,7 @@ class _ReplicationExecutor(Generic[ConnectionType]):
         target_node: str,
         transfer_type: TransferType,
     ) -> executor.Result[uuid.UUID]:
-        def resp(response: Response) -> uuid.UUID:
+        def resp(response: Response):
             return uuid.UUID(response.json()["id"])
 
         body = {
@@ -48,8 +48,10 @@ class _ReplicationExecutor(Generic[ConnectionType]):
         *,
         collection: str,
         shard: Optional[str],
-    ) -> executor.Result[ShardingState]:
-        def resp(response: Response) -> ShardingState:
+    ) -> executor.Result[Optional[ShardingState]]:
+        def resp(response: Response):
+            if response.status_code == 404:
+                return None
             return ShardingState._from_weaviate(response.json())
 
         params = {"collection": collection}
@@ -61,6 +63,6 @@ class _ReplicationExecutor(Generic[ConnectionType]):
             method=self._connection.get,
             path="/replication/sharding-state",
             params=params,
-            status_codes=_ExpectedStatusCodes(200, "replicate sharding state"),
+            status_codes=_ExpectedStatusCodes([200, 404], "replicate sharding state"),
             error_msg="Failed to get sharding state",
         )

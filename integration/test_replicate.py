@@ -201,9 +201,22 @@ def test_query_sharding_state(
     shard = nodes[0].shards[0].name
 
     sharding_state = replicate_client.replication.query_sharding_state(collection=collection.name)
+    assert sharding_state is not None
     assert shard in [s.name for s in sharding_state.shards]
 
     sharding_state = replicate_client.replication.query_sharding_state(
         collection=collection.name, shard=shard
     )
+    assert sharding_state is not None
     assert shard in [s.name for s in sharding_state.shards]
+
+    assert (
+        replicate_client.replication.query_sharding_state(collection="non_existent_collection")
+        is None
+    )
+    assert (
+        replicate_client.replication.query_sharding_state(
+            collection=collection.name, shard="non_existent_shard"
+        )
+        is None
+    )
