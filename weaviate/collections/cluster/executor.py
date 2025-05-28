@@ -20,6 +20,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
     def nodes(
         self,
         collection: Optional[str] = None,
+        shard: Optional[str] = None,
         *,
         output: Literal[None] = None,
     ) -> executor.Result[List[Node[None, None]]]: ...
@@ -28,6 +29,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
     def nodes(
         self,
         collection: Optional[str] = None,
+        shard: Optional[str] = None,
         *,
         output: Literal["minimal"],
     ) -> executor.Result[List[Node[None, None]]]: ...
@@ -36,6 +38,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
     def nodes(
         self,
         collection: Optional[str] = None,
+        shard: Optional[str] = None,
         *,
         output: Literal["verbose"],
     ) -> executor.Result[List[Node[Shards, Stats]]]: ...
@@ -44,6 +47,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
     def nodes(
         self,
         collection: Optional[str] = None,
+        shard: Optional[str] = None,
         *,
         output: Optional[Verbosity] = None,
     ) -> executor.Result[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]: ...
@@ -51,6 +55,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
     def nodes(
         self,
         collection: Optional[str] = None,
+        shard: Optional[str] = None,
         *,
         output: Optional[Verbosity] = None,
     ) -> executor.Result[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
@@ -58,6 +63,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
 
         Args:
             collection: Get the status for the given collection. If not given all collections will be included.
+            shard: Get the status for the given shard. If not given all shards will be included.
             output: Set the desired output verbosity level. Can be [`minimal` | `verbose`], defaults to `None`, which is server-side default of `minimal`.
 
         Returns:
@@ -69,11 +75,13 @@ class _ClusterExecutor(Generic[ConnectionType]):
             weaviate.EmptyResponseError: If the response is empty.
         """
         path = "/nodes"
-        params = None
+        params = {}
         if collection is not None:
             path += "/" + _capitalize_first_letter(collection)
+        if shard is not None:
+            params["shardName"] = shard
         if output is not None:
-            params = {"output": output}
+            params["output"] = output
 
         def resp(
             res: Response,

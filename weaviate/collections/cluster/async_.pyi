@@ -9,17 +9,33 @@ from .executor import _ClusterExecutor
 class _ClusterAsync(_ClusterExecutor[ConnectionAsync]):
     @overload
     async def nodes(
-        self, collection: Optional[str] = None, *, output: Literal[None] = None
+        self,
+        collection: Optional[str] = None,
+        shard: Optional[str] = None,
+        *,
+        output: Literal[None] = None,
     ) -> List[Node[None, None]]: ...
     @overload
     async def nodes(
-        self, collection: Optional[str] = None, *, output: Literal["minimal"]
+        self,
+        collection: Optional[str] = None,
+        shard: Optional[str] = None,
+        *,
+        output: Literal["minimal"],
     ) -> List[Node[None, None]]: ...
     @overload
     async def nodes(
-        self, collection: Optional[str] = None, *, output: Literal["verbose"]
+        self,
+        collection: Optional[str] = None,
+        shard: Optional[str] = None,
+        *,
+        output: Literal["verbose"],
     ) -> List[Node[Shards, Stats]]: ...
     @overload
     async def nodes(
-        self, collection: Optional[str] = None, *, output: Optional[Verbosity] = None
+        self,
+        collection: Optional[str] = None,
+        shard: Optional[str] = None,
+        *,
+        output: Optional[Verbosity] = None,
     ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]: ...
