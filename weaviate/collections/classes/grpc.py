@@ -242,6 +242,39 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+@dataclass
+class KeywordOperatorOptions:
+    operator: ClassVar[base_search_pb2.SearchOperatorOptions.Operator]
+
+
+@dataclass
+class KeywordOperatorOr(KeywordOperatorOptions):
+    operator = base_search_pb2.SearchOperatorOptions.OPERATOR_OR
+    minimum_should_match: Optional[int]
+
+
+@dataclass
+class KeywordOperatorAnd(KeywordOperatorOptions):
+    operator = base_search_pb2.SearchOperatorOptions.OPERATOR_AND
+
+
+class KeywordOperatorFactory(_WeaviateInput):
+    """Define how the query's rerank operation should be performed."""
+
+    def __init__(self) -> None:
+        raise TypeError("KeywordOperator cannot be instantiated. Use the static methods to create.")
+
+    @staticmethod
+    def Or(minimum_match: int) -> KeywordOperatorOptions:
+        """Use the 'Or' operator for keyword queries."""
+        return KeywordOperatorOr(minimum_should_match=minimum_match)
+
+    @staticmethod
+    def And() -> KeywordOperatorOptions:
+        """Use the 'And' operator for keyword queries."""
+        return KeywordOperatorAnd()
+
+
 OneDimensionalVectorType = Sequence[NUMBER]
 """Represents a one-dimensional vector, e.g. one produced by `text2vec-jinaai`"""
 TwoDimensionalVectorType = Sequence[Sequence[NUMBER]]

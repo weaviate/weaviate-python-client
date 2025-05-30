@@ -66,6 +66,7 @@ class _AggregateGRPC(_BaseGRPC):
                 alpha,
                 vector,
                 properties,
+                None,  # no keyword operator for hybrid search
                 None,
                 distance,
                 target_vector,
