@@ -51,6 +51,8 @@ from weaviate.exceptions import (
 )
 from weaviate.types import UUID, UUIDS
 
+import weaviate.classes as wvc
+
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 UUID3 = uuid.UUID("83d99755-9deb-4b16-8431-d1dff4ab0a75")
@@ -1754,3 +1756,26 @@ def test_none_query_hybrid_bm25(collection_factory: CollectionFactory) -> None:
     bm25_objs = collection.query.bm25(query=None, return_metadata=MetadataQuery.full()).objects
     assert len(bm25_objs) == 3
     assert all(obj.metadata.score is not None and obj.metadata.score == 0.0 for obj in bm25_objs)
+
+
+def test_bm25_operators(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 31, 0):
+        pytest.skip("bm25 operators are only supported in versions higher than 1.31.0")
+
+    uuid1 = collection.data.insert({"name": "banana one"})
+    uuid2 = collection.data.insert({"name": "banana two"})
+    uuid3 = collection.data.insert({"name": "banana three"})
+    uuid4 = collection.data.insert({"name": "banana four"})
+
+    objs = collection.query.bm25(
+        "banana two",
+        operator=wvc.query.BM25Operator.or_(minimum_match=1),
+    )
+    assert len(objs.objects) == 4
+    assert objs.objects[0].uuid == uuid2
+    assert sorted(obj.uuid for obj in objs.objects[1:]) == sorted([uuid1, uuid3, uuid4])
