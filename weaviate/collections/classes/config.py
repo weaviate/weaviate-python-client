@@ -2477,7 +2477,7 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _RQConfigUpdate(enabled=enabled)
+        return _RQConfigUpdate(enabled=enabled, databits=databits, query_bits=query_bits)
 
 
 class _VectorIndexUpdate:
