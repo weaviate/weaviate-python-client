@@ -2,6 +2,9 @@ from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.generative import GenerativeConfig
 from weaviate.collections.classes.grpc import (
+    BM25OperatorFactory as BM25Operator,
+)
+from weaviate.collections.classes.grpc import (
     GroupBy,
     HybridFusion,
     HybridVector,
@@ -14,9 +17,6 @@ from weaviate.collections.classes.grpc import (
     Rerank,
     Sort,
     TargetVectors,
-)
-from weaviate.collections.classes.grpc import (
-    BM25OperatorFactory as BM25Operator,
 )
 from weaviate.collections.classes.types import GeoCoordinate
 

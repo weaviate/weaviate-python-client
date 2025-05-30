@@ -5,10 +5,10 @@ from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
     REFERENCES,
+    BM25OperatorOptions,
     GroupBy,
     HybridFusion,
     HybridVectorType,
-    BM25OperatorOptions,
     Rerank,
     TargetVectorJoinType,
 )

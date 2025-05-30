@@ -5,8 +5,8 @@ from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
     REFERENCES,
-    GroupBy,
     BM25OperatorOptions,
+    GroupBy,
     Rerank,
 )
 from weaviate.collections.classes.internal import (
