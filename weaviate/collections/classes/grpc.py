@@ -270,12 +270,12 @@ class KeywordOperatorFactory:
         raise TypeError("KeywordOperator cannot be instantiated. Use the static methods to create.")
 
     @staticmethod
-    def Or(minimum_match: int) -> KeywordOperatorOptions:
+    def or_(minimum_match: int) -> KeywordOperatorOptions:
         """Use the 'Or' operator for keyword queries."""
         return KeywordOperatorOr(minimum_should_match=minimum_match)
 
     @staticmethod
-    def And() -> KeywordOperatorOptions:
+    def and_() -> KeywordOperatorOptions:
         """Use the 'And' operator for keyword queries."""
         return KeywordOperatorAnd()
 
