@@ -24,8 +24,8 @@ from weaviate.collections.classes.grpc import (
     REFERENCES,
     HybridFusion,
     HybridVectorType,
-    KeywordOperatorOptions,
-    KeywordOperatorOr,
+    BM25OperatorOptions,
+    BM25OperatorOr,
     Move,
     NearVectorInputType,
     QueryNested,
@@ -157,7 +157,7 @@ class _QueryGRPC(_BaseGRPC):
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        keyword_operator: Optional[KeywordOperatorOptions] = None,
+        bm25_operator: Optional[BM25OperatorOptions] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -184,7 +184,7 @@ class _QueryGRPC(_BaseGRPC):
                 alpha,
                 vector,
                 properties,
-                keyword_operator,
+                bm25_operator,
                 fusion_type,
                 distance,
                 target_vector,
@@ -198,7 +198,7 @@ class _QueryGRPC(_BaseGRPC):
         properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        operator: Optional[KeywordOperatorOptions] = None,
+        operator: Optional[BM25OperatorOptions] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -234,7 +234,7 @@ class _QueryGRPC(_BaseGRPC):
                     search_operator=base_search_pb2.SearchOperatorOptions(
                         operator=operator.operator,
                         minimum_or_tokens_match=operator.minimum_should_match
-                        if isinstance(operator, KeywordOperatorOr)
+                        if isinstance(operator, BM25OperatorOr)
                         else None,
                     )
                     if operator is not None

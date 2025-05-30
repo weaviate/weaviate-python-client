@@ -16,7 +16,7 @@ from weaviate.collections.classes.grpc import (
     TargetVectors,
 )
 from weaviate.collections.classes.grpc import (
-    KeywordOperatorFactory as KeywordOperator,
+    BM25OperatorFactory as BM25Operator,
 )
 from weaviate.collections.classes.types import GeoCoordinate
 
@@ -27,7 +27,7 @@ __all__ = [
     "GroupBy",
     "HybridFusion",
     "HybridVector",
-    "KeywordOperator",
+    "BM25Operator",
     "MetadataQuery",
     "Metrics",
     "Move",

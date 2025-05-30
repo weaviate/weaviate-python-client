@@ -19,8 +19,8 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
     HybridFusion,
     HybridVectorType,
-    KeywordOperatorOptions,
-    KeywordOperatorOr,
+    BM25OperatorOptions,
+    BM25OperatorOr,
     Move,
     NearVectorInputType,
     OneDimensionalVectorType,
@@ -581,7 +581,7 @@ class _BaseGRPC:
         alpha: Optional[float],
         vector: Optional[HybridVectorType],
         properties: Optional[List[str]],
-        keyword_operator: Optional[KeywordOperatorOptions],
+        keyword_operator: Optional[BM25OperatorOptions],
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
@@ -730,7 +730,7 @@ class _BaseGRPC:
                 bm25_search_operator=base_search_pb2.SearchOperatorOptions(
                     operator=keyword_operator.operator,
                     minimum_or_tokens_match=keyword_operator.minimum_should_match
-                    if isinstance(keyword_operator, KeywordOperatorOr)
+                    if isinstance(keyword_operator, BM25OperatorOr)
                     else None,
                 )
                 if keyword_operator is not None
