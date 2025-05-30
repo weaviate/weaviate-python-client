@@ -150,7 +150,7 @@ def __get_quantizer_config(
         )
     elif "rq" in config and config["rq"].get("enabled"):
         quantizer = _RQConfig(
-            databits=config["rq"].get("databits"),
+            data_bits=config["rq"].get("databits"),
             query_bits=config["rq"].get("queryBits"),
         )
     return quantizer
