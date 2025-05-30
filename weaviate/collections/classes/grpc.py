@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import (
-    ClassVar,
+    Any,
     Dict,
     Generic,
     List,
@@ -15,7 +15,7 @@ from typing import (
 )
 
 from pydantic import ConfigDict, Field
-from typing_extensions import TypeGuard, TypeVar
+from typing_extensions import ClassVar, TypeGuard, TypeVar
 
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -244,7 +244,8 @@ class Rerank(_WeaviateInput):
 
 @dataclass
 class KeywordOperatorOptions:
-    operator: ClassVar[base_search_pb2.SearchOperatorOptions.Operator]
+    # replace with ClassVar[base_search_pb2.SearchOperatorOptions.Operator] once python 3.10 is removed
+    operator: ClassVar[Any]
 
 
 @dataclass
