@@ -271,12 +271,21 @@ class KeywordOperatorFactory:
 
     @staticmethod
     def or_(minimum_match: int) -> KeywordOperatorOptions:
-        """Use the 'Or' operator for keyword queries."""
+        """Use the 'Or' operator for keyword queries, where at least a minimum number of tokens must match.
+
+        Note that the query is tokenized using the respective tokenization method of each property.
+
+        Args:
+            minimum_match: The minimum number of keyword tokens (excluding stopwords) that must match for an object to be considered a match.
+        """
         return KeywordOperatorOr(minimum_should_match=minimum_match)
 
     @staticmethod
     def and_() -> KeywordOperatorOptions:
-        """Use the 'And' operator for keyword queries."""
+        """Use the 'And' operator for keyword queries, where all query tokens must match.
+
+        Note that the query is tokenized using the respective tokenization method of each property.
+        """
         return KeywordOperatorAnd()
 
 
