@@ -263,7 +263,7 @@ class KeywordOperatorAnd(KeywordOperatorOptions):
     operator = base_search_pb2.SearchOperatorOptions.OPERATOR_AND
 
 
-class KeywordOperatorFactory(_WeaviateInput):
+class KeywordOperatorFactory:
     """Define how the query's rerank operation should be performed."""
 
     def __init__(self) -> None:
