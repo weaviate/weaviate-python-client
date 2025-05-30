@@ -253,7 +253,7 @@ class BM25OperatorOr(BM25OperatorOptions):
     """Define the 'Or' operator for keyword queries."""
 
     operator = base_search_pb2.SearchOperatorOptions.OPERATOR_OR
-    minimum_should_match: Optional[int]
+    minimum_should_match: int
 
 
 @dataclass
