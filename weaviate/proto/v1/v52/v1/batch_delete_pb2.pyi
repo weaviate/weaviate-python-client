@@ -1,4 +1,4 @@
-from weaviate.proto.v1.v5.v1 import base_pb2 as _base_pb2
+from weaviate.proto.v1.v52.v1 import base_pb2 as _base_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message

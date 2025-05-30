@@ -1,8 +1,8 @@
 from google.protobuf import struct_pb2 as _struct_pb2
-from weaviate.proto.v1.v5.v1 import base_pb2 as _base_pb2
-from weaviate.proto.v1.v5.v1 import base_search_pb2 as _base_search_pb2
-from weaviate.proto.v1.v5.v1 import generative_pb2 as _generative_pb2
-from weaviate.proto.v1.v5.v1 import properties_pb2 as _properties_pb2
+from weaviate.proto.v1.v51.v1 import base_pb2 as _base_pb2
+from weaviate.proto.v1.v51.v1 import base_search_pb2 as _base_search_pb2
+from weaviate.proto.v1.v51.v1 import generative_pb2 as _generative_pb2
+from weaviate.proto.v1.v51.v1 import properties_pb2 as _properties_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message

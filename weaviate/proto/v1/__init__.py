@@ -21,8 +21,10 @@ def get_protobuf_version() -> version.Version:
 pb_version = get_protobuf_version()
 if pb_version >= version.parse("1.70.0"):
     from weaviate.proto.v1.v6.v1 import weaviate_pb2_grpc, aggregate_pb2, base_pb2, base_search_pb2, batch_delete_pb2, batch_pb2, generative_pb2, properties_pb2, search_get_pb2, tenants_pb2
+elif pb_version >= version.parse("1.66.2"):
+    from weaviate.proto.v1.v51.v1 import weaviate_pb2_grpc, aggregate_pb2, base_pb2, base_search_pb2, batch_delete_pb2, batch_pb2, generative_pb2, properties_pb2, search_get_pb2, tenants_pb2
 elif pb_version >= version.parse("1.60.0"):
-    from weaviate.proto.v1.v5.v1 import weaviate_pb2_grpc, aggregate_pb2, base_pb2, base_search_pb2, batch_delete_pb2, batch_pb2, generative_pb2, properties_pb2, search_get_pb2, tenants_pb2
+    from weaviate.proto.v1.v51.v1 import weaviate_pb2_grpc, aggregate_pb2, base_pb2, base_search_pb2, batch_delete_pb2, batch_pb2, generative_pb2, properties_pb2, search_get_pb2, tenants_pb2
 elif pb_version >= version.parse("1.50.0"):
     from weaviate.proto.v1.v4.v1 import weaviate_pb2_grpc, aggregate_pb2, base_pb2, base_search_pb2, batch_delete_pb2, batch_pb2, generative_pb2, properties_pb2, search_get_pb2, tenants_pb2
 else:
