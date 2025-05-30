@@ -325,7 +325,7 @@ class _SQConfigCreate(_QuantizerConfigCreate):
 
 
 class _RQConfigCreate(_QuantizerConfigCreate):
-    databits: Optional[int]
+    data_bits: Optional[int]
     query_bits: Optional[int]
 
     @staticmethod
@@ -367,7 +367,7 @@ class _SQConfigUpdate(_QuantizerConfigUpdate):
 
 class _RQConfigUpdate(_QuantizerConfigUpdate):
     enabled: Optional[bool]
-    databits: Optional[int]
+    data_bits: Optional[int]
     query_bits: Optional[int]
 
     @staticmethod
@@ -1573,7 +1573,7 @@ class _SQConfig(_ConfigBase):
 
 @dataclass
 class _RQConfig(_ConfigBase):
-    databits: Optional[int]
+    data_bits: Optional[int]
     query_bits: Optional[int]
 
 
@@ -2131,7 +2131,7 @@ class _VectorIndexQuantizer:
 
     @staticmethod
     def rq(
-        databits: Optional[int] = None,
+        data_bits: Optional[int] = None,
         query_bits: Optional[int] = None,
     ) -> _RQConfigCreate:
         """Create a `_RQConfigCreate` object to be used when defining the Rotational quantization (RQ) configuration of Weaviate.
@@ -2142,7 +2142,7 @@ class _VectorIndexQuantizer:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _RQConfigCreate(
-            databits=databits,
+            data_bits=data_bits,
             query_bits=query_bits,
         )
 
@@ -2433,7 +2433,7 @@ class _VectorIndexQuantizerUpdate:
 
     @staticmethod
     def rq(
-        databits: Optional[int] = None,
+        data_bits: Optional[int] = None,
         query_bits: Optional[int] = None,
         enabled: bool = True,
     ) -> _RQConfigUpdate:
@@ -2444,7 +2444,7 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _RQConfigUpdate(enabled=enabled, databits=databits, query_bits=query_bits)
+        return _RQConfigUpdate(enabled=enabled, data_bits=data_bits, query_bits=query_bits)
 
 
 class _VectorIndexUpdate:
