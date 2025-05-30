@@ -532,7 +532,7 @@ def test_hybrid_bm25_operators(collection_factory: CollectionFactory) -> None:
         "banana two",
         vector=None,
         alpha=0.0,
-        keyword_operator=wvc.query.KeywordOperatorFactory.Or(minimum_match=1),
+        keyword_operator=wvc.query.KeywordOperator.Or(minimum_match=1),
     )
     assert len(objs.objects) == 4
     assert objs.objects[0].uuid == uuid2

@@ -5,7 +5,6 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     HybridFusion,
     HybridVector,
-    KeywordOperatorFactory,
     MetadataQuery,
     Move,
     NearMediaType,
@@ -16,6 +15,9 @@ from weaviate.collections.classes.grpc import (
     Sort,
     TargetVectors,
 )
+from weaviate.collections.classes.grpc import (
+    KeywordOperatorFactory as KeywordOperator,
+)
 from weaviate.collections.classes.types import GeoCoordinate
 
 __all__ = [
@@ -25,7 +27,7 @@ __all__ = [
     "GroupBy",
     "HybridFusion",
     "HybridVector",
-    "KeywordOperatorFactory",
+    "KeywordOperator",
     "MetadataQuery",
     "Metrics",
     "Move",

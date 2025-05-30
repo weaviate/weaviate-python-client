@@ -250,12 +250,16 @@ class KeywordOperatorOptions:
 
 @dataclass
 class KeywordOperatorOr(KeywordOperatorOptions):
+    """Define the 'Or' operator for keyword queries."""
+
     operator = base_search_pb2.SearchOperatorOptions.OPERATOR_OR
     minimum_should_match: Optional[int]
 
 
 @dataclass
 class KeywordOperatorAnd(KeywordOperatorOptions):
+    """Define the 'And' operator for keyword queries."""
+
     operator = base_search_pb2.SearchOperatorOptions.OPERATOR_AND
 
 

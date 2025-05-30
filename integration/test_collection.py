@@ -1774,7 +1774,7 @@ def test_bm25_operators(collection_factory: CollectionFactory) -> None:
 
     objs = collection.query.bm25(
         "banana two",
-        operator=wvc.query.KeywordOperatorFactory.Or(minimum_match=1),
+        operator=wvc.query.KeywordOperator.Or(minimum_match=1),
     )
     assert len(objs.objects) == 4
     assert objs.objects[0].uuid == uuid2
