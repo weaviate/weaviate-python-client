@@ -140,7 +140,7 @@ def test_client_with_authentication_with_anon_weaviate() -> None:
             for rwarning in recwarn.list:
                 print(rwarning.message)
         assert len(recwarn) == 1
-        assert str(recwarn.list[0].message).startswith("Auth001")
+        assert any(str(warn.message).startswith("Auth001") for warn in recwarn.list)
 
 
 def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
