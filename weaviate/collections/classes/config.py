@@ -324,6 +324,15 @@ class _SQConfigCreate(_QuantizerConfigCreate):
         return "sq"
 
 
+class _RQConfigCreate(_QuantizerConfigCreate):
+    data_bits: Optional[int]
+    query_bits: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "rq"
+
+
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
@@ -354,6 +363,16 @@ class _SQConfigUpdate(_QuantizerConfigUpdate):
     @staticmethod
     def quantizer_name() -> str:
         return "sq"
+
+
+class _RQConfigUpdate(_QuantizerConfigUpdate):
+    enabled: Optional[bool]
+    data_bits: Optional[int]
+    query_bits: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "rq"
 
 
 class _ShardingConfigCreate(_ConfigCreateModel):
@@ -1552,8 +1571,15 @@ class _SQConfig(_ConfigBase):
     training_limit: int
 
 
+@dataclass
+class _RQConfig(_ConfigBase):
+    data_bits: Optional[int]
+    query_bits: Optional[int]
+
+
 BQConfig = _BQConfig
 SQConfig = _SQConfig
+RQConfig = _RQConfig
 
 
 @dataclass
@@ -1567,7 +1593,7 @@ MultiVector = _MultiVectorConfig
 @dataclass
 class _VectorIndexConfig(_ConfigBase):
     multi_vector: Optional[_MultiVectorConfig]
-    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
+    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig, RQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -1577,6 +1603,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _SQConfig):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
+        elif isinstance(self.quantizer, _RQConfig):
+            out["rq"] = {**out.pop("quantizer"), "enabled": True}
         return out
 
 
@@ -2101,6 +2129,23 @@ class _VectorIndexQuantizer:
             trainingLimit=training_limit,
         )
 
+    @staticmethod
+    def rq(
+        data_bits: Optional[int] = None,
+        query_bits: Optional[int] = None,
+    ) -> _RQConfigCreate:
+        """Create a `_RQConfigCreate` object to be used when defining the Rotational quantization (RQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _RQConfigCreate(
+            data_bits=data_bits,
+            query_bits=query_bits,
+        )
+
 
 class _VectorIndex:
     MultiVector = _VectorIndexMultiVector
@@ -2386,6 +2431,21 @@ class _VectorIndexQuantizerUpdate:
             enabled=enabled, rescoreLimit=rescore_limit, trainingLimit=training_limit
         )
 
+    @staticmethod
+    def rq(
+        data_bits: Optional[int] = None,
+        query_bits: Optional[int] = None,
+        enabled: bool = True,
+    ) -> _RQConfigUpdate:
+        """Create a `_RQConfigUpdate` object to be used when updating the Rotational quantization (RQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _RQConfigUpdate(enabled=enabled, data_bits=data_bits, query_bits=query_bits)
+
 
 class _VectorIndexUpdate:
     Quantizer = _VectorIndexQuantizerUpdate
@@ -2399,7 +2459,9 @@ class _VectorIndexUpdate:
         flat_search_cutoff: Optional[int] = None,
         filter_strategy: Optional[VectorFilterStrategy] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
+        quantizer: Optional[
+            Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate, _RQConfigUpdate]
+        ] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 

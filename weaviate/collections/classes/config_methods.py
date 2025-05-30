@@ -25,6 +25,7 @@ from weaviate.collections.classes.config import (
     _NamedVectorizerConfig,
     _NestedProperty,
     _PQConfig,
+    _RQConfig,
     _PQEncoderConfig,
     _Property,
     _PropertyVectorizerConfig,
@@ -118,8 +119,8 @@ def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]
 
 def __get_quantizer_config(
     config: Dict[str, Any],
-) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig]]:
-    quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]] = None
+) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig, _RQConfig]]:
+    quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig, _RQConfig]] = None
     if "bq" in config and config["bq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _BQConfig(
@@ -145,6 +146,11 @@ def __get_quantizer_config(
                     config["pq"].get("encoder", {}).get("distribution")
                 ),
             ),
+        )
+    elif "rq" in config and config["rq"].get("enabled"):
+        quantizer = _RQConfig(
+            data_bits=config["rq"].get("databits"),
+            query_bits=config["rq"].get("queryBits"),
         )
     return quantizer
 
