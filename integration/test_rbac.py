@@ -1,23 +1,24 @@
 from typing import List
 
 import pytest
+from _pytest.fixtures import SubRequest
 
 from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
-from weaviate.classes.rbac import Permissions, Actions, RoleScope
+from weaviate.classes.rbac import Actions, Permissions, RoleScope
 from weaviate.rbac.models import (
-    _Permission,
-    Role,
     BackupsPermissionOutput,
     ClusterPermissionOutput,
     CollectionsPermissionOutput,
     DataPermissionOutput,
-    RolesPermissionOutput,
     NodesPermissionOutput,
+    Role,
+    RolesPermissionOutput,
     TenantsPermissionOutput,
     UsersPermissionOutput,
+    UserTypes,
+    _Permission,
 )
-from _pytest.fixtures import SubRequest
 
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
@@ -64,7 +65,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 users_permissions=[],
                 collections_permissions=[
                     CollectionsPermissionOutput(
-                        collection="Test", tenant="*", actions={Actions.Collections.CREATE}
+                        collection="Test", actions={Actions.Collections.CREATE}
                     )
                 ],
                 roles_permissions=[],
@@ -83,7 +84,36 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 collections_permissions=[],
                 roles_permissions=[],
                 data_permissions=[
-                    DataPermissionOutput(collection="*", actions={Actions.Data.CREATE})
+                    DataPermissionOutput(collection="*", tenant="*", actions={Actions.Data.CREATE})
+                ],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+            ),
+        ),
+        (
+            Permissions.data(
+                collection=["ColA", "ColB"], tenant=["tenant1", "tenant2"], create=True
+            ),
+            Role(
+                name="CreateDataInColsAndTenants",
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[
+                    DataPermissionOutput(
+                        collection="ColA", tenant="tenant1", actions={Actions.Data.CREATE}
+                    ),
+                    DataPermissionOutput(
+                        collection="ColA", tenant="tenant2", actions={Actions.Data.CREATE}
+                    ),
+                    DataPermissionOutput(
+                        collection="ColB", tenant="tenant1", actions={Actions.Data.CREATE}
+                    ),
+                    DataPermissionOutput(
+                        collection="ColB", tenant="tenant2", actions={Actions.Data.CREATE}
+                    ),
                 ],
                 backups_permissions=[],
                 nodes_permissions=[],
@@ -157,8 +187,47 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[
                     TenantsPermissionOutput(
-                        collection="*", actions={Actions.Tenants.READ, Actions.Tenants.UPDATE}
+                        collection="*",
+                        tenant="*",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
                     )
+                ],
+            ),
+        ),
+        (
+            Permissions.tenants(
+                collection=["ColA", "ColB"], tenant=["tenant1", "tenant2"], read=True, update=True
+            ),
+            Role(
+                name="ReadSpecificTenantsInCols",
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[
+                    TenantsPermissionOutput(
+                        collection="ColA",
+                        tenant="tenant1",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
+                    ),
+                    TenantsPermissionOutput(
+                        collection="ColA",
+                        tenant="tenant2",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
+                    ),
+                    TenantsPermissionOutput(
+                        collection="ColB",
+                        tenant="tenant1",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
+                    ),
+                    TenantsPermissionOutput(
+                        collection="ColB",
+                        tenant="tenant2",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
+                    ),
                 ],
             ),
         ),
@@ -197,7 +266,6 @@ def test_create_role(
             role = client.roles.get(expected.name)
             assert role is not None
             assert role == expected
-            assert len(role.permissions) == 1
         finally:
             client.roles.delete(expected.name)
 
@@ -347,6 +415,51 @@ def test_get_assigned_users(client_factory: ClientFactory) -> None:
         assigned_users = client.roles.get_assigned_user_ids("viewer")
         assert len(assigned_users) == 1
         assert assigned_users[0] == "admin-user"
+
+
+def test_get_assigned_users_db(client_factory: ClientFactory, request: SubRequest) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+
+        names = _sanitize_collection_name(request.node.name)
+        client.roles.delete(names)
+        client.roles.create(
+            role_name=names,
+            permissions=Permissions.roles(role="test", read=True),
+        )
+
+        client.users.db.create(user_id=names)
+
+        client.users.db.assign_roles(user_id=names, role_names=names)
+        assigned_users = client.roles.get_user_assignments(names)
+        assert len(assigned_users) == 1
+        assert assigned_users[0].user_id == names
+        assert assigned_users[0].user_type == UserTypes.DB_DYNAMIC
+
+        client.roles.delete(names)
+        client.users.db.delete(user_id=names)
+
+
+def test_get_assigned_oidc_db(client_factory: ClientFactory, request: SubRequest) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+
+        names = _sanitize_collection_name(request.node.name)
+        client.roles.delete(names)
+        client.roles.create(
+            role_name=names,
+            permissions=Permissions.roles(role="test", read=True),
+        )
+
+        client.users.oidc.assign_roles(user_id=names, role_names=names)
+        assigned_users = client.roles.get_user_assignments(names)
+        assert len(assigned_users) == 1
+        assert assigned_users[0].user_id == names
+        assert assigned_users[0].user_type == UserTypes.OIDC
+
+        client.roles.delete(names)
 
 
 def test_permission_output_as_input(client_factory: ClientFactory) -> None:

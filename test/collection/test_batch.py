@@ -1,5 +1,6 @@
 import uuid
-from weaviate.collections.classes.batch import BatchObjectReturn, MAX_STORED_RESULTS
+
+from weaviate.collections.classes.batch import MAX_STORED_RESULTS, BatchObjectReturn
 
 
 def test_batch_object_return_add() -> None:

@@ -1,7 +1,8 @@
-from weaviate import syncify
-from weaviate.collections.cluster.cluster import _ClusterAsync
+from weaviate.collections.cluster.executor import _ClusterExecutor
+from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionSync
 
 
-@syncify.convert
-class _Cluster(_ClusterAsync):
+@executor.wrap("sync")
+class _Cluster(_ClusterExecutor[ConnectionSync]):
     pass

@@ -1,43 +1,43 @@
 from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
-    _BQConfig,
-    _SQConfig,
-    _CollectionConfig,
-    _CollectionConfigSimple,
-    _NamedVectorConfig,
-    _NamedVectorizerConfig,
-    _MultiVectorConfig,
-    _PQConfig,
-    _VectorIndexConfigFlat,
-    _VectorIndexConfigDynamic,
-    _InvertedIndexConfig,
-    _BM25Config,
-    _StopwordsConfig,
-    _MultiTenancyConfig,
-    _Property,
-    _ReferenceProperty,
-    _ReplicationConfig,
-    _ShardingConfig,
-    _VectorIndexConfigHNSW,
-    StopwordsPreset,
-    VectorDistances,
-    PQEncoderType,
+    DataType,
+    GenerativeSearches,
     PQEncoderDistribution,
+    PQEncoderType,
+    ReplicationDeletionStrategy,
+    Rerankers,
+    StopwordsPreset,
+    Tokenization,
+    VectorDistances,
+    VectorFilterStrategy,
     VectorIndexType,
     Vectorizers,
-    Tokenization,
-    _PQEncoderConfig,
-    _PropertyVectorizerConfig,
-    _VectorizerConfig,
+    _BM25Config,
+    _BQConfig,
+    _CollectionConfig,
+    _CollectionConfigSimple,
     _GenerativeConfig,
-    GenerativeSearches,
-    DataType,
-    _RerankerConfig,
-    Rerankers,
+    _InvertedIndexConfig,
+    _MultiTenancyConfig,
+    _MultiVectorConfig,
+    _NamedVectorConfig,
+    _NamedVectorizerConfig,
     _NestedProperty,
-    ReplicationDeletionStrategy,
-    VectorFilterStrategy,
+    _PQConfig,
+    _PQEncoderConfig,
+    _Property,
+    _PropertyVectorizerConfig,
+    _ReferenceProperty,
+    _ReplicationConfig,
+    _RerankerConfig,
+    _ShardingConfig,
+    _SQConfig,
+    _StopwordsConfig,
+    _VectorIndexConfigDynamic,
+    _VectorIndexConfigFlat,
+    _VectorIndexConfigHNSW,
+    _VectorizerConfig,
 )
 
 
@@ -117,7 +117,7 @@ def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]
 
 
 def __get_quantizer_config(
-    config: Dict[str, Any]
+    config: Dict[str, Any],
 ) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig]]:
     quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]] = None
     if "bq" in config and config["bq"]["enabled"]:
@@ -149,6 +149,17 @@ def __get_quantizer_config(
     return quantizer
 
 
+def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
+    return (
+        None
+        if config.get("multivector") is None
+        or not config.get("multivector", {"enabled": False}).get("enabled")
+        else _MultiVectorConfig(
+            aggregation=config["multivector"]["aggregation"],
+        )
+    )
+
+
 def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigHNSW(
@@ -169,13 +180,7 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         quantizer=quantizer,
         skip=config["skip"],
         vector_cache_max_objects=config["vectorCacheMaxObjects"],
-        multi_vector=(
-            None
-            if config.get("multivector") is None or config["multivector"]["enabled"] is False
-            else _MultiVectorConfig(
-                aggregation=config["multivector"]["aggregation"],
-            )
-        ),
+        multi_vector=__get_multivector(config),
     )
 
 
@@ -185,12 +190,12 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
         distance_metric=VectorDistances(config["distance"]),
         quantizer=quantizer,
         vector_cache_max_objects=config["vectorCacheMaxObjects"],
-        multi_vector=None,
+        multi_vector=__get_multivector(config),
     )
 
 
 def __get_vector_index_config(
-    schema: Dict[str, Any]
+    schema: Dict[str, Any],
 ) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None]:
     if "vectorIndexConfig" not in schema:
         return None
@@ -260,8 +265,12 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
         name=schema["class"],
         description=schema.get("description"),
         generative_config=__get_generative_config(schema),
-        properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
-        references=_references_from_config(schema) if schema.get("properties") is not None else [],
+        properties=(
+            _properties_from_config(schema) if schema.get("properties") is not None else []
+        ),
+        references=(
+            _references_from_config(schema) if schema.get("properties") is not None else []
+        ),
         reranker_config=__get_rerank_config(schema),
         vectorizer_config=__get_vectorizer_config(schema),
         vectorizer=__get_vectorizer(schema),
@@ -303,8 +312,12 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 "autoTenantActivation", False
             ),
         ),
-        properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
-        references=_references_from_config(schema) if schema.get("properties") is not None else [],
+        properties=(
+            _properties_from_config(schema) if schema.get("properties") is not None else []
+        ),
+        references=(
+            _references_from_config(schema) if schema.get("properties") is not None else []
+        ),
         replication_config=_ReplicationConfig(
             factor=schema["replicationConfig"]["factor"],
             async_enabled=schema["replicationConfig"].get("asyncEnabled", False),
@@ -338,15 +351,19 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
 
 
 def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _CollectionConfig]:
-    return {schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]}
+    configs = {
+        schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]
+    }
+    return dict(sorted(configs.items()))
 
 
 def _collection_configs_simple_from_json(
-    schema: Dict[str, Any]
+    schema: Dict[str, Any],
 ) -> Dict[str, _CollectionConfigSimple]:
-    return {
+    configs = {
         schema["class"]: _collection_config_simple_from_json(schema) for schema in schema["classes"]
     }
+    return dict(sorted(configs.items()))
 
 
 def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedProperty]:
@@ -398,7 +415,18 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 and prop.get("moduleConfig", None) is not None
                 else None
             ),
-            vectorizer=schema.get("vectorizer", "none") if "vectorConfig" not in schema else None,
+            vectorizer_configs=(
+                {
+                    k: _PropertyVectorizerConfig(
+                        skip=v.get("skip", False),
+                        vectorize_property_name=v.get("vectorizePropertyName", False),
+                    )
+                    for k, v in prop.get("moduleConfig", {}).items()
+                }
+                if "vectorConfig" in schema
+                else None
+            ),
+            vectorizer=(schema.get("vectorizer", "none") if "vectorConfig" not in schema else None),
         )
         for prop in schema["properties"]
         if _is_primitive(prop["dataType"])

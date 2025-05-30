@@ -1,19 +1,114 @@
 Changelog
 =========
 
+Version 4.14.4
+--------------
+
+This patch version includes:
+    - Fixes interfaces for user.db/oidc
+    - If a string is passed into `auth=` we assume that it is an api-key
+    - Fix extracting nested array properties from data models
+
+Version 4.14.3
+--------------
+This patch version includes:
+    - Fixes return type for aggregate with group_by and zero results
+    - Fix multi-vector with hybrid search
+
+Version 4.14.2
+--------------
+not released
+
+Version 4.14.1
+--------------
+This patch version includes:
+    - Fixes a missing ``typing.overload`` specification for the ``query.bm25`` method
+
+Version 4.14.0
+--------------
+This minor version includes a major update to the docstrings and documentation of the client.
+    - All docstrings have been aligned with Google's style format
+    - The read-the-docs page has been streamlined and improved for ease of use: https://weaviate-python-client.readthedocs.io/en/stable/
+    - Fixes a bug when adding a property to a collection configured with both named vectors and a generative module
+    - Potential fixes for race conditions when instantiating async clients
+    - A number of minor fixes to the public `.pyi` stub files found by developing a stub auto-generating tool for the codebase
+
+
+Version 4.13.2
+--------------
+This patch version includes:
+    - Fixes a parsing bug when providing URLs with ``GenerativeConfig`` for runtime generate queries
+
+Version 4.13.1
+--------------
+This patch version includes:
+   - Fixes ``generative.near_text()`` to not require ``generative_provider``
+
+Version 4.13.0
+--------------
+This minor version provides a complete top-down refactor of the underlying transport for the sync and async clients.
+    - Introduction of a dependency injection system whereby the sync/async connections are injected into each client independently thereby removing their cross-dependency.
+    - Removal of the ``event_loop.py`` file and all logic surrounding its usage by the sync client.
+    - Refactoring of the batching algorithm to use blocking threads with a sync connection, rather than the event loop sidecar thread.
+
+
+Version 4.12.1
+--------------
+This patch version includes:
+    - Renames ``GenerativeConfig.openai_azure`` to ``GenerativeConfig.azure_openai`` to align with the convention of ``Configure.Generative.azure_openai``
+
+Version 4.12.0
+--------------
+This minor version includes:
+    - Support for new 1.30 features:
+        - Dynamic user management of OIDC and native DB users
+        - Improved multi-dimensional/colBERT vectors
+        - Query-time configuration of generative modules
+        - Tenant-based filtering of data permissions in RBAC
+        - The new ``generative-xai`` module
+
+
+Version 4.11.3
+--------------
+This patch version includes:
+    - Fixes a rare bug when the batching algorithm waits for async indexing to complete far beyond the maximum number of allowed retries
+    - Removes the sync-in-async warning emitted by the sync client when used in an async context due to the warning being erroneously emitted in notebooks
+
+Version 4.11.2
+--------------
+This patch version includes:
+    - Adds exponential backoff on the UNAVAILABLE gRPC error code for the BatchObjects method
+        - This is used in the batching algorithm and in ``data.insert_many``
+        - Max number of retries is configurable using the ``WEAVIATE_BATCH_MAX_RETRIES`` env var
+    - Adds support for OIDC when using the ``text2vec-weaviate`` module
+    - Adds support for updating descriptions of properties in collections (needs compatible server version)
+    - Adds warning recommending to refactor to use AsyncClient if the SyncClient is used in an async context
+    - Fixes bugs when importing/exporting collection configurations with respect to property module configs
+    - Fixes bug when exporting config with multivector enabled between versions
+
+Version 4.11.1
+--------------
+This patch version incldues:
+    - Fixes exporting of named vector collections
+    - Support for upcoming weaviate agents. User ``pip install weaviate-client[agents]`` to try it out
+    - Raise error if a header with value `None`` has been added
+    - Introduce ``collections.use`` as an alias for ``collections.get``
+        - ``collections.use`` is the preferred method to create an in-memory collection object
+        - ``collections.get`` will be deprecated in the future and should not be used in new code
+
 Version 4.11.0
 --------------
 
 This minor version includes:
     - Support for new 1.29 features:
         - RBAC is ready for production
-        - Multi-dimensional/COLBert vectors  experimental, breaking changes are expected)
+        - Multi-dimensional/COLBert vectors  experimental, breaking changes are expected
         - Aggregations are using GRPC now
     - Improved exception handling for errors returned by Weaviate
     - Add support for NVIDIA modules:
         - multi2vec-nvidia
         - text2vec-nvidia
-         - generative-nvidia
+        - generative-nvidia
 
 
 Version 4.10.4
@@ -160,14 +255,18 @@ This minor version includes:
     - All methods that perform CRUD and search actions are now ``async def`` functions
     - To instantiate a client quickly, use the ``weaviate.use_async_with_x`` methods in an async context manager pattern, e.g.:
         .. code-block:: python
+
             async with weaviate.use_async_with_local() as client:
                 # Your code
+
     - Note, you cannot do ``await weaviate.use_async_with_x`` if not using the context manager pattern. You have to create the client first and then connect manually:
         .. code-block:: python
+
             client = weaviate.use_async_with_local()
             await client.connect()
             # Your code
             await client.close()
+
 - A refactoring of the underlying implementation of the ``WeaviateClient`` to use the ``WeaviateAsyncClient`` under-the-hood scheduling the necessary coroutines to run in a side-car event-loop thread
 - Support for new core Weaviate features in both the sync and async clients:
     - Multi-vector search in the ``.near_x`` and ``.hybrid`` methods within the ``.generate`` and ``.query`` collection namespaces
@@ -389,7 +488,7 @@ For more information around the new client, see here: https://weaviate.io/develo
 
 
 Version 4.4.rc1
---------------
+---------------
 
 This version is a release candidate for the python v4 client.
 
@@ -405,7 +504,7 @@ Minor bugfixes are also included.
 
 
 Version 4.4.rc0
---------------
+---------------
 
 This version is a release candidate for the python v4 client.
 
@@ -444,10 +543,13 @@ This beta version has breaking changes, a migration guide is available at https:
 
 Improvements include:
 - Introduction of the ``.by_ref_count()`` method on ``Filter`` to filter on the number of references present in a reference property of an object.
+
     - This was previously achievable with ``Filter([refProp]).greater_than(0)`` but is now more explicit using the chaining syntax.
+
 - The syntax for sorting now feels similar to the new filtering syntax.
-    - Supports method chaining like ``Sort.by_property(prop).by_creation_time()`` which will apply the sorting in the order they are chained, i.e., this chain
-    is equivalent to the previous syntax of ``[Sort(prop), Sort("_creationTimeUnix")]``.
+    - |
+        Supports method chaining like ``Sort.by_property(prop).by_creation_time()`` which will apply the sorting in the order they are chained, i.e.,
+        this chain is equivalent to the previous syntax of ``[Sort(prop), Sort("_creationTimeUnix")]``.
 
 Fixes include:
 - The potential for deadlocks and data races when batching has been reduced.
@@ -513,11 +615,16 @@ Bugfixes include:
 
 New client usage:
 - Client as a context manager:
+
     .. code-block:: python
+
         with weaviate.connect_to_local() as client:
             # Your code
+
 - Client without a context manager:
+
     .. code-block:: python
+
         try:
             client = weaviate.connect_to_local()
             # Your code
@@ -919,13 +1026,15 @@ This minor version includes:
 - Increases default embedded version to 1.19.3
 - Clients emits warning if used weaviate version is too old (3 versions behind latest minor version)
 - Adds native support for querying reference properties
+
     .. code-block:: python
 
         result = client.query.get(
           "Article", ["title", "url", "wordCount", LinkTo(link_on="caller", linked_class="Person", properties=["name"])]
              )
 
-- Adds dataclasses to easier access to additional properties
+- Adds dataclasses to easier access to additional properties:
+
     .. code-block:: python
 
         query = client.query.get("Test").with_additional(
@@ -963,6 +1072,7 @@ Version 3.17.0
 This minor version includes:
 
 - Add support for groupBy to group objects:
+
     .. code-block:: python
 
            .with_group_by(properties=["caller"], groups=2, objects_per_group=3)
@@ -970,7 +1080,8 @@ This minor version includes:
 
 - Add support for `uuid` and `uuid[]` datatypes.
 - Add `schema.exists(class)`.
-- Add support for `Support GQL Get{} tunable consistency`
+- Add support for `Support GQL Get{} tunable consistency`:
+
     .. code-block:: python
 
         resp = (
@@ -1051,7 +1162,8 @@ Version 3.15.0
 --------------
 This minor version includes:
 
-- GraphQL Multiple queries and aliases support
+- GraphQL Multiple queries and aliases support:
+
     .. code-block:: python
 
         client.query.multi_get(
@@ -1060,7 +1172,8 @@ This minor version includes:
                    client.query.get("Ship", ["size"]).with_alias("two"),
                    client.query.get("Person", ["name"])
                 ]
-- Adds support for embedded weaviate version
+- Adds support for embedded weaviate version:
+
     .. code-block:: python
 
         from weaviate import Client
@@ -1074,7 +1187,8 @@ Version 3.14.0
 --------------
 This minor version includes:
 
-- Support for API-Keys
+- Support for API-Keys:
+
     .. code-block:: python
 
         client = weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="my-secret-key"))
@@ -1095,11 +1209,11 @@ Version 3.12.0
 --------------
 This minor version includes:
 
-- Adds with_generate in :meth:`~weaviate.gql.get.GetBuilder` which allows to use the generative openai module. Needs Weaviate with version >=v1.17.3.
+- Adds :meth:`~weaviate.gql.get.GetBuilder.with_generate` in :class:`~weaviate.gql.get.GetBuilder` which allows to use the generative openai module. Needs Weaviate with version >=v1.17.3.
 
 - Fix for empty OIDC scopes
 
-- New startup_period parameter in :meth:`~weaviate.client.Client`. The client will wait for the given timeout for
+- New `startup_period` parameter in :class:`~weaviate.client.Client`. The client will wait for the given timeout for
   Weaviate to start. By default 5 seconds.
 
 - Improved error messages for where filters and authentication.

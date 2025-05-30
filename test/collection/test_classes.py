@@ -1,14 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
+from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.grpc import (
     QueryReference,
-    _QueryReferenceMultiTarget,
-    _QueryReference,
     Sort,
+    _QueryReference,
+    _QueryReferenceMultiTarget,
 )
-
-from weaviate.collections.classes.filters import Filter
 
 
 def test_link_to_errors_on_extra_variable() -> None:

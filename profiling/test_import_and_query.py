@@ -8,6 +8,7 @@ from _pytest.fixtures import SubRequest
 import weaviate
 import weaviate.classes as wvc
 from weaviate.collections.collection import Collection
+
 from .conftest import get_file_path
 
 # The following code is used to test the performance of the weaviate client.
@@ -63,7 +64,7 @@ def load_records_v4(collection: Collection, vectors: List[List[float]]) -> None:
                 uuid=uuid.UUID(int=i),
             )
 
-    print(f"V4: Finished writing {len(vectors)} records in {time.time()-start}s")
+    print(f"V4: Finished writing {len(vectors)} records in {time.time() - start}s")
 
 
 def query_v4(
@@ -82,7 +83,7 @@ def query_v4(
         recall += len(ideal_neighbors.intersection(res_ids)) / LIMIT
 
     print(
-        f"V4: Querying {len(vectors)} records with ef {ef} in {time.time()-start}s with recall {recall/len(vectors)}"
+        f"V4: Querying {len(vectors)} records with ef {ef} in {time.time() - start}s with recall {recall / len(vectors)}"
     )
 
 

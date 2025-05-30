@@ -1,56 +1,49 @@
 import uuid as uuid_lib
 from dataclasses import dataclass
 from typing import (
-    Awaitable,
     Dict,
     List,
     Literal,
     Optional,
     Sequence,
     Set,
+    Tuple,
     TypeVar,
     Union,
     cast,
 )
 
-from grpc.aio import AioRpcError  # type: ignore
 from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
-    HybridFusion,
-    _QueryReferenceMultiTarget,
-    _MetadataQuery,
-    HybridVectorType,
-    Move,
-    QueryNested,
-    _QueryReference,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
     REFERENCES,
-    _Sorting,
+    HybridFusion,
+    HybridVectorType,
+    Move,
+    NearVectorInputType,
+    QueryNested,
     Rerank,
     TargetVectorJoinType,
-    NearVectorInputType,
+    _MetadataQuery,
+    _QueryReference,
+    _QueryReferenceMultiTarget,
+    _Sorting,
 )
 from weaviate.collections.classes.internal import (
     _Generative,
     _GroupBy,
 )
 from weaviate.collections.filters import _FilterToGRPC
-from weaviate.collections.grpc.retry import _Retry
-from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
-from weaviate.connect import ConnectionV4
-from weaviate.exceptions import (
-    InsufficientPermissionsError,
-    WeaviateQueryError,
-    WeaviateRetryError,
-)
+from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.proto.v1 import base_search_pb2, search_get_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.util import _ServerVersion
+from weaviate.validator import _validate_input, _ValidateArgument
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
 _PyValue: TypeAlias = Union[
@@ -81,18 +74,41 @@ A = TypeVar("A")
 class _QueryGRPC(_BaseGRPC):
     def __init__(
         self,
-        connection: ConnectionV4,
+        weaviate_version: _ServerVersion,
         name: str,
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
+        uses_125_api: bool,
+        uses_127_api: bool,
     ):
-        super().__init__(connection, consistency_level, validate_arguments)
+        super().__init__(weaviate_version, consistency_level, validate_arguments)
         self._name: str = name
         self._tenant = tenant
+        self._validate_arguments = validate_arguments
+        self.__uses_125_api = uses_125_api
+        self.__uses_127_api = uses_127_api
+
+    def __parse_near_options(
+        self,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+    ) -> Tuple[Optional[float], Optional[float]]:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([float, int, None], "certainty", certainty),
+                    _ValidateArgument([float, int, None], "distance", distance),
+                ]
+            )
+        return (
+            float(certainty) if certainty is not None else None,
+            float(distance) if distance is not None else None,
+        )
 
     def get(
         self,
+        *,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -103,7 +119,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
 
@@ -115,7 +131,7 @@ class _QueryGRPC(_BaseGRPC):
         else:
             sort_by = None
 
-        request = self.__create_request(
+        return self.__create_request(
             after=after,
             limit=limit,
             offset=offset,
@@ -128,10 +144,9 @@ class _QueryGRPC(_BaseGRPC):
             sort_by=sort_by,
         )
 
-        return self.__call(request)
-
     def hybrid(
         self,
+        *,
         query: Optional[str],
         alpha: Optional[float] = None,
         vector: Optional[HybridVectorType] = None,
@@ -149,8 +164,8 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
-        request = self.__create_request(
+    ) -> search_get_pb2.SearchRequest:
+        return self.__create_request(
             limit=limit,
             offset=offset,
             filters=filters,
@@ -171,10 +186,10 @@ class _QueryGRPC(_BaseGRPC):
                 target_vector,
             ),
         )
-        return self.__call(request)
 
     def bm25(
         self,
+        *,
         query: Optional[str],
         properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
@@ -187,7 +202,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -196,7 +211,7 @@ class _QueryGRPC(_BaseGRPC):
                 ]
             )
 
-        request = self.__create_request(
+        return self.__create_request(
             limit=limit,
             offset=offset,
             filters=filters,
@@ -215,10 +230,10 @@ class _QueryGRPC(_BaseGRPC):
                 else None
             ),
         )
-        return self.__call(request)
 
     def near_vector(
         self,
+        *,
         near_vector: NearVectorInputType,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -233,8 +248,8 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
-        request = self.__create_request(
+    ) -> search_get_pb2.SearchRequest:
+        return self.__create_request(
             limit=limit,
             offset=offset,
             filters=filters,
@@ -249,10 +264,10 @@ class _QueryGRPC(_BaseGRPC):
                 near_vector, certainty, distance, target_vector=target_vector
             ),
         )
-        return self.__call(request)
 
     def near_object(
         self,
+        *,
         near_object: UUID,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -267,8 +282,8 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
-        request = self.__create_request(
+    ) -> search_get_pb2.SearchRequest:
+        return self.__create_request(
             limit=limit,
             offset=offset,
             filters=filters,
@@ -281,10 +296,10 @@ class _QueryGRPC(_BaseGRPC):
             group_by=group_by,
             near_object=self._parse_near_object(near_object, certainty, distance, target_vector),
         )
-        return self.__call(request)
 
     def near_text(
         self,
+        *,
         near_text: Union[List[str], str],
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -301,8 +316,8 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
-        request = self.__create_request(
+    ) -> search_get_pb2.SearchRequest:
+        return self.__create_request(
             limit=limit,
             offset=offset,
             filters=filters,
@@ -322,10 +337,10 @@ class _QueryGRPC(_BaseGRPC):
                 target_vector=target_vector,
             ),
         )
-        return self.__call(request)
 
     def near_media(
         self,
+        *,
         media: str,
         type_: Literal["audio", "depth", "image", "imu", "thermal", "video"],
         certainty: Optional[NUMBER] = None,
@@ -341,8 +356,8 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
-        request = self.__create_request(
+    ) -> search_get_pb2.SearchRequest:
+        return self.__create_request(
             limit=limit,
             offset=offset,
             filters=filters,
@@ -361,7 +376,6 @@ class _QueryGRPC(_BaseGRPC):
                 target_vector,
             ),
         )
-        return self.__call(request)
 
     def __create_request(
         self,
@@ -407,7 +421,9 @@ class _QueryGRPC(_BaseGRPC):
                         return_properties,
                     ),
                     _ValidateArgument(
-                        [_QueryReference, Sequence, None], "return_references", return_references
+                        [_QueryReference, Sequence, None],
+                        "return_references",
+                        return_references,
                     ),
                 ]
             )
@@ -415,7 +431,9 @@ class _QueryGRPC(_BaseGRPC):
                 for prop in return_properties:
                     _validate_input(
                         _ValidateArgument(
-                            expected=[str, QueryNested], name="return_properties", value=prop
+                            expected=[str, QueryNested],
+                            name="return_properties",
+                            value=prop,
                         )
                     )
 
@@ -423,7 +441,9 @@ class _QueryGRPC(_BaseGRPC):
                 for ref in return_references:
                     _validate_input(
                         _ValidateArgument(
-                            expected=[_QueryReference], name="return_references", value=ref
+                            expected=[_QueryReference],
+                            name="return_references",
+                            value=ref,
                         )
                     )
 
@@ -438,7 +458,8 @@ class _QueryGRPC(_BaseGRPC):
 
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
-            uses_125_api=self._connection._weaviate_version.is_at_least(1, 25, 0),
+            uses_125_api=self.__uses_125_api,
+            uses_127_api=self.__uses_127_api,
             collection=self._name,
             limit=limit,
             offset=offset,
@@ -451,7 +472,9 @@ class _QueryGRPC(_BaseGRPC):
             consistency_level=self._consistency_level,
             tenant=self._tenant,
             filters=_FilterToGRPC.convert(filters),
-            generative=generative.to_grpc() if generative is not None else None,
+            generative=(
+                generative.to_grpc(self._weaviate_version) if generative is not None else None
+            ),
             group_by=group_by.to_grpc() if group_by is not None else None,
             rerank=(
                 search_get_pb2.Rerank(property=rerank.prop, query=rerank.query)
@@ -471,25 +494,6 @@ class _QueryGRPC(_BaseGRPC):
             near_thermal=near_thermal,
             near_video=near_video,
         )
-
-    async def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
-        try:
-            assert self._connection.grpc_stub is not None
-            res = await _Retry(4).with_exponential_backoff(
-                0,
-                f"Searching in collection {request.collection}",
-                self._connection.grpc_stub.Search,
-                request,
-                metadata=self._connection.grpc_headers(),
-                timeout=self._connection.timeout_config.query,
-            )
-            return cast(search_get_pb2.SearchReply, res)
-        except AioRpcError as e:
-            if e.code().name == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(e)
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
-        except WeaviateRetryError as e:
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
         return search_get_pb2.MetadataRequest(

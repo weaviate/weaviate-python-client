@@ -1,6 +1,7 @@
 import pytest
+
 from weaviate.config import ConnectionConfig
-from weaviate.connect import ConnectionV4, ConnectionParams
+from weaviate.connect import ConnectionParams, ConnectionV4
 
 
 @pytest.fixture

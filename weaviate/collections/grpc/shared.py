@@ -1,46 +1,48 @@
 import struct
 import uuid as uuid_lib
+from dataclasses import dataclass
 from typing import (
     Any,
     Dict,
     List,
     Literal,
     Optional,
+    Tuple,
     Union,
     cast,
-    Tuple,
     get_args,
 )
-from dataclasses import dataclass
+
 from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    _ListOfVectorsQuery,
-    _MultiTargetVectorJoin,
-    _HybridNearText,
-    _HybridNearVector,
     HybridFusion,
     HybridVectorType,
     Move,
-    TargetVectorJoinType,
     NearVectorInputType,
     OneDimensionalVectorType,
-    TwoDimensionalVectorType,
     PrimitiveVectorType,
+    TargetVectorJoinType,
+    TwoDimensionalVectorType,
+    _HybridNearText,
+    _HybridNearVector,
+    _ListOfVectorsQuery,
+    _MultiTargetVectorJoin,
 )
-from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
 )
-from weaviate.proto.v1 import base_search_pb2, base_pb2
+from weaviate.proto.v1 import base_pb2, base_search_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import _get_vector_v4
-from weaviate.validator import _is_valid, _ValidateArgument, _validate_input, _ExtraTypes
-
-
-PERMISSION_DENIED = "PERMISSION_DENIED"
+from weaviate.util import _get_vector_v4, _ServerVersion
+from weaviate.validator import (
+    _ExtraTypes,
+    _is_valid,
+    _validate_input,
+    _ValidateArgument,
+)
 
 UINT32_LEN = 4
 UINT64_LEN = 8
@@ -49,11 +51,11 @@ UINT64_LEN = 8
 class _BaseGRPC:
     def __init__(
         self,
-        connection: ConnectionV4,
+        weaviate_version: _ServerVersion,
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
     ):
-        self._connection = connection
+        self._weaviate_version = weaviate_version
         self._consistency_level = self._get_consistency_level(consistency_level)
         self._validate_arguments = validate_arguments
 
@@ -73,7 +75,9 @@ class _BaseGRPC:
             return base_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_ALL
 
     def _recompute_target_vector_to_grpc(
-        self, target_vector: Optional[TargetVectorJoinType], target_vectors_tmp: List[str]
+        self,
+        target_vector: Optional[TargetVectorJoinType],
+        target_vectors_tmp: List[str],
     ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
         # reorder input for targets so they match the vectors
         if isinstance(target_vector, _MultiTargetVectorJoin):
@@ -92,7 +96,7 @@ class _BaseGRPC:
         if target_vector is None:
             return None, None
 
-        if self._connection._weaviate_version.is_lower_than(1, 26, 0):
+        if self._weaviate_version.is_lower_than(1, 26, 0):
             if isinstance(target_vector, str):
                 return None, [target_vector]
             elif isinstance(target_vector, list) and len(target_vector) == 1:
@@ -100,7 +104,7 @@ class _BaseGRPC:
             else:
                 raise WeaviateUnsupportedFeatureError(
                     "Multiple target vectors in search",
-                    str(self._connection._weaviate_version),
+                    str(self._weaviate_version),
                     "1.26.0",
                 )
 
@@ -109,7 +113,7 @@ class _BaseGRPC:
         elif isinstance(target_vector, list):
             return base_search_pb2.Targets(target_vectors=target_vector), None
         else:
-            return target_vector.to_grpc_target_vector(self._connection._weaviate_version), None
+            return target_vector.to_grpc_target_vector(self._weaviate_version), None
 
     def _vector_per_target(
         self,
@@ -155,8 +159,10 @@ class _BaseGRPC:
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
             else:
                 raise WeaviateInvalidInputError(
-                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
-                    keys and lists of numbers as values."""
+                    """This input appears to be a nested list of embeddings.
+                    If you are trying to search with a multi-vector embedding, check the shape of your input.
+                    If you are trying to provide multiple target vectors,
+                    provide a dictionary with target names as keys and embeddings as values."""
                 )
 
     def _vector_for_target(
@@ -165,7 +171,9 @@ class _BaseGRPC:
         targets: Optional[base_search_pb2.Targets],
         argument_name: str,
     ) -> Tuple[
-        Optional[List[base_search_pb2.VectorForTarget]], Optional[bytes], Optional[List[str]]
+        Optional[List[base_search_pb2.VectorForTarget]],
+        Optional[bytes],
+        Optional[List[str]],
     ]:
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
@@ -187,7 +195,7 @@ class _BaseGRPC:
             ):
                 raise invalid_nv_exception
 
-            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+            if self._weaviate_version.is_lower_than(1, 29, 0):
                 vector_for_target.append(
                     base_search_pb2.VectorForTarget(name=key, vector_bytes=_Pack.single(vec))
                 )
@@ -207,7 +215,7 @@ class _BaseGRPC:
             target_vectors.append(key)
 
         def add_2d_vector(value: TwoDimensionalVectorType, key: str) -> None:
-            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+            if self._weaviate_version.is_lower_than(1, 29, 0):
                 for v in value:
                     add_1d_vector(v, key)
                 return
@@ -228,13 +236,13 @@ class _BaseGRPC:
         def add_list_of_vectors(value: _ListOfVectorsQuery, key: str) -> None:
             if _ListOfVectorsQuery.is_one_dimensional(
                 value
-            ) and self._connection._weaviate_version.is_lower_than(1, 29, 0):
+            ) and self._weaviate_version.is_lower_than(1, 29, 0):
                 for v in value.vectors:
                     add_1d_vector(v, key)
                 return
             elif _ListOfVectorsQuery.is_one_dimensional(
                 value
-            ) and self._connection._weaviate_version.is_at_least(1, 29, 0):
+            ) and self._weaviate_version.is_at_least(1, 29, 0):
                 vectors = [
                     base_pb2.Vectors(
                         name=key,
@@ -283,11 +291,17 @@ class _BaseGRPC:
                 near_vector = _get_vector_v4(vector)
                 if not isinstance(near_vector, list):
                     raise invalid_nv_exception
-                return None, struct.pack("{}f".format(len(near_vector)), *near_vector), None
+                return (
+                    None,
+                    struct.pack("{}f".format(len(near_vector)), *near_vector),
+                    None,
+                )
             else:
                 raise WeaviateInvalidInputError(
-                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
-                    keys and lists of numbers as values."""
+                    """This input appears to be a nested list of embeddings.
+                    If you are trying to search with a multi-vector embedding, check the shape of your input.
+                    If you are trying to provide multiple target vectors,
+                    provide a dictionary with target names as keys and embeddings as values."""
                 )
 
     def _parse_near_options(
@@ -330,7 +344,9 @@ class _BaseGRPC:
                         near_vector,
                     ),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -341,7 +357,7 @@ class _BaseGRPC:
 
         if _is_1d_vector(near_vector) and len(near_vector) > 0:
             # fast path for simple single-vector
-            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+            if self._weaviate_version.is_lower_than(1, 29, 0):
                 near_vector_grpc: Optional[bytes] = struct.pack(
                     "{}f".format(len(near_vector)), *near_vector
                 )
@@ -358,9 +374,7 @@ class _BaseGRPC:
                         type=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
                     )
                 ]
-        elif _is_2d_vector(near_vector) and self._connection._weaviate_version.is_at_least(
-            1, 29, 0
-        ):
+        elif _is_2d_vector(near_vector) and self._weaviate_version.is_at_least(1, 29, 0):
             # fast path for simple multi-vector
             near_vector_grpc = None
             vector_per_target_tmp = None
@@ -372,7 +386,7 @@ class _BaseGRPC:
                 )
             ]
         else:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+            if self._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, near_vector_grpc = self._vector_per_target(
                     near_vector, targets, "near_vector"
                 )
@@ -399,7 +413,9 @@ class _BaseGRPC:
         )
 
     @staticmethod
-    def __parse_move(move: Optional[Move]) -> Optional[base_search_pb2.NearTextSearch.Move]:
+    def __parse_move(
+        move: Optional[Move],
+    ) -> Optional[base_search_pb2.NearTextSearch.Move]:
         return (
             base_search_pb2.NearTextSearch.Move(
                 force=move.force,
@@ -426,7 +442,9 @@ class _BaseGRPC:
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
                     _ValidateArgument(
-                        [str, List, _MultiTargetVectorJoin, None], "target_vector", target_vector
+                        [str, List, _MultiTargetVectorJoin, None],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -458,7 +476,9 @@ class _BaseGRPC:
                 [
                     _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -488,7 +508,9 @@ class _BaseGRPC:
                 [
                     _ValidateArgument([str], "media", media),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -561,12 +583,12 @@ class _BaseGRPC:
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
     ) -> Union[base_search_pb2.Hybrid, None]:
-        if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
+        if self._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
         ):
             raise WeaviateUnsupportedFeatureError(
                 "Hybrid search with NearText or NearVector",
-                str(self._connection._weaviate_version),
+                str(self._weaviate_version),
                 "1.25.0",
             )
         if self._validate_arguments:
@@ -592,7 +614,9 @@ class _BaseGRPC:
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -603,13 +627,21 @@ class _BaseGRPC:
 
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
-        near_text, near_vector, vector_bytes = None, None, None
+        near_text, near_vector, vector_bytes, vectors = None, None, None, None
 
         if vector is None:
             pass
         elif isinstance(vector, list) and len(vector) > 0 and isinstance(vector[0], float):
             # fast path for simple vector
             vector_bytes = struct.pack("{}f".format(len(vector)), *vector)
+        elif _is_2d_vector(vector) and self._weaviate_version.is_at_least(1, 29, 0):
+            # fast path for simple multi-vector
+            vectors = [
+                base_pb2.Vectors(
+                    vector_bytes=_Pack.multi(vector),
+                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                )
+            ]
         elif isinstance(vector, _HybridNearText):
             near_text = base_search_pb2.NearTextSearch(
                 query=[vector.text] if isinstance(vector.text, str) else vector.text,
@@ -619,7 +651,7 @@ class _BaseGRPC:
                 move_to=self.__parse_move(vector.move_to),
             )
         elif isinstance(vector, _HybridNearVector):
-            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+            if self._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, vector_bytes_tmp = self._vector_per_target(
                     vector.vector, targets, "vector"
                 )
@@ -644,7 +676,7 @@ class _BaseGRPC:
                 vector_for_targets=vector_for_targets_tmp,
             )
         else:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+            if self._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, vector_bytes_tmp = self._vector_per_target(
                     vector, targets, "vector"
                 )
@@ -691,6 +723,7 @@ class _BaseGRPC:
                 near_vector=near_vector,
                 vector_bytes=vector_bytes,
                 vector_distance=distance,
+                vectors=vectors,
             )
             if query is not None or vector is not None
             else None
@@ -701,18 +734,20 @@ class _ByteOps:
     @staticmethod
     def decode_float32s(byte_vector: bytes) -> List[float]:
         return [
-            float(val) for val in struct.unpack(f"{len(byte_vector)//UINT32_LEN}f", byte_vector)
+            float(val) for val in struct.unpack(f"{len(byte_vector) // UINT32_LEN}f", byte_vector)
         ]
 
     @staticmethod
     def decode_float64s(byte_vector: bytes) -> List[float]:
         return [
-            float(val) for val in struct.unpack(f"{len(byte_vector)//UINT64_LEN}d", byte_vector)
+            float(val) for val in struct.unpack(f"{len(byte_vector) // UINT64_LEN}d", byte_vector)
         ]
 
     @staticmethod
     def decode_int64s(byte_vector: bytes) -> List[int]:
-        return [int(val) for val in struct.unpack(f"{len(byte_vector)//UINT64_LEN}q", byte_vector)]
+        return [
+            int(val) for val in struct.unpack(f"{len(byte_vector) // UINT64_LEN}q", byte_vector)
+        ]
 
 
 @dataclass
@@ -726,11 +761,13 @@ class _Pack:
     def parse_single_or_multi_vec(vector: PrimitiveVectorType) -> _Packing:
         if _is_2d_vector(vector):
             return _Packing(
-                bytes_=_Pack.multi(vector), type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32
+                bytes_=_Pack.multi(vector),
+                type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
             )
         elif _is_1d_vector(vector):
             return _Packing(
-                bytes_=_Pack.single(vector), type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32
+                bytes_=_Pack.single(vector),
+                type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
             )
         else:
             raise WeaviateInvalidInputError(f"Invalid vectors: {vector}")

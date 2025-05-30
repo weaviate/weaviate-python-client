@@ -1,7 +1,7 @@
 import datetime
 import pathlib
 import time
-from typing import Generator, List, Union, Optional
+from typing import Generator, List, Optional, Union
 
 import pytest
 
@@ -16,9 +16,8 @@ from weaviate.backup.backup import (
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
 from weaviate.exceptions import (
-    WeaviateUnsupportedFeatureError,
-    UnexpectedStatusCodeException,
     BackupFailedException,
+    UnexpectedStatusCodeException,
 )
 
 pytestmark = pytest.mark.xdist_group(name="backup")
@@ -72,13 +71,13 @@ ARTICLES_PROPS = [
         "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     },
 ]
+CLASSES = ["Paragraph", "Article"]
 
 
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local()
-    client.collections.delete("Paragraph")
-    client.collections.delete("Article")
+    client.collections.delete(CLASSES)
 
     col_para = client.collections.create(
         name="Paragraph",
@@ -123,7 +122,9 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
 
     # create backup
     classes = ["Article", "Paragraph"]
-    resp = client.backup.create(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
+    resp = client.backup.create(
+        backup_id=backup_id, backend=BACKEND, wait_for_completion=True, include_collections=CLASSES
+    )
     assert resp.status == BackupStatus.SUCCESS
     for cls in classes:
         assert cls in resp.collections
@@ -141,7 +142,9 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     client.collections.delete("Paragraph")
 
     # restore backup
-    restore = client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
+    restore = client.backup.restore(
+        backup_id=backup_id, backend=BACKEND, wait_for_completion=True, include_collections=CLASSES
+    )
     assert restore.status == BackupStatus.SUCCESS
     for cls in classes:
         assert cls in resp.collections
@@ -246,7 +249,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
 
 
 def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
-    """Fail backup functions on non-existing class"""
+    """Fail backup functions on non-existing class."""
     backup_id = _create_backup_id()
     class_name = "NonExistingClass"
     for func in [client.backup.create, client.backup.restore]:
@@ -349,14 +352,14 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
 
 
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
-def test_backup_and_restore_with_collection(
+def test_backup_and_restore_with_dynamic_location(
     client: weaviate.WeaviateClient, dynamic_backup_location: bool, tmp_path: pathlib.Path
 ) -> None:
     backup_id = _create_backup_id()
 
     conf_create: Optional[wvc.backup.BackupConfigCreate] = None
     conf_restore: Optional[wvc.backup.BackupConfigRestore] = None
-    backup_location: Optional[wvc.backup.BackupLocation] = None
+    backup_location: Optional[wvc.backup.BackupLocationType] = None
     if dynamic_backup_location:
         if client._connection._weaviate_version.is_lower_than(1, 27, 2):
             pytest.skip("Cancel backups is only supported from 1.27.2")
@@ -451,37 +454,6 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-def test_backup_and_restore_with_collection_and_config_1_23_x(
-    client: weaviate.WeaviateClient,
-) -> None:
-    if client._connection._weaviate_version.is_at_least(1, 24, 0):
-        pytest.skip("Backup config is supported from Weaviate 1.24.0")
-
-    backup_id = _create_backup_id()
-
-    article = client.collections.use("Article")
-
-    with pytest.raises(WeaviateUnsupportedFeatureError):
-        article.backup.create(
-            backup_id=backup_id,
-            backend=BACKEND,
-            wait_for_completion=True,
-            config=BackupConfigCreate(
-                cpu_percentage=60,
-                chunk_size=256,
-                compression_level=BackupCompressionLevel.BEST_SPEED,
-            ),
-        )
-
-    with pytest.raises(WeaviateUnsupportedFeatureError):
-        article.backup.restore(
-            backup_id=backup_id,
-            backend=BACKEND,
-            wait_for_completion=True,
-            config=BackupConfigRestore(cpu_percentage=70),
-        )
-
-
 # did not make it into 1.27, will come later
 # def test_list_backup(client: weaviate.WeaviateClient) -> None:
 #     """Create and restore backup without waiting."""
@@ -505,7 +477,7 @@ def test_cancel_backup(
     if client._connection._weaviate_version.is_lower_than(1, 24, 25):
         pytest.skip("Cancel backups is only supported from 1.24.25")
 
-    backup_location: Optional[wvc.backup.BackupLocation] = None
+    backup_location: Optional[wvc.backup.BackupLocationType] = None
     if dynamic_backup_location:
         if client._connection._weaviate_version.is_lower_than(1, 27, 2):
             pytest.skip("Cancel backups is only supported from 1.27.2")
@@ -513,7 +485,10 @@ def test_cancel_backup(
         backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
 
     resp = client.backup.create(
-        backup_id=backup_id, backend=BACKEND, backup_location=backup_location
+        backup_id=backup_id,
+        backend=BACKEND,
+        backup_location=backup_location,
+        include_collections=CLASSES,
     )
     assert resp.status == BackupStatus.STARTED
 

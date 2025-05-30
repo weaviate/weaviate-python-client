@@ -1,5 +1,5 @@
-from .generate import _NearVectorGenerateAsync, _NearVectorGenerate
-from .query import _NearVectorQueryAsync, _NearVectorQuery
+from .generate import _NearVectorGenerate, _NearVectorGenerateAsync
+from .query import _NearVectorQuery, _NearVectorQueryAsync
 
 __all__ = [
     "_NearVectorGenerate",

@@ -4,20 +4,19 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+import weaviate.classes as wvc
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     Configure,
-    _CollectionConfig,
     DataType,
     GenerativeSearches,
     Property,
     ReferenceProperty,
     Vectorizers,
+    _CollectionConfig,
 )
-from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
-import weaviate.classes as wvc
-
 from weaviate.config import Timeout
+from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"
@@ -282,9 +281,6 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
 def test_create_export_and_recreate_named_vectors(
     client: weaviate.WeaviateClient, request: SubRequest
 ) -> None:
-    if client._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
-
     name1 = request.node.name
     name2 = request.node.name + "2"
     client.collections.delete([name1, name2])
@@ -352,10 +348,7 @@ def test_client_cluster_with_lazy_shard_loading(
         assert nodes[0].shards[0].vector_indexing_status == "READY"
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
-        if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-            assert nodes[0].shards[0].loaded is None
-        else:
-            assert nodes[0].shards[0].loaded is True
+        assert nodes[0].shards[0].loaded is True
     finally:
         client.collections.delete(request.node.name)
 
@@ -377,9 +370,7 @@ def test_client_cluster_without_lazy_shard_loading(
         assert nodes[0].shards[0].vector_indexing_status == "READY"
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
-        if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-            assert nodes[0].shards[0].loaded is None
-        elif collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
             assert nodes[0].shards[0].loaded is True
         else:
             assert nodes[0].shards[0].loaded is False
@@ -570,10 +561,11 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
         client.close()
 
 
-@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
 @pytest.mark.asyncio
-async def test_async_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
-    additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
+async def test_async_client_with_extra_options() -> None:
+    additional_config = wvc.init.AdditionalConfig(
+        timeout=Timeout(query=2, insert=4, init=4), trust_env=True
+    )
 
     for client in [
         weaviate.use_async_with_weaviate_cloud(
@@ -595,7 +587,7 @@ async def test_async_client_with_extra_options(timeout: Union[Tuple[int, int], T
     ]:
         await client.connect()
         await client.get_meta()
-        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
+        assert client._connection.timeout_config == Timeout(query=2, insert=4, init=4)
         await client.close()
 
 

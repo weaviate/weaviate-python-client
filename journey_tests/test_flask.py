@@ -1,3 +1,5 @@
+from typing import List
+
 from flask import Flask, g
 
 from journey_tests.journeys import AsyncJourneys, SyncJourneys
@@ -18,17 +20,17 @@ async def get_async_client() -> AsyncJourneys:
 
 
 @app.route("/sync-in-sync")
-def sync() -> dict:
+def sync() -> List[dict]:
     return get_sync_client().simple()
 
 
 @app.route("/sync-in-async")
-async def sync_() -> dict:
+async def sync_() -> List[dict]:
     return get_sync_client().simple()
 
 
 @app.route("/async-in-async")
-async def async_() -> dict:
+async def async_() -> List[dict]:
     return await (await get_async_client()).simple()
 
 

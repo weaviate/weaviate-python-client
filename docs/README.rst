@@ -2,27 +2,73 @@
 Weaviate Python Client Documentation
 ====================================
 
-This directory contain the library's documentation.
+This directory contain the library's documentation. It is published on `Read the Docs <https://weaviate-python-client.readthedocs.io/en/stable/>`_
+using the Sphinx documentation engine. More about Sphinx engine and how it works can be found here `Sphinx <https://www.sphinx-doc.org/en/master/index.html>`_.
 
-Add new modules/sub-packages to the documentation
--------------------------------------------------
+NOTE: Current setup does not add all the modules/sub-packages to the documentation automatically it needs to be set explicitly.
+All the new modules/sub-packages that are needed to be part ReadTheDocs documentation need to be added manually.
 
-All the pages of the documentation are contained in this folder and have the extension ``.rst``.
+NOTE2: This documentation is useing the `weaviate-agents-python-client` package and publishes both documentations as a single ReadTheDocs page.
+The `weaviate-agents` package is a sub-package of the `weaviate-python-client` package. This means that any changes of the Weaviate Agents
+Python Client will not be reflected right away, it will be update either on a new release of the `weaviate-python-client` or can be triggered
+manually from the readthedocs page directly (maintained by the Weaviate Python Client team).
+The documentation of the `weaviate-agents-python-client` repo is cloned in the `build` step of the `.readthedocs.yaml` file.
 
-To add a new module/sub-packages just add another file with the name corresponding to its path. See the examples of the ``.rst`` files.
-Add the newly created ``.rst`` page to the appropriate existing package.
+Adding and Modifying new modules/sub-packages
+---------------------------------------------
 
-For example is the new module has the path ``weaviate/new_module.py``, the new ``.rst`` file should be ``weaviate.new_module.rst``.
-Then add ``weaviate.new_module`` to the ``weaviate.rst`` file, under the **Subpackages**, along with the existing sub-packages.
+Sphinx `autodoc-api` extension is used to generate the documentation from the docstrings in the source code. You can use it to generate the documentation for the
+new modules/sub-packages. The way it works is by generating `***.rst` files  **ONLY** for sub-packages, that also includes the sub-package's modules. The `***.rst`
+files are then included in the corresponding parent (sub-)package. The `index.rst` is the root file and the first page of the ReadTheDocs documentation.
 
-The ``.rst`` file can be generated using ``sphinx-apidoc --module-first -f -o . ../PATH_TO_THE_MODULE`` (for the case above ``PATH_TO_THE_MODULE=weaviate/new_module.py``).
-You can edit the newly generated file to match the existing formats, or adjust it to your liking.
+EXAMPLE: Lets say that we have the following structure:
 
-Also the ``.rst`` file can be created manually. You can get the inspiration from the existing modules/sub-packages ``.rst`` files.
+.. code-block:: bash
 
-Here is a link to a ``.rst`` `cheat sheet <https://github.com/ralsina/rst-cheatsheet/blob/master/rst-cheatsheet.rst>`_.
-Another useful information about ``sphinx.ext.autodoc`` can be found `here <https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html>`_.
-For more information on ``Sphinx`` visit the official `website <https://www.sphinx-doc.org/en/master/index.html>`_.
+    weaviate/
+    ├── __init__.py
+    ├── client.py
+    ├── sub_package1/
+    │   ├── __init__.py
+    │   ├── module1.py
+    ├── sub_package2/
+        ├── __init__.py
+        ├── module2.py
+        ├── sub_sub_package3/
+            ├── __init__.py
+            ├── module3.py
+
+
+For the above structure, the `autodoc-api` will generate the following `***.rst` files:
+- |
+    `weaviate.rst` which is the root package and it should contain the imediate childeren sub-packages, which in this case are `sub_package1` and `sub_package2`,
+    along with the `client.py` module.
+- `weaviate.sub_package1.rst` which should contain the `module1.py` module.
+- `weaviate.sub_package2.rst` which should contain the `module2.py` module and the `sub_sub_package3` sub-package.
+- `weaviate.sub_package2.sub_sub_package3.rst` which should contain the `module3.py` module.
+
+In order to generate the `***.rst` files run the following command:
+.. code-block:: bash
+
+    sphinx-apidoc --module-first  -o ./docs ./weaviate "*proto*" # `"*proto*"` is used to exclude the `weaviate/proto` package
+
+This command will create all the new packages and thier corresponding modules but it will not add them to the parent pages. You need to do
+that manually.
+
+If you have only a new module that was added to the existing package, you can manually modify the corresponding the `***.rst` file for that
+sub-package. You can look at the existing `***.rst` files for the reference.
+
+NOTE: Feel free to modify the generated `***.rst` files as needed.
+
+Pre-processing the documentation
+--------------------------------
+
+Sphinx also offers the possibitity to pre-processing the documentation. This can be done by using the `conf.py` file. The `conf.py` file is located in the `docs` directory.
+It can be use to change a specific class docstring or all at once. For example now it uses a pre-processing function to change all Markdown links to reStructuredText links,
+so that the links are correctly rendered in the documentation but the links are still in Markdown format in the source code.
+
+It is also possible to set default configurations for the `sphinx-apidoc` command in the `conf.py` file. For example, the `sphinx-apidoc` command can be set to exclude
+specific packages or modules by default.
 
 
 Make the documentation locally

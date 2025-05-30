@@ -1,9 +1,7 @@
-"""
-Authentication class definitions.
-"""
+"""Authentication class definitions."""
 
 from dataclasses import dataclass
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 from weaviate.warnings import _Warnings
 
@@ -42,7 +40,6 @@ class _ClientPassword:
     Scopes can be given as:
       - List of strings: ["scope1", "scope2"]
       - space separated string: "scope1 scope2"
-
     """
 
     username: str
@@ -64,8 +61,9 @@ class _BearerToken:
 
     The expiration time of access tokens is given in seconds.
 
-    Only the access token is required. However, when no refresh token is given, the authentication will expire once
-    the lifetime of the access token is up.
+    Only the access token is required. However, when no refresh token is
+    given, the authentication will expire once the lifetime of the
+    access token is up.
     """
 
     access_token: str
@@ -106,7 +104,9 @@ class Auth:
         access_token: str, expires_in: int = 60, refresh_token: Optional[str] = None
     ) -> _BearerToken:
         return _BearerToken(
-            access_token=access_token, expires_in=expires_in, refresh_token=refresh_token
+            access_token=access_token,
+            expires_in=expires_in,
+            refresh_token=refresh_token,
         )
 
 
@@ -115,10 +115,22 @@ AuthCredentials = Union[OidcAuth, _APIKey]
 
 # required to ease v3 -> v4 transition
 AuthApiKey = _APIKey
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""
+.. deprecated:: 4.0.0
+    Use :meth:`~weaviate.auth.Auth.api_key` instead.
+"""
 AuthBearerToken = _BearerToken
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""
+.. deprecated:: 4.0.0
+    Use :meth:`~weaviate.auth.Auth.bearer_token` instead.
+"""
 AuthClientCredentials = _ClientCredentials
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""
+.. deprecated:: 4.0.0
+    Use :meth:`~weaviate.auth.Auth.client_credentials` instead.
+"""
 AuthClientPassword = _ClientPassword
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""
+.. deprecated:: 4.0.0
+    Use :meth:`~weaviate.auth.Auth.client_password` instead.
+"""

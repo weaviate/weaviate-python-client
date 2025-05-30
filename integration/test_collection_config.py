@@ -1,37 +1,36 @@
-from typing import Generator
+from typing import Generator, List, Optional
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
-from integration.conftest import OpenAICollection, CollectionFactory
-from integration.conftest import _sanitize_collection_name
+from integration.conftest import CollectionFactory, OpenAICollection, _sanitize_collection_name
 from weaviate.collections.classes.config import (
+    Configure,
+    DataType,
+    GenerativeSearches,
+    PQEncoderDistribution,
+    PQEncoderType,
+    Property,
+    Reconfigure,
+    ReferenceProperty,
+    Rerankers,
+    StopwordsPreset,
+    Tokenization,
+    VectorDistances,
+    VectorIndexType,
+    Vectorizers,
     _BQConfig,
-    _SQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
+    _RerankerProvider,
+    _SQConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
     _VectorIndexConfigHNSWUpdate,
-    Configure,
-    Reconfigure,
-    Property,
-    ReferenceProperty,
-    DataType,
-    PQEncoderType,
-    PQEncoderDistribution,
-    StopwordsPreset,
-    VectorDistances,
-    VectorIndexType,
-    Vectorizers,
-    GenerativeSearches,
-    Rerankers,
-    _RerankerProvider,
-    Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
@@ -575,10 +574,6 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
 
 def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -1199,10 +1194,6 @@ def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None
 
 
 def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named index is not supported in Weaviate versions lower than 1.24.0")
-
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
@@ -1229,28 +1220,58 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
     assert config.vector_config["name"].vectorizer.model == {"vectorizeClassName": False}
 
 
-def test_named_vectors_export_and_import(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize("source_properties", [None, ["text"]])
+def test_named_vectors_export_and_import(
+    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+) -> None:
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
                 "name",
                 vectorize_collection_name=False,
-                source_properties=["text"],
+                source_properties=source_properties,
             ),
         ],
     )
     config = collection.config.get()
 
-    name = "TestCollectionConfigExportAndRecreate"
+    name = f"TestCollectionConfigExportAndRecreate_{collection.name}"
     config.name = name
-    client = weaviate.connect_to_local()
-    client.collections.delete(name)
-    client.collections.create_from_config(config)
-    new = client.collections.use(name).config.get()
-    assert config == new
-    client.collections.delete(name)
-    client.close()
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_config(config)
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+@pytest.mark.parametrize("source_properties", [None, ["text"]])
+def test_named_vectors_export_and_import_dict(
+    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                "name",
+                vectorize_collection_name=False,
+                source_properties=source_properties,
+            ),
+        ],
+    )
+    config = collection.config.get()
+
+    name = f"TestCollectionConfigExportAndRecreateDict_{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
 
 
 @pytest.mark.parametrize("index_range_filters", [True, False])
@@ -1287,3 +1308,134 @@ def test_replication_config(
     )
     config = collection.config.get()
     assert config.replication_config.deletion_strategy == deletion_strategy
+
+
+def test_update_property_descriptions(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip(
+            "Property descriptions are not supported in currently released Weaviate versions lower than 1.27.0"
+        )
+
+    config = collection.config.get()
+    assert config.properties[0].description is None
+    assert config.properties[1].description is None
+
+    def update():
+        collection.config.update(
+            property_descriptions={
+                "name": "Name of the person",
+                "age": "Age of the person",
+            }
+        )
+
+    def is_supported():
+        ver = collection._connection._weaviate_version
+        return (
+            (ver.is_at_least(1, 27, 15) and ver.is_lower_than(1, 28, 0))
+            or (ver.is_at_least(1, 28, 9) and ver.is_lower_than(1, 29, 0))
+            or (ver.is_at_least(1, 29, 1))
+        )
+
+    if is_supported():
+        update()
+
+        config = collection.config.get()
+        assert config.properties[0].description == "Name of the person"
+        assert config.properties[1].description == "Age of the person"
+    else:
+        with pytest.raises(UnexpectedStatusCodeError):
+            update()
+
+
+def test_config_multi_vector_enabled(
+    collection_factory: CollectionFactory,
+) -> None:
+    dummy = collection_factory("dummy", ports=(8086, 50057))
+    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+        pytest.skip("Multi vector is not supported in Weaviate versions lower than 1.29.0")
+
+    collection = collection_factory(
+        ports=(8086, 50057),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2colbert_jinaai(
+                name="vec",
+                vectorize_collection_name=False,
+                vector_index_config=Configure.VectorIndex.hnsw(
+                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector()
+                ),
+            )
+        ],
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    conf = config.vector_config["vec"].vector_index_config
+    assert isinstance(conf, _VectorIndexConfigHNSW)
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
+        assert conf.multi_vector is None
+    else:
+        assert conf.multi_vector is not None
+
+
+def test_config_multi_vector_disabled(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        ports=(8086, 50057),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_cohere(
+                name="vec",
+                vectorize_collection_name=False,
+            )
+        ],
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    conf = config.vector_config["vec"].vector_index_config
+    assert isinstance(conf, _VectorIndexConfigHNSW)
+    assert conf.multi_vector is None
+
+
+@pytest.mark.parametrize(
+    "generative_config",
+    [
+        None,
+        Configure.Generative.anyscale(),
+    ],
+)
+@pytest.mark.parametrize(
+    "vectorizer_config",
+    [
+        None,
+        Configure.Vectorizer.none(),
+        Configure.Vectorizer.text2vec_contextionary(vectorize_collection_name=False),
+        [
+            Configure.NamedVectors.text2vec_contextionary(
+                name="vec",
+                vectorize_collection_name=False,
+            )
+        ],
+    ],
+)
+def test_config_add_property(
+    collection_factory: CollectionFactory, generative_config, vectorizer_config
+) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="title", data_type=DataType.TEXT),
+        ],
+        generative_config=generative_config,
+        vectorizer_config=vectorizer_config,
+    )
+    collection.config.add_property(Property(name="description", data_type=DataType.TEXT))
+    config = collection.config.get()
+    assert "description" in [prop.name for prop in config.properties]

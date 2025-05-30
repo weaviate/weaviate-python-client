@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Generator, Optional, Union, Any, Protocol
+from typing import Any, Generator, Optional, Protocol, Union
 
 import pytest
 
@@ -13,9 +13,8 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.grpc import QueryReference
-from weaviate.collections.classes.internal import _CrossReference, ReferenceToMulti
+from weaviate.collections.classes.internal import ReferenceToMulti, _CrossReference
 from weaviate.collections.classes.tenants import Tenant
-
 from weaviate.types import VECTORS
 
 UUID = Union[str, uuid.UUID]
@@ -104,7 +103,7 @@ def test_add_reference(
     from_uuid: UUID,
     to_uuid: UUID,
 ) -> None:
-    """Test the `add_reference` method"""
+    """Test the `add_reference` method."""
     collection = batch_collection()
 
     with collection.batch.dynamic() as batch:
