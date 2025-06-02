@@ -30,7 +30,7 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 DEFAULT_PORT = 8079
 DEFAULT_GRPC_PORT = 50060
 
-WEAVIATE_VERSION = "1.26.6"
+WEAVIATE_VERSION = "1.30.5"
 
 
 @dataclass
@@ -91,7 +91,9 @@ class _EmbeddedBase:
             response = httpx.get("https://api.github.com/repos/weaviate/weaviate/releases/latest")
             latest = _decode_json_response_dict(response, "get tag of latest weaviate release")
             assert latest is not None
-            self._set_download_url_from_version_tag(latest["tag_name"])
+            version_tag = latest["tag_name"]
+            self._parsed_weaviate_version = version_tag
+            self._set_download_url_from_version_tag(version_tag)
         else:
             raise exceptions.WeaviateEmbeddedInvalidVersionError(self.options.version)
 
@@ -133,7 +135,7 @@ class _EmbeddedBase:
             "weaviate-"
             + self._parsed_weaviate_version
             + "-"
-            + str(hashlib.sha256(self.options.version.encode("utf-8")).hexdigest()),
+            + str(hashlib.sha256(self._parsed_weaviate_version.encode("utf-8")).hexdigest()),
         )
         if not self._weaviate_binary_path.exists():
             logger.info(

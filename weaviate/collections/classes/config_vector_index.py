@@ -42,7 +42,26 @@ class _MultiVectorConfigCreateBase(_ConfigCreateModel):
     enabled: bool = Field(default=True)
 
 
+class _EncodingConfigCreate(_MultiVectorConfigCreateBase):
+    enabled: bool = Field(default=True)
+
+    @staticmethod
+    @abstractmethod
+    def encoding_name() -> str: ...
+
+
+class _MuveraConfigCreate(_EncodingConfigCreate):
+    ksim: Optional[int]
+    dprojections: Optional[int]
+    repetitions: Optional[int]
+
+    @staticmethod
+    def encoding_name() -> str:
+        return "muvera"
+
+
 class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
+    encoding: Optional[_EncodingConfigCreate] = Field(exclude=True)
     aggregation: Optional[str]
 
 
@@ -61,6 +80,10 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
             ret_dict[self.quantizer.quantizer_name()] = self.quantizer._to_dict()
         if self.distance is not None:
             ret_dict["distance"] = str(self.distance.value)
+        if self.multivector is not None and self.multivector.encoding is not None:
+            ret_dict["multivector"][self.multivector.encoding.encoding_name()] = (
+                self.multivector.encoding._to_dict()
+            )
 
         return ret_dict
 

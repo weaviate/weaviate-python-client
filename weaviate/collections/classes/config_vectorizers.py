@@ -13,6 +13,7 @@ from ...warnings import _Warnings
 
 # See https://docs.cohere.com/docs/cohere-embed for reference
 CohereModel: TypeAlias = Literal[
+    "embed-v4.0",
     "embed-multilingual-v2.0",
     "embed-multilingual-v3.0",
     "embed-multilingual-light-v3.0",
@@ -26,6 +27,7 @@ CohereModel: TypeAlias = Literal[
     "embed-english-light-v3.0",
 ]
 CohereMultimodalModel: TypeAlias = Literal[
+    "embed-v4.0",
     "embed-multilingual-v3.0",
     "embed-multilingual-light-v3.0",
     "embed-english-v3.0",

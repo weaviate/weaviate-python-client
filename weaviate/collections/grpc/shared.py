@@ -17,6 +17,8 @@ from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
+    BM25OperatorOptions,
+    BM25OperatorOr,
     HybridFusion,
     HybridVectorType,
     Move,
@@ -579,6 +581,7 @@ class _BaseGRPC:
         alpha: Optional[float],
         vector: Optional[HybridVectorType],
         properties: Optional[List[str]],
+        bm25_operator: Optional[BM25OperatorOptions],
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
@@ -724,6 +727,14 @@ class _BaseGRPC:
                 vector_bytes=vector_bytes,
                 vector_distance=distance,
                 vectors=vectors,
+                bm25_search_operator=base_search_pb2.SearchOperatorOptions(
+                    operator=bm25_operator.operator,
+                    minimum_or_tokens_match=bm25_operator.minimum_should_match
+                    if isinstance(bm25_operator, BM25OperatorOr)
+                    else None,
+                )
+                if bm25_operator is not None
+                else None,
             )
             if query is not None or vector is not None
             else None
