@@ -122,7 +122,7 @@ def test_iterator_arguments(
 def test_iterator_dict_hint(collection_factory: CollectionFactory, request: SubRequest) -> None:
     collection = collection_factory(
         properties=[Property(name="data", data_type=DataType.INT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
 
     collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
@@ -151,7 +151,7 @@ def test_iterator_with_default_generic(
             Property(name="this", data_type=DataType.TEXT),
             Property(name="that", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         data_model_properties=That,
     )
 
@@ -188,7 +188,7 @@ def test_iterator_with_default_generic(
 def test_iterator(collection_factory: CollectionFactory, count: int) -> None:
     collection = collection_factory(
         properties=[Property(name="data", data_type=DataType.INT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         data_model_properties=Dict[str, int],
     )
 
@@ -213,7 +213,7 @@ def test_iterator(collection_factory: CollectionFactory, count: int) -> None:
 def test_iterator_with_after(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="data", data_type=DataType.INT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         data_model_properties=Dict[str, int],
     )
 
