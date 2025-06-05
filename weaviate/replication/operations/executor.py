@@ -58,7 +58,7 @@ class _OperationsExecutor(Generic[ConnectionType]):
             error_msg="Failed to get replicate operation",
         )
 
-    def list_all(self) -> executor.Result[list[ReplicateOperation]]:
+    def list_all(self) -> executor.Result[list[ReplicateOperation[list[ReplicateOperationStatus]]]]:
         """List all replicate operations.
 
         Returns:
@@ -76,6 +76,26 @@ class _OperationsExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(200, "replicate list"),
             error_msg="Failed to list replicate operations",
         )
+
+    @overload
+    def query(
+        self,
+        *,
+        collection: Optional[str] = None,
+        shard: Optional[str] = None,
+        target_node: Optional[str] = None,
+        include_history: Literal[True],
+    ) -> executor.Result[list[ReplicateOperation[list[ReplicateOperationStatus]]]]: ...
+
+    @overload
+    def query(
+        self,
+        *,
+        collection: Optional[str] = None,
+        shard: Optional[str] = None,
+        target_node: Optional[str] = None,
+        include_history: Literal[False] = False,
+    ) -> executor.Result[list[ReplicateOperation[None]]]: ...
 
     def query(
         self,
