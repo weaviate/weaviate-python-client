@@ -3,7 +3,7 @@ from typing import Generic, List, Literal, Optional, Union, overload
 from httpx import Response
 
 from weaviate.cluster.types import Verbosity
-from weaviate.collections.classes.cluster import Node, Shards, Stats, _ConvertFromREST
+from weaviate.collections.classes.cluster import NodeMinimal, NodeVerbose, _ConvertFromREST
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import (
@@ -23,7 +23,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         *,
         output: Literal[None] = None,
-    ) -> executor.Result[List[Node[None, None]]]: ...
+    ) -> executor.Result[List[NodeMinimal]]: ...
 
     @overload
     def nodes(
@@ -32,7 +32,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         *,
         output: Literal["minimal"],
-    ) -> executor.Result[List[Node[None, None]]]: ...
+    ) -> executor.Result[List[NodeMinimal]]: ...
 
     @overload
     def nodes(
@@ -41,7 +41,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         *,
         output: Literal["verbose"],
-    ) -> executor.Result[List[Node[Shards, Stats]]]: ...
+    ) -> executor.Result[List[NodeVerbose]]: ...
 
     @overload
     def nodes(
@@ -50,7 +50,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         *,
         output: Optional[Verbosity] = None,
-    ) -> executor.Result[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]: ...
+    ) -> executor.Result[Union[List[NodeMinimal], List[NodeVerbose]]]: ...
 
     def nodes(
         self,
@@ -58,7 +58,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         *,
         output: Optional[Verbosity] = None,
-    ) -> executor.Result[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
+    ) -> executor.Result[Union[List[NodeMinimal], List[NodeVerbose]]]:
         """Get the status of all nodes in the cluster.
 
         Args:
@@ -85,7 +85,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
 
         def resp(
             res: Response,
-        ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]:
+        ) -> Union[List[NodeMinimal], List[NodeVerbose]]:
             response_typed = _decode_json_response_dict(res, "Nodes status")
             assert response_typed is not None
 
