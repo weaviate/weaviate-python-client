@@ -413,7 +413,7 @@ class _Multi2VecBase(_VectorizerConfigCreate):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["weights"] = {}
-        for cls_field in type(self).model_fields: # pydantic 2.x -> pydantic 3.x
+        for cls_field in type(self).model_fields:  # pydantic 2.x -> pydantic 3.x
             val = getattr(self, cls_field)
             if "Fields" in cls_field and val is not None:
                 val = cast(List[Multi2VecField], val)

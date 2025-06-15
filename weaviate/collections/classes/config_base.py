@@ -22,7 +22,7 @@ class _ConfigUpdateModel(BaseModel):
     model_config = ConfigDict(strict=True)
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
-        for cls_field in type(self).model_fields: # pydantic 2.x -> pydantic 3.x
+        for cls_field in type(self).model_fields:  # pydantic 2.x -> pydantic 3.x
             val = getattr(self, cls_field)
             if val is None:
                 continue
