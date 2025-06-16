@@ -1,7 +1,7 @@
 """Weaviate Exceptions."""
 
 from json.decoder import JSONDecodeError
-from typing import Tuple, Union, cast
+from typing import Optional, Tuple, Union, cast
 
 import httpx
 from grpc import Call, StatusCode  # type: ignore
@@ -56,12 +56,15 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             )
             if response.status_code in ERROR_CODE_EXPLANATION:
                 msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
+
+            self.__error = body
         elif isinstance(response, AioRpcError):
             self._status_code = int(response.code().value[0])
             msg = (
                 message
                 + f"! Unexpected status code: {response.code().value[1]}, with response body: {response.details()}."
             )
+            self.__error: str | None = response.details()
         elif isinstance(response, Call):
             code = cast(StatusCode, response.code())
             self._status_code = int(code.value[0])
@@ -69,11 +72,17 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
                 message
                 + f"! Unexpected status code: {code.value[1]}, with response body: {response.details()}."
             )
+            self.__error: str | None = response.details()
+
         super().__init__(msg)
 
     @property
     def status_code(self) -> int:
         return self._status_code
+
+    @property
+    def error(self) -> Optional[str]:
+        return self.__error
 
 
 UnexpectedStatusCodeException = UnexpectedStatusCodeError
@@ -213,6 +222,11 @@ class WeaviateQueryError(WeaviateBaseError):
         msg = f"""Query call with protocol {protocol_type} failed with message {message}."""
         super().__init__(msg)
         self.message = message
+        self.__error = message
+
+    @property
+    def error(self) -> str:
+        return self.__error
 
 
 WeaviateQueryException = WeaviateQueryError
