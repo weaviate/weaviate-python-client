@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.15.1
+--------------
+This patch version includes:
+   - Adds the original weaviate error message to our exceptions
+   -
+
 
 Version 4.15.0
 --------------
