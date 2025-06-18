@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.15.2
+--------------
+This patch version includes:
+   - Fixes adding the original weaviate error message to our exceptions for async client
+
 Version 4.15.1
 --------------
 This patch version includes:
