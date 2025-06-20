@@ -63,6 +63,7 @@ mock_class = {
         },
         "bq": {"enabled": False},
         "sq": {"enabled": False, "trainingLimit": 100000, "rescoreLimit": 20},
+        "rq": {"enabled": False, "bits": 8},
     },
     "vectorIndexType": "hnsw",
     "vectorizer": "text2vec-contextionary",
