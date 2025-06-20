@@ -780,7 +780,6 @@ def test_config_vector_index_flat_and_quantizer_bq(collection_factory: Collectio
     assert conf.vector_index_config.quantizer.rescore_limit == 456
 
 
-
 def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
