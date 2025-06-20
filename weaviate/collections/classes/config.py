@@ -1245,6 +1245,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 and (
                     vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
             )
             or (
@@ -1252,6 +1253,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 and (
                     vector_index_config["pq"]["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
             )
             or (
@@ -1259,6 +1261,15 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 and (
                     vector_index_config["pq"]["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("rq", {"enabled": False})["enabled"]
+                )
+            )
+            or (
+                isinstance(quantizer, _RQConfigUpdate)
+                and (
+                    vector_index_config["pq"]["enabled"]
+                    or vector_index_config.get("bq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("sq", {"enabled": False})["enabled"]
                 )
             )
         ):
