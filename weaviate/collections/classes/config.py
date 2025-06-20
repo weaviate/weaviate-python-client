@@ -2178,7 +2178,7 @@ class _VectorIndexQuantizer:
         Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
 
         Arguments:
-            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _RQConfigCreate(
             bits=bits,
