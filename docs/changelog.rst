@@ -1,6 +1,32 @@
 Changelog
 =========
 
+Version 4.15.2
+--------------
+This patch version includes:
+   - Fixes adding the original weaviate error message to our exceptions for async client
+
+Version 4.15.1
+--------------
+This patch version includes:
+   - Adds the original weaviate error message to our exceptions
+
+
+Version 4.15.0
+--------------
+This minor version includes:
+    - Support for new 1.31 features:
+      - Adding new named vectors to existing collections
+      - Support for bm25 operators
+      - Mueva configuration
+    - Fixes config.get() for multivector collections
+    - Copy context to ensure open telemetry makes it to batch requests
+    - Update cohere models
+    - Update voyageai models
+    - Update embedded version to 1.30.5
+    - Fix storage location for embedded mode
+    - Add agents docs to the readthedocs page
+
 Version 4.14.4
 --------------
 

@@ -1180,7 +1180,7 @@ class ConnectionAsync(_ConnectionBase):
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+            raise WeaviateQueryError(str(e.details()), "GRPC search")  # pyright: ignore
         except WeaviateRetryError as e:
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 

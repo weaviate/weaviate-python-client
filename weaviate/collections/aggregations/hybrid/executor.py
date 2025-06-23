@@ -8,6 +8,7 @@ from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
 )
 from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.grpc import BM25OperatorOptions
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
@@ -26,6 +27,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
+        bm25_operator: Optional[BM25OperatorOptions] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         target_vector: Optional[str] = None,
@@ -43,6 +45,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
+        bm25_operator: Optional[BM25OperatorOptions] = None,
         filters: Optional[_Filters] = None,
         group_by: Union[str, GroupByAggregate],
         target_vector: Optional[str] = None,
@@ -60,6 +63,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
+        bm25_operator: Optional[BM25OperatorOptions] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
@@ -76,6 +80,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
+        bm25_operator: Optional[BM25OperatorOptions] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
@@ -150,6 +155,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 vector=vector,
                 properties=query_properties,
                 object_limit=object_limit,
+                bm25_operator=bm25_operator,
                 target_vector=target_vector,
                 distance=max_vector_distance,
                 aggregations=(

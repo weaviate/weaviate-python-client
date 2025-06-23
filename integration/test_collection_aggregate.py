@@ -28,6 +28,9 @@ from weaviate.exceptions import (
 )
 from weaviate.util import file_encoder_b64
 
+import weaviate.classes as wvc
+
+
 UUID1 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 
@@ -834,3 +837,26 @@ def test_all_available_aggregations(collection_factory: CollectionFactory) -> No
     assert dates.median == "2021-01-01T12:00:00Z"
     assert dates.minimum == "2021-01-01T00:00:00Z"
     # assert res.properties["dates"].mode == "2021-01-02T00:00:00Z" # flakey: sometimes return 01, other times 02
+
+
+def test_hybrid_bm25_operators(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 31, 0):
+        pytest.skip("bm25 operators are only supported in versions higher than 1.31.0")
+
+    collection.data.insert({"name": "banana one"})
+    collection.data.insert({"name": "banana two"})
+    collection.data.insert({"name": "banana three"})
+    collection.data.insert({"name": "banana four"})
+
+    res: AggregateReturn = collection.aggregate.hybrid(
+        query="banana two",
+        alpha=0,
+        bm25_operator=wvc.query.BM25Operator.or_(minimum_match=1),
+        object_limit=10,
+    )
+    assert res.total_count == 4
