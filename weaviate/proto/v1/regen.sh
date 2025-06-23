@@ -35,7 +35,7 @@ compile_protos() {
     elif [ "$version" = "v52" ]; then
         pip install "grpcio-tools==1.66.2"
     elif [ "$version" = "v6" ]; then
-        pip install "grpcio-tools==1.71.0"
+        pip install "grpcio-tools==1.70.0"
     else
         echo "Unsupported version: $version"
         exit 1

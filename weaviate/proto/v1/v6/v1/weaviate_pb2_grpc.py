@@ -9,7 +9,7 @@ from weaviate.proto.v1.v6.v1 import batch_pb2 as v1_dot_batch__pb2
 from weaviate.proto.v1.v6.v1 import search_get_pb2 as v1_dot_search__get__pb2
 from weaviate.proto.v1.v6.v1 import tenants_pb2 as v1_dot_tenants__pb2
 
-GRPC_GENERATED_VERSION = '1.71.0'
+GRPC_GENERATED_VERSION = '1.70.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
