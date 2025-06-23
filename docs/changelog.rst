@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.15.3
+--------------
+This patch version includes:
+   - Allows newer versions of `authlib` as dependency
+
 Version 4.15.2
 --------------
 This patch version includes:
