@@ -30,7 +30,9 @@ compile_protos() {
     echo "Installing protobuf $version and grpcio-tools..."
     if [ "$version" = "v4" ]; then
         pip install "grpcio-tools==1.59.5"
-    elif [ "$version" = "v5" ]; then
+    elif [ "$version" = "v51" ]; then
+        pip install "grpcio-tools==1.60.0"
+    elif [ "$version" = "v52" ]; then
         pip install "grpcio-tools==1.66.2"
     elif [ "$version" = "v6" ]; then
         pip install "grpcio-tools==1.71.0"
@@ -66,26 +68,10 @@ compile_protos() {
 }
 
 
-echo "=== Compiling for Protobuf 4 ==="
-compile_protos "v4"
-
-echo "=== Compiling for Protobuf 5 ==="
-compile_protos "v5"
-
-echo "=== Compiling for Protobuf 6 ==="
-compile_protos "v6"
+for version in "v4" "v51" "v52" "v6"; do
+   compile_protos "$version"
+done
 
 deactivate
-echo "Cleaning up compilation venv..."
 rm -rf "$PROTO_VENV"
 
-echo "=== Done! ==="
-echo "Generated protos:"
-echo "  - Protobuf 4: weaviate/proto/v1/v4/"
-echo "  - Protobuf 5: weaviate/proto/v1/v5/"
-echo "  - Protobuf 6: weaviate/proto/v1/v6/"
-echo ""
-echo "You can now import them as:"
-echo "  from weaviate.proto.v1.v4 import your_proto_pb2"
-echo "  from weaviate.proto.v1.v5 import your_proto_pb2"
-echo "  from weaviate.proto.v1.v6 import your_proto_pb2"
