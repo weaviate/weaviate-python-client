@@ -2,7 +2,7 @@
 
 set -e  # Exit on any error
 
-echo "This script compiles protos for both Protobuf 4 and 5"
+echo "This script compiles protos for Protobuf 4, 5.1, 5.2, and 6 versions."
 
 # Get script directory and navigate to project root
 SCRIPT_DIR="${0%/*}"

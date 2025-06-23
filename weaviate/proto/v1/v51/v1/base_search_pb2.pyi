@@ -59,8 +59,24 @@ class VectorForTarget(_message.Message):
     vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
     def __init__(self, name: _Optional[str] = ..., vector_bytes: _Optional[bytes] = ..., vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...) -> None: ...
 
+class SearchOperatorOptions(_message.Message):
+    __slots__ = ("operator", "minimum_or_tokens_match")
+    class Operator(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        OPERATOR_UNSPECIFIED: _ClassVar[SearchOperatorOptions.Operator]
+        OPERATOR_OR: _ClassVar[SearchOperatorOptions.Operator]
+        OPERATOR_AND: _ClassVar[SearchOperatorOptions.Operator]
+    OPERATOR_UNSPECIFIED: SearchOperatorOptions.Operator
+    OPERATOR_OR: SearchOperatorOptions.Operator
+    OPERATOR_AND: SearchOperatorOptions.Operator
+    OPERATOR_FIELD_NUMBER: _ClassVar[int]
+    MINIMUM_OR_TOKENS_MATCH_FIELD_NUMBER: _ClassVar[int]
+    operator: SearchOperatorOptions.Operator
+    minimum_or_tokens_match: int
+    def __init__(self, operator: _Optional[_Union[SearchOperatorOptions.Operator, str]] = ..., minimum_or_tokens_match: _Optional[int] = ...) -> None: ...
+
 class Hybrid(_message.Message):
-    __slots__ = ("query", "properties", "vector", "alpha", "fusion_type", "vector_bytes", "target_vectors", "near_text", "near_vector", "targets", "vector_distance", "vectors")
+    __slots__ = ("query", "properties", "vector", "alpha", "fusion_type", "vector_bytes", "target_vectors", "near_text", "near_vector", "targets", "bm25_search_operator", "vector_distance", "vectors")
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = ()
         FUSION_TYPE_UNSPECIFIED: _ClassVar[Hybrid.FusionType]
@@ -79,6 +95,7 @@ class Hybrid(_message.Message):
     NEAR_TEXT_FIELD_NUMBER: _ClassVar[int]
     NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
     TARGETS_FIELD_NUMBER: _ClassVar[int]
+    BM25_SEARCH_OPERATOR_FIELD_NUMBER: _ClassVar[int]
     VECTOR_DISTANCE_FIELD_NUMBER: _ClassVar[int]
     VECTORS_FIELD_NUMBER: _ClassVar[int]
     query: str
@@ -91,9 +108,10 @@ class Hybrid(_message.Message):
     near_text: NearTextSearch
     near_vector: NearVector
     targets: Targets
+    bm25_search_operator: SearchOperatorOptions
     vector_distance: float
     vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
-    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., vector: _Optional[_Iterable[float]] = ..., alpha: _Optional[float] = ..., fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ..., vector_bytes: _Optional[bytes] = ..., target_vectors: _Optional[_Iterable[str]] = ..., near_text: _Optional[_Union[NearTextSearch, _Mapping]] = ..., near_vector: _Optional[_Union[NearVector, _Mapping]] = ..., targets: _Optional[_Union[Targets, _Mapping]] = ..., vector_distance: _Optional[float] = ..., vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...) -> None: ...
+    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., vector: _Optional[_Iterable[float]] = ..., alpha: _Optional[float] = ..., fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ..., vector_bytes: _Optional[bytes] = ..., target_vectors: _Optional[_Iterable[str]] = ..., near_text: _Optional[_Union[NearTextSearch, _Mapping]] = ..., near_vector: _Optional[_Union[NearVector, _Mapping]] = ..., targets: _Optional[_Union[Targets, _Mapping]] = ..., bm25_search_operator: _Optional[_Union[SearchOperatorOptions, _Mapping]] = ..., vector_distance: _Optional[float] = ..., vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...) -> None: ...
 
 class NearVector(_message.Message):
     __slots__ = ("vector", "certainty", "distance", "vector_bytes", "target_vectors", "targets", "vector_per_target", "vector_for_targets", "vectors")
@@ -250,9 +268,11 @@ class NearIMUSearch(_message.Message):
     def __init__(self, imu: _Optional[str] = ..., certainty: _Optional[float] = ..., distance: _Optional[float] = ..., target_vectors: _Optional[_Iterable[str]] = ..., targets: _Optional[_Union[Targets, _Mapping]] = ...) -> None: ...
 
 class BM25(_message.Message):
-    __slots__ = ("query", "properties")
+    __slots__ = ("query", "properties", "search_operator")
     QUERY_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    SEARCH_OPERATOR_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ...) -> None: ...
+    search_operator: SearchOperatorOptions
+    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., search_operator: _Optional[_Union[SearchOperatorOptions, _Mapping]] = ...) -> None: ...
