@@ -467,22 +467,11 @@ class _TenantsExecutor(Generic[ConnectionType]):
             ),  # allow 404 to perform bool check on response code
         )
 
-    def activate(
-        self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
+    def __update_tenant_activity_status(
+        self,
+        tenant: Union[TenantInputType, Sequence[TenantInputType]],
+        activity_status: TenantUpdateActivityStatus,
     ) -> executor.Result[None]:
-        """Activate the specified tenants for this collection in Weaviate.
-
-        The collection must have been created with multi-tenancy enabled.
-
-        Args:
-            tenant: A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
-                and/or `wvc.config.tenants.Tenant` objects to activate for the given collection.
-
-        Raises:
-            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
-            weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
-        """
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(
@@ -499,18 +488,39 @@ class _TenantsExecutor(Generic[ConnectionType]):
             tenants = [
                 TenantUpdate(
                     name=tenant.name if isinstance(tenant, Tenant) else tenant,
-                    activity_status=TenantUpdateActivityStatus.ACTIVE,
+                    activity_status=activity_status,
                 )
             ]
         else:
             tenants = [
                 TenantUpdate(
                     name=t.name if isinstance(t, Tenant) else t,
-                    activity_status=TenantUpdateActivityStatus.ACTIVE,
+                    activity_status=activity_status,
                 )
                 for t in tenant
             ]
-        self.__update(tenants=tenants)
+        return self.__update(tenants=tenants)
+
+    def activate(
+        self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
+    ) -> executor.Result[None]:
+        """Activate the specified tenants for this collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Args:
+            tenant: A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to activate for the given collection.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
+        """
+        self.__update_tenant_activity_status(
+            tenant=tenant,
+            activity_status=TenantUpdateActivityStatus.ACTIVE,
+        )
 
     def deactivate(
         self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
@@ -528,34 +538,10 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
         """
-        if self._validate_arguments:
-            _validate_input(
-                _ValidateArgument(
-                    expected=[
-                        str,
-                        Tenant,
-                        Sequence[Union[str, Tenant]],
-                    ],
-                    name="tenant",
-                    value=tenant,
-                )
-            )
-        if isinstance(tenant, str) or isinstance(tenant, Tenant):
-            tenants = [
-                TenantUpdate(
-                    name=tenant.name if isinstance(tenant, Tenant) else tenant,
-                    activity_status=TenantUpdateActivityStatus.INACTIVE,
-                )
-            ]
-        else:
-            tenants = [
-                TenantUpdate(
-                    name=t.name if isinstance(t, Tenant) else t,
-                    activity_status=TenantUpdateActivityStatus.INACTIVE,
-                )
-                for t in tenant
-            ]
-        self.__update(tenants=tenants)
+        self.__update_tenant_activity_status(
+            tenant=tenant,
+            activity_status=TenantUpdateActivityStatus.INACTIVE,
+        )
 
     def offload(
         self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
@@ -573,31 +559,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
         """
-        if self._validate_arguments:
-            _validate_input(
-                _ValidateArgument(
-                    expected=[
-                        str,
-                        Tenant,
-                        Sequence[Union[str, Tenant]],
-                    ],
-                    name="tenant",
-                    value=tenant,
-                )
-            )
-        if isinstance(tenant, str) or isinstance(tenant, Tenant):
-            tenants = [
-                TenantUpdate(
-                    name=tenant.name if isinstance(tenant, Tenant) else tenant,
-                    activity_status=TenantUpdateActivityStatus.OFFLOADED,
-                )
-            ]
-        else:
-            tenants = [
-                TenantUpdate(
-                    name=t.name if isinstance(t, Tenant) else t,
-                    activity_status=TenantUpdateActivityStatus.OFFLOADED,
-                )
-                for t in tenant
-            ]
-        self.__update(tenants=tenants)
+        self.__update_tenant_activity_status(
+            tenant=tenant,
+            activity_status=TenantUpdateActivityStatus.OFFLOADED,
+        )
