@@ -32,19 +32,18 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
+    PQEncoderDistribution,
+    PQEncoderType,
     VectorFilterStrategy,
-    _EncodingConfigCreate,
-    _MultiVectorConfigCreate,
-    _MuveraConfigCreate,
-    _QuantizerConfigCreate,
+    _BQConfigUpdate,
+    _PQConfigUpdate,
+    _PQEncoderConfigUpdate,
+    _SQConfigUpdate,
+    _VectorIndex,
     _VectorIndexConfigCreate,
-    _VectorIndexConfigDynamicCreate,
     _VectorIndexConfigDynamicUpdate,
-    _VectorIndexConfigFlatCreate,
     _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
@@ -62,6 +61,7 @@ from weaviate.collections.classes.config_vectorizers import (
     Vectorizers as VectorizersAlias,
 )
 from weaviate.collections.classes.config_vectors import (
+    _MultiVectors,
     _VectorConfigCreate,
     _VectorConfigUpdate,
     _Vectors,
@@ -244,124 +244,6 @@ class ReplicationDeletionStrategy(str, BaseEnum):
     DELETE_ON_CONFLICT = "DeleteOnConflict"
     NO_AUTOMATED_RESOLUTION = "NoAutomatedResolution"
     TIME_BASED_RESOLUTION = "TimeBasedResolution"
-
-
-class PQEncoderType(str, BaseEnum):
-    """Type of the PQ encoder.
-
-    Attributes:
-        KMEANS: K-means encoder.
-        TILE: Tile encoder.
-    """
-
-    KMEANS = "kmeans"
-    TILE = "tile"
-
-
-class PQEncoderDistribution(str, BaseEnum):
-    """Distribution of the PQ encoder.
-
-    Attributes:
-        LOG_NORMAL: Log-normal distribution.
-        NORMAL: Normal distribution.
-    """
-
-    LOG_NORMAL = "log-normal"
-    NORMAL = "normal"
-
-
-class MultiVectorAggregation(str, BaseEnum):
-    """Aggregation type to use for multivector indices.
-
-    Attributes:
-        MAX_SIM: Maximum similarity.
-    """
-
-    MAX_SIM = "maxSim"
-
-
-class _PQEncoderConfigCreate(_ConfigCreateModel):
-    type_: Optional[PQEncoderType] = Field(serialization_alias="type")
-    distribution: Optional[PQEncoderDistribution]
-
-
-class _PQEncoderConfigUpdate(_ConfigUpdateModel):
-    type_: Optional[PQEncoderType]
-    distribution: Optional[PQEncoderDistribution]
-
-    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
-        """Must be done manually since Pydantic does not work well with type and type_.
-
-        Errors shadowing type occur if we want to use type as a field name.
-        """
-        if self.type_ is not None:
-            schema["type"] = str(self.type_.value)
-        if self.distribution is not None:
-            schema["distribution"] = str(self.distribution.value)
-        return schema
-
-
-class _PQConfigCreate(_QuantizerConfigCreate):
-    bitCompression: Optional[bool] = Field(default=None)
-    centroids: Optional[int]
-    encoder: _PQEncoderConfigCreate
-    segments: Optional[int]
-    trainingLimit: Optional[int]
-
-    @staticmethod
-    def quantizer_name() -> str:
-        return "pq"
-
-
-class _BQConfigCreate(_QuantizerConfigCreate):
-    cache: Optional[bool]
-    rescoreLimit: Optional[int]
-
-    @staticmethod
-    def quantizer_name() -> str:
-        return "bq"
-
-
-class _SQConfigCreate(_QuantizerConfigCreate):
-    cache: Optional[bool]
-    rescoreLimit: Optional[int]
-    trainingLimit: Optional[int]
-
-    @staticmethod
-    def quantizer_name() -> str:
-        return "sq"
-
-
-class _PQConfigUpdate(_QuantizerConfigUpdate):
-    bitCompression: Optional[bool] = Field(default=None)
-    centroids: Optional[int]
-    enabled: Optional[bool]
-    segments: Optional[int]
-    trainingLimit: Optional[int]
-    encoder: Optional[_PQEncoderConfigUpdate]
-
-    @staticmethod
-    def quantizer_name() -> str:
-        return "pq"
-
-
-class _BQConfigUpdate(_QuantizerConfigUpdate):
-    enabled: Optional[bool]
-    rescoreLimit: Optional[int]
-
-    @staticmethod
-    def quantizer_name() -> str:
-        return "bq"
-
-
-class _SQConfigUpdate(_QuantizerConfigUpdate):
-    enabled: Optional[bool]
-    rescoreLimit: Optional[int]
-    trainingLimit: Optional[int]
-
-    @staticmethod
-    def quantizer_name() -> str:
-        return "sq"
 
 
 class _ShardingConfigCreate(_ConfigCreateModel):
@@ -2125,197 +2007,6 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         ret_dict["properties"] = existing_props
 
 
-class _VectorIndexMultivectorEncoding:
-    @staticmethod
-    def muvera(
-        ksim: Optional[int] = None,
-        dprojections: Optional[int] = None,
-        repetitions: Optional[int] = None,
-    ) -> _EncodingConfigCreate:
-        return _MuveraConfigCreate(
-            enabled=True,
-            ksim=ksim,
-            dprojections=dprojections,
-            repetitions=repetitions,
-        )
-
-
-class _VectorIndexMultiVector:
-    Encoding = _VectorIndexMultivectorEncoding
-
-    @staticmethod
-    def multi_vector(
-        encoding: Optional[_EncodingConfigCreate] = None,
-        aggregation: Optional[MultiVectorAggregation] = None,
-    ) -> _MultiVectorConfigCreate:
-        return _MultiVectorConfigCreate(
-            encoding=encoding if encoding is not None else None,
-            aggregation=aggregation.value if aggregation is not None else None,
-        )
-
-
-class _VectorIndexQuantizer:
-    @staticmethod
-    def pq(
-        bit_compression: Optional[bool] = None,
-        centroids: Optional[int] = None,
-        encoder_distribution: Optional[PQEncoderDistribution] = None,
-        encoder_type: Optional[PQEncoderType] = None,
-        segments: Optional[int] = None,
-        training_limit: Optional[int] = None,
-    ) -> _PQConfigCreate:
-        """Create a `_PQConfigCreate` object to be used when defining the product quantization (PQ) configuration of Weaviate.
-
-        Use this method when defining the `quantizer` argument in the `vector_index` configuration.
-
-        Args:
-            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
-        """  # noqa: D417 (missing argument descriptions in the docstring)
-        if bit_compression is not None:
-            _Warnings.bit_compression_in_pq_config()
-        return _PQConfigCreate(
-            centroids=centroids,
-            segments=segments,
-            trainingLimit=training_limit,
-            encoder=_PQEncoderConfigCreate(type_=encoder_type, distribution=encoder_distribution),
-        )
-
-    @staticmethod
-    def bq(
-        cache: Optional[bool] = None,
-        rescore_limit: Optional[int] = None,
-    ) -> _BQConfigCreate:
-        """Create a `_BQConfigCreate` object to be used when defining the binary quantization (BQ) configuration of Weaviate.
-
-        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
-
-        Args:
-            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
-        """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _BQConfigCreate(
-            cache=cache,
-            rescoreLimit=rescore_limit,
-        )
-
-    @staticmethod
-    def sq(
-        cache: Optional[bool] = None,
-        rescore_limit: Optional[int] = None,
-        training_limit: Optional[int] = None,
-    ) -> _SQConfigCreate:
-        """Create a `_SQConfigCreate` object to be used when defining the scalar quantization (SQ) configuration of Weaviate.
-
-        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
-
-        Args:
-            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
-        """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _SQConfigCreate(
-            cache=cache,
-            rescoreLimit=rescore_limit,
-            trainingLimit=training_limit,
-        )
-
-
-class _VectorIndex:
-    MultiVector = _VectorIndexMultiVector
-    Quantizer = _VectorIndexQuantizer
-
-    @staticmethod
-    def none() -> _VectorIndexConfigSkipCreate:
-        """Create a `_VectorIndexConfigSkipCreate` object to be used when configuring Weaviate to not index your vectors.
-
-        Use this method when defining the `vector_index_config` argument in `collections.create()`.
-        """
-        return _VectorIndexConfigSkipCreate(
-            distance=None,
-            quantizer=None,
-            multivector=None,
-        )
-
-    @staticmethod
-    def hnsw(
-        cleanup_interval_seconds: Optional[int] = None,
-        distance_metric: Optional[VectorDistances] = None,
-        dynamic_ef_factor: Optional[int] = None,
-        dynamic_ef_max: Optional[int] = None,
-        dynamic_ef_min: Optional[int] = None,
-        ef: Optional[int] = None,
-        ef_construction: Optional[int] = None,
-        filter_strategy: Optional[VectorFilterStrategy] = None,
-        flat_search_cutoff: Optional[int] = None,
-        max_connections: Optional[int] = None,
-        vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[_QuantizerConfigCreate] = None,
-        multi_vector: Optional[_MultiVectorConfigCreate] = None,
-    ) -> _VectorIndexConfigHNSWCreate:
-        """Create a `_VectorIndexConfigHNSWCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
-
-        Use this method when defining the `vector_index_config` argument in `collections.create()`.
-
-        Args:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
-        """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigHNSWCreate(
-            cleanupIntervalSeconds=cleanup_interval_seconds,
-            distance=distance_metric,
-            dynamicEfMin=dynamic_ef_min,
-            dynamicEfMax=dynamic_ef_max,
-            dynamicEfFactor=dynamic_ef_factor,
-            efConstruction=ef_construction,
-            ef=ef,
-            filterStrategy=filter_strategy,
-            flatSearchCutoff=flat_search_cutoff,
-            maxConnections=max_connections,
-            vectorCacheMaxObjects=vector_cache_max_objects,
-            quantizer=quantizer,
-            multivector=multi_vector,
-        )
-
-    @staticmethod
-    def flat(
-        distance_metric: Optional[VectorDistances] = None,
-        vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[_BQConfigCreate] = None,
-    ) -> _VectorIndexConfigFlatCreate:
-        """Create a `_VectorIndexConfigFlatCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
-
-        Use this method when defining the `vector_index_config` argument in `collections.create()`.
-
-        Args:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
-        """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigFlatCreate(
-            distance=distance_metric,
-            vectorCacheMaxObjects=vector_cache_max_objects,
-            quantizer=quantizer,
-            multivector=None,
-        )
-
-    @staticmethod
-    def dynamic(
-        distance_metric: Optional[VectorDistances] = None,
-        threshold: Optional[int] = None,
-        hnsw: Optional[_VectorIndexConfigHNSWCreate] = None,
-        flat: Optional[_VectorIndexConfigFlatCreate] = None,
-    ) -> _VectorIndexConfigDynamicCreate:
-        """Create a `_VectorIndexConfigDynamicCreate` object to be used when defining the DYNAMIC vector index configuration of Weaviate.
-
-        Use this method when defining the `vector_index_config` argument in `collections.create()`.
-
-        Args:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
-        """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigDynamicCreate(
-            distance=distance_metric,
-            threshold=threshold,
-            hnsw=hnsw,
-            flat=flat,
-            quantizer=None,
-            multivector=None,
-        )
-
-
 class Configure:
     """Use this factory class to generate the correct object for use when using the `collections.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
 
@@ -2329,6 +2020,7 @@ class Configure:
     VectorIndex = _VectorIndex
     NamedVectors = _NamedVectors
     Vectors = _Vectors
+    MultiVectors = _MultiVectors
 
     @staticmethod
     def inverted_index(

@@ -3,7 +3,6 @@ from weaviate.collections.classes.config import (
     ConsistencyLevel,
     DataType,
     GenerativeSearches,
-    MultiVectorAggregation,
     PQEncoderDistribution,
     PQEncoderType,
     Property,
@@ -15,7 +14,10 @@ from weaviate.collections.classes.config import (
     Tokenization,
     VectorDistances,
 )
-from weaviate.collections.classes.config_vector_index import VectorFilterStrategy
+from weaviate.collections.classes.config_vector_index import (
+    MultiVectorAggregation,
+    VectorFilterStrategy,
+)
 from weaviate.collections.classes.config_vectorizers import Multi2VecField, Vectorizers
 from weaviate.connect.integrations import Integrations
 

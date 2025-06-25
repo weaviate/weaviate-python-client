@@ -352,7 +352,7 @@ def openai_collection(
         collection = collection_factory(
             name=name,
             vectorizer_config=vectorizer_config,
-            vector_config=vector_config or Configure.Vectors.none(),
+            vector_config=vector_config or Configure.Vectors.self_provided(),
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
                 Property(name="content", data_type=DataType.TEXT),
