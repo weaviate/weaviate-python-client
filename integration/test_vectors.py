@@ -841,6 +841,20 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
 
     objs = collection.query.hybrid(
         None,
+        vector=[1, 2],
+        target_vector="regular",
+    ).objects
+    assert len(objs) == 1
+
+    objs = collection.query.hybrid(
+        None,
+        vector=[[1, 2], [3, 4]],
+        target_vector="colbert",
+    ).objects
+    assert len(objs) == 1
+
+    objs = collection.query.hybrid(
+        None,
         vector={"colbert": [[1, 2], [3, 4]]},
         target_vector="colbert",
     ).objects

@@ -10,6 +10,7 @@ from weaviate.collections.classes.config import (
     _GenerativeProvider,
     _InvertedIndexConfigUpdate,
     _MultiTenancyConfigUpdate,
+    _NamedVectorConfigCreate,
     _NamedVectorConfigUpdate,
     _ReferencePropertyMultiTarget,
     _ReplicationConfigUpdate,
@@ -62,4 +63,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def add_property(self, prop: Property) -> None: ...
     def add_reference(
         self, ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget]
+    ) -> None: ...
+    def add_vector(
+        self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
     ) -> None: ...

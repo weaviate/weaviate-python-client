@@ -7,6 +7,8 @@ from weaviate.collections.classes.filters import (
     FilterReturn,
 )
 from weaviate.collections.classes.grpc import (
+    BM25OperatorAnd,
+    BM25OperatorOr,
     ListOfVectorsQuery,
     NearVectorInputType,
     Sorting,
@@ -55,6 +57,8 @@ __all__ = [
     "GenerativeGroupByReturnType",
     "GenerativeSearchReturnType",
     "GeoCoordinate",
+    "BM25OperatorAnd",
+    "BM25OperatorOr",
     "ListOfVectorsQuery",
     "MetadataReturn",
     "MetadataSingleObjectReturn",

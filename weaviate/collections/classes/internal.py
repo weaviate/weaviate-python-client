@@ -438,6 +438,10 @@ def __is_nested(value: Any) -> bool:
 
 def __create_nested_property_from_nested(name: str, value: Any) -> QueryNested:
     inner_type = get_args(value)[0]
+    # If this nested property contains an object array, use the element type
+    if get_origin(inner_type) is list:
+        inner_type = get_args(inner_type)[0]
+
     return QueryNested(
         name=name,
         properties=[

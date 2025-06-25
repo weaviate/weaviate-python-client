@@ -1,6 +1,6 @@
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
-from weaviate.users.executor import (
+from weaviate.users.base import (
     _UsersDBExecutor,
     _UsersExecutor,
     _UsersOIDCExecutor,

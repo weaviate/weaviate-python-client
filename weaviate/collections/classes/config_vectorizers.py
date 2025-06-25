@@ -13,6 +13,7 @@ from ...warnings import _Warnings
 
 # See https://docs.cohere.com/docs/cohere-embed for reference
 CohereModel: TypeAlias = Literal[
+    "embed-v4.0",
     "embed-multilingual-v2.0",
     "embed-multilingual-v3.0",
     "embed-multilingual-light-v3.0",
@@ -26,6 +27,7 @@ CohereModel: TypeAlias = Literal[
     "embed-english-light-v3.0",
 ]
 CohereMultimodalModel: TypeAlias = Literal[
+    "embed-v4.0",
     "embed-multilingual-v3.0",
     "embed-multilingual-light-v3.0",
     "embed-english-v3.0",
@@ -48,6 +50,8 @@ JinaMultimodalModel: TypeAlias = Literal[
     "jina-clip-v2",
 ]
 VoyageModel: TypeAlias = Literal[
+    "voyage-3.5",
+    "voyage-3.5-lite",
     "voyage-3",
     "voyage-3-lite",
     "voyage-large-2",
@@ -409,7 +413,7 @@ class _Multi2VecBase(_VectorizerConfigCreate):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["weights"] = {}
-        for cls_field in self.model_fields:
+        for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if "Fields" in cls_field and val is not None:
                 val = cast(List[Multi2VecField], val)

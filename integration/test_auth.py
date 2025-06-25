@@ -226,6 +226,12 @@ def test_authentication_with_bearer_token_no_refresh() -> None:
         assert str(recwarn.list[0].message).startswith("Auth002")
 
 
+def test_api_key_string() -> None:
+    assert is_auth_enabled(f"localhost:{WCS_PORT}")
+    with weaviate.connect_to_local(port=WCS_PORT, auth_credentials="my-secret-key") as client:
+        client.collections.list_all()
+
+
 def test_api_key() -> None:
     assert is_auth_enabled(f"localhost:{WCS_PORT}")
     with weaviate.connect_to_local(

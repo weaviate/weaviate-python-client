@@ -17,6 +17,8 @@ from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
+    BM25OperatorOptions,
+    BM25OperatorOr,
     HybridFusion,
     HybridVectorType,
     Move,
@@ -579,6 +581,7 @@ class _BaseGRPC:
         alpha: Optional[float],
         vector: Optional[HybridVectorType],
         properties: Optional[List[str]],
+        bm25_operator: Optional[BM25OperatorOptions],
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
@@ -627,13 +630,21 @@ class _BaseGRPC:
 
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
-        near_text, near_vector, vector_bytes = None, None, None
+        near_text, near_vector, vector_bytes, vectors = None, None, None, None
 
         if vector is None:
             pass
         elif isinstance(vector, list) and len(vector) > 0 and isinstance(vector[0], float):
             # fast path for simple vector
             vector_bytes = struct.pack("{}f".format(len(vector)), *vector)
+        elif _is_2d_vector(vector) and self._weaviate_version.is_at_least(1, 29, 0):
+            # fast path for simple multi-vector
+            vectors = [
+                base_pb2.Vectors(
+                    vector_bytes=_Pack.multi(vector),
+                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                )
+            ]
         elif isinstance(vector, _HybridNearText):
             near_text = base_search_pb2.NearTextSearch(
                 query=[vector.text] if isinstance(vector.text, str) else vector.text,
@@ -715,6 +726,15 @@ class _BaseGRPC:
                 near_vector=near_vector,
                 vector_bytes=vector_bytes,
                 vector_distance=distance,
+                vectors=vectors,
+                bm25_search_operator=base_search_pb2.SearchOperatorOptions(
+                    operator=bm25_operator.operator,
+                    minimum_or_tokens_match=bm25_operator.minimum_should_match
+                    if isinstance(bm25_operator, BM25OperatorOr)
+                    else None,
+                )
+                if bm25_operator is not None
+                else None,
             )
             if query is not None or vector is not None
             else None

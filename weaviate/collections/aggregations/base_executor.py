@@ -92,9 +92,9 @@ class _BaseExecutor(Generic[ConnectionType]):
             )
 
     def _to_result(
-        self, response: aggregate_pb2.AggregateReply
+        self, is_groupby: bool, response: aggregate_pb2.AggregateReply
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
-        if response.HasField("single_result"):
+        if not is_groupby:
             return AggregateReturn(
                 properties={
                     aggregation.property: self.__parse_property_grpc(aggregation)
@@ -102,7 +102,7 @@ class _BaseExecutor(Generic[ConnectionType]):
                 },
                 total_count=response.single_result.objects_count,
             )
-        if response.HasField("grouped_results"):
+        if is_groupby:
             return AggregateGroupByReturn(
                 groups=[
                     AggregateGroup(
@@ -116,9 +116,6 @@ class _BaseExecutor(Generic[ConnectionType]):
                     for group in response.grouped_results.groups
                 ]
             )
-        else:
-            _Warnings.unknown_type_encountered(response.WhichOneof("result"))
-            return AggregateReturn(properties={}, total_count=None)
 
     def __parse_grouped_by_value(
         self, grouped_by: aggregate_pb2.AggregateReply.Group.GroupedBy
