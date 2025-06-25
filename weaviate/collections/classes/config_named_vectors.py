@@ -109,7 +109,13 @@ class _NamedVectorConfigUpdate(_ConfigUpdateModel):
 
 
 class _NamedVectors:
-    @staticmethod
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="This method is deprecated and will be removed in Q1 '26. Please use :meth:`~weaviate.collections.classes.config._NamedVectors.self_provided` instead.",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '26. Please use `self_provided` instead."
+    )
     def none(
         name: str, *, vector_index_config: Optional[_VectorIndexConfigCreate] = None
     ) -> _NamedVectorConfigCreate:

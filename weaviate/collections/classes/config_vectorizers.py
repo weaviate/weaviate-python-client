@@ -542,14 +542,20 @@ class _Vectorizer:
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
     """
 
-    @staticmethod
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="This method is deprecated and will be removed in Q1 '26. Please use :meth:`~weaviate.collections.classes.config._Vectorizer.self_provided` instead.",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '26. Please use `self_provided` instead."
+    )
     def none() -> _VectorizerConfigCreate:
-        """Create a `_VectorizerConfigCreate` object with the vectorizer set to `Vectorizer.user_provided` meaning that you provide the vectors with Weaviate just indexing them."""
+        """Create a `_VectorizerConfigCreate` object with the vectorizer set to `Vectorizer.none` meaning that you provide the vectors with Weaviate just indexing them."""
         return _VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
 
     @staticmethod
     def self_provided() -> _VectorizerConfigCreate:
-        """Create a `_VectorizerConfigCreate` object with the vectorizer set to `Vectorizer.user_provided` meaning that you provide the vectors with Weaviate just indexing them."""
+        """Create a `_VectorizerConfigCreate` object with the vectorizer set to `Vectorizer.self_provided` meaning that you provide the vectors with Weaviate just indexing them."""
         return _VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
 
     @staticmethod
