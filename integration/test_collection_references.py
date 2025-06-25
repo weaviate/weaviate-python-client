@@ -38,14 +38,14 @@ def test_reference_add_delete_replace(
     delete: SingleReferenceInput,
 ) -> None:
     ref_collection = collection_factory(
-        name="Target", vectorizer_config=Configure.Vectorizer.user_provided()
+        name="Target", vectorizer_config=Configure.Vectorizer.self_provided()
     )
     ref_collection.data.insert(properties={}, uuid=TO_UUID)
     collection = collection_factory(
         references=[
             ReferenceProperty.MultiTarget(name="ref", target_collections=[ref_collection.name])
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
@@ -89,14 +89,14 @@ def test_reference_add_delete_replace_multi_target(
     collection_factory: CollectionFactory,
 ) -> None:
     ref_collection = collection_factory(
-        name="Target", vectorizer_config=Configure.Vectorizer.user_provided()
+        name="Target", vectorizer_config=Configure.Vectorizer.self_provided()
     )
     ref_collection.data.insert(properties={}, uuid=TO_UUID)
     collection = collection_factory(
         references=[
             ReferenceProperty.MultiTarget(name="ref", target_collections=[ref_collection.name])
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
@@ -163,12 +163,12 @@ def test_reference_add_multiple_uuids_error(
     collection_factory: CollectionFactory, to: SingleReferenceInput
 ) -> None:
     ref_collection = collection_factory(
-        name="Target", vectorizer_config=Configure.Vectorizer.user_provided()
+        name="Target", vectorizer_config=Configure.Vectorizer.self_provided()
     )
     ref_collection.data.insert(properties={}, uuid=TO_UUID)
     collection = collection_factory(
         references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
     with pytest.raises(WeaviateInvalidInputError):
@@ -186,12 +186,12 @@ def test_reference_delete_multiple_uuids_error(
     collection_factory: CollectionFactory, to: SingleReferenceInput
 ) -> None:
     ref_collection = collection_factory(
-        name="Target", vectorizer_config=Configure.Vectorizer.user_provided()
+        name="Target", vectorizer_config=Configure.Vectorizer.self_provided()
     )
     ref_collection.data.insert(properties={}, uuid=TO_UUID)
     collection = collection_factory(
         references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
     with pytest.raises(WeaviateInvalidInputError):
@@ -201,7 +201,7 @@ def test_reference_delete_multiple_uuids_error(
 def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
     A = collection_factory(
         name="A",
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -219,7 +219,7 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
         references=[
             ReferenceProperty(name="a", target_collection=A.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     uuid_B = B.data.insert({"Name": "B"}, references={"a": uuid_A1})
     B.data.reference_add(from_uuid=uuid_B, from_property="a", to=uuid_A2)
@@ -244,7 +244,7 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
         references=[
             ReferenceProperty(name="b", target_collection=B.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     C.data.insert({"Name": "find me"}, references={"b": uuid_B})
 
@@ -436,7 +436,7 @@ def test_mono_references_grpc_with_generics(
 def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
     A = collection_factory(
         name="A",
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -448,7 +448,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     uuid_B = B.data.insert({"Name": "B"})
 
@@ -458,7 +458,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
         references=[
             ReferenceProperty.MultiTarget(name="ref", target_collections=[A.name, B.name]),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     C.data.insert(
         {
@@ -517,7 +517,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
 def test_multi_references_grpc_with_generics(collection_factory: CollectionFactory) -> None:
     A = collection_factory(
         name="A",
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -529,7 +529,7 @@ def test_multi_references_grpc_with_generics(collection_factory: CollectionFacto
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     uuid_B = B.data.insert({"Name": "B"})
 
@@ -539,7 +539,7 @@ def test_multi_references_grpc_with_generics(collection_factory: CollectionFacto
         references=[
             ReferenceProperty.MultiTarget(name="ref", target_collections=[A.name, B.name]),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     C.data.insert(
         {
@@ -611,7 +611,7 @@ def test_multi_references_grpc_with_generics(collection_factory: CollectionFacto
 def test_references_batch(collection_factory: CollectionFactory) -> None:
     ref_collection = collection_factory(
         name="To",
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="number", data_type=DataType.INT)],
     )
     num_objects = 10
@@ -627,7 +627,7 @@ def test_references_batch(collection_factory: CollectionFactory) -> None:
             Property(name="num", data_type=DataType.INT),
         ],
         references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     uuids_from = list(
         collection.data.insert_many(
@@ -679,12 +679,12 @@ def test_references_batch(collection_factory: CollectionFactory) -> None:
 def test_batch_reference_multi_target(collection_factory: CollectionFactory) -> None:
     to_collection = collection_factory(
         name="To",
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="number", data_type=DataType.INT)],
     )
     from_collection = collection_factory(
         name="From",
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="num", data_type=DataType.INT)],
     )
     from_collection.config.add_reference(
@@ -756,7 +756,7 @@ def test_batch_reference_multi_target(collection_factory: CollectionFactory) -> 
 def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     collection.config.add_reference(
         ReferenceProperty(name="self", target_collection=collection.name)
@@ -809,7 +809,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
 def test_references_batch_with_errors(collection_factory: CollectionFactory) -> None:
     to = collection_factory(
         name="To",
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     collection = collection_factory(
@@ -818,7 +818,7 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
             Property(name="num", data_type=DataType.INT),
         ],
         references=[ReferenceProperty(name="ref", target_collection=to.name)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     batch_return = collection.data.reference_add_many(
@@ -838,7 +838,7 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
 
 #     client.collections.create(
 #         name=name1,
-#         vectorizer_config=Configure.Vectorizer.user_provided(),
+#         vectorizer_config=Configure.Vectorizer.self_provided(),
 #         properties=[
 #             Property(name="Name", data_type=DataType.TEXT),
 #             Property(name="Age", data_type=DataType.INT),
@@ -858,7 +858,7 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
 #             Property(name="Name", data_type=DataType.TEXT),
 #         ],
 #         references=[ReferenceProperty(name="ref", target_collection=name1)],
-#         vectorizer_config=Configure.Vectorizer.user_provided(),
+#         vectorizer_config=Configure.Vectorizer.self_provided(),
 #     )
 
 #     client.collections.use(name2).data.insert(
@@ -889,7 +889,7 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
 
 
 def test_object_without_references(collection_factory: CollectionFactory) -> None:
-    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.user_provided())
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.self_provided())
 
     source = collection_factory(
         name="From",
@@ -897,7 +897,7 @@ def test_object_without_references(collection_factory: CollectionFactory) -> Non
             ReferenceProperty(name="ref_partial", target_collection=to.name),
             ReferenceProperty(name="ref_full", target_collection=to.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     uuid_to = to.data.insert(properties={})
@@ -930,14 +930,14 @@ def test_object_without_references(collection_factory: CollectionFactory) -> Non
 
 
 def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
-    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.user_provided())
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.self_provided())
 
     source = collection_factory(
         name="From",
         references=[
             ReferenceProperty(name="ref", target_collection=to.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     # added as upper-case UUID
@@ -969,13 +969,13 @@ def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
 
 
 def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
-    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.user_provided())
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.self_provided())
     source = collection_factory(
         name="From",
         references=[
             ReferenceProperty(name="ref", target_collection=to.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     uuid_source = source.data.insert(properties={})
     obj = source.query.fetch_object_by_id(
@@ -991,7 +991,7 @@ def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
 def test_refs_different_input_insert(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput
 ) -> None:
-    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.user_provided())
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.self_provided())
     to.data.insert(properties={}, uuid=TO_UUID)
 
     source = collection_factory(
@@ -999,7 +999,7 @@ def test_refs_different_input_insert(
         references=[
             ReferenceProperty(name="ref", target_collection=to.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     from_uuid = source.data.insert(properties={}, references={"ref": to_uuid})
@@ -1016,7 +1016,7 @@ def test_refs_different_input_insert(
 def test_refs_different_input_insert_many(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput
 ) -> None:
-    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.user_provided())
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.self_provided())
     to.data.insert(properties={}, uuid=TO_UUID)
 
     source = collection_factory(
@@ -1024,7 +1024,7 @@ def test_refs_different_input_insert_many(
         references=[
             ReferenceProperty(name="ref", target_collection=to.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     source.config.add_reference(
         ReferenceProperty.MultiTarget(name="multi", target_collections=[to.name, source.name])
@@ -1057,7 +1057,7 @@ def test_refs_different_input_insert_many(
 
 @pytest.mark.parametrize("to_uuid", [TO_UUID, str(TO_UUID)])
 def test_refs_different_reference_add(collection_factory: CollectionFactory, to_uuid: str) -> None:
-    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.user_provided())
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.self_provided())
     to.data.insert(properties={}, uuid=TO_UUID)
 
     source = collection_factory(
@@ -1065,7 +1065,7 @@ def test_refs_different_reference_add(collection_factory: CollectionFactory, to_
         references=[
             ReferenceProperty(name="ref", target_collection=to.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     from_uuid = source.data.insert(properties={})
@@ -1082,7 +1082,7 @@ def test_refs_different_reference_add(collection_factory: CollectionFactory, to_
 def test_refs_different_reference_add_many(
     collection_factory: CollectionFactory, to_uuid: UUID
 ) -> None:
-    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.user_provided())
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.self_provided())
     to.data.insert(properties={}, uuid=TO_UUID)
     to.data.insert(properties={}, uuid=TO_UUID2)
 
@@ -1091,7 +1091,7 @@ def test_refs_different_reference_add_many(
         references=[
             ReferenceProperty(name="ref", target_collection=to.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     from_uuid = source.data.insert(properties={})
@@ -1113,7 +1113,7 @@ def test_refs_different_reference_add_many(
 def test_refs_different_reference_replace(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput
 ) -> None:
-    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.user_provided())
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.self_provided())
     to.data.insert(properties={}, uuid=TO_UUID)
     to.data.insert(properties={}, uuid=TO_UUID2)
 
@@ -1122,7 +1122,7 @@ def test_refs_different_reference_replace(
         references=[
             ReferenceProperty(name="ref", target_collection=to.name),
         ],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     from_uuid = source.data.insert(properties={})

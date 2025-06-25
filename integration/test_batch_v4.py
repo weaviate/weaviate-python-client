@@ -105,7 +105,7 @@ def client_factory(
             ],
             references=[ReferenceProperty(name="test", target_collection=name_fixture)],
             multi_tenancy_config=Configure.multi_tenancy(multi_tenant),
-            vectorizer_config=Configure.Vectorizer.user_provided(),
+            vectorizer_config=Configure.Vectorizer.self_provided(),
         )
         return client_fixture, name_fixture
 

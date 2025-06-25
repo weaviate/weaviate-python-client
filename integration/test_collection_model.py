@@ -41,7 +41,7 @@ pytest.skip(allow_module_level=True)
 #     client = weaviate.WeaviateClient(connection_params)
 #     client._collection_model.delete(Group)
 #     collection = client._collection_model.create(
-#         CollectionModelConfig[Group](model=Group, vectorizer_config=Configure.Vectorizer.user_provided())
+#         CollectionModelConfig[Group](model=Group, vectorizer_config=Configure.Vectorizer.self_provided())
 #     )
 #     collection.data.insert(obj=Group(name="Name", uuid=REF_TO_UUID))
 
@@ -75,7 +75,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(ModelTypes)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[ModelTypes](
-#             model=ModelTypes, vectorizer_config=Configure.Vectorizer.user_provided()
+#             model=ModelTypes, vectorizer_config=Configure.Vectorizer.self_provided()
 #         )
 #     )
 #     assert collection.model == ModelTypes
@@ -110,7 +110,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(ModelTypes)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[ModelTypes](
-#             model=ModelTypes, vectorizer_config=Configure.Vectorizer.user_provided()
+#             model=ModelTypes, vectorizer_config=Configure.Vectorizer.self_provided()
 #         )
 #     )
 #     assert collection.model == ModelTypes
@@ -130,7 +130,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(DeleteModel)
 #     client._collection_model.create(
 #         CollectionModelConfig[DeleteModel](
-#             model=DeleteModel, vectorizer_config=Configure.Vectorizer.user_provided()
+#             model=DeleteModel, vectorizer_config=Configure.Vectorizer.self_provided()
 #         )
 #     )
 
@@ -146,7 +146,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(SearchTest)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[SearchTest](
-#             model=SearchTest, vectorizer_config=Configure.Vectorizer.user_provided()
+#             model=SearchTest, vectorizer_config=Configure.Vectorizer.self_provided()
 #         )
 #     )
 
@@ -165,7 +165,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(TenantsTest)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[TenantsTest](
-#             vectorizer_config=Configure.Vectorizer.user_provided(),
+#             vectorizer_config=Configure.Vectorizer.self_provided(),
 #             multi_tenancy_config=Configure.multi_tenancy(enabled=True),
 #             model=TenantsTest,
 #         )
@@ -191,7 +191,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(TenantsUpdateTest)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[TenantsUpdateTest](
-#             vectorizer_config=Configure.Vectorizer.user_provided(),
+#             vectorizer_config=Configure.Vectorizer.self_provided(),
 #             multi_tenancy_config=Configure.multi_tenancy(enabled=True),
 #             model=TenantsUpdateTest,
 #         )
@@ -216,7 +216,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(TenantsUpdateTest)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[TenantsUpdateTest](
-#             vectorizer_config=Configure.Vectorizer.user_provided(),
+#             vectorizer_config=Configure.Vectorizer.self_provided(),
 #             multi_tenancy_config=Configure.multi_tenancy(enabled=True),
 #             model=TenantsUpdateTest,
 #         )
@@ -237,7 +237,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(TestMultiSearches)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[TestMultiSearches](
-#             model=TestMultiSearches, vectorizer_config=Configure.Vectorizer.user_provided()
+#             model=TestMultiSearches, vectorizer_config=Configure.Vectorizer.self_provided()
 #         )
 #     )
 
@@ -269,7 +269,7 @@ pytest.skip(allow_module_level=True)
 # #     client._collection_model.delete(TestMultiSearchesWithReferences)
 # #     collection = client._collection_model.create(
 # #         CollectionModelConfig[TestMultiSearchesWithReferences](
-# #             model=TestMultiSearchesWithReferences, vectorizer_config=Configure.Vectorizer.user_provided()
+# #             model=TestMultiSearchesWithReferences, vectorizer_config=Configure.Vectorizer.self_provided()
 # #         )
 # #     )
 
@@ -307,7 +307,7 @@ pytest.skip(allow_module_level=True)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[TestTenantSearch](
 #             model=TestTenantSearch,
-#             vectorizer_config=Configure.Vectorizer.user_provided(),
+#             vectorizer_config=Configure.Vectorizer.self_provided(),
 #             multi_tenancy_config=Configure.multi_tenancy(enabled=True),
 #         )
 #     )
@@ -363,7 +363,7 @@ pytest.skip(allow_module_level=True)
 #         client._collection_model.delete(TestPropUpdate)
 #         collection_first = client._collection_model.create(
 #             CollectionModelConfig[TestPropUpdate](
-#                 model=TestPropUpdate, vectorizer_config=Configure.Vectorizer.user_provided()
+#                 model=TestPropUpdate, vectorizer_config=Configure.Vectorizer.self_provided()
 #             )
 #         )
 #         uuid_first = collection_first.data.insert(TestPropUpdate(name="first"))
@@ -413,7 +413,7 @@ pytest.skip(allow_module_level=True)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[TestReturnEverythingORM](
 #             model=TestReturnEverythingORM,
-#             vectorizer_config=Configure.Vectorizer.user_provided(),
+#             vectorizer_config=Configure.Vectorizer.self_provided(),
 #         )
 #     )
 #     collection.data.insert(TestReturnEverythingORM(name="word"))
@@ -436,7 +436,7 @@ pytest.skip(allow_module_level=True)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[TestEmptyProperties](
 #             model=TestEmptyProperties,
-#             vectorizer_config=Configure.Vectorizer.user_provided(),
+#             vectorizer_config=Configure.Vectorizer.self_provided(),
 #         )
 #     )
 #     collection.data.insert(TestEmptyProperties(name="word"))
@@ -459,7 +459,7 @@ pytest.skip(allow_module_level=True)
 #         client._collection_model.delete(TestRefPropUpdate)
 #         collection_first = client._collection_model.create(
 #             CollectionModelConfig[TestRefPropUpdate](
-#                 model=TestRefPropUpdate, vectorizer_config=Configure.Vectorizer.user_provided()
+#                 model=TestRefPropUpdate, vectorizer_config=Configure.Vectorizer.self_provided()
 #             )
 #         )
 #         uuid_first = collection_first.data.insert(TestRefPropUpdate(name="first"))
@@ -480,7 +480,7 @@ pytest.skip(allow_module_level=True)
 #     client._collection_model.delete(TestDatetime)
 #     collection = client._collection_model.create(
 #         CollectionModelConfig[TestDatetime](
-#             model=TestDatetime, vectorizer_config=Configure.Vectorizer.user_provided()
+#             model=TestDatetime, vectorizer_config=Configure.Vectorizer.self_provided()
 #         )
 #     )
 #     now = datetime.now(timezone.utc)

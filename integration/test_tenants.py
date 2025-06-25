@@ -26,7 +26,7 @@ def test_shards_on_tenants(
     client_factory: ClientFactory, collection_factory: CollectionFactory
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     collection.tenants.create(Tenant(name="tenant1"))
@@ -43,7 +43,7 @@ def test_delete_by_id_tenant(
     collection_factory: CollectionFactory, tenant: Union[str, Tenant]
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     collection.tenants.create(tenant)
@@ -57,7 +57,7 @@ def test_delete_by_id_tenant(
 def test_insert_many_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
@@ -83,7 +83,7 @@ def test_insert_many_with_tenant(collection_factory: CollectionFactory) -> None:
 def test_replace_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
@@ -100,7 +100,7 @@ def test_replace_with_tenant(collection_factory: CollectionFactory) -> None:
 def test_tenants_update(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     uuid = collection.data.insert(properties={"name": "some name"})
     collection.data.update(properties={"name": "other name"}, uuid=uuid, vector=[1, 2, 3])
@@ -112,7 +112,7 @@ def test_tenants_update(collection_factory: CollectionFactory) -> None:
 def test_update_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
@@ -128,7 +128,7 @@ def test_update_with_tenant(collection_factory: CollectionFactory) -> None:
 
 def test_tenants(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(),
     )
 
@@ -159,7 +159,7 @@ def test_tenants(collection_factory: CollectionFactory) -> None:
 
 def test_search_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
@@ -178,7 +178,7 @@ def test_search_with_tenant(collection_factory: CollectionFactory) -> None:
 
 def test_fetch_object_by_id_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
@@ -204,7 +204,7 @@ def test_fetch_object_by_id_with_tenant(collection_factory: CollectionFactory) -
 
 def test_fetch_objects_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
@@ -229,7 +229,7 @@ def test_fetch_objects_with_tenant(collection_factory: CollectionFactory) -> Non
 
 def test_exist_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
@@ -245,7 +245,7 @@ def test_exist_with_tenant(collection_factory: CollectionFactory) -> None:
 
 def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
@@ -272,7 +272,7 @@ def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
 
 def test_update_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     with pytest.warns(DeprecationWarning) as recwarn:
@@ -300,7 +300,7 @@ def test_update_tenant(collection_factory: CollectionFactory) -> None:
 
 def test_tenant_exists(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     tenant = Tenant(name="1")
@@ -325,7 +325,7 @@ def test_tenant_get_by_name(
     tenant3: Union[str, Tenant],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(),
     )
 
@@ -344,7 +344,7 @@ def test_tenant_get_by_name(
 
 def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
@@ -379,7 +379,7 @@ def test_tenants_create(
     tenants: Union[TenantCreateInputType, List[TenantCreateInputType]],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(),
     )
 
@@ -402,7 +402,7 @@ def test_tenants_remove(
     collection_factory: CollectionFactory, tenants: Union[str, Tenant, List[Union[str, Tenant]]]
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(),
     )
 
@@ -426,7 +426,7 @@ def test_tenants_create_with_read_only_activity_status(
     collection_factory: CollectionFactory, tenants: Union[Tenant, List[Tenant]]
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(),
     )
     with pytest.raises(WeaviateInvalidInputError):
@@ -448,7 +448,7 @@ def test_tenants_update_with_read_only_activity_status(
     collection_factory: CollectionFactory, tenants: Union[Tenant, List[Tenant]]
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(),
     )
     with pytest.raises(WeaviateInvalidInputError):
@@ -459,7 +459,7 @@ def test_tenants_create_and_update_1001_tenants(
     collection_factory: CollectionFactory,
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(),
     )
 
@@ -489,7 +489,7 @@ def test_tenants_auto_tenant_creation(
 
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(auto_tenant_creation=True),
     )
 

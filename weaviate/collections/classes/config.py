@@ -1155,7 +1155,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
         default=None, alias="vector_index_config"
     )
     moduleConfig: _VectorizerConfigCreate = Field(
-        default=_Vectorizer.user_provided(), alias="vectorizer_config"
+        default=_Vectorizer.self_provided(), alias="vectorizer_config"
     )
     generativeSearch: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
@@ -1938,7 +1938,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         default=None, alias="vector_index_config"
     )
     vectorizerConfig: Optional[Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]] = (
-        Field(default=_Vectorizer.user_provided(), alias="vectorizer_config")
+        Field(default=_Vectorizer.self_provided(), alias="vectorizer_config")
     )
     generativeSearch: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")

@@ -1146,7 +1146,7 @@ def test_config_with_reranker(
 @pytest.mark.parametrize(
     "vectorizer_config",
     [
-        Configure.Vectorizer.user_provided(),
+        Configure.Vectorizer.self_provided(),
         Configure.Vectorizer.text2vec_contextionary(),
         [
             Configure.NamedVectors.text2vec_cohere(name="one"),

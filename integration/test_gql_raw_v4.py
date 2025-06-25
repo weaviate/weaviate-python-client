@@ -10,7 +10,7 @@ def test_raw_gql_v4() -> None:
     collection = client.collections.create(
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
     try:
         collection.data.insert_many([{"Name": f"name {i}"} for i in range(number)])

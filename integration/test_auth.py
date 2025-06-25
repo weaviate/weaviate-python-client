@@ -276,7 +276,7 @@ def test_auth_e2e(request: SubRequest) -> None:
             properties=[
                 Property(name="name", data_type=DataType.TEXT),
             ],
-            vectorizer_config=Configure.Vectorizer.user_provided(),
+            vectorizer_config=Configure.Vectorizer.self_provided(),
         )
         col.data.insert({"name": "test"})
         col.data.insert_many([{"name": "test2"}])

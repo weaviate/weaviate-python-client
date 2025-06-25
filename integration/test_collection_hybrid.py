@@ -99,7 +99,7 @@ def test_search_hybrid_only_vector(
 def test_hybrid_limit(collection_factory: CollectionFactory, limit: int) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     res = collection.data.insert_many(
@@ -117,7 +117,7 @@ def test_hybrid_limit(collection_factory: CollectionFactory, limit: int) -> None
 def test_hybrid_offset(collection_factory: CollectionFactory, offset: int, expected: int) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     res = collection.data.insert_many(
@@ -387,8 +387,8 @@ def test_vector_per_target(
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
-            Configure.NamedVectors.user_provided("first"),
-            Configure.NamedVectors.user_provided("second"),
+            Configure.NamedVectors.self_provided("first"),
+            Configure.NamedVectors.self_provided("second"),
         ],
     )
 
@@ -450,8 +450,8 @@ def test_same_target_vector_multiple_input_combinations(
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.user_provided("first"),
-            wvc.config.Configure.NamedVectors.user_provided("second"),
+            wvc.config.Configure.NamedVectors.self_provided("first"),
+            wvc.config.Configure.NamedVectors.self_provided("second"),
         ],
     )
 
@@ -494,7 +494,7 @@ def test_vector_distance(collection_factory: CollectionFactory):
 def test_aggregate_max_vector_distance(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
     )
 
     if collection._connection._weaviate_version.is_lower_than(1, 26, 3):

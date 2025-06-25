@@ -548,7 +548,7 @@ class _Vectorizer:
         return _VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
 
     @staticmethod
-    def user_provided() -> _VectorizerConfigCreate:
+    def self_provided() -> _VectorizerConfigCreate:
         """Create a `_VectorizerConfigCreate` object with the vectorizer set to `Vectorizer.user_provided` meaning that you provide the vectors with Weaviate just indexing them."""
         return _VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
 

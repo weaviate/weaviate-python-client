@@ -24,7 +24,7 @@ async def test_fetch_objects(async_collection_factory: AsyncCollectionFactory) -
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.data.insert_many(
         [
@@ -67,7 +67,7 @@ async def test_fetch_objects_by_ids(
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.data.insert_many(
         [
@@ -89,7 +89,7 @@ async def test_config_update(async_collection_factory: AsyncCollectionFactory) -
             Property(name="name", data_type=DataType.TEXT),
         ],
         multi_tenancy_config=wvc.config.Configure.multi_tenancy(),
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.config.update(
         multi_tenancy_config=wvc.config.Reconfigure.multi_tenancy(
@@ -105,7 +105,7 @@ async def test_config_add_property(async_collection_factory: AsyncCollectionFact
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.config.add_property(Property(name="age", data_type=DataType.INT))
 
@@ -116,7 +116,7 @@ async def test_config_add_reference(async_collection_factory: AsyncCollectionFac
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.config.add_reference(
         wvc.config.ReferenceProperty(name="test", target_collection=collection.name)
@@ -129,7 +129,7 @@ async def test_references(async_collection_factory: AsyncCollectionFactory) -> N
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.config.add_reference(
         wvc.config.ReferenceProperty(name="marriage", target_collection=collection.name)
@@ -199,7 +199,7 @@ async def test_iterator(async_collection_factory: AsyncCollectionFactory) -> Non
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.data.insert_many(
         [
@@ -218,7 +218,7 @@ async def test_delete_many(async_collection_factory: AsyncCollectionFactory) -> 
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     ret = await collection.data.insert_many(
         [
@@ -234,7 +234,7 @@ async def test_delete_many(async_collection_factory: AsyncCollectionFactory) -> 
 @pytest.mark.asyncio
 async def test_generate(async_openai_collection: AsyncOpenAICollectionFactory) -> None:
     collection = await async_openai_collection(
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.data.insert_many(
         [
@@ -279,7 +279,7 @@ async def test_generate_by_ids(
     expected: set,
 ) -> None:
     collection = await async_openai_collection(
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
     )
     await collection.data.insert_many(
         [

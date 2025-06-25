@@ -126,7 +126,7 @@ class _NamedVectors:
         )
 
     @staticmethod
-    def user_provided(
+    def self_provided(
         name: str,
         *,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,

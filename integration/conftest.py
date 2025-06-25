@@ -148,7 +148,7 @@ def collection_factory(
             collection: Collection[Any, Any] = client_fixture.collections.create(
                 name=name_fixture,
                 description=description,
-                vectorizer_config=vectorizer_config or Configure.Vectorizer.user_provided(),
+                vectorizer_config=vectorizer_config or Configure.Vectorizer.self_provided(),
                 properties=properties,
                 references=references,
                 inverted_index_config=inverted_index_config,
@@ -278,7 +278,7 @@ async def async_collection_factory(
             collection: CollectionAsync[Any, Any] = await client_fixture.collections.create(
                 name=name_fixture,
                 description=description,
-                vectorizer_config=vectorizer_config or Configure.Vectorizer.user_provided(),
+                vectorizer_config=vectorizer_config or Configure.Vectorizer.self_provided(),
                 properties=properties,
                 references=references,
                 inverted_index_config=inverted_index_config,
@@ -335,11 +335,11 @@ def openai_collection(
             pytest.skip("No OpenAI API key found.")
 
         if vectorizer_config is None:
-            vectorizer_config = Configure.Vectorizer.user_provided()
+            vectorizer_config = Configure.Vectorizer.self_provided()
 
         collection = collection_factory(
             name=name,
-            vectorizer_config=vectorizer_config or Configure.Vectorizer.user_provided(),
+            vectorizer_config=vectorizer_config or Configure.Vectorizer.self_provided(),
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
                 Property(name="content", data_type=DataType.TEXT),
@@ -384,11 +384,11 @@ async def async_openai_collection(
             pytest.skip("No OpenAI API key found.")
 
         if vectorizer_config is None:
-            vectorizer_config = Configure.Vectorizer.user_provided()
+            vectorizer_config = Configure.Vectorizer.self_provided()
 
         collection = await async_collection_factory(
             name=name,
-            vectorizer_config=vectorizer_config or Configure.Vectorizer.user_provided(),
+            vectorizer_config=vectorizer_config or Configure.Vectorizer.self_provided(),
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
                 Property(name="content", data_type=DataType.TEXT),

@@ -10,7 +10,7 @@ from .conftest import CollectionFactory
 def test_query_using_rerank_with_old_server(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         reranker_config=wvc.config.Configure.Reranker.custom("reranker-dummy"),
-        vectorizer_config=wvc.config.Configure.Vectorizer.user_provided(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.self_provided(),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
     )
     if collection._connection._weaviate_version.is_at_least(1, 23, 1):

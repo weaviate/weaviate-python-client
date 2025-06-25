@@ -130,7 +130,7 @@ def test_near_vector_group_by_argument(collection_factory: CollectionFactory) ->
 def test_near_vector_with_other_input(
     collection_factory: CollectionFactory, near_vector: Any
 ) -> None:
-    collection = collection_factory(vectorizer_config=Configure.Vectorizer.user_provided())
+    collection = collection_factory(vectorizer_config=Configure.Vectorizer.self_provided())
 
     uuid1 = collection.data.insert({}, vector=[1, 0])
     collection.data.insert({}, vector=[0, 1])
@@ -162,8 +162,8 @@ def test_near_vector_with_named_vector_other_input(
 
     collection = collection_factory(
         vectorizer_config=[
-            Configure.NamedVectors.user_provided("first"),
-            Configure.NamedVectors.user_provided("second"),
+            Configure.NamedVectors.self_provided("first"),
+            Configure.NamedVectors.self_provided("second"),
         ]
     )
 
@@ -182,8 +182,8 @@ def test_near_vector_with_extra_vectors(collection_factory: CollectionFactory):
 
     collection = collection_factory(
         vectorizer_config=[
-            Configure.NamedVectors.user_provided("first"),
-            Configure.NamedVectors.user_provided("second"),
+            Configure.NamedVectors.self_provided("first"),
+            Configure.NamedVectors.self_provided("second"),
         ]
     )
 

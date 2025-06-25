@@ -6,7 +6,7 @@ from weaviate.collections.classes.types import GeoCoordinate
 
 def test_creating_geo_props(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
 
@@ -39,7 +39,7 @@ def test_creating_geo_props(collection_factory: CollectionFactory) -> None:
 
 def test_geo_props_query(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
 
@@ -51,7 +51,7 @@ def test_geo_props_query(collection_factory: CollectionFactory) -> None:
 
 def test_geo_props_filter(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.user_provided(),
+        vectorizer_config=Configure.Vectorizer.self_provided(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
 
