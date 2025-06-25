@@ -14,9 +14,9 @@ from weaviate.collections.classes.data import (
     DataObject,
 )
 from weaviate.collections.classes.grpc import (
-    MetadataQuery,
     METADATA,
     PROPERTIES,
+    MetadataQuery,
 )
 from weaviate.collections.iterator import ITERATOR_CACHE_SIZE
 from weaviate.exceptions import WeaviateInvalidInputError

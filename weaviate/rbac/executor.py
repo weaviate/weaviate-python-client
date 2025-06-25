@@ -3,23 +3,26 @@ import json
 from typing import Dict, Generic, List, Optional, Sequence, Union, cast
 
 from httpx import Response
+from typing_extensions import deprecated
 
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType, ConnectionAsync
 from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.rbac.models import (
-    _Permission,
-    PermissionsOutputType,
     PermissionsInputType,
+    PermissionsOutputType,
     Role,
     UserAssignment,
     UserTypes,
     WeaviatePermission,
     WeaviateRole,
+    _Permission,
 )
 
 
 def _flatten_permissions(
-    permissions: Union[PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]]
+    permissions: Union[
+        PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
+    ],
 ) -> List[_Permission]:
     if isinstance(permissions, _Permission):
         return [permissions]
@@ -163,7 +166,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> List[UserAssignment]:
             return [
                 UserAssignment(
-                    user_id=assignment["userId"], user_type=UserTypes(assignment["userType"])
+                    user_id=assignment["userId"],
+                    user_type=UserTypes(assignment["userType"]),
                 )
                 for assignment in res.json()
             ]
@@ -176,6 +180,9 @@ class _RolesExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get users of role"),
         )
 
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25. Please use `roles.get_user_assignments` instead."""
+    )
     def get_assigned_user_ids(
         self,
         role_name: str,

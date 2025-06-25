@@ -2,10 +2,11 @@ from typing import List, Literal, Optional, Union
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    TargetVectorJoinType,
-    NearVectorInputType,
-    Move,
+    BM25OperatorOptions,
     HybridVectorType,
+    Move,
+    NearVectorInputType,
+    TargetVectorJoinType,
 )
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import executor
@@ -50,6 +51,7 @@ class _AggregateGRPC(_BaseGRPC):
         properties: Optional[List[str]],
         distance: Optional[NUMBER] = None,
         target_vector: Optional[TargetVectorJoinType],
+        bm25_operator: Optional[BM25OperatorOptions],
         aggregations: List[aggregate_pb2.AggregateRequest.Aggregation],
         filters: Optional[base_pb2.Filters],
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
@@ -66,6 +68,7 @@ class _AggregateGRPC(_BaseGRPC):
                 alpha,
                 vector,
                 properties,
+                bm25_operator,  # no keyword operator for hybrid search
                 None,
                 distance,
                 target_vector,

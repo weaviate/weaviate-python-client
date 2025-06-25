@@ -3,6 +3,7 @@ import os
 import pytest
 
 import weaviate.classes as wvc
+
 from .conftest import CollectionFactory
 
 
@@ -77,9 +78,7 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
             0
         ].metadata.rerank_score > [
             obj for obj in objects if "another" not in obj.properties["text"]
-        ][
-            0
-        ].metadata.rerank_score
+        ][0].metadata.rerank_score
 
 
 def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory) -> None:

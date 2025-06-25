@@ -4,7 +4,7 @@ from httpx import Response
 
 from weaviate.classes.config import ConsistencyLevel
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
+from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
 from weaviate.debug.types import DebugRESTObject
 from weaviate.types import UUID
 

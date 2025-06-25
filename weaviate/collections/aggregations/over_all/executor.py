@@ -1,19 +1,50 @@
-from typing import Generic, Optional, Union
+from typing import Generic, Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.executor import _BaseExecutor
+from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
-    PropertiesMetrics,
-    AggregateReturn,
     AggregateGroupByReturn,
+    AggregateReturn,
     GroupByAggregate,
+    PropertiesMetrics,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
+from weaviate.proto.v1 import aggregate_pb2
 
 
 class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+    @overload
+    def over_all(
+        self,
+        *,
+        filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateReturn]: ...
+
+    @overload
+    def over_all(
+        self,
+        *,
+        filters: Optional[_Filters] = None,
+        group_by: Union[str, GroupByAggregate],
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateGroupByReturn]: ...
+
+    @overload
+    def over_all(
+        self,
+        *,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+
     def over_all(
         self,
         *,
@@ -75,8 +106,14 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 limit=group_by.limit if group_by is not None else None,
                 objects_count=total_count,
             )
+
+            def respGrpc(
+                res: aggregate_pb2.AggregateReply,
+            ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+                return self._to_result(group_by is not None, res)
+
             return executor.execute(
-                response_callback=self._to_result,
+                response_callback=respGrpc,
                 method=self._connection.grpc_aggregate,
                 request=request,
             )

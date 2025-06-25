@@ -1,5 +1,5 @@
-from weaviate.connect import executor
 from weaviate.collections.backups.executor import _CollectionBackupExecutor
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 
 

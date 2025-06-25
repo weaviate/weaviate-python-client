@@ -1,7 +1,7 @@
 import pytest
 
 from test.collection.schema import multi_vector_schema
-from weaviate.collections.classes.config import _CollectionConfigUpdate, Reconfigure
+from weaviate.collections.classes.config import Reconfigure, _CollectionConfigUpdate
 from weaviate.exceptions import WeaviateInvalidInputError
 
 

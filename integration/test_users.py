@@ -1,13 +1,11 @@
 import random
+
 import pytest
 
+import weaviate
 from integration.conftest import ClientFactory
 from weaviate.auth import Auth
-
-import weaviate
-
 from weaviate.rbac.models import Role, RoleBase, UserTypes
-
 
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")

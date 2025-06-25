@@ -1,13 +1,13 @@
 """Client class definition."""
 
-from typing import Optional, Tuple, Union, Any
+from typing import Any, Optional, Tuple, Union
 
 from typing_extensions import deprecated
 
+from weaviate.client_executor import _WeaviateClientExecutor
 
 from .auth import AuthCredentials
-from .backup import _BackupAsync, _Backup
-from weaviate.client_executor import _WeaviateClientExecutor
+from .backup import _Backup, _BackupAsync
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections import _Collections, _CollectionsAsync
@@ -19,9 +19,9 @@ from .connect.base import (
 from .connect.v4 import ConnectionAsync, ConnectionSync
 from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
-from .rbac import _RolesAsync, _Roles
+from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
-from .users import _UsersAsync, _Users
+from .users import _Users, _UsersAsync
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
@@ -166,7 +166,6 @@ Upgrade your code to use Python client v4 `weaviate.WeaviateClient` connections 
 If you have to use v3 code, install the v3 client and pin the v3 dependency in your requirements file: `weaviate-client>=3.26.7;<4.0.0`"""
 )
 class Client:
-
     def __init__(
         self,
     ) -> None:

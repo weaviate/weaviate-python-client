@@ -3,9 +3,9 @@ import pytest
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
-    Property,
     ConsistencyLevel,
     DataType,
+    Property,
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import MetadataQuery

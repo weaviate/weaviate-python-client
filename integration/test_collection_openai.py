@@ -644,9 +644,7 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
             0
         ].metadata.rerank_score > [
             obj for obj in objects if "another" not in obj.properties["text"]
-        ][
-            0
-        ].metadata.rerank_score
+        ][0].metadata.rerank_score
 
 
 @pytest.mark.parametrize(
@@ -698,7 +696,7 @@ def test_near_text_generate_with_dynamic_rag(
         ]
     )
 
-    query = lambda: collection.generate.near_text(
+    query = lambda: collection.generate.near_text(  # noqa: E731
         query="small fruit",
         single_prompt=single,
         grouped_task=grouped,

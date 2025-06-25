@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import polars as pl
+
 from weaviate.util import _get_vector_v4
 
 # Don't need to test `tf` or `torch` tensors since `_get_vector_v4`` converts them to `np` first

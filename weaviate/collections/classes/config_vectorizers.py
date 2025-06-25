@@ -8,10 +8,12 @@ from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
+
 from ...warnings import _Warnings
 
 # See https://docs.cohere.com/docs/cohere-embed for reference
 CohereModel: TypeAlias = Literal[
+    "embed-v4.0",
     "embed-multilingual-v2.0",
     "embed-multilingual-v3.0",
     "embed-multilingual-light-v3.0",
@@ -25,6 +27,7 @@ CohereModel: TypeAlias = Literal[
     "embed-english-light-v3.0",
 ]
 CohereMultimodalModel: TypeAlias = Literal[
+    "embed-v4.0",
     "embed-multilingual-v3.0",
     "embed-multilingual-light-v3.0",
     "embed-english-v3.0",
@@ -47,6 +50,8 @@ JinaMultimodalModel: TypeAlias = Literal[
     "jina-clip-v2",
 ]
 VoyageModel: TypeAlias = Literal[
+    "voyage-3.5",
+    "voyage-3.5-lite",
     "voyage-3",
     "voyage-3-lite",
     "voyage-large-2",
@@ -408,7 +413,7 @@ class _Multi2VecBase(_VectorizerConfigCreate):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["weights"] = {}
-        for cls_field in self.model_fields:
+        for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if "Fields" in cls_field and val is not None:
                 val = cast(List[Multi2VecField], val)
@@ -523,7 +528,7 @@ class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
 
 
 def _map_multi2vec_fields(
-    fields: Optional[Union[List[str], List[Multi2VecField]]]
+    fields: Optional[Union[List[str], List[Multi2VecField]]],
 ) -> Optional[List[Multi2VecField]]:
     if fields is None:
         return None
@@ -730,7 +735,9 @@ class _Vectorizer:
         )
 
     @staticmethod
-    def text2vec_contextionary(vectorize_collection_name: bool = True) -> _VectorizerConfigCreate:
+    def text2vec_contextionary(
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecContextionaryConfigCreate` object for use when vectorizing using the `text2vec-contextionary` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)

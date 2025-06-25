@@ -1,6 +1,6 @@
 from typing import List, Union
-from weaviate.connect.integrations import _IntegrationConfig
 
+from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.connect.v4 import Connection
 
 

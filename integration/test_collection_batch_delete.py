@@ -5,10 +5,11 @@ from typing import List
 import pytest as pytest
 
 from integration.conftest import CollectionFactory
+from weaviate.classes.config import ConsistencyLevel
 from weaviate.collections.classes.config import (
     Configure,
-    Property,
     DataType,
+    Property,
     ReferenceProperty,
     Tokenization,
 )
@@ -19,7 +20,6 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.internal import ReferenceToMulti
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.classes.config import ConsistencyLevel
 from weaviate.exceptions import (
     WeaviateQueryException,
 )

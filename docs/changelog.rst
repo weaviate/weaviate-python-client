@@ -1,6 +1,70 @@
 Changelog
 =========
 
+Version 4.15.3
+--------------
+This patch version includes:
+   - Allows newer versions of `authlib` as dependency
+
+Version 4.15.2
+--------------
+This patch version includes:
+   - Fixes adding the original weaviate error message to our exceptions for async client
+
+Version 4.15.1
+--------------
+This patch version includes:
+   - Adds the original weaviate error message to our exceptions
+
+
+Version 4.15.0
+--------------
+This minor version includes:
+    - Support for new 1.31 features:
+      - Adding new named vectors to existing collections
+      - Support for bm25 operators
+      - Mueva configuration
+    - Fixes config.get() for multivector collections
+    - Copy context to ensure open telemetry makes it to batch requests
+    - Update cohere models
+    - Update voyageai models
+    - Update embedded version to 1.30.5
+    - Fix storage location for embedded mode
+    - Add agents docs to the readthedocs page
+
+Version 4.14.4
+--------------
+
+This patch version includes:
+    - Fixes interfaces for user.db/oidc
+    - If a string is passed into `auth=` we assume that it is an api-key
+    - Fix extracting nested array properties from data models
+
+Version 4.14.3
+--------------
+This patch version includes:
+    - Fixes return type for aggregate with group_by and zero results
+    - Fix multi-vector with hybrid search
+
+Version 4.14.2
+--------------
+not released
+
+Version 4.14.1
+--------------
+This patch version includes:
+    - Fixes a missing ``typing.overload`` specification for the ``query.bm25`` method
+
+Version 4.14.0
+--------------
+This minor version includes a major update to the docstrings and documentation of the client.
+    - All docstrings have been aligned with Google's style format
+    - The read-the-docs page has been streamlined and improved for ease of use: https://weaviate-python-client.readthedocs.io/en/stable/
+    - Fixes a bug when adding a property to a collection configured with both named vectors and a generative module
+    - Potential fixes for race conditions when instantiating async clients
+    - A number of minor fixes to the public `.pyi` stub files found by developing a stub auto-generating tool for the codebase
+
+
 Version 4.13.2
 --------------
 This patch version includes:

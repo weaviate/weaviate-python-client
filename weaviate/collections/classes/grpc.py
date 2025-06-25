@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import (
-    ClassVar,
+    Any,
+    Dict,
     Generic,
     List,
     Literal,
@@ -10,18 +11,17 @@ from typing import (
     Sequence,
     Type,
     Union,
-    Dict,
     cast,
 )
-from typing_extensions import TypeGuard, TypeVar
 
 from pydantic import ConfigDict, Field
+from typing_extensions import ClassVar, TypeGuard, TypeVar
 
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_search_pb2
 from weaviate.str_enum import BaseEnum
-from weaviate.types import INCLUDE_VECTOR, UUID, NUMBER
+from weaviate.types import INCLUDE_VECTOR, NUMBER, UUID
 from weaviate.util import _ServerVersion
 
 
@@ -242,6 +242,53 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+@dataclass
+class BM25OperatorOptions:
+    # replace with ClassVar[base_search_pb2.SearchOperatorOptions.Operator] once python 3.10 is removed
+    operator: ClassVar[Any]
+
+
+@dataclass
+class BM25OperatorOr(BM25OperatorOptions):
+    """Define the 'Or' operator for keyword queries."""
+
+    operator = base_search_pb2.SearchOperatorOptions.OPERATOR_OR
+    minimum_should_match: int
+
+
+@dataclass
+class BM25OperatorAnd(BM25OperatorOptions):
+    """Define the 'And' operator for keyword queries."""
+
+    operator = base_search_pb2.SearchOperatorOptions.OPERATOR_AND
+
+
+class BM25OperatorFactory:
+    """Define how the BM25 query's token matching should be performed."""
+
+    def __init__(self) -> None:
+        raise TypeError("BM25Operator cannot be instantiated. Use the static methods to create.")
+
+    @staticmethod
+    def or_(minimum_match: int) -> BM25OperatorOptions:
+        """Use the 'Or' operator for keyword queries, where at least a minimum number of tokens must match.
+
+        Note that the query is tokenized using the respective tokenization method of each property.
+
+        Args:
+            minimum_match: The minimum number of keyword tokens (excluding stopwords) that must match for an object to be considered a match.
+        """
+        return BM25OperatorOr(minimum_should_match=minimum_match)
+
+    @staticmethod
+    def and_() -> BM25OperatorOptions:
+        """Use the 'And' operator for keyword queries, where all query tokens must match.
+
+        Note that the query is tokenized using the respective tokenization method of each property.
+        """
+        return BM25OperatorAnd()
+
+
 OneDimensionalVectorType = Sequence[NUMBER]
 """Represents a one-dimensional vector, e.g. one produced by `text2vec-jinaai`"""
 TwoDimensionalVectorType = Sequence[Sequence[NUMBER]]
@@ -425,14 +472,16 @@ class TargetVectors:
     def average(target_vectors: List[str]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors by averaging them."""
         return _MultiTargetVectorJoin(
-            combination=_MultiTargetVectorJoinEnum.AVERAGE, target_vectors=target_vectors
+            combination=_MultiTargetVectorJoinEnum.AVERAGE,
+            target_vectors=target_vectors,
         )
 
     @staticmethod
     def minimum(target_vectors: List[str]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors by using the minimum distance."""
         return _MultiTargetVectorJoin(
-            combination=_MultiTargetVectorJoinEnum.MINIMUM, target_vectors=target_vectors
+            combination=_MultiTargetVectorJoinEnum.MINIMUM,
+            target_vectors=target_vectors,
         )
 
     @staticmethod

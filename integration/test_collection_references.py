@@ -7,8 +7,8 @@ from typing_extensions import Annotated
 from integration.conftest import CollectionFactory, CollectionFactoryGet
 from weaviate.collections.classes.config import (
     Configure,
-    Property,
     DataType,
+    Property,
     ReferenceProperty,
 )
 from weaviate.collections.classes.data import DataObject, DataReference
@@ -18,9 +18,9 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.internal import (
     CrossReference,
-    ReferenceToMulti,
     CrossReferenceAnnotation,
     ReferenceInput,
+    ReferenceToMulti,
     SingleReferenceInput,
 )
 from weaviate.exceptions import WeaviateInvalidInputError

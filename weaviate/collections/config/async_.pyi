@@ -1,33 +1,37 @@
 from typing import Dict, List, Literal, Optional, Union, overload
 
 from weaviate.collections.classes.config import (
-    _InvertedIndexConfigUpdate,
-    _ReplicationConfigUpdate,
-    _VectorIndexConfigFlatUpdate,
-    Property,
-    ReferenceProperty,
-    _ReferencePropertyMultiTarget,
-    _VectorIndexConfigHNSWUpdate,
     CollectionConfig,
     CollectionConfigSimple,
+    Property,
+    ReferenceProperty,
     ShardStatus,
     ShardTypes,
-    _NamedVectorConfigUpdate,
-    _MultiTenancyConfigUpdate,
     _GenerativeProvider,
+    _InvertedIndexConfigUpdate,
+    _MultiTenancyConfigUpdate,
+    _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
+    _ReferencePropertyMultiTarget,
+    _ReplicationConfigUpdate,
     _RerankerProvider,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
-from weaviate.collections.config.executor import _ConfigExecutor
 from weaviate.connect.v4 import ConnectionAsync
 
-class _ConfigCollectionAsync(_ConfigExecutor[ConnectionAsync]):
+from .executor import _ConfigCollectionExecutor
+
+class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     @overload
-    async def get(self, simple: Literal[False] = ...) -> CollectionConfig: ...
+    async def get(self, simple: Literal[False] = False) -> CollectionConfig: ...
     @overload
     async def get(self, simple: Literal[True]) -> CollectionConfigSimple: ...
     @overload
-    async def get(self, simple: bool = ...) -> Union[CollectionConfig, CollectionConfigSimple]: ...
+    async def get(
+        self, simple: bool = False
+    ) -> Union[CollectionConfig, CollectionConfigSimple]: ...
     async def update(
         self,
         *,
@@ -37,10 +41,7 @@ class _ConfigCollectionAsync(_ConfigExecutor[ConnectionAsync]):
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-            ]
+            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
         ] = None,
         vectorizer_config: Optional[
             Union[
@@ -62,4 +63,7 @@ class _ConfigCollectionAsync(_ConfigExecutor[ConnectionAsync]):
     async def add_property(self, prop: Property) -> None: ...
     async def add_reference(
         self, ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget]
+    ) -> None: ...
+    async def add_vector(
+        self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
     ) -> None: ...

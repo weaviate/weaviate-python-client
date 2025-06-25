@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -9,20 +9,17 @@ from weaviate.collections.batch.base import (
     _RateLimitedBatching,
 )
 from weaviate.collections.batch.batch_wrapper import (
-    _BatchWrapper,
     _BatchMode,
+    _BatchWrapper,
     _ContextManagerWrapper,
 )
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
-
-from weaviate.connect.v4 import ConnectionSync
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from weaviate.collections.collections.sync import _Collections
@@ -194,7 +191,9 @@ class _BatchClientWrapper(_BatchWrapper):
         return self.__create_batch_and_reset()
 
     def rate_limit(
-        self, requests_per_minute: int, consistency_level: Optional[ConsistencyLevel] = None
+        self,
+        requests_per_minute: int,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> ClientBatchingContextManager:
         """Configure batches with a rate limited vectorizer.
 

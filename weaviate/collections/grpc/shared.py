@@ -1,42 +1,50 @@
 import struct
 import uuid as uuid_lib
+from dataclasses import dataclass
 from typing import (
     Any,
     Dict,
     List,
     Literal,
     Optional,
+    Tuple,
     Union,
     cast,
-    Tuple,
     get_args,
 )
-from dataclasses import dataclass
+
 from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    _ListOfVectorsQuery,
-    _MultiTargetVectorJoin,
-    _HybridNearText,
-    _HybridNearVector,
+    BM25OperatorOptions,
+    BM25OperatorOr,
     HybridFusion,
     HybridVectorType,
     Move,
-    TargetVectorJoinType,
     NearVectorInputType,
     OneDimensionalVectorType,
-    TwoDimensionalVectorType,
     PrimitiveVectorType,
+    TargetVectorJoinType,
+    TwoDimensionalVectorType,
+    _HybridNearText,
+    _HybridNearVector,
+    _ListOfVectorsQuery,
+    _MultiTargetVectorJoin,
 )
 from weaviate.exceptions import (
-    WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
 )
-from weaviate.proto.v1 import base_search_pb2, base_pb2
+from weaviate.proto.v1 import base_pb2, base_search_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4, _ServerVersion
-from weaviate.validator import _is_valid, _ValidateArgument, _validate_input, _ExtraTypes
+from weaviate.validator import (
+    _ExtraTypes,
+    _is_valid,
+    _validate_input,
+    _ValidateArgument,
+)
 
 UINT32_LEN = 4
 UINT64_LEN = 8
@@ -69,7 +77,9 @@ class _BaseGRPC:
             return base_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_ALL
 
     def _recompute_target_vector_to_grpc(
-        self, target_vector: Optional[TargetVectorJoinType], target_vectors_tmp: List[str]
+        self,
+        target_vector: Optional[TargetVectorJoinType],
+        target_vectors_tmp: List[str],
     ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
         # reorder input for targets so they match the vectors
         if isinstance(target_vector, _MultiTargetVectorJoin):
@@ -151,8 +161,10 @@ class _BaseGRPC:
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
             else:
                 raise WeaviateInvalidInputError(
-                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
-                    keys and lists of numbers as values."""
+                    """This input appears to be a nested list of embeddings.
+                    If you are trying to search with a multi-vector embedding, check the shape of your input.
+                    If you are trying to provide multiple target vectors,
+                    provide a dictionary with target names as keys and embeddings as values."""
                 )
 
     def _vector_for_target(
@@ -161,7 +173,9 @@ class _BaseGRPC:
         targets: Optional[base_search_pb2.Targets],
         argument_name: str,
     ) -> Tuple[
-        Optional[List[base_search_pb2.VectorForTarget]], Optional[bytes], Optional[List[str]]
+        Optional[List[base_search_pb2.VectorForTarget]],
+        Optional[bytes],
+        Optional[List[str]],
     ]:
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
@@ -279,11 +293,17 @@ class _BaseGRPC:
                 near_vector = _get_vector_v4(vector)
                 if not isinstance(near_vector, list):
                     raise invalid_nv_exception
-                return None, struct.pack("{}f".format(len(near_vector)), *near_vector), None
+                return (
+                    None,
+                    struct.pack("{}f".format(len(near_vector)), *near_vector),
+                    None,
+                )
             else:
                 raise WeaviateInvalidInputError(
-                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
-                    keys and lists of numbers as values."""
+                    """This input appears to be a nested list of embeddings.
+                    If you are trying to search with a multi-vector embedding, check the shape of your input.
+                    If you are trying to provide multiple target vectors,
+                    provide a dictionary with target names as keys and embeddings as values."""
                 )
 
     def _parse_near_options(
@@ -326,7 +346,9 @@ class _BaseGRPC:
                         near_vector,
                     ),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -393,7 +415,9 @@ class _BaseGRPC:
         )
 
     @staticmethod
-    def __parse_move(move: Optional[Move]) -> Optional[base_search_pb2.NearTextSearch.Move]:
+    def __parse_move(
+        move: Optional[Move],
+    ) -> Optional[base_search_pb2.NearTextSearch.Move]:
         return (
             base_search_pb2.NearTextSearch.Move(
                 force=move.force,
@@ -420,7 +444,9 @@ class _BaseGRPC:
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
                     _ValidateArgument(
-                        [str, List, _MultiTargetVectorJoin, None], "target_vector", target_vector
+                        [str, List, _MultiTargetVectorJoin, None],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -452,7 +478,9 @@ class _BaseGRPC:
                 [
                     _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -482,7 +510,9 @@ class _BaseGRPC:
                 [
                     _ValidateArgument([str], "media", media),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -551,6 +581,7 @@ class _BaseGRPC:
         alpha: Optional[float],
         vector: Optional[HybridVectorType],
         properties: Optional[List[str]],
+        bm25_operator: Optional[BM25OperatorOptions],
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
@@ -586,7 +617,9 @@ class _BaseGRPC:
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -597,13 +630,21 @@ class _BaseGRPC:
 
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
-        near_text, near_vector, vector_bytes = None, None, None
+        near_text, near_vector, vector_bytes, vectors = None, None, None, None
 
         if vector is None:
             pass
         elif isinstance(vector, list) and len(vector) > 0 and isinstance(vector[0], float):
             # fast path for simple vector
             vector_bytes = struct.pack("{}f".format(len(vector)), *vector)
+        elif _is_2d_vector(vector) and self._weaviate_version.is_at_least(1, 29, 0):
+            # fast path for simple multi-vector
+            vectors = [
+                base_pb2.Vectors(
+                    vector_bytes=_Pack.multi(vector),
+                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                )
+            ]
         elif isinstance(vector, _HybridNearText):
             near_text = base_search_pb2.NearTextSearch(
                 query=[vector.text] if isinstance(vector.text, str) else vector.text,
@@ -685,6 +726,15 @@ class _BaseGRPC:
                 near_vector=near_vector,
                 vector_bytes=vector_bytes,
                 vector_distance=distance,
+                vectors=vectors,
+                bm25_search_operator=base_search_pb2.SearchOperatorOptions(
+                    operator=bm25_operator.operator,
+                    minimum_or_tokens_match=bm25_operator.minimum_should_match
+                    if isinstance(bm25_operator, BM25OperatorOr)
+                    else None,
+                )
+                if bm25_operator is not None
+                else None,
             )
             if query is not None or vector is not None
             else None
@@ -722,11 +772,13 @@ class _Pack:
     def parse_single_or_multi_vec(vector: PrimitiveVectorType) -> _Packing:
         if _is_2d_vector(vector):
             return _Packing(
-                bytes_=_Pack.multi(vector), type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32
+                bytes_=_Pack.multi(vector),
+                type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
             )
         elif _is_1d_vector(vector):
             return _Packing(
-                bytes_=_Pack.single(vector), type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32
+                bytes_=_Pack.single(vector),
+                type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
             )
         else:
             raise WeaviateInvalidInputError(f"Invalid vectors: {vector}")

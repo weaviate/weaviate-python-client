@@ -7,9 +7,9 @@ from typing import List, Optional, Union
 from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
 
 from weaviate.collections.classes.config import (
+    AWSService,
     GenerativeSearches,
     _EnumLikeStr,
-    AWSService,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1.base_pb2 import TextArray
@@ -26,12 +26,14 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeNvidia,
     GenerativeOllama,
     GenerativeOpenAI,
-    GenerativeXAI,
-    GenerativeProvider as GenerativeProviderGRPC,
     GenerativeSearch,
+    GenerativeXAI,
 )
-from weaviate.util import parse_blob
+from weaviate.proto.v1.generative_pb2 import (
+    GenerativeProvider as GenerativeProviderGRPC,
+)
 from weaviate.types import BLOB_INPUT
+from weaviate.util import parse_blob
 
 
 def _parse_anyhttpurl(url: Optional[AnyHttpUrl]) -> Optional[str]:

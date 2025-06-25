@@ -1,36 +1,50 @@
 import asyncio
-from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 from httpx import Response
 from pydantic_core import ValidationError
 
 from weaviate.collections.classes.config import (
-    _CollectionConfigUpdate,
-    _InvertedIndexConfigUpdate,
-    _ReplicationConfigUpdate,
-    _VectorIndexConfigFlatUpdate,
-    PropertyType,
-    Property,
-    ReferenceProperty,
-    _ReferencePropertyMultiTarget,
-    _VectorIndexConfigHNSWUpdate,
     CollectionConfig,
     CollectionConfigSimple,
+    Property,
+    PropertyType,
+    ReferenceProperty,
     ShardStatus,
-    _ShardStatus,
     ShardTypes,
-    _NamedVectorConfigUpdate,
-    _MultiTenancyConfigUpdate,
+    _CollectionConfigUpdate,
     _GenerativeProvider,
+    _InvertedIndexConfigUpdate,
+    _MultiTenancyConfigUpdate,
+    _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
+    _ReferencePropertyMultiTarget,
+    _ReplicationConfigUpdate,
     _RerankerProvider,
+    _ShardStatus,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
-from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
+from weaviate.collections.classes.config_vector_index import (
+    _VectorIndexConfigDynamicUpdate,
+)
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
@@ -39,7 +53,7 @@ from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 
-class _ConfigExecutor(Generic[ConnectionType]):
+class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def __init__(
         self,
         connection: ConnectionType,
@@ -61,6 +75,24 @@ class _ConfigExecutor(Generic[ConnectionType]):
             error_msg="Collection configuration could not be retrieved.",
             status_codes=_ExpectedStatusCodes(ok_in=200, error="Get collection configuration"),
         )
+
+    @overload
+    def get(
+        self,
+        simple: Literal[False] = False,
+    ) -> executor.Result[CollectionConfig]: ...
+
+    @overload
+    def get(
+        self,
+        simple: Literal[True],
+    ) -> executor.Result[CollectionConfigSimple]: ...
+
+    @overload
+    def get(
+        self,
+        simple: bool = False,
+    ) -> executor.Result[Union[CollectionConfig, CollectionConfigSimple]]: ...
 
     def get(
         self,
@@ -186,19 +218,25 @@ class _ConfigExecutor(Generic[ConnectionType]):
         obj = additional_property._to_dict()
 
         def resp(schema: Dict[str, Any]) -> executor.Result[None]:
-            if schema.get("moduleConfig"):
-                configured_module = list(schema.get("moduleConfig", {}).keys())[0]
-                modconf = {}
-                if "skip_vectorization" in obj:
-                    modconf["skip"] = obj["skip_vectorization"]
-                    del obj["skip_vectorization"]
+            modconf = {}
+            if "skip_vectorization" in obj:
+                modconf["skip"] = obj["skip_vectorization"]
+                del obj["skip_vectorization"]
 
-                if "vectorize_property_name" in obj:
-                    modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
-                    del obj["vectorize_property_name"]
+            if "vectorize_property_name" in obj:
+                modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
+                del obj["vectorize_property_name"]
 
-                if len(modconf) > 0:
-                    obj["moduleConfig"] = {configured_module: modconf}
+            module_config: Dict[str, Any] = schema.get("moduleConfig", {})
+            legacy_vectorizer = [
+                str(k) for k in module_config if "generative" not in k and "reranker" not in k
+            ]
+            if len(legacy_vectorizer) > 0 and len(modconf) > 0:
+                obj["moduleConfig"] = {legacy_vectorizer[0]: modconf}
+
+            vector_config: Dict[str, Any] = schema.get("vectorConfig", {})
+            if len(vector_config) > 0:
+                obj["vectorConfig"] = {key: modconf for key in vector_config.keys()}
 
             def inner_resp(res: Response) -> None:
                 return None
@@ -328,7 +366,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute(
-                shard_names: Optional[Union[str, List[str]]]
+                shard_names: Optional[Union[str, List[str]]],
             ) -> Dict[str, ShardTypes]:
                 if shard_names is None:
                     shards_config = await executor.aresult(self.__get_shards())
@@ -431,3 +469,55 @@ class _ConfigExecutor(Generic[ConnectionType]):
             return _execute()
         exists = executor.result(self.__reference_exists(reference_name=ref.name))
         return executor.result(resp(exists))
+
+    def add_vector(
+        self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
+    ) -> executor.Result[None]:
+        """Add a vector to the collection in Weaviate.
+
+        Args:
+            vector_config: The vector configuration to add to the collection.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the vector already exists in the collection.
+        """
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]],
+                    name="vector_config",
+                    value=vector_config,
+                )
+            ]
+        )
+        if isinstance(vector_config, _NamedVectorConfigCreate):
+            vector_config = [vector_config]
+
+        def resp(schema: Dict[str, Any]) -> executor.Result[None]:
+            if "vectorConfig" not in schema:
+                schema["vectorConfig"] = {}
+            for vector in vector_config:
+                schema["vectorConfig"][vector.name] = vector._to_dict()
+
+            return executor.execute(
+                response_callback=lambda _: None,
+                method=self._connection.put,
+                path=f"/schema/{self._name}",
+                weaviate_object=schema,
+                error_msg="Collection configuration may not have been updated.",
+                status_codes=_ExpectedStatusCodes(
+                    ok_in=200, error="Update collection configuration"
+                ),
+            )
+
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> None:
+                schema = await executor.aresult(self.__get())
+                return await executor.aresult(resp(schema))
+
+            return _execute()
+        schema = executor.result(self.__get())
+        return executor.result(resp(schema))

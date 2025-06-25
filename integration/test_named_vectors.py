@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import List, Union, Dict, Sequence
+from typing import Dict, List, Sequence, Union
 
 import pytest
 
@@ -9,40 +9,16 @@ from integration.conftest import CollectionFactory, OpenAICollection
 from weaviate.collections.classes.aggregate import AggregateInteger
 from weaviate.collections.classes.config import (
     PQConfig,
-    _VectorIndexConfigHNSW,
-    _VectorIndexConfigFlat,
-    _MultiVectorConfig,
-    Vectorizers,
     ReferenceProperty,
+    Vectorizers,
+    _MultiVectorConfig,
+    _VectorIndexConfigFlat,
+    _VectorIndexConfigHNSW,
 )
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.grpc import _MultiTargetVectorJoin, _ListOfVectorsQuery
+from weaviate.collections.classes.grpc import _ListOfVectorsQuery, _MultiTargetVectorJoin
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.types import INCLUDE_VECTOR
-
-
-def test_create_named_vectors_throws_error_in_old_version(
-    collection_factory: CollectionFactory,
-) -> None:
-    collection = collection_factory("dummy")
-    if not collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are supported in versions higher than 1.24.0")
-
-    with pytest.raises(WeaviateInvalidInputError):
-        collection_factory(
-            properties=[
-                wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
-                wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
-            ],
-            vectorizer_config=[
-                wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                    "title", source_properties=["title"], vectorize_collection_name=False
-                ),
-                wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                    name="content", source_properties=["content"], vectorize_collection_name=False
-                ),
-            ],
-        )
 
 
 @pytest.mark.parametrize(
@@ -52,9 +28,6 @@ def test_create_named_vectors_throws_error_in_old_version(
 def test_create_named_vectors(
     collection_factory: CollectionFactory, include_vector: Union[List[str], bool]
 ) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -107,9 +80,6 @@ def test_create_named_vectors(
 
 
 def test_insert_many_add(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -139,10 +109,6 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
 
 
 def test_update(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -174,10 +140,6 @@ def test_update(collection_factory: CollectionFactory) -> None:
 
 
 def test_replace(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -210,9 +172,6 @@ def test_replace(collection_factory: CollectionFactory) -> None:
 
 
 def test_query(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -288,9 +247,6 @@ def test_generate(openai_collection: OpenAICollection) -> None:
 
 
 def test_batch_add(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -318,9 +274,6 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
 
 
 def test_named_vector_with_index_config(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -375,9 +328,6 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
 
 
 def test_aggregation(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
@@ -453,9 +403,6 @@ def test_aggregation(collection_factory: CollectionFactory) -> None:
 def test_update_to_enable_quantizer_on_specific_named_vector(
     collection_factory: CollectionFactory,
 ) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
@@ -548,9 +495,6 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
 
 
 def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection_factory(
             vectorizer_config=[
@@ -767,7 +711,7 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
             target_vector=["first", "second", "second"],
             return_metadata=wvc.query.MetadataQuery.full(),
         )
-    assert "Providing lists of lists has been deprecated" in str(e)
+    assert "This input appears to be a nested list of embeddings." in str(e)
 
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection.query.near_vector(
@@ -775,7 +719,7 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
             target_vector=["first", "second"],
             return_metadata=wvc.query.MetadataQuery.full(),
         )
-    assert "Providing lists of lists has been deprecated" in str(e)
+    assert "This input appears to be a nested list of embeddings." in str(e)
 
 
 @pytest.mark.parametrize(
@@ -887,6 +831,20 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
 
     objs = collection.query.near_vector(
         {"colbert": wvc.query.NearVector.list_of_vectors([[1, 2], [3, 4]])},
+        target_vector="colbert",
+    ).objects
+    assert len(objs) == 1
+
+    objs = collection.query.hybrid(
+        None,
+        vector=[1, 2],
+        target_vector="regular",
+    ).objects
+    assert len(objs) == 1
+
+    objs = collection.query.hybrid(
+        None,
+        vector=[[1, 2], [3, 4]],
         target_vector="colbert",
     ).objects
     assert len(objs) == 1
