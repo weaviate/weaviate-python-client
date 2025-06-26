@@ -1163,7 +1163,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
 
-        for cls_field in self.model_fields:
+        for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if cls_field in ["name", "model", "properties", "references"] or val is None:
                 continue
@@ -1972,7 +1972,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
 
-        for cls_field in self.model_fields:
+        for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if cls_field in ["name", "model", "properties", "references"] or val is None:
                 continue

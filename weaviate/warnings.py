@@ -67,46 +67,6 @@ class _Warnings:
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
-    def weaviate_server_older_than_1_14(server_version: str) -> None:
-        warnings.warn(
-            message=f"""Dep001: You are using Weaviate Python Client version {__version__}. This version supports
-            changes and features of Weaviate >=1.14.x, but you are connected to Weaviate {server_version}.
-
-            To use this Python Client with the new features, upgrade your
-            Weaviate instance.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def manual_batching() -> None:
-        warnings.warn(
-            message="""Dep002: Manual batching does NOT use the client's built-in multi-threading. Set
-            `batch_size` in `client.batch.configure()` to an integer value to enabled automatic
-            batching. See:
-            https://weaviate.io/developers/weaviate/current/restful-api-references/batch.html#example-request-1""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def weaviate_too_old_for_openai(server_version: str) -> None:
-        warnings.warn(
-            message=f"""Dep003: You are trying to use the generative search, but you are connected to Weaviate {server_version}.
-            Support for generative search was added in weaviate version 1.17.3.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def startup_period_deprecated() -> None:
-        warnings.warn(
-            message="""Dep004: startup_period is deprecated and has no effect.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def token_refresh_failed(exc: Exception) -> None:
         warnings.warn(
             message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically
@@ -133,17 +93,6 @@ class _Warnings:
         warnings.warn(
             message=f"""Dep005: You are using weaviate-client version {client_version}. The latest version is {latest_version}.
             Consider upgrading to the latest version. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def use_of_client_batch_will_be_removed_in_next_major_release() -> None:
-        warnings.warn(
-            message="""Dep006: You are using the `client.batch()` method. This method will be removed in the next major release.
-            Use the `client.batch.configure()` method to configure your batch process, and `client.batch` to enter the context manager.
-
-            See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -219,7 +168,15 @@ class _Warnings:
     @staticmethod
     def deprecated_tenant_type(old: str, new: str) -> None:
         warnings.warn(
-            message=f"""Dep020: The tenant status {old} is deprecated and will be removed by Q1 2025. Please use {new} instead.""",
+            message=f"""Dep021: The tenant status {old} is deprecated and will be removed by Q1 2025. Please use {new} instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def oidc_with_wcd_deprecated() -> None:
+        warnings.warn(
+            message="""Dep022: connecting to Weaviate Cloud (WCD) using OIDC is deprecated and will be removed in August 2025. Please use API keys instead.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -236,17 +193,6 @@ class _Warnings:
         )
 
     @staticmethod
-    def text2vec_huggingface_endpoint_url_and_model_set_together() -> None:
-        warnings.warn(
-            message="""Con003: You are setting the endpoint_url alongside model or passage_model and
-            query_model in your Text2Vec-HuggingFace module configuration. The model definitions will
-            be ignored in favour of endpoint_url.
-            """,
-            category=UserWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def datetime_year_zero(date: str) -> None:
         warnings.warn(
             message=f"""Con004: Received a date {date} with year 0. The year 0 does not exist in the Gregorian calendar
@@ -257,37 +203,9 @@ class _Warnings:
         )
 
     @staticmethod
-    def batch_executor_is_shutdown() -> None:
-        warnings.warn(
-            message="""Bat001: The BatchExecutor was shutdown, most probably when it exited the `with` statement.
-                It will be initialized again. If you use `batch` outside the `with client.batch as batch` context,
-                shut down `batch` when the data import finishes: `client.batch.shutdown()`.
-                To start `batch` again, use the `client.batch.start()` method.""",
-            category=UserWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def batch_weaviate_overloaded_sleeping(sleep: int) -> None:
-        warnings.warn(
-            message=f"""Bat002: Weaviate is currently overloaded. Sleeping for {sleep} seconds.""",
-            category=UserWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def batch_refresh_failed(err: str) -> None:
         warnings.warn(
             message=f"""Bat003: The dynamic batch-size could not be refreshed successfully: error {err}""",
-            category=UserWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def batch_retrying_failed_batches_hit_hard_limit(limit: int) -> None:
-        warnings.warn(
-            message=f"""Bat004: Attempts to retry failed objects or references have hit the hard limit of {limit}.
-            The failed objects or references can be accessed in client.collections.batch.failed_objects and client.collections.batch.failed_references.""",
             category=UserWarning,
             stacklevel=1,
         )
