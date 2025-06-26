@@ -326,6 +326,11 @@ def test_create_role(
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        if (
+            expected.name == "ReplicateSpecificShardsInCols"
+            and client._connection._weaviate_version.is_lower_than(1, 31, 0)
+        ):
+            pytest.skip("This test requires Weaviate 1.31.0 or higher")
         try:
             client.roles.delete(expected.name)
             client.roles.create(
