@@ -885,7 +885,7 @@ def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
             )
         ],
         vector_config=[
-            wvc.config.Configure.MultiVectors.text2colbert_jinaai(
+            wvc.config.Configure.MultiVectors.text2vec_jinaai(
                 name="colbert",
             )
         ],

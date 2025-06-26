@@ -128,7 +128,7 @@ class _IndexWrappers:
 
 class _MultiVectors:
     @staticmethod
-    def text2colbert_jinaai(
+    def text2vec_jinaai(
         *,
         name: Optional[str] = None,
         encoding: Optional[_MultiVectorEncodingConfigCreate] = None,

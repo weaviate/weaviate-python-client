@@ -1426,8 +1426,8 @@ def test_config_multi_vector_enabled(
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=[
-            Configure.NamedVectors.text2colbert_jinaai(
+        vector_config=[
+            Configure.MultiVectors.text2vec_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
                 vector_index_config=Configure.VectorIndex.hnsw(
@@ -1476,8 +1476,8 @@ def test_config_muvera_enabled(
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=[
-            Configure.NamedVectors.text2colbert_jinaai(
+        vector_config=[
+            Configure.Vectors.text2vec_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
                 vector_index_config=Configure.VectorIndex.hnsw(
@@ -1509,8 +1509,8 @@ def test_config_muvera_disabled(
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=[
-            Configure.NamedVectors.text2colbert_jinaai(
+        vector_config=[
+            Configure.MultiVectors.text2vec_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
                 vector_index_config=Configure.VectorIndex.hnsw(
