@@ -6,6 +6,8 @@ import weaviate
 
 PORTS = (8087, 50058)
 
+pytestmark = pytest.mark.xdist_group(name="replicate")
+
 
 def replicate_collection(collection_factory: CollectionFactory):
     dummy = collection_factory("dummy", ports=PORTS)
@@ -65,6 +67,13 @@ def replicate_client(client_factory: ClientFactory):
     )
 
 
+def cleanup_ops(replicate_client: weaviate.WeaviateClient):
+    """Cleanup any existing replication operations before running tests."""
+    replicate_client.cluster.replications.delete_all()
+    while len(replicate_client.cluster.replications.list_all()) > 0:
+        time.sleep(0.1)
+
+
 def test_replicate_and_get(
     replicate_client: weaviate.WeaviateClient, collection_factory: CollectionFactory
 ):
@@ -75,6 +84,7 @@ def test_replicate_and_get(
     tgt_node = nodes[1].name
     shard = nodes[0].shards[0].name
 
+    cleanup_ops(replicate_client)
     op_id = replicate_client.cluster.replicate(
         collection=collection.name,
         shard=shard,
@@ -104,9 +114,6 @@ def test_replicate_and_get(
     assert op2.status is not None
     assert op2.status_history is not None
 
-    ops = replicate_client.cluster.replications.list_all()
-    assert len(ops) == 1
-
 
 def test_replicate_and_cancel(
     replicate_client: weaviate.WeaviateClient, collection_factory: CollectionFactory
@@ -118,6 +125,7 @@ def test_replicate_and_cancel(
     tgt_node = nodes[1].name
     shard = nodes[0].shards[0].name
 
+    cleanup_ops(replicate_client)
     op_id = replicate_client.cluster.replicate(
         collection=collection.name,
         shard=shard,
@@ -147,6 +155,7 @@ def test_replicate_and_delete(
     tgt_node = nodes[1].name
     shard = nodes[0].shards[0].name
 
+    cleanup_ops(replicate_client)
     op_id = replicate_client.cluster.replicate(
         collection=collection.name,
         shard=shard,
@@ -173,6 +182,7 @@ def test_replicate_and_query(
     tgt_node = nodes[1].name
     shard = nodes[0].shards[0].name
 
+    cleanup_ops(replicate_client)
     replicate_client.cluster.replicate(
         collection=collection.name,
         shard=shard,
@@ -192,6 +202,9 @@ def test_replicate_and_query(
         shard=shard,
         target_node=src_node,
     )
+    assert len(ops) == 1
+
+    ops = replicate_client.cluster.replications.list_all()
     assert len(ops) == 1
 
 
