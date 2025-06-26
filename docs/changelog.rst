@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.15.4
+--------------
+This patch version includes:
+   - Adds deprecation warning for connecting to Weaviate Cloud (WCD) using OIDC. Support for this will be removed in early August, please switch to using API keys instead.
+
 Version 4.15.3
 --------------
 This patch version includes:
