@@ -176,7 +176,7 @@ class _Warnings:
     @staticmethod
     def oidc_with_wcd_deprecated() -> None:
         warnings.warn(
-            message="""Dep022: connecting to WCD using OIDC is deprecated and will be removed in August 2025. Please use API keys instead.""",
+            message="""Dep022: connecting to Weaviate Cloud (WCD) using OIDC is deprecated and will be removed in August 2025. Please use API keys instead.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
