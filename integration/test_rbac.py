@@ -13,6 +13,7 @@ from weaviate.rbac.models import (
     DataPermissionOutput,
     NodesPermissionOutput,
     Role,
+    ReplicatePermissionOutput,
     RolesPermissionOutput,
     TenantsPermissionOutput,
     UsersPermissionOutput,
@@ -41,6 +42,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 ],
                 nodes_permissions=[],
                 tenants_permissions=[],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -55,6 +57,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 backups_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -73,6 +76,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 backups_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -89,6 +93,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 backups_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -118,6 +123,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 backups_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -136,6 +142,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                     )
                 ],
                 tenants_permissions=[],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -154,6 +161,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                     )
                 ],
                 tenants_permissions=[],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -172,6 +180,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 backups_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -192,6 +201,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                         actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
                     )
                 ],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -229,6 +239,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                         actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
                     ),
                 ],
+                replicate_permissions=[],
             ),
         ),
         (
@@ -247,6 +258,64 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 backups_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
+                replicate_permissions=[],
+            ),
+        ),
+        (
+            Permissions.users(user="*", assign_and_revoke=True, read=True),
+            Role(
+                name="UserAssignRole",
+                cluster_permissions=[],
+                users_permissions=[
+                    UsersPermissionOutput(
+                        users="*", actions={Actions.Users.ASSIGN_AND_REVOKE, Actions.Users.READ}
+                    )
+                ],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+            ),
+        ),
+        (
+            Permissions.replicate(
+                collection=["ColA", "ColB"], shard=["tenant1", "tenant2"], read=True, update=True
+            ),
+            Role(
+                name="ReplicateSpecificShardsInCols",
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[
+                    ReplicatePermissionOutput(
+                        collection="ColA",
+                        shard="tenant1",
+                        actions={Actions.Replicate.READ, Actions.Replicate.UPDATE},
+                    ),
+                    ReplicatePermissionOutput(
+                        collection="ColA",
+                        shard="tenant2",
+                        actions={Actions.Replicate.READ, Actions.Replicate.UPDATE},
+                    ),
+                    ReplicatePermissionOutput(
+                        collection="ColB",
+                        shard="tenant1",
+                        actions={Actions.Replicate.READ, Actions.Replicate.UPDATE},
+                    ),
+                    ReplicatePermissionOutput(
+                        collection="ColB",
+                        shard="tenant2",
+                        actions={Actions.Replicate.READ, Actions.Replicate.UPDATE},
+                    ),
+                ],
             ),
         ),
     ],
