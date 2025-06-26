@@ -39,7 +39,7 @@ litestar>=2.14.0,<3.0.0
 mypy==1.14.1
 mypy-extensions==1.0.0
 tomli==2.2.1
-types-protobuf==5.28.3.20241203
+types-protobuf==6.30.2.20250516
 types-urllib3==1.26.25.14
 typing_extensions==4.12.2
 
