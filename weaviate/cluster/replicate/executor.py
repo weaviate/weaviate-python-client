@@ -2,16 +2,16 @@ from typing import Generic, List, Literal, Optional, Union, overload
 
 from httpx import Response
 
-from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
-from weaviate.replication.models import (
+from weaviate.cluster.models import (
     ReplicateOperation,
     ReplicateOperationStatus,
 )
+from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
 from weaviate.types import UUID
 
 
-class _OperationsExecutor(Generic[ConnectionType]):
+class _ReplicateExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
 

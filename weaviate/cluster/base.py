@@ -1,14 +1,17 @@
-from typing import Generic, List, Literal, Optional, Union, overload
+import uuid
+from typing import Generic, List, Optional, Union
 
 from httpx import Response
 
+from weaviate.cluster.models import (
+    ShardingState,
+    TransferType,
+)
 from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import NodeMinimal, NodeVerbose, _ConvertFromREST
 from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionType
-from weaviate.exceptions import (
-    EmptyResponseError,
-)
+from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
+from weaviate.exceptions import EmptyResponseError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 
@@ -16,41 +19,82 @@ class _ClusterExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
 
-    @overload
-    def nodes(
+    def replicate(
         self,
-        collection: Optional[str] = None,
-        shard: Optional[str] = None,
         *,
-        output: Literal[None] = None,
-    ) -> executor.Result[List[NodeMinimal]]: ...
+        collection: str,
+        shard: str,
+        source_node: str,
+        target_node: str,
+        transfer_type: TransferType = TransferType.COPY,
+    ) -> executor.Result[uuid.UUID]:
+        """Replicate a shard from one node to another.
 
-    @overload
-    def nodes(
-        self,
-        collection: Optional[str] = None,
-        shard: Optional[str] = None,
-        *,
-        output: Literal["minimal"],
-    ) -> executor.Result[List[NodeMinimal]]: ...
+        Args:
+            collection: The name of the collection.
+            shard: The name of the shard.
+            source_node: The source node.
+            target_node: The target node.
+            transfer_type: The type of transfer (COPY or MOVE).
 
-    @overload
-    def nodes(
-        self,
-        collection: Optional[str] = None,
-        shard: Optional[str] = None,
-        *,
-        output: Literal["verbose"],
-    ) -> executor.Result[List[NodeVerbose]]: ...
+        Returns:
+            A UUID representing the replicate task.
+        """
 
-    @overload
-    def nodes(
+        def resp(response: Response):
+            return uuid.UUID(response.json()["id"])
+
+        body = {
+            "collectionId": collection,
+            "shardId": shard,
+            "sourceNodeName": source_node,
+            "destinationNodeName": target_node,
+            "transferType": transfer_type.value,
+        }
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.post,
+            path="/replication/replicate",
+            weaviate_object=body,
+            status_codes=_ExpectedStatusCodes(200, "replicate replicate"),
+            error_msg="Failed to replicate shard",
+        )
+
+    def query_sharding_state(
         self,
-        collection: Optional[str] = None,
-        shard: Optional[str] = None,
         *,
-        output: Optional[Verbosity] = None,
-    ) -> executor.Result[Union[List[NodeMinimal], List[NodeVerbose]]]: ...
+        collection: str,
+        shard: Optional[str] = None,
+    ) -> executor.Result[Optional[ShardingState]]:
+        """Query the sharding state of a collection or shard.
+
+        If shard is None, the state of all shards in the collection will be returned.
+
+        Args:
+            collection: The name of the collection.
+            shard: The name of the shard.
+
+        Returns:
+            The sharding state or None if the collection or shard does not exist.
+        """
+
+        def resp(response: Response):
+            if response.status_code == 404:
+                return None
+            return ShardingState._from_weaviate(response.json())
+
+        params = {"collection": collection}
+        if shard is not None:
+            params["shard"] = shard
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path="/replication/sharding-state",
+            params=params,
+            status_codes=_ExpectedStatusCodes([200, 404], "replicate sharding state"),
+            error_msg="Failed to get sharding state",
+        )
 
     def nodes(
         self,

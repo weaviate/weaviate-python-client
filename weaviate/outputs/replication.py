@@ -1,4 +1,4 @@
-from weaviate.replication.models import (
+from weaviate.cluster.models import (
     ReplicateOperation,
     ReplicateOperationState,
     ReplicateOperationStatus,

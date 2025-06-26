@@ -75,14 +75,14 @@ def test_replicate_and_get(
     tgt_node = nodes[1].name
     shard = nodes[0].shards[0].name
 
-    op_id = replicate_client.replication.replicate(
+    op_id = replicate_client.cluster.replicate(
         collection=collection.name,
         shard=shard,
         source_node=src_node,
         target_node=tgt_node,
     )
 
-    op1 = replicate_client.replication.operations.get(uuid=op_id)
+    op1 = replicate_client.cluster.replications.get(uuid=op_id)
 
     assert op1 is not None
     assert op1.collection == collection.name
@@ -93,7 +93,7 @@ def test_replicate_and_get(
     assert op1.status is not None
     assert op1.status_history is None
 
-    op2 = replicate_client.replication.operations.get(uuid=op_id, include_history=True)
+    op2 = replicate_client.cluster.replications.get(uuid=op_id, include_history=True)
 
     assert op2 is not None
     assert op2.collection == collection.name
@@ -104,7 +104,7 @@ def test_replicate_and_get(
     assert op2.status is not None
     assert op2.status_history is not None
 
-    ops = replicate_client.replication.operations.list_all()
+    ops = replicate_client.cluster.replications.list_all()
     assert len(ops) == 1
 
 
@@ -118,18 +118,18 @@ def test_replicate_and_cancel(
     tgt_node = nodes[1].name
     shard = nodes[0].shards[0].name
 
-    op_id = replicate_client.replication.replicate(
+    op_id = replicate_client.cluster.replicate(
         collection=collection.name,
         shard=shard,
         source_node=src_node,
         target_node=tgt_node,
     )
 
-    replicate_client.replication.operations.cancel(uuid=op_id)
+    replicate_client.cluster.replications.cancel(uuid=op_id)
 
     start = time.time()
     while (
-        not replicate_client.replication.operations.get(uuid=op_id).status.state  # type: ignore
+        not replicate_client.cluster.replications.get(uuid=op_id).status.state  # type: ignore
         == weaviate.outputs.replication.ReplicateOperationState.CANCELLED
     ):
         time.sleep(0.1)
@@ -147,17 +147,17 @@ def test_replicate_and_delete(
     tgt_node = nodes[1].name
     shard = nodes[0].shards[0].name
 
-    op_id = replicate_client.replication.replicate(
+    op_id = replicate_client.cluster.replicate(
         collection=collection.name,
         shard=shard,
         source_node=src_node,
         target_node=tgt_node,
     )
 
-    replicate_client.replication.operations.delete(uuid=op_id)
+    replicate_client.cluster.replications.delete(uuid=op_id)
 
     start = time.time()
-    while replicate_client.replication.operations.get(uuid=op_id) is not None:
+    while replicate_client.cluster.replications.get(uuid=op_id) is not None:
         time.sleep(0.1)
         if time.time() - start > 10:
             raise TimeoutError("Timed out waiting for replication operation to be deleted")
@@ -173,21 +173,21 @@ def test_replicate_and_query(
     tgt_node = nodes[1].name
     shard = nodes[0].shards[0].name
 
-    replicate_client.replication.replicate(
+    replicate_client.cluster.replicate(
         collection=collection.name,
         shard=shard,
         source_node=src_node,
         target_node=tgt_node,
     )
 
-    ops = replicate_client.replication.operations.query(
+    ops = replicate_client.cluster.replications.query(
         collection=collection.name,
         shard=shard,
         target_node=tgt_node,
     )
     assert len(ops) == 1
 
-    ops = replicate_client.replication.operations.query(
+    ops = replicate_client.cluster.replications.query(
         collection=collection.name,
         shard=shard,
         target_node=src_node,
@@ -204,22 +204,21 @@ def test_query_sharding_state(
     nodes = replicate_client.cluster.nodes(collection=collection.name, output="verbose")
     shard = nodes[0].shards[0].name
 
-    sharding_state = replicate_client.replication.query_sharding_state(collection=collection.name)
+    sharding_state = replicate_client.cluster.query_sharding_state(collection=collection.name)
     assert sharding_state is not None
     assert shard in [s.name for s in sharding_state.shards]
 
-    sharding_state = replicate_client.replication.query_sharding_state(
+    sharding_state = replicate_client.cluster.query_sharding_state(
         collection=collection.name, shard=shard
     )
     assert sharding_state is not None
     assert shard in [s.name for s in sharding_state.shards]
 
     assert (
-        replicate_client.replication.query_sharding_state(collection="non_existent_collection")
-        is None
+        replicate_client.cluster.query_sharding_state(collection="non_existent_collection") is None
     )
     assert (
-        replicate_client.replication.query_sharding_state(
+        replicate_client.cluster.query_sharding_state(
             collection=collection.name, shard="non_existent_shard"
         )
         is None

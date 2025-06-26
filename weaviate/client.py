@@ -8,8 +8,8 @@ from weaviate.client_executor import _WeaviateClientExecutor
 
 from .auth import AuthCredentials
 from .backup import _Backup, _BackupAsync
+from .cluster import _Cluster, _ClusterAsync
 from .collections.batch.client import _BatchClientWrapper
-from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections import _Collections, _CollectionsAsync
 from .config import AdditionalConfig
 from .connect import executor
@@ -20,7 +20,6 @@ from .connect.v4 import ConnectionAsync, ConnectionSync
 from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
 from .rbac import _Roles, _RolesAsync
-from .replication import _Replication, _ReplicationAsync
 from .types import NUMBER
 from .users import _Users, _UsersAsync
 
@@ -80,7 +79,6 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         self.cluster = _ClusterAsync(self._connection)
         self.collections = _CollectionsAsync(self._connection)
         self.debug = _DebugAsync(self._connection)
-        self.replication = _ReplicationAsync(self._connection)
         self.roles = _RolesAsync(self._connection)
         self.users = _UsersAsync(self._connection)
 
@@ -150,7 +148,6 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         self.cluster = _Cluster(self._connection)
         self.collections = collections
         self.debug = _Debug(self._connection)
-        self.replication = _Replication(self._connection)
         self.roles = _Roles(self._connection)
         self.users = _Users(self._connection)
 

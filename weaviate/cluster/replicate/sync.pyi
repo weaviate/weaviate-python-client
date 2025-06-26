@@ -1,23 +1,23 @@
 from typing import List, Literal, Optional, overload
 
-from weaviate.connect.v4 import ConnectionAsync
-from weaviate.replication.models import ReplicateOperation, ReplicateOperationStatus
+from weaviate.cluster.models import ReplicateOperation, ReplicateOperationStatus
+from weaviate.connect.v4 import ConnectionSync
 from weaviate.types import UUID
 
-from .executor import _OperationsExecutor
+from .executor import _ReplicateExecutor
 
-class _OperationsAsync(_OperationsExecutor[ConnectionAsync]):
+class _Replicate(_ReplicateExecutor[ConnectionSync]):
     @overload
-    async def get(
+    def get(
         self, *, uuid: UUID, include_history: Literal[False] = False
     ) -> Optional[ReplicateOperation[None]]: ...
     @overload
-    async def get(
+    def get(
         self, *, uuid: UUID, include_history: Literal[True]
     ) -> Optional[ReplicateOperation[List[ReplicateOperationStatus]]]: ...
-    async def list_all(self) -> list[ReplicateOperation[list[ReplicateOperationStatus]]]: ...
+    def list_all(self) -> list[ReplicateOperation[list[ReplicateOperationStatus]]]: ...
     @overload
-    async def query(
+    def query(
         self,
         *,
         collection: Optional[str] = None,
@@ -26,7 +26,7 @@ class _OperationsAsync(_OperationsExecutor[ConnectionAsync]):
         include_history: Literal[True],
     ) -> list[ReplicateOperation[list[ReplicateOperationStatus]]]: ...
     @overload
-    async def query(
+    def query(
         self,
         *,
         collection: Optional[str] = None,
@@ -34,6 +34,6 @@ class _OperationsAsync(_OperationsExecutor[ConnectionAsync]):
         target_node: Optional[str] = None,
         include_history: Literal[False] = False,
     ) -> list[ReplicateOperation[None]]: ...
-    async def cancel(self, *, uuid: UUID) -> None: ...
-    async def delete(self, *, uuid: UUID) -> None: ...
-    async def delete_all(self) -> None: ...
+    def cancel(self, *, uuid: UUID) -> None: ...
+    def delete(self, *, uuid: UUID) -> None: ...
+    def delete_all(self) -> None: ...
