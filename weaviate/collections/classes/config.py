@@ -1591,8 +1591,6 @@ class _VectorIndexConfig(_ConfigBase):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _SQConfig):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
-        if self.multi_vector is not None:
-            out["multivector"] = self.multi_vector.to_dict()
         return out
 
 

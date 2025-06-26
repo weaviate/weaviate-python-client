@@ -2,6 +2,7 @@ import asyncio
 import json
 import time
 import warnings
+from typing import Union
 
 import grpc
 import pytest
@@ -412,8 +413,18 @@ async def test_token_refresh_timeout_async(
     assert issubclass(w[0].category, UserWarning)
 
 
+@pytest.mark.parametrize(
+    "api_key",
+    [
+        "Super-secret-key",
+        weaviate.auth.AuthApiKey(api_key="Super-secret-key"),
+    ],
+)
 def test_with_simple_auth_no_oidc_via_api_key(
-    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server, recwarn
+    weaviate_mock: HTTPServer,
+    start_grpc_server: grpc.Server,
+    recwarn,
+    api_key: Union[str, weaviate.auth.AuthApiKey],
 ) -> None:
     weaviate_mock.expect_request(
         "/v1/schema", headers={"Authorization": "Bearer " + "Super-secret-key"}
@@ -423,7 +434,7 @@ def test_with_simple_auth_no_oidc_via_api_key(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.auth.AuthApiKey(api_key="Super-secret-key"),
+        auth_credentials=api_key,
     )
     client.collections.list_all()
 

@@ -22,6 +22,8 @@ from weaviate.collections.classes.grpc import (
     PROPERTY,
     REFERENCE,
     REFERENCES,
+    BM25OperatorOptions,
+    BM25OperatorOr,
     HybridFusion,
     HybridVectorType,
     Move,
@@ -155,6 +157,7 @@ class _QueryGRPC(_BaseGRPC):
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
+        bm25_operator: Optional[BM25OperatorOptions] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -181,6 +184,7 @@ class _QueryGRPC(_BaseGRPC):
                 alpha,
                 vector,
                 properties,
+                bm25_operator,
                 fusion_type,
                 distance,
                 target_vector,
@@ -194,6 +198,7 @@ class _QueryGRPC(_BaseGRPC):
         properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
+        operator: Optional[BM25OperatorOptions] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -224,7 +229,16 @@ class _QueryGRPC(_BaseGRPC):
             autocut=autocut,
             bm25=(
                 base_search_pb2.BM25(
-                    query=query, properties=properties if properties is not None else []
+                    query=query,
+                    properties=properties if properties is not None else [],
+                    search_operator=base_search_pb2.SearchOperatorOptions(
+                        operator=operator.operator,
+                        minimum_or_tokens_match=operator.minimum_should_match
+                        if isinstance(operator, BM25OperatorOr)
+                        else None,
+                    )
+                    if operator is not None
+                    else None,
                 )
                 if query is not None
                 else None

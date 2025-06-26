@@ -1,10 +1,23 @@
 Changelog
 =========
 
-Version 4.14.2
+Version 4.14.4
+--------------
+
+This patch version includes:
+    - Fixes interfaces for user.db/oidc
+    - If a string is passed into `auth=` we assume that it is an api-key
+    - Fix extracting nested array properties from data models
+
+Version 4.14.3
 --------------
 This patch version includes:
     - Fixes return type for aggregate with group_by and zero results
+    - Fix multi-vector with hybrid search
+
+Version 4.14.2
+--------------
+not released
 
 Version 4.14.1
 --------------
