@@ -11,6 +11,7 @@ from weaviate.collections.classes.config import (
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
+    _RQConfig,
     _SQConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
@@ -609,11 +610,33 @@ def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.vector_index_config.quantizer, _SQConfig)
 
 
+def test_hnsw_with_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("RQ+HNSW is not supported in Weaviate versions lower than 1.32.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.rq(bits=8),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer is not None
+    assert config.vector_index_config.quantizer.bits == 8
+
+
 @pytest.mark.parametrize(
     "vector_index_config",
     [
         Reconfigure.VectorIndex.hnsw(quantizer=Reconfigure.VectorIndex.Quantizer.bq()),
         Reconfigure.VectorIndex.hnsw(quantizer=Reconfigure.VectorIndex.Quantizer.sq()),
+        Reconfigure.VectorIndex.hnsw(quantizer=Reconfigure.VectorIndex.Quantizer.rq()),
     ],
 )
 def test_update_from_pq_with_hnsw(
