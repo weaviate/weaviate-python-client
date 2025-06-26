@@ -50,4 +50,4 @@ flake8-comprehensions==3.16.0
 flake8-builtins==2.5.0
 flake8-docstrings==1.7.0
 pydoclint==0.6.5
-ruff==0.11.7
+ruff==0.12.0
