@@ -19,6 +19,7 @@ from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import WEAVIATE_VERSION, EmbeddedOptions
 from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.warnings import _Warnings
 
 
 def __parse_weaviate_cloud_cluster_url(cluster_url: str) -> Tuple[str, str]:
@@ -95,6 +96,13 @@ def connect_to_weaviate_cloud(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
+    if (
+        isinstance(auth_credentials, _BearerToken)
+        or isinstance(auth_credentials, _ClientPassword)
+        or isinstance(auth_credentials, _ClientCredentials)
+    ):
+        _Warnings.oidc_with_wcd_deprecated()
+
     cluster_url, grpc_host = __parse_weaviate_cloud_cluster_url(cluster_url)
     return __connect(
         WeaviateClient(
