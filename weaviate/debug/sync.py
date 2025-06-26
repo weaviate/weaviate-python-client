@@ -1,7 +1,8 @@
-from weaviate import syncify
-from weaviate.debug.debug import _DebugAsync
+from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionSync
+from weaviate.debug.executor import _DebugExecutor
 
 
-@syncify.convert
-class _Debug(_DebugAsync):
+@executor.wrap("sync")
+class _Debug(_DebugExecutor[ConnectionSync]):
     pass

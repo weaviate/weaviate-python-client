@@ -1,94 +1,80 @@
-weaviate.collections package
-============================
+weaviate.collections
+====================
 
 .. automodule:: weaviate.collections
    :members:
    :undoc-members:
-   :show-inheritance:
 
 Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
    weaviate.collections.aggregations
+   weaviate.collections.backups
    weaviate.collections.batch
    weaviate.collections.classes
+   weaviate.collections.cluster
+   weaviate.collections.collection
+   weaviate.collections.collections
+   weaviate.collections.config
+   weaviate.collections.data
    weaviate.collections.grpc
    weaviate.collections.queries
+   weaviate.collections.tenants
 
-Submodules
-----------
 
-weaviate.collections.aggregate module
--------------------------------------
+weaviate.collections.aggregate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: weaviate.collections.aggregate
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-weaviate.collections.collection module
---------------------------------------
-
-.. automodule:: weaviate.collections.collection
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.collections.collections module
----------------------------------------
-
-.. automodule:: weaviate.collections.collections
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.collections.config module
-----------------------------------
-
-.. automodule:: weaviate.collections.config
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.collections.data module
---------------------------------
-
-.. automodule:: weaviate.collections.data
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.collections.filters module
------------------------------------
+weaviate.collections.filters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: weaviate.collections.filters
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-weaviate.collections.iterator module
-------------------------------------
+weaviate.collections.generate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: weaviate.collections.generate
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+weaviate.collections.iterator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: weaviate.collections.iterator
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-weaviate.collections.query module
----------------------------------
+weaviate.collections.orm
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: weaviate.collections.orm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+weaviate.collections.query
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: weaviate.collections.query
    :members:
    :undoc-members:
    :show-inheritance:
-
-weaviate.collections.tenants module
------------------------------------
-
-.. automodule:: weaviate.collections.tenants
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :private-members:

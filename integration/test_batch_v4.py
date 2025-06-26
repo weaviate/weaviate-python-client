@@ -1,15 +1,15 @@
 import concurrent.futures
 import uuid
 from dataclasses import dataclass
-from typing import Generator, List, Optional, Protocol, Tuple, Callable
+from typing import Callable, Generator, List, Optional, Protocol, Tuple
 
 import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from weaviate import BatchClient, ClientBatchingContextManager
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
+from weaviate import BatchClient, ClientBatchingContextManager
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
     Configure,
@@ -19,8 +19,8 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import (
-    _CrossReference,
     ReferenceToMulti,
+    _CrossReference,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID, VECTORS
@@ -88,7 +88,7 @@ def client_factory(
     def _factory(
         name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
-        nonlocal client_fixture, name_fixtures
+        nonlocal client_fixture, name_fixtures  # noqa: F824
         name_fixture = _sanitize_collection_name(request.node.name) + name
         name_fixtures.append(name_fixture)
         if client_fixture is None:
@@ -127,7 +127,7 @@ def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
         batch.add_object(collection=name, properties={})
     with client.batch.dynamic() as batch:
         batch.add_object(collection=name, properties={})
-    objs = client.collections.get(name).query.fetch_objects().objects
+    objs = client.collections.use(name).query.fetch_objects().objects
     assert len(objs) == 3
 
 
@@ -137,11 +137,11 @@ def test_flushing(client_factory: ClientFactory) -> None:
     with client.batch.dynamic() as batch:
         batch.add_object(collection=name, properties={})
         batch.flush()
-        objs = client.collections.get(name).query.fetch_objects().objects
+        objs = client.collections.use(name).query.fetch_objects().objects
         assert len(objs) == 1
         batch.add_object(collection=name, properties={})
         batch.add_object(collection=name, properties={})
-    objs = client.collections.get(name).query.fetch_objects().objects
+    objs = client.collections.use(name).query.fetch_objects().objects
     assert len(objs) == 3
 
 
@@ -164,7 +164,7 @@ def test_add_object(
     client, name = client_factory()
     with client.batch.fixed_size() as batch:
         batch.add_object(collection=name, properties={}, uuid=uid, vector=vector)
-    objs = client.collections.get(name).query.fetch_objects().objects
+    objs = client.collections.use(name).query.fetch_objects().objects
     assert len(objs) == 1
 
 
@@ -177,7 +177,7 @@ def test_add_reference(
     to_object_uuid: UUID,
     to_object_collection: Optional[bool],
 ) -> None:
-    """Test the `add_reference` method"""
+    """Test the `add_reference` method."""
     client, name = client_factory()
     with client.batch.fixed_size() as batch:
         batch.add_object(
@@ -197,11 +197,11 @@ def test_add_reference(
             to=to_object_uuid,
         )
     objs = (
-        client.collections.get(name)
+        client.collections.use(name)
         .query.fetch_objects(return_references=QueryReference(link_on="test"))
         .objects
     )
-    obj = client.collections.get(name).query.fetch_object_by_id(
+    obj = client.collections.use(name).query.fetch_object_by_id(
         from_object_uuid, return_references=QueryReference(link_on="test")
     )
     assert len(objs) == 2
@@ -223,9 +223,9 @@ def test_add_data_object_and_get_class_shards_readiness(
 def test_add_data_object_with_tenant_and_get_class_shards_readiness(
     client_factory: ClientFactory,
 ) -> None:
-    """Test the `add_data_object` method"""
+    """Test the `add_data_object` method."""
     client, name = client_factory(multi_tenant=True)
-    client.collections.get(name).tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    client.collections.use(name).tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
     with client.batch.fixed_size() as batch:
         batch.add_object(properties={}, collection=name, tenant="tenant1")
     statuses = client.batch._get_shards_readiness(Shard(collection=name, tenant="tenant1"))
@@ -240,8 +240,8 @@ def test_add_object_batch_with_tenant(client_factory: ClientFactory, request: Su
     _, name2 = client_factory(
         request.node.name + "2", multi_tenant=True
     )  # to enable automatic cleanup
-    client.collections.get(name1).tenants.create(tenants)
-    client.collections.get(name2).tenants.create(tenants)
+    client.collections.use(name1).tenants.create(tenants)
+    client.collections.use(name2).tenants.create(tenants)
 
     nr_objects = 100
     objects = []
@@ -257,7 +257,7 @@ def test_add_object_batch_with_tenant(client_factory: ClientFactory, request: Su
             )
 
     for obj in objects:
-        retObj = client.collections.get(obj[1]).with_tenant(obj[2]).query.fetch_object_by_id(obj[0])
+        retObj = client.collections.use(obj[1]).with_tenant(obj[2]).query.fetch_object_by_id(obj[0])
         assert retObj.properties["name"] == obj[2]
 
 
@@ -303,7 +303,7 @@ def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
                 to=to_ref(obj_uuid0),
             )
 
-    collection = client.collections.get(name)
+    collection = client.collections.use(name)
     for obj in objects_class0:
         ret_obj = collection.query.fetch_object_by_id(
             obj,
@@ -315,7 +315,7 @@ def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
 
 def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
     client, name = client_factory(multi_tenant=True)
-    client.collections.get(name).tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
+    client.collections.use(name).tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 
     nr_objects = 100
     objects_class0 = []
@@ -341,7 +341,7 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
 
     for obj in objects_class0:
         ret_obj = (
-            client.collections.get(name)
+            client.collections.use(name)
             .with_tenant(obj[1])
             .query.fetch_object_by_id(
                 obj[0],
@@ -372,7 +372,7 @@ def test_add_ten_thousand_data_objects(
     batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
     request: SubRequest,
 ) -> None:
-    """Test adding ten thousand data objects"""
+    """Test adding ten thousand data objects."""
     client, name = client_factory()
 
     nr_objects = 10000
@@ -382,7 +382,7 @@ def test_add_ten_thousand_data_objects(
                 collection=name,
                 properties={"name": "test" + str(i)},
             )
-    objs = client.collections.get(name).query.fetch_objects(limit=nr_objects).objects
+    objs = client.collections.use(name).query.fetch_objects(limit=nr_objects).objects
     assert len(objs) == nr_objects
     client.collections.delete(name)
 
@@ -407,7 +407,7 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
 def test_add_one_hundred_objects_and_references_between_all(
     client_factory: ClientFactory,
 ) -> None:
-    """Test adding one hundred objects and references between all of them"""
+    """Test adding one hundred objects and references between all of them."""
     client, name = client_factory()
     nr_objects = 100
     uuids: List[UUID] = []
@@ -421,7 +421,7 @@ def test_add_one_hundred_objects_and_references_between_all(
         for ref in make_refs(uuids, name):
             batch.add_reference(**ref)
     objs = (
-        client.collections.get(name)
+        client.collections.use(name)
         .query.fetch_objects(limit=nr_objects, return_references=QueryReference(link_on="test"))
         .objects
     )
@@ -446,10 +446,10 @@ def test_add_1000_objects_with_async_indexing_and_wait(
             )
     assert len(client.batch.failed_objects) == 0
     client.batch.wait_for_vector_indexing()
-    ret = client.collections.get(name).aggregate.over_all(total_count=True)
+    ret = client.collections.use(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
 
-    shards = client.collections.get(name).config.get_shards()
+    shards = client.collections.use(name).config.get_shards()
     assert shards[0].status == "READY"
     assert shards[0].vector_queue_size == 0
 
@@ -476,7 +476,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
 
     assert len(client.batch.failed_objects) == 0
 
-    ret = client.collections.get(name).aggregate.over_all(total_count=True)
+    ret = client.collections.use(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
 
 
@@ -485,7 +485,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
 ) -> None:
     client, name = client_factory(ports=(8090, 50061), multi_tenant=True)
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
-    collection = client.collections.get(name)
+    collection = client.collections.use(name)
     collection.tenants.create(tenants)
     nr_objects = 2000
 
@@ -503,7 +503,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
         assert ret.total_count == nr_objects / len(tenants)
 
-    shards = client.collections.get(name).config.get_shards()
+    shards = client.collections.use(name).config.get_shards()
     for shard in shards:
         assert shard.status == "READY"
         assert shard.vector_queue_size == 0
@@ -515,7 +515,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
 ) -> None:
     client, name = client_factory(ports=(8090, 50061), multi_tenant=True)
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
-    collection = client.collections.get(name)
+    collection = client.collections.use(name)
     collection.tenants.create(tenants)
 
     nr_objects = 1001
@@ -535,7 +535,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
         assert ret.total_count == 1000 if tenant.name == tenants[0].name else 1
 
-    shards = client.collections.get(name).config.get_shards()
+    shards = client.collections.use(name).config.get_shards()
     for shard in shards:
         if shard.name == tenants[0].name:
             assert shard.status == "READY"
@@ -562,7 +562,7 @@ def test_add_one_object_and_a_self_reference(
     client_factory: ClientFactory,
     batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
 ) -> None:
-    """Test adding one object and a self reference"""
+    """Test adding one object and a self reference."""
     client, name = client_factory()
     with batching_method(client) as batch:
         uuid = batch.add_object(collection=name, properties={})
@@ -572,7 +572,7 @@ def test_add_one_object_and_a_self_reference(
             from_property="test",
             to=uuid,
         )
-    obj = client.collections.get(name).query.fetch_object_by_id(
+    obj = client.collections.use(name).query.fetch_object_by_id(
         uuid, return_references=QueryReference(link_on="test")
     )
     assert obj is not None
@@ -598,7 +598,7 @@ def test_multi_threaded_batching(
             futures = [executor.submit(batch_insert, batch) for _ in range(nr_threads)]
         for future in concurrent.futures.as_completed(futures):
             future.result()
-    objs = client.collections.get(name).query.fetch_objects(limit=nr_objects * nr_threads).objects
+    objs = client.collections.use(name).query.fetch_objects(limit=nr_objects * nr_threads).objects
     assert len(objs) == nr_objects * nr_threads
 
 

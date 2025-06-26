@@ -14,15 +14,14 @@ from weaviate.collections.classes.config import (
     Property,
 )
 from weaviate.collections.classes.grpc import (
-    HybridFusion,
     GroupBy,
+    HybridFusion,
     MetadataQuery,
     NearVectorInputType,
     _HybridNearVector,
 )
 from weaviate.collections.classes.internal import Object
 from weaviate.exceptions import (
-    WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
 
@@ -215,8 +214,7 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
 
 
 def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    collection_maker = lambda: collection_factory(
+    collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="int", data_type=DataType.INT),
@@ -231,12 +229,6 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
         ],
     )
 
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        with pytest.raises(WeaviateInvalidInputError):
-            collection_maker()
-        return
-
-    collection = collection_maker()
     uuid_banana = collection.data.insert({"text": "banana"})
     collection.data.insert({"text": "dog"})
     collection.data.insert({"text": "different concept"})
@@ -325,8 +317,7 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
 
 
 def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    collection_maker = lambda: collection_factory(
+    collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="int", data_type=DataType.INT),
@@ -340,12 +331,7 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
             ),
         ],
     )
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        with pytest.raises(WeaviateInvalidInputError):
-            collection_maker()
-        return
 
-    collection = collection_maker()
     uuid_banana_pudding = collection.data.insert({"text": "banana pudding"})
     collection.data.insert({"text": "banana smoothie"})
     collection.data.insert({"text": "different concept"})
@@ -526,3 +512,28 @@ def test_aggregate_max_vector_distance(collection_factory: CollectionFactory) ->
         return_metrics=[wvc.aggregate.Metrics("name").text(count=True)],
     )
     assert res.total_count == 2
+
+
+def test_hybrid_bm25_operators(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 31, 0):
+        pytest.skip("bm25 operators are only supported in versions higher than 1.31.0")
+
+    uuid1 = collection.data.insert({"name": "banana one"}, vector=[1, 0, 0, 0])
+    uuid2 = collection.data.insert({"name": "banana two"}, vector=[0, 1, 0, 0])
+    uuid3 = collection.data.insert({"name": "banana three"}, vector=[0, 1, 0, 0])
+    uuid4 = collection.data.insert({"name": "banana four"}, vector=[1, 0, 0, 0])
+
+    objs = collection.query.hybrid(
+        "banana two",
+        vector=None,
+        alpha=0.0,
+        bm25_operator=wvc.query.BM25Operator.or_(minimum_match=1),
+    )
+    assert len(objs.objects) == 4
+    assert objs.objects[0].uuid == uuid2
+    assert sorted(obj.uuid for obj in objs.objects[1:]) == sorted([uuid1, uuid3, uuid4])

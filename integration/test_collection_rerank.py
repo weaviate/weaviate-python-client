@@ -3,7 +3,7 @@ import os
 import pytest
 
 import weaviate.classes as wvc
-from weaviate.util import _ServerVersion
+
 from .conftest import CollectionFactory
 
 
@@ -13,7 +13,7 @@ def test_query_using_rerank_with_old_server(collection_factory: CollectionFactor
         vectorizer_config=wvc.config.Configure.Vectorizer.none(),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
     )
-    if collection._connection._weaviate_version >= _ServerVersion(1, 23, 1):
+    if collection._connection._weaviate_version.is_at_least(1, 23, 1):
         pytest.skip("Reranking works with 1.23.1 or higher so no need to test this")
 
     collection.data.insert_many([{"text": "This is a test"}, {"text": "This is another test"}])
@@ -28,18 +28,19 @@ def test_query_using_rerank_with_old_server(collection_factory: CollectionFactor
 
 
 def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
-    api_key = os.environ.get("OPENAI_APIKEY")
+    api_key = os.environ.get("COHERE_APIKEY")
     if api_key is None:
-        pytest.skip("No OpenAI API key found.")
+        pytest.skip("No Cohere API key found.")
 
     collection = collection_factory(
         name="Test_test_queries_with_rerank",
-        reranker_config=wvc.config.Configure.Reranker.custom("reranker-dummy"),
-        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(),
+        reranker_config=wvc.config.Configure.Reranker.cohere(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_cohere(),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
-        headers={"X-OpenAI-Api-Key": api_key},
+        headers={"X-Cohere-Api-Key": api_key},
+        ports=(8086, 50057),
     )
-    if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
         pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
     insert = collection.data.insert_many(
@@ -77,26 +78,25 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
             0
         ].metadata.rerank_score > [
             obj for obj in objects if "another" not in obj.properties["text"]
-        ][
-            0
-        ].metadata.rerank_score
+        ][0].metadata.rerank_score
 
 
 def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory) -> None:
-    api_key = os.environ.get("OPENAI_APIKEY")
+    api_key = os.environ.get("COHERE_APIKEY")
     if api_key is None:
-        pytest.skip("No OpenAI API key found.")
+        pytest.skip("No Cohere API key found.")
 
     collection = collection_factory(
         name="Test_test_queries_with_rerank_and_group_by",
-        reranker_config=wvc.config.Configure.Reranker.custom("reranker-dummy"),
-        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(
+        reranker_config=wvc.config.Configure.Reranker.cohere(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_cohere(
             vectorize_collection_name=False
         ),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
-        headers={"X-OpenAI-Api-Key": api_key},
+        headers={"X-Cohere-Api-Key": api_key},
+        ports=(8086, 50057),
     )
-    if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
         pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
     insert = collection.data.insert_many(

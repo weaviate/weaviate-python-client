@@ -1,0 +1,5 @@
+/* Change the color of deprecated function messages */
+.deprecated {
+    color: red !important;
+    font-weight: bold;
+}

@@ -1,4 +1,11 @@
-from .tenants import _TenantsAsync, TenantCreateInputType, TenantOutputType, TenantUpdateInputType
+from .async_ import (
+    _TenantsAsync,
+)
+from .executor import (
+    TenantCreateInputType,
+    TenantOutputType,
+    TenantUpdateInputType,
+)
 from .sync import _Tenants
 
 __all__ = [

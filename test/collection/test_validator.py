@@ -6,7 +6,7 @@ import polars as pl
 import pytest
 
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.validator import _validate_input, _ValidateArgument, _ExtraTypes
+from weaviate.validator import _ExtraTypes, _validate_input, _ValidateArgument
 
 
 @pytest.mark.parametrize(

@@ -1,12 +1,11 @@
-"""
-Weaviate Exceptions.
-"""
+"""Weaviate Exceptions."""
 
 from json.decoder import JSONDecodeError
-from typing import Union, Tuple
+from typing import Optional, Tuple, Union, cast
 
-from grpc.aio import AioRpcError  # type: ignore
 import httpx
+from grpc import Call, StatusCode  # type: ignore
+from grpc.aio import AioRpcError  # type: ignore
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -15,45 +14,32 @@ ERROR_CODE_EXPLANATION = {
 
 
 class WeaviateBaseError(Exception):
-    """
-    Weaviate base exception that all Weaviate exceptions should inherit from.
+    """Weaviate base exception that all Weaviate exceptions should inherit from.
 
     This error can be used to catch any Weaviate exceptions.
     """
 
     def __init__(self, message: str = ""):
-        """
-        Weaviate base exception initializer.
+        """Weaviate base exception initializer.
 
-        Arguments:
-            `message`:
-                An error message specific to the context in which the error occurred.
+        Args:
+            message (str): An error message specific to the context in which the error occurred.
         """
-
         self.message = message
         super().__init__(message)
 
 
 class UnexpectedStatusCodeError(WeaviateBaseError):
-    """
-    Is raised in case the status code returned from Weaviate is
-    not handled in the client implementation and suggests an error.
-    """
-
-    def __init__(self, message: str, response: Union[httpx.Response, AioRpcError]):
-        """
-        Is raised in case the status code returned from Weaviate is
-        not handled in the client implementation and suggests an error.
+    def __init__(self, message: str, response: Union[httpx.Response, AioRpcError, Call]):
+        """Is raised in case the status code returned from Weaviate is not handled in the client implementation and suggests an error.
 
         Custom code can act on the attributes:
         - status_code
         - json
 
-        Arguments:
-            `message`:
-                An error message specific to the context, in which the error occurred.
-            `response`:
-                The request response of which the status code was unexpected.
+        Args:
+            message: An error message specific to the context, in which the error occurred.
+            response: The request response of which the status code was unexpected.
         """
         if isinstance(response, httpx.Response):
             self._status_code: int = response.status_code
@@ -70,17 +56,33 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             )
             if response.status_code in ERROR_CODE_EXPLANATION:
                 msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
+
+            self.__error = body
         elif isinstance(response, AioRpcError):
             self._status_code = int(response.code().value[0])
             msg = (
                 message
                 + f"! Unexpected status code: {response.code().value[1]}, with response body: {response.details()}."
             )
+            self.__error: str | None = response.details()
+        elif isinstance(response, Call):
+            code = cast(StatusCode, response.code())
+            self._status_code = int(code.value[0])
+            msg = (
+                message
+                + f"! Unexpected status code: {code.value[1]}, with response body: {response.details()}."
+            )
+            self.__error: str | None = response.details()
+
         super().__init__(msg)
 
     @property
     def status_code(self) -> int:
         return self._status_code
+
+    @property
+    def error(self) -> Optional[str]:
+        return self.__error
 
 
 UnexpectedStatusCodeException = UnexpectedStatusCodeError
@@ -88,15 +90,13 @@ UnexpectedStatusCodeException = UnexpectedStatusCodeError
 
 class ResponseCannotBeDecodedError(WeaviateBaseError):
     def __init__(self, location: str, response: httpx.Response):
-        """Raised when a weaviate response cannot be decoded to json
+        """Raised when a weaviate response cannot be decoded to json.
 
-        Arguments:
-            `location`:
-                From which code path the exception was raised.
-            `response`:
-                The request response of which the status code was unexpected.
+        Args:
+            location: From which code path the exception was raised.
+            response: The request response of which the status code was unexpected.
         """
-        msg = f"Cannot decode response from weaviate {response} with content {response.text} for request from {location}"
+        msg = f"Cannot decode response from weaviate {response} with content '{response.text}' for request from {location}"
         super().__init__(msg)
         self._status_code: int = response.status_code
 
@@ -109,51 +109,39 @@ ResponseCannotBeDecodedException = ResponseCannotBeDecodedError
 
 
 class ObjectAlreadyExistsError(WeaviateBaseError):
-    """
-    Object Already Exists Exception.
-    """
+    """Object Already Exists Exception."""
 
 
 ObjectAlreadyExistsException = ObjectAlreadyExistsError
 
 
 class AuthenticationFailedError(WeaviateBaseError):
-    """
-    Authentication Failed Exception.
-    """
+    """Authentication Failed Exception."""
 
 
 AuthenticationFailedException = AuthenticationFailedError
 
 
 class SchemaValidationError(WeaviateBaseError):
-    """
-    Schema Validation Exception.
-    """
+    """Schema Validation Exception."""
 
 
 SchemaValidationException = SchemaValidationError
 
 
 class BackupFailedError(WeaviateBaseError):
-    """
-    Backup Failed Exception.
-    """
+    """Backup Failed Exception."""
 
 
 BackupFailedException = BackupFailedError
 
 
 class BackupCanceledError(WeaviateBaseError):
-    """
-    Backup canceled Exception.
-    """
+    """Backup canceled Exception."""
 
 
 class EmptyResponseError(WeaviateBaseError):
-    """
-    Occurs when an HTTP request unexpectedly returns an empty response
-    """
+    """Occurs when an HTTP request unexpectedly returns an empty response."""
 
 
 EmptyResponseException = EmptyResponseError
@@ -184,7 +172,7 @@ AdditionalPropertiesException = AdditionalPropertiesError
 
 
 class InvalidDataModelError(WeaviateBaseError):
-    """Is raised when the user provides a generic that is not supported"""
+    """Is raised when the user provides a generic that is not supported."""
 
     def __init__(self, type_: str) -> None:
         msg = f"""{type_} can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"""
@@ -234,6 +222,11 @@ class WeaviateQueryError(WeaviateBaseError):
         msg = f"""Query call with protocol {protocol_type} failed with message {message}."""
         super().__init__(msg)
         self.message = message
+        self.__error = message
+
+    @property
+    def error(self) -> str:
+        return self.__error
 
 
 WeaviateQueryException = WeaviateQueryError
@@ -294,7 +287,9 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
     def __init__(
-        self, weaviate_version: str = "", grpc_address: Tuple[str, int] = ("not provided", 0)
+        self,
+        weaviate_version: str = "",
+        grpc_address: Tuple[str, int] = ("not provided", 0),
     ) -> None:
         if grpc_address[0] == "not provided":
             grpc_msg = "Please check the server address and port."
@@ -369,5 +364,14 @@ class WeaviateRetryError(WeaviateBaseError):
 class InsufficientPermissionsError(UnexpectedStatusCodeError):
     """Is raised when a request to Weaviate fails due to insufficient permissions."""
 
-    def __init__(self, res: Union[httpx.Response, AioRpcError]) -> None:
+    def __init__(self, res: Union[httpx.Response, AioRpcError, Call]) -> None:
         super().__init__("forbidden", res)
+
+
+class WeaviateAgentsNotInstalledError(WeaviateBaseError):
+    """Error raised when trying to use Weaviate Agents without the required dependencies."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            'Weaviate Agents (Alpha) functionality requires additional dependencies. Please install them using: "pip install weaviate-client[agents]"'
+        )

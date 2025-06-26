@@ -22,7 +22,7 @@ class _ConfigUpdateModel(BaseModel):
     model_config = ConfigDict(strict=True)
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
-        for cls_field in self.model_fields:
+        for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if val is None:
                 continue
@@ -36,9 +36,9 @@ class _ConfigUpdateModel(BaseModel):
                 for quantizer in quantizers:
                     if quantizer == val.quantizer_name() or quantizer not in schema:
                         continue
-                    assert (
-                        "enabled" in schema[quantizer]
-                    ), f"Quantizer {quantizer} does not have the enabled field: {schema}"
+                    assert "enabled" in schema[quantizer], (
+                        f"Quantizer {quantizer} does not have the enabled field: {schema}"
+                    )
                     schema[quantizer]["enabled"] = False
             elif isinstance(val, _ConfigUpdateModel):
                 schema[cls_field] = val.merge_with_existing(schema[cls_field])

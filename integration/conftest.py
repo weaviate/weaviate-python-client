@@ -2,13 +2,13 @@ import os
 from typing import (
     Any,
     AsyncGenerator,
-    Optional,
-    List,
-    Generator,
-    Protocol,
-    Type,
     Dict,
+    Generator,
+    List,
+    Optional,
+    Protocol,
     Tuple,
+    Type,
     Union,
 )
 
@@ -19,17 +19,17 @@ from _pytest.fixtures import SubRequest
 import weaviate
 from weaviate.collections import Collection, CollectionAsync
 from weaviate.collections.classes.config import (
-    Property,
-    _VectorizerConfigCreate,
-    _InvertedIndexConfigCreate,
-    _ReferencePropertyBase,
     Configure,
-    _GenerativeProvider,
-    _ReplicationConfigCreate,
     DataType,
+    Property,
+    _GenerativeProvider,
+    _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
-    _VectorIndexConfigCreate,
+    _ReferencePropertyBase,
+    _ReplicationConfigCreate,
     _RerankerProvider,
+    _VectorIndexConfigCreate,
+    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties
@@ -131,7 +131,7 @@ def collection_factory(
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> Collection[Any, Any]:
         try:
-            nonlocal client_fixture, name_fixtures, call_counter
+            nonlocal client_fixture, name_fixtures, call_counter  # noqa: F824
             call_counter += 1
             name_fixture = (
                 _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name)
@@ -268,7 +268,7 @@ async def async_collection_factory(
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> CollectionAsync[Any, Any]:
         try:
-            nonlocal client_fixture, name_fixtures
+            nonlocal client_fixture, name_fixtures  # noqa: F824
             name_fixture = _sanitize_collection_name(request.node.name) + name
             name_fixtures.append(name_fixture)
             client_fixture = await async_client_factory(
@@ -432,7 +432,7 @@ def collection_factory_get(
     ) -> Collection[Any, Any]:
         nonlocal name_fixture
         name_fixture = _sanitize_collection_name(name)
-        collection: Collection[Any, Any] = client_factory().collections.get(
+        collection: Collection[Any, Any] = client_factory().collections.use(
             name=name_fixture,
             data_model_properties=data_model_props,
             data_model_references=data_model_refs,

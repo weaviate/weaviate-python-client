@@ -2,41 +2,30 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 from google.protobuf.struct_pb2 import Struct
-from grpc.aio import AioRpcError  # type: ignore
 
 from weaviate.collections.classes.batch import (
-    ErrorObject,
-    _BatchObject,
     BatchObject,
     BatchObjectReturn,
+    ErrorObject,
+    _BatchObject,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
+from weaviate.collections.classes.internal import ReferenceInputs, ReferenceToMulti
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
-from weaviate.connect import ConnectionV4
+from weaviate.collections.grpc.shared import _BaseGRPC, _is_1d_vector, _Pack
+from weaviate.connect import executor
+from weaviate.connect.v4 import Connection
 from weaviate.exceptions import (
-    WeaviateBatchError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
     WeaviateInvalidInputError,
-    InsufficientPermissionsError,
 )
-from weaviate.proto.v1 import batch_pb2, base_pb2
-from weaviate.util import _datetime_to_string, _get_vector_v4
-
-
-def _pack_named_vectors(vectors: Dict[str, List[float]]) -> List[base_pb2.Vectors]:
-    return [
-        base_pb2.Vectors(
-            name=name,
-            vector_bytes=struct.pack("{}f".format(len(vector)), *vector),
-        )
-        for name, vector in vectors.items()
-    ]
+from weaviate.proto.v1 import base_pb2, batch_pb2
+from weaviate.types import VECTORS
+from weaviate.util import _datetime_to_string, _ServerVersion
 
 
 class _BatchGRPC(_BaseGRPC):
@@ -46,23 +35,34 @@ class _BatchGRPC(_BaseGRPC):
     and abstractions so as not to couple to strongly to either use-case.
     """
 
-    def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
-        super().__init__(connection, consistency_level)
+    def __init__(
+        self,
+        weaviate_version: _ServerVersion,
+        consistency_level: Optional[ConsistencyLevel],
+    ):
+        super().__init__(weaviate_version, consistency_level, False)
+
+    def __single_vec(self, vectors: Optional[VECTORS]) -> Optional[bytes]:
+        if not _is_1d_vector(vectors):
+            return None
+        return _Pack.single(vectors)
+
+    def __multi_vec(self, vectors: Optional[VECTORS]) -> Optional[List[base_pb2.Vectors]]:
+        if vectors is None or _is_1d_vector(vectors):
+            return None
+        # pylance fails to type narrow TypeGuard in _is_1d_vector properly
+        vectors = cast(Mapping[str, Union[Sequence[float], Sequence[Sequence[float]]]], vectors)
+        return [
+            base_pb2.Vectors(name=name, vector_bytes=packing.bytes_, type=packing.type_)
+            for name, vec_or_vecs in vectors.items()
+            if (packing := _Pack.parse_single_or_multi_vec(vec_or_vecs))
+        ]
 
     def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
-        def pack_vector(vector: Any) -> bytes:
-            vector_list = _get_vector_v4(vector)
-            return struct.pack("{}f".format(len(vector_list)), *vector_list)
-
         return [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector_bytes=(
-                    pack_vector(obj.vector)
-                    if obj.vector is not None and isinstance(obj.vector, list)
-                    else None
-                ),
-                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                uuid=(str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4())),
                 properties=(
                     self.__translate_properties_from_python_to_grpc(
                         obj.properties,
@@ -72,93 +72,84 @@ class _BatchGRPC(_BaseGRPC):
                     else None
                 ),
                 tenant=obj.tenant,
-                vectors=(
-                    _pack_named_vectors(obj.vector)
-                    if obj.vector is not None and isinstance(obj.vector, dict)
-                    else None
-                ),
+                vector_bytes=self.__single_vec(obj.vector),
+                vectors=self.__multi_vec(obj.vector),
             )
             for obj in objects
         ]
 
-    async def objects(
-        self, objects: List[_BatchObject], timeout: Union[int, float]
-    ) -> BatchObjectReturn:
+    def objects(
+        self,
+        connection: Connection,
+        *,
+        objects: List[_BatchObject],
+        timeout: Union[int, float],
+        max_retries: float,
+    ) -> executor.Result[BatchObjectReturn]:
         """Insert multiple objects into Weaviate through the gRPC API.
 
-        Parameters:
-            `objects`
-                A list of `WeaviateObject` containing the data of the objects to be inserted. The class name must be
+        Args:
+            connection: The connection to the Weaviate instance.
+            objects: A list of `WeaviateObject` containing the data of the objects to be inserted. The class name must be
                 provided for each object, and the UUID is optional. If no UUID is provided, one will be generated for each object.
                 The UUIDs of the inserted objects will be returned in the `uuids` attribute of the returned `_BatchReturn` object.
                 The UUIDs of the objects that failed to be inserted will be returned in the `errors` attribute of the returned `_BatchReturn` object.
-            `tenant`
-                The tenant to be used for this batch operation
+            timeout: The timeout in seconds for the request.
+            max_retries: The maximum number of retries in case of a failure.
         """
         weaviate_objs = self.__grpc_objects(objects)
-
         start = time.time()
-        errors = await self.__send_batch(weaviate_objs, timeout=timeout)
-        elapsed_time = time.time() - start
 
-        if len(errors) == len(weaviate_objs):
-            # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: pylance
-            raise WeaviateInsertManyAllFailedError(
-                "Here is the set of all errors: {}".format(
-                    "\n".join(err for err in set(errors.values()))
+        def resp(errors: Dict[int, str]) -> BatchObjectReturn:
+            if len(errors) == len(weaviate_objs):
+                # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: pylance
+                raise WeaviateInsertManyAllFailedError(
+                    "Here is the set of all errors: {}".format(
+                        "\n".join(err for err in set(errors.values()))
+                    )
                 )
+
+            elapsed_time = time.time() - start
+            all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
+                List[Union[uuid_package.UUID, ErrorObject]],
+                list(range(len(weaviate_objs))),
+            )
+            return_success: Dict[int, uuid_package.UUID] = {}
+            return_errors: Dict[int, ErrorObject] = {}
+            for idx, weav_obj in enumerate(weaviate_objs):
+                obj = objects[idx]
+                if idx in errors:
+                    error = ErrorObject(
+                        errors[idx],
+                        BatchObject._from_internal(obj),
+                        original_uuid=obj.uuid,
+                    )
+                    return_errors[obj.index] = error
+                    all_responses[idx] = error
+                else:
+                    success = uuid_package.UUID(weav_obj.uuid)
+                    return_success[obj.index] = success
+                    all_responses[idx] = success
+
+            return BatchObjectReturn(
+                uuids=return_success,
+                errors=return_errors,
+                has_errors=len(errors) > 0,
+                _all_responses=all_responses,
+                elapsed_seconds=elapsed_time,
             )
 
-        all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
-            List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
+        request = batch_pb2.BatchObjectsRequest(
+            objects=weaviate_objs,
+            consistency_level=self._consistency_level,
         )
-        return_success: Dict[int, uuid_package.UUID] = {}
-        return_errors: Dict[int, ErrorObject] = {}
-
-        for idx, weav_obj in enumerate(weaviate_objs):
-            obj = objects[idx]
-            if idx in errors:
-                error = ErrorObject(
-                    errors[idx], BatchObject._from_internal(obj), original_uuid=obj.uuid
-                )
-                return_errors[obj.index] = error
-                all_responses[idx] = error
-            else:
-                success = uuid_package.UUID(weav_obj.uuid)
-                return_success[obj.index] = success
-                all_responses[idx] = success
-
-        return BatchObjectReturn(
-            uuids=return_success,
-            errors=return_errors,
-            has_errors=len(errors) > 0,
-            _all_responses=all_responses,
-            elapsed_seconds=elapsed_time,
+        return executor.execute(
+            response_callback=resp,
+            method=connection.grpc_batch_objects,
+            request=request,
+            timeout=timeout,
+            max_retries=max_retries,
         )
-
-    async def __send_batch(
-        self, batch: List[batch_pb2.BatchObject], timeout: Union[int, float]
-    ) -> Dict[int, str]:
-        try:
-            assert self._connection.grpc_stub is not None
-            res = await self._connection.grpc_stub.BatchObjects(
-                batch_pb2.BatchObjectsRequest(
-                    objects=batch,
-                    consistency_level=self._consistency_level,
-                ),
-                metadata=self._connection.grpc_headers(),
-                timeout=timeout,
-            )
-            res = cast(batch_pb2.BatchObjectsReply, res)
-
-            objects: Dict[int, str] = {}
-            for result in res.errors:
-                objects[result.index] = result.error
-            return objects
-        except AioRpcError as e:
-            if e.code().name == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(e)
-            raise WeaviateBatchError(str(e)) from e
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], refs: ReferenceInputs
@@ -180,7 +171,9 @@ class _BatchGRPC(_BaseGRPC):
             if isinstance(ref, ReferenceToMulti):
                 multi_target.append(
                     batch_pb2.BatchObject.MultiTargetRefProps(
-                        uuids=ref.uuids_str, target_collection=ref.target_collection, prop_name=key
+                        uuids=ref.uuids_str,
+                        target_collection=ref.target_collection,
+                        prop_name=key,
                     )
                 )
             elif isinstance(ref, str) or isinstance(ref, uuid_package.UUID):

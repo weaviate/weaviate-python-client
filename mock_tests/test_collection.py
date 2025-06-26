@@ -1,43 +1,41 @@
 import datetime
-import json
-import time
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 import grpc
 import pytest
 from pytest_httpserver import HTTPServer
-from werkzeug import Request, Response
 
 import weaviate
 import weaviate.classes as wvc
 from mock_tests.conftest import (
-    MOCK_PORT,
     MOCK_IP,
+    MOCK_PORT,
     MOCK_PORT_GRPC,
-    CLIENT_ID,
     MockRetriesWeaviateService,
 )
+from weaviate.backup.backup import BackupStorage
 from weaviate.collections.classes.config import (
+    BM25Config,
     CollectionConfig,
-    VectorIndexConfigFlat,
-    VectorDistances,
     InvertedIndexConfig,
     MultiTenancyConfig,
-    BM25Config,
+    ReplicationConfig,
+    ReplicationDeletionStrategy,
+    ShardingConfig,
     StopwordsConfig,
     StopwordsPreset,
-    ReplicationConfig,
-    Vectorizers,
+    VectorDistances,
+    VectorIndexConfigFlat,
     VectorIndexType,
-    ShardingConfig,
+    Vectorizers,
 )
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.exceptions import (
-    WeaviateStartUpError,
     BackupCanceledError,
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
+    WeaviateStartUpError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -54,7 +52,7 @@ def test_insufficient_permissions(
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
-    collection = client.collections.get("Test")
+    collection = client.collections.use("Test")
 
     with pytest.raises(InsufficientPermissionsError) as e1:
         collection.config.get()
@@ -74,78 +72,6 @@ def test_old_version(ready_mock: HTTPServer, start_grpc_server: grpc.Server) -> 
     ready_mock.check_assertions()
 
 
-@pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
-def test_auth_header_priority(
-    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, header_name: str
-) -> None:
-    """Test that auth_client_secret has priority over the auth header."""
-
-    bearer_token = "OTHER TOKEN"
-
-    weaviate_auth_mock.expect_request("/auth").respond_with_json(
-        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
-    )
-
-    def handler(request: Request) -> Response:
-        assert request.headers["Authorization"] == "Bearer " + ACCESS_TOKEN
-        return Response(json.dumps({}))
-
-    weaviate_auth_mock.expect_request("/v1/schema").respond_with_handler(handler)
-
-    with pytest.warns(UserWarning) as recwarn:
-        weaviate.connect_to_local(
-            port=MOCK_PORT,
-            host=MOCK_IP,
-            grpc_port=MOCK_PORT_GRPC,
-            headers={header_name: "Bearer " + bearer_token},
-            auth_credentials=wvc.init.Auth.api_key("key"),
-        )
-        assert str(recwarn[0].message).startswith("Auth004")
-
-
-def test_auth_header_with_catchall_proxy(
-    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
-) -> None:
-    """Test that the client can handle situations in which a proxy returns a catchall page for all requests."""
-    weaviate_mock.expect_request("/v1/schema").respond_with_json({})
-    weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_data(
-        "JsonCannotParseThis"
-    )
-
-    with pytest.warns(UserWarning) as recwarn:
-        weaviate.connect_to_local(
-            port=MOCK_PORT,
-            grpc_port=MOCK_PORT_GRPC,
-            host=MOCK_IP,
-            auth_credentials=wvc.init.Auth.bearer_token("token"),
-        )
-        assert str(recwarn[0].message).startswith("Auth005")
-
-
-def test_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
-    """Test that refresh tokens are used to get a new access token."""
-    weaviate_auth_mock.expect_request(
-        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
-    ).respond_with_json({"classes": {}})
-
-    weaviate_auth_mock.expect_request(
-        "/auth",
-        data=f"grant_type=refresh_token&refresh_token={REFRESH_TOKEN}&client_id={CLIENT_ID}",
-    ).respond_with_json(
-        {"access_token": ACCESS_TOKEN, "expires_in": 1, "refresh_token": REFRESH_TOKEN}
-    )
-    with weaviate.connect_to_local(
-        port=MOCK_PORT,
-        grpc_port=MOCK_PORT_GRPC,
-        host=MOCK_IP,
-        auth_credentials=wvc.init.Auth.bearer_token(
-            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1
-        ),
-    ) as client:
-        time.sleep(1)  # client gets a new token 1s before expiration
-        client.collections.list_all()
-
-
 def test_closed_connection(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
     client = weaviate.WeaviateClient(
         ConnectionParams(
@@ -156,10 +82,10 @@ def test_closed_connection(weaviate_auth_mock: HTTPServer, start_grpc_server: gr
     with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
         client.collections.list_all()
     with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
-        collection = client.collections.get("Test")
+        collection = client.collections.use("Test")
         collection.query.fetch_objects()
     with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
-        collection = client.collections.get("Test")
+        collection = client.collections.use("Test")
         collection.data.insert_many([{}])
 
 
@@ -170,8 +96,9 @@ def test_missing_multi_tenancy_config(
         quantizer=None,
         distance_metric=VectorDistances.COSINE,
         vector_cache_max_objects=10,
+        multi_vector=None,
     )
-    vic.distance = vic.distance_metric
+    vic.distance = vic.distance_metric  # type: ignore
     response_json = CollectionConfig(
         name="Test",
         description="",
@@ -202,7 +129,11 @@ def test_missing_multi_tenancy_config(
         ),
         properties=[],
         references=[],
-        replication_config=ReplicationConfig(factor=0, async_enabled=False, deletion_strategy=None),
+        replication_config=ReplicationConfig(
+            factor=0,
+            async_enabled=False,
+            deletion_strategy=ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION,
+        ),
         vector_index_config=vic,
         vector_index_type=VectorIndexType.FLAT,
         vectorizer=Vectorizers.NONE,
@@ -214,7 +145,7 @@ def test_missing_multi_tenancy_config(
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
-    collection = client.collections.get("TestTrue")
+    collection = client.collections.use("TestTrue")
     conf = collection.config.get()
     assert conf.multi_tenancy_config.enabled is True
 
@@ -227,7 +158,7 @@ def test_missing_multi_tenancy_config(
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
-    collection = client.collections.get("TestFalse")
+    collection = client.collections.use("TestFalse")
 
     conf = collection.config.get()
     assert conf.multi_tenancy_config.enabled is False
@@ -273,7 +204,7 @@ def test_return_from_bind_module(
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
-    collection = client.collections.get("TestBindCollection")
+    collection = client.collections.use("TestBindCollection")
     conf = collection.config.get()
 
     assert conf.properties[0].vectorizer_config is not None
@@ -361,7 +292,7 @@ def test_year_zero(year_zero_collection: weaviate.collections.Collection) -> Non
 
 @pytest.mark.parametrize("output", ["minimal", "verbose"])
 def test_node_with_timeout(
-    httpserver: HTTPServer, start_grpc_server: grpc.Server, output: str
+    httpserver: HTTPServer, start_grpc_server: grpc.Server, output: Literal["minimal", "verbose"]
 ) -> None:
     httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
     httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
@@ -423,26 +354,26 @@ def test_backup_cancel_while_create_and_restore(
     with pytest.raises(BackupCanceledError):
         client.backup.create(
             backup_id=backup_id,
-            backend="filesystem",
+            backend=BackupStorage.FILESYSTEM,
             wait_for_completion=True,
         )
 
     with pytest.raises(BackupCanceledError):
         client.backup.restore(
             backup_id=backup_id,
-            backend="filesystem",
+            backend=BackupStorage.FILESYSTEM,
             wait_for_completion=True,
         )
 
 
 def test_grpc_retry_logic(
-    retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService]
+    retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
 ) -> None:
     collection = retries[0]
     service = retries[1]
 
     with pytest.raises(weaviate.exceptions.WeaviateQueryError):
-        # checks first call correctly handles error that isn't UNAVAILABLE
+        # checks first call correctly handles INTERNAL error
         collection.query.fetch_objects()
 
     # should perform one retry and then succeed subsequently

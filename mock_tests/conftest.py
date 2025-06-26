@@ -6,23 +6,22 @@ from typing import Generator, Mapping
 import grpc
 import pytest
 from grpc import ServicerContext
-from grpc_health.v1.health_pb2 import HealthCheckResponse, HealthCheckRequest
+from grpc_health.v1.health_pb2 import HealthCheckRequest, HealthCheckResponse
 from grpc_health.v1.health_pb2_grpc import HealthServicer, add_HealthServicer_to_server
-from pytest_httpserver import HTTPServer, HeaderValueMatcher
+from pytest_httpserver import HeaderValueMatcher, HTTPServer
 from werkzeug.wrappers import Request, Response
 
 import weaviate
+from mock_tests.mock_data import mock_class
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import (
-    batch_pb2,
     batch_delete_pb2,
+    batch_pb2,
     properties_pb2,
-    tenants_pb2,
     search_get_pb2,
+    tenants_pb2,
     weaviate_pb2_grpc,
 )
-
-from mock_tests.mock_data import mock_class
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
@@ -203,7 +202,7 @@ def tenants_collection(
             )
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
-    return weaviate_client.collections.get("TenantsGetCollectionName")
+    return weaviate_client.collections.use("TenantsGetCollectionName")
 
 
 @pytest.fixture(scope="function")
@@ -214,10 +213,8 @@ def year_zero_collection(
         def Search(
             self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
         ) -> search_get_pb2.SearchReply:
-            zero_date: properties_pb2.Value.date_value = properties_pb2.Value(
-                date_value="0000-01-30T00:00:00Z"
-            )
-            date_prop: Mapping[str, properties_pb2.Value.date_value] = {"date": zero_date}
+            zero_date = properties_pb2.Value(date_value="0000-01-30T00:00:00Z")
+            date_prop: Mapping[str, properties_pb2.Value] = {"date": zero_date}
             return search_get_pb2.SearchReply(
                 results=[
                     search_get_pb2.SearchResult(
@@ -229,7 +226,7 @@ def year_zero_collection(
             )
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
-    return weaviate_client.collections.get("YearZeroCollection")
+    return weaviate_client.collections.use("YearZeroCollection")
 
 
 @pytest.fixture(scope="function")
@@ -250,7 +247,7 @@ def timeouts_collection(
             return batch_pb2.BatchObjectsReply()
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
-    return weaviate_timeouts_client.collections.get(mock_class["class"])
+    return weaviate_timeouts_client.collections.use(mock_class["class"])
 
 
 class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
@@ -310,7 +307,7 @@ def retries(
 ) -> tuple[weaviate.collections.Collection, MockRetriesWeaviateService]:
     service = MockRetriesWeaviateService()
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
-    return weaviate_client.collections.get("RetriesCollection"), service
+    return weaviate_client.collections.use("RetriesCollection"), service
 
 
 class MockForbiddenWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
@@ -349,4 +346,4 @@ def forbidden(
 ) -> weaviate.collections.Collection:
     service = MockForbiddenWeaviateService()
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
-    return weaviate_client.collections.get("ForbiddenCollection")
+    return weaviate_client.collections.use("ForbiddenCollection")

@@ -2,35 +2,34 @@
 Client class definition.
 """
 
-from typing import Optional, Tuple, Union, Dict, Any
+from typing import Any, Dict, Optional, Tuple, Union
 
-from weaviate.backup.backup import _BackupAsync
-from weaviate.backup.sync import _Backup
+from weaviate.client_executor import _WeaviateClientExecutor
 from weaviate.collections.classes.internal import _RawGQLReturn
 from weaviate.collections.collections.async_ import _CollectionsAsync
 from weaviate.collections.collections.sync import _Collections
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
+from weaviate.users.async_ import _UsersAsync
+from weaviate.users.sync import _Users
+
+from .backup import _Backup, _BackupAsync
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
-from .connect import ConnectionV4
 from .debug import _Debug, _DebugAsync
 from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
-from weaviate.client_base import _WeaviateClientInit
-
-# Must define stubs here for WeaviateClient due to runtime patching of async -> sync methods
-# Cannot move Client nor WeaviateClient definitions away from client.py due to BC concerns
-# Must therefore duplicate the interface for all clients hiding their methods inside client.py
-
-class WeaviateAsyncClient(_WeaviateClientInit):
-    _connection: ConnectionV4
+class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
+    _connection: ConnectionAsync
     backup: _BackupAsync
     collections: _CollectionsAsync
     cluster: _ClusterAsync
     debug: _DebugAsync
     roles: _RolesAsync
+    users: _UsersAsync
+
     async def close(self) -> None: ...
     async def connect(self) -> None: ...
     def is_connected(self) -> bool: ...
@@ -42,14 +41,16 @@ class WeaviateAsyncClient(_WeaviateClientInit):
     async def __aenter__(self) -> "WeaviateAsyncClient": ...
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None: ...
 
-class WeaviateClient(_WeaviateClientInit):
-    _connection: ConnectionV4
+class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
+    _connection: ConnectionSync
     backup: _Backup
     batch: _BatchClientWrapper
     collections: _Collections
     cluster: _Cluster
     debug: _Debug
     roles: _Roles
+    users: _Users
+
     def close(self) -> None: ...
     def connect(self) -> None: ...
     def is_connected(self) -> bool: ...

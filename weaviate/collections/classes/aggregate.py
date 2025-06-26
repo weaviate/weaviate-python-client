@@ -5,11 +5,12 @@ from typing import (
     Optional,
     Union,
 )
-from typing_extensions import TypeVar
 
 from pydantic import BaseModel, Field
+from typing_extensions import TypeVar
 
-from weaviate.collections.classes.types import _WeaviateInput
+from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
+from weaviate.proto.v1 import aggregate_pb2
 
 N = TypeVar("N", int, float)
 
@@ -67,12 +68,11 @@ class AggregateBoolean:
     total_true: Optional[int]
 
 
-# Aggregate references currently bugged on Weaviate's side
-# @dataclass
-# class AggregateReference:
-#     """The aggregation result for a cross-reference property."""
+@dataclass
+class AggregateReference:
+    """The aggregation result for a cross-reference property."""
 
-#     pointing_to: Optional[str]
+    pointing_to: Optional[List[str]]
 
 
 @dataclass
@@ -92,7 +92,7 @@ AggregateResult = Union[
     AggregateText,
     AggregateBoolean,
     AggregateDate,
-    # AggregateReference, # Aggregate references currently bugged on Weaviate's side
+    AggregateReference,
 ]
 
 AProperties = Dict[str, AggregateResult]
@@ -111,7 +111,18 @@ class GroupedBy:
     """The property that the collection was grouped by."""
 
     prop: str
-    value: str
+    value: Union[
+        str,
+        int,
+        float,
+        bool,
+        List[str],
+        List[int],
+        List[float],
+        List[bool],
+        GeoCoordinate,
+        None,
+    ]
 
 
 @dataclass
@@ -133,6 +144,12 @@ class AggregateGroupByReturn:
 class _MetricsBase(BaseModel):
     property_name: str
     count: bool
+
+    def to_gql(self) -> str:
+        raise NotImplementedError
+
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        raise NotImplementedError
 
 
 class _MetricsText(_MetricsBase):
@@ -156,6 +173,16 @@ class _MetricsText(_MetricsBase):
             ]
         )
         return f"{self.property_name} {{ {body} }}"
+
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            text=aggregate_pb2.AggregateRequest.Aggregation.Text(
+                count=self.count,
+                top_occurences=self.top_occurrences_count,
+                top_occurences_limit=self.min_occurrences,
+            ),
+        )
 
 
 class _MetricsNum(_MetricsBase):
@@ -182,11 +209,35 @@ class _MetricsNum(_MetricsBase):
 
 
 class _MetricsInteger(_MetricsNum):
-    pass
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            int=aggregate_pb2.AggregateRequest.Aggregation.Integer(
+                count=self.count,
+                maximum=self.maximum,
+                mean=self.mean,
+                median=self.median,
+                minimum=self.minimum,
+                mode=self.mode,
+                sum=self.sum_,
+            ),
+        )
 
 
 class _MetricsNumber(_MetricsNum):
-    pass
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            number=aggregate_pb2.AggregateRequest.Aggregation.Number(
+                count=self.count,
+                maximum=self.maximum,
+                mean=self.mean,
+                median=self.median,
+                minimum=self.minimum,
+                mode=self.mode,
+                sum=self.sum_,
+            ),
+        )
 
 
 class _MetricsBoolean(_MetricsBase):
@@ -207,6 +258,18 @@ class _MetricsBoolean(_MetricsBase):
         )
         return f"{self.property_name} {{ {body} }}"
 
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            boolean=aggregate_pb2.AggregateRequest.Aggregation.Boolean(
+                count=self.count,
+                percentage_false=self.percentage_false,
+                percentage_true=self.percentage_true,
+                total_false=self.total_false,
+                total_true=self.total_true,
+            ),
+        )
+
 
 class _MetricsDate(_MetricsBase):
     maximum: bool
@@ -226,19 +289,38 @@ class _MetricsDate(_MetricsBase):
         )
         return f"{self.property_name} {{ {body} }}"
 
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            date=aggregate_pb2.AggregateRequest.Aggregation.Date(
+                count=self.count,
+                maximum=self.maximum,
+                median=self.median,
+                minimum=self.minimum,
+                mode=self.mode,
+            ),
+        )
 
-# Aggregate references currently bugged on Weaviate's side
-# class _MetricsReference(BaseModel):
-#     property_name: str
-#     pointing_to: bool
 
-#     def to_gql(self) -> str:
-#         body = " ".join(
-#             [
-#                 "pointingTo" if self.pointing_to else "",
-#             ]
-#         )
-#         return f"{self.property_name} {{ {body} }}"
+class _MetricsReference(BaseModel):
+    property_name: str
+    pointing_to: bool
+
+    def to_gql(self) -> str:
+        body = " ".join(
+            [
+                "pointingTo" if self.pointing_to else "",
+            ]
+        )
+        return f"{self.property_name} {{ {body} }}"
+
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            reference=aggregate_pb2.AggregateRequest.Aggregation.Reference(
+                pointing_to=self.pointing_to,
+            ),
+        )
 
 
 _Metrics = Union[
@@ -247,7 +329,7 @@ _Metrics = Union[
     _MetricsNumber,
     _MetricsDate,
     _MetricsBoolean,
-    # _MetricsReference, # Aggregate references currently bugged on Weaviate's side
+    _MetricsReference,
 ]
 
 PropertiesMetrics = Union[_Metrics, List[_Metrics]]
@@ -258,6 +340,12 @@ class GroupByAggregate(_WeaviateInput):
 
     prop: str
     limit: Optional[int] = Field(default=None)
+
+    def _to_grpc(self) -> aggregate_pb2.AggregateRequest.GroupBy:
+        return aggregate_pb2.AggregateRequest.GroupBy(
+            collection="",
+            property=self.prop,
+        )
 
 
 class Metrics:
@@ -283,15 +371,11 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `top_occurrences_count`
-                Whether to include the number of the top occurrences of a property's value.
-            `top_occurrences_value`
-                Whether to include the value of the top occurrences of a property's value.
-            `min_occurrences`
-                Only include entries with more occurrences than the given limit.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            top_occurrences_count: Whether to include the number of the top occurrences of a property's value.
+            top_occurrences_value: Whether to include the value of the top occurrences of a property's value.
+            min_occurrences: Only include entries with more occurrences than the given limit.
 
         Returns:
             A `_MetricsStr` object that includes the metrics to be returned.
@@ -322,21 +406,14 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `maximum`
-                Whether to include the maximum value of this property.
-            `mean`
-                Whether to include the mean value of this property.
-            `median`
-                Whether to include the median value of this property.
-            `minimum`
-                Whether to include the minimum value of this property.
-            `mode`
-                Whether to include the mode value of this property.
-            `sum_`
-                Whether to include the sum of this property.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            maximum: Whether to include the maximum value of this property.
+            mean: Whether to include the mean value of this property.
+            median: Whether to include the median value of this property.
+            minimum: Whether to include the minimum value of this property.
+            mode: Whether to include the mode value of this property.
+            sum_: Whether to include the sum of this property.
 
         Returns:
             A `_MetricsInteger` object that includes the metrics to be returned.
@@ -374,21 +451,14 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `maximum`
-                Whether to include the maximum value of this property.
-            `mean`
-                Whether to include the mean value of this property.
-            `median`
-                Whether to include the median value of this property.
-            `minimum`
-                Whether to include the minimum value of this property.
-            `mode`
-                Whether to include the mode value of this property.
-            `sum_`
-                Whether to include the sum of this property.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            maximum: Whether to include the maximum value of this property.
+            mean: Whether to include the mean value of this property.
+            median: Whether to include the median value of this property.
+            minimum: Whether to include the minimum value of this property.
+            mode: Whether to include the mode value of this property.
+            sum_: Whether to include the sum of this property.
 
         Returns:
             A `_MetricsNumber` object that includes the metrics to be returned.
@@ -424,17 +494,12 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `percentage_false`
-                Whether to include the percentage of objects that have a false value for this property.
-            `percentage_true`
-                Whether to include the percentage of objects that have a true value for this property.
-            `total_false`
-                Whether to include the total number of objects that have a false value for this property.
-            `total_true`
-                Whether to include the total number of objects that have a true value for this property.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            percentage_false: Whether to include the percentage of objects that have a false value for this property.
+            percentage_true: Whether to include the percentage of objects that have a true value for this property.
+            total_false: Whether to include the total number of objects that have a false value for this property.
+            total_true: Whether to include the total number of objects that have a true value for this property.
 
         Returns:
             A `_MetricsBoolean` object that includes the metrics to be returned.
@@ -466,17 +531,12 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `maximum`
-                Whether to include the maximum value of this property.
-            `median`
-                Whether to include the median value of this property.
-            `minimum`
-                Whether to include the minimum value of this property.
-            `mode`
-                Whether to include the mode value of this property.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            maximum: Whether to include the maximum value of this property.
+            median: Whether to include the median value of this property.
+            minimum: Whether to include the minimum value of this property.
+            mode: Whether to include the mode value of this property.
 
         Returns:
             A `_MetricsDate` object that includes the metrics to be returned.
@@ -497,24 +557,23 @@ class Metrics:
         )
 
     # Aggregate references currently bugged on Weaviate's side
-    # def reference(
-    #     self,
-    #     pointing_to: bool = False,
-    # ) -> _MetricsReference:
-    #     """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
+    def reference(
+        self,
+        pointing_to: bool = False,
+    ) -> _MetricsReference:
+        """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
 
-    #     If none of the arguments are provided then all metrics will be returned.
+        If none of the arguments are provided then all metrics will be returned.
 
-    #     Arguments:
-    #         `pointing_to`
-    #             Whether to include the collection names that this property references.
+        Args:
+            pointing_to: The UUIDs of the objects that are being pointed to.
 
-    #     Returns:
-    #         A `_MetricsReference` object that includes the metrics to be returned.
-    #     """
-    #     if not any([pointing_to]):
-    #         pointing_to = True
-    #     return _MetricsReference(
-    #         property_name=self.__property,
-    #         pointing_to=pointing_to,
-    #     )
+        Returns:
+            A `_MetricsReference` object that includes the metrics to be returned.
+        """
+        if not any([pointing_to]):
+            pointing_to = True
+        return _MetricsReference(
+            property_name=self.__property,
+            pointing_to=pointing_to,
+        )

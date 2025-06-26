@@ -1,6 +1,4 @@
-"""
-Error and Warning messages that are reused throughout the code.
-"""
+"""Error and Warning messages that are reused throughout the code."""
 
 FILTER_BEACON_V14_CLS_NS_W = (
     "Based on the number of '/' in the beacon it seems that the beacon is not "

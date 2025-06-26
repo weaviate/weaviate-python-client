@@ -1,17 +1,18 @@
-from typing import List
+from typing import List, Union
 
 import pytest
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
-    _CollectionConfigCreate,
+    Configure,
     DataType,
+    Property,
+    ReferenceProperty,
+    Vectorizers,
+    _CollectionConfigCreate,
     _GenerativeProvider,
     _RerankerProvider,
     _VectorizerConfigCreate,
-    Configure,
-    Property,
-    ReferenceProperty,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_vectorizers import Multi2VecField, VectorDistances
@@ -57,6 +58,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "vectorizeClassName": True,
                 "baseURL": "https://api.openai.com/",
                 "dimensions": 356,
+                "isAzure": True,
             }
         },
     ),
@@ -115,6 +117,24 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "output_encoding": "base64",
                 "vectorizeClassName": False,
                 "baseURL": "https://api.voyageai.com/",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_nvidia(
+            model="nvidia/nvclip",
+            truncation=False,
+            output_encoding="base64",
+            vectorize_collection_name=False,
+            base_url="https://integrate.api.nvidia.com",
+        ),
+        {
+            "multi2vec-nvidia": {
+                "model": "nvidia/nvclip",
+                "truncation": False,
+                "output_encoding": "base64",
+                "vectorizeClassName": False,
+                "baseURL": "https://integrate.api.nvidia.com/",
             }
         },
     ),
@@ -260,11 +280,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_openai(),
-        {
-            "text2vec-openai": {
-                "vectorizeClassName": True,
-            }
-        },
+        {"text2vec-openai": {"vectorizeClassName": True, "isAzure": False}},
     ),
     (
         Configure.Vectorizer.text2vec_openai(
@@ -283,6 +299,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "type": "text",
                 "baseURL": "https://api.openai.com/",
                 "dimensions": 100,
+                "isAzure": False,
             }
         },
     ),
@@ -425,6 +442,38 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "voyage-large-2",
                 "baseURL": "https://voyage.made-up.com",
                 "truncate": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_nvidia(
+            vectorize_collection_name=False,
+            model="nvidia/nv-embed-v1",
+            truncate=False,
+            base_url="https://integrate.api.nvidia.com",
+        ),
+        {
+            "text2vec-nvidia": {
+                "vectorizeClassName": False,
+                "model": "nvidia/nv-embed-v1",
+                "baseURL": "https://integrate.api.nvidia.com",
+                "truncate": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_weaviate(
+            vectorize_collection_name=False,
+            model="Snowflake/snowflake-arctic-embed-l-v2.0",
+            base_url="https://api.embedding.weaviate.io",
+            dimensions=1024,
+        ),
+        {
+            "text2vec-weaviate": {
+                "vectorizeClassName": False,
+                "model": "Snowflake/snowflake-arctic-embed-l-v2.0",
+                "baseURL": "https://api.embedding.weaviate.io",
+                "dimensions": 1024,
             }
         },
     ),
@@ -748,6 +797,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-openai": {}},
     ),
     (
+        Configure.Generative.nvidia(),
+        {"generative-nvidia": {}},
+    ),
+    (
         Configure.Generative.anyscale(),
         {"generative-anyscale": {}},
     ),
@@ -974,6 +1027,22 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.xai(
+            model="grok-2-latest",
+            max_tokens=100,
+            temperature=0.5,
+            base_url="https://api.x.ai/v1",
+        ),
+        {
+            "generative-xai": {
+                "model": "grok-2-latest",
+                "maxTokens": 100,
+                "temperature": 0.5,
+                "baseURL": "https://api.x.ai/v1",
+            }
+        },
+    ),
 ]
 
 
@@ -1010,6 +1079,48 @@ TEST_CONFIG_WITH_RERANKER = [
         },
     ),
     (
+        Configure.Reranker.voyageai(),
+        {
+            "reranker-voyageai": {},
+        },
+    ),
+    (
+        Configure.Reranker.voyageai(model="rerank-lite-1"),
+        {
+            "reranker-voyageai": {"model": "rerank-lite-1"},
+        },
+    ),
+    (
+        Configure.Reranker.jinaai(),
+        {
+            "reranker-jinaai": {},
+        },
+    ),
+    (
+        Configure.Reranker.jinaai(model="jina-reranker-v2-base-multilingual"),
+        {
+            "reranker-jinaai": {"model": "jina-reranker-v2-base-multilingual"},
+        },
+    ),
+    (
+        Configure.Reranker.nvidia(),
+        {
+            "reranker-nvidia": {},
+        },
+    ),
+    (
+        Configure.Reranker.nvidia(
+            model="nvidia/llama-3.2-nv-rerankqa-1b-v2",
+            base_url="https://integrate.api.nvidia.com/v1",
+        ),
+        {
+            "reranker-nvidia": {
+                "model": "nvidia/llama-3.2-nv-rerankqa-1b-v2",
+                "baseURL": "https://integrate.api.nvidia.com/v1",
+            },
+        },
+    ),
+    (
         Configure.Reranker.transformers(),
         {
             "reranker-transformers": {},
@@ -1032,11 +1143,24 @@ def test_config_with_reranker(
     }
 
 
-def test_config_with_properties() -> None:
+@pytest.mark.parametrize(
+    "vectorizer_config",
+    [
+        Configure.Vectorizer.none(),
+        Configure.Vectorizer.text2vec_contextionary(),
+        [
+            Configure.NamedVectors.text2vec_cohere(name="one"),
+            Configure.NamedVectors.text2vec_openai(name="two"),
+        ],
+    ],
+)
+def test_config_create_with_properties(
+    vectorizer_config: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]],
+) -> None:
     config = _CollectionConfigCreate(
         name="test",
         description="test",
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=vectorizer_config,
         properties=[
             Property(
                 name="text",
@@ -1100,103 +1224,106 @@ def test_config_with_properties() -> None:
             ),
         ],
     )
-    assert config._to_dict() == {
-        **DEFAULTS,
-        "class": "Test",
-        "description": "test",
-        "properties": [
-            {
-                "dataType": ["text"],
-                "name": "text",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["text[]"],
-                "name": "text_array",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["int"],
-                "name": "int",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["int[]"],
-                "name": "int_array",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["number"],
-                "name": "number",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["number[]"],
-                "name": "number_array",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["boolean"],
-                "name": "bool",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["boolean[]"],
-                "name": "bool_array",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["date"],
-                "name": "date",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["date[]"],
-                "name": "date_array",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["uuid"],
-                "name": "uuid",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["uuid[]"],
-                "name": "uuid_array",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["geoCoordinates"],
-                "name": "geo",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["blob"],
-                "name": "blob",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-            {
-                "dataType": ["phoneNumber"],
-                "name": "phone_number",
-                "skip_vectorization": False,
-                "vectorize_property_name": True,
-            },
-        ],
-    }
+    props = [
+        {
+            "dataType": ["text"],
+            "name": "text",
+        },
+        {
+            "dataType": ["text[]"],
+            "name": "text_array",
+        },
+        {
+            "dataType": ["int"],
+            "name": "int",
+        },
+        {
+            "dataType": ["int[]"],
+            "name": "int_array",
+        },
+        {
+            "dataType": ["number"],
+            "name": "number",
+        },
+        {
+            "dataType": ["number[]"],
+            "name": "number_array",
+        },
+        {
+            "dataType": ["boolean"],
+            "name": "bool",
+        },
+        {
+            "dataType": ["boolean[]"],
+            "name": "bool_array",
+        },
+        {
+            "dataType": ["date"],
+            "name": "date",
+        },
+        {
+            "dataType": ["date[]"],
+            "name": "date_array",
+        },
+        {
+            "dataType": ["uuid"],
+            "name": "uuid",
+        },
+        {
+            "dataType": ["uuid[]"],
+            "name": "uuid_array",
+        },
+        {
+            "dataType": ["geoCoordinates"],
+            "name": "geo",
+        },
+        {
+            "dataType": ["blob"],
+            "name": "blob",
+        },
+        {
+            "dataType": ["phoneNumber"],
+            "name": "phone_number",
+        },
+    ]
+
+    def make_expected_props() -> List[dict]:
+        out: List[dict] = []
+        for prop in props:
+            if isinstance(vectorizer_config, _VectorizerConfigCreate):
+                if vectorizer_config.vectorizer == Vectorizers.NONE:
+                    out.append(prop)
+                    continue
+                out.append(
+                    {
+                        **prop,
+                        "moduleConfig": {
+                            vectorizer_config.vectorizer.value: {
+                                "skip": False,
+                                "vectorizePropertyName": True,
+                            },
+                        },
+                    }
+                )
+                continue
+            out.append(
+                {
+                    **prop,
+                    "moduleConfig": {
+                        conf.vectorizer.vectorizer.value: {
+                            "skip": False,
+                            "vectorizePropertyName": True,
+                        }
+                        for conf in vectorizer_config
+                    },
+                }
+            )
+        return out
+
+    out = config._to_dict()
+    assert out["class"] == "Test"
+    assert out["description"] == "test"
+    assert out["properties"] == make_expected_props()
 
 
 @pytest.mark.parametrize("name", ["id", "vector"])
@@ -1290,6 +1417,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "vectorizeClassName": True,
                         "properties": ["prop"],
                         "dimensions": 512,
+                        "isAzure": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1330,6 +1458,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-voyageai": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.NamedVectors.multi2vec_nvidia(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-nvidia": {
                         "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
@@ -1460,6 +1602,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "baseURL": "https://api.openai.com/",
+                        "isAzure": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1567,6 +1710,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-voyageai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "truncate": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_nvidia(
+                name="test", source_properties=["prop"], truncate=True
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-nvidia": {
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,

@@ -1,11 +1,11 @@
 from typing import List, Union
-from weaviate.connect.integrations import _IntegrationConfig
 
-from weaviate.connect.v4 import ConnectionV4
+from weaviate.connect.integrations import _IntegrationConfig
+from weaviate.connect.v4 import Connection
 
 
 class _Integrations:
-    def __init__(self, connection: ConnectionV4) -> None:
+    def __init__(self, connection: Connection) -> None:
         self.__connection = connection
 
     def configure(

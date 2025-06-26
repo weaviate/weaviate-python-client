@@ -1,33 +1,24 @@
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 from weaviate.backup.backup import (
-    BackupStorage,
-    BackupReturn,
-    BackupStatusReturn,
     BackupConfigCreate,
     BackupConfigRestore,
+    BackupReturn,
+    BackupStatusReturn,
+    BackupStorage,
 )
 from weaviate.backup.backup_location import BackupLocationType
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionSync
 
-class _Backup:
-    """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
+from .executor import _BackupExecutor
 
-    def __init__(self, connection: ConnectionV4):
-        self._connection = connection
-
-    def cancel(
-        self,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType] = None,
-    ) -> bool: ...
+class _Backup(_BackupExecutor[ConnectionSync]):
     def create(
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_collections: Optional[Union[List[str], str]] = None,
-        exclude_collections: Optional[Union[List[str], str]] = None,
+        include_collections: Union[List[str], str, None] = None,
+        exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -54,3 +45,9 @@ class _Backup:
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn: ...
+    def cancel(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
+    ) -> bool: ...

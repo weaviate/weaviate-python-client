@@ -1,4 +1,5 @@
 import pytest
+
 import weaviate.classes as wvc
 
 

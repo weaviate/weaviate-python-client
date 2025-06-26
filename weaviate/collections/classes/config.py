@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import (
     Any,
     ClassVar,
@@ -14,15 +13,17 @@ from typing import (
     cast,
 )
 
+from deprecation import deprecated as docstring_deprecated
 from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
-from typing_extensions import TypeAlias, deprecated
+from typing_extensions import TypeAlias
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigBase,
     _ConfigCreateModel,
     _ConfigUpdateModel,
-    _QuantizerConfigUpdate,
     _EnumLikeStr,
+    _QuantizerConfigUpdate,
 )
 from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorConfigCreate,
@@ -31,10 +32,10 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
-    VectorIndexType as VectorIndexTypeAlias,
     VectorFilterStrategy,
-)
-from weaviate.collections.classes.config_vector_index import (
+    _EncodingConfigCreate,
+    _MultiVectorConfigCreate,
+    _MuveraConfigCreate,
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
     _VectorIndexConfigDynamicCreate,
@@ -46,13 +47,24 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
 )
-from weaviate.collections.classes.config_vectorizers import CohereModel
-from weaviate.collections.classes.config_vectorizers import VectorDistances as VectorDistancesAlias
-from weaviate.collections.classes.config_vectorizers import Vectorizers as VectorizersAlias
-from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
+from weaviate.collections.classes.config_vector_index import (
+    VectorIndexType as VectorIndexTypeAlias,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    CohereModel,
+    _Vectorizer,
+    _VectorizerConfigCreate,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    VectorDistances as VectorDistancesAlias,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    Vectorizers as VectorizersAlias,
+)
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
-from ...warnings import _Warnings
+from weaviate.warnings import _Warnings
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
@@ -65,7 +77,7 @@ AWSService: TypeAlias = Literal[
 ]
 
 
-class ConsistencyLevel(str, Enum):
+class ConsistencyLevel(str, BaseEnum):
     """The consistency levels when writing to Weaviate with replication enabled.
 
     Attributes:
@@ -79,7 +91,7 @@ class ConsistencyLevel(str, Enum):
     QUORUM = "QUORUM"
 
 
-class DataType(str, Enum):
+class DataType(str, BaseEnum):
     """The available primitive data types in Weaviate.
 
     Attributes:
@@ -121,26 +133,18 @@ class DataType(str, Enum):
     OBJECT_ARRAY = "object[]"
 
 
-class Tokenization(str, Enum):
+class Tokenization(str, BaseEnum):
     """The available inverted index tokenization methods for text properties in Weaviate.
 
     Attributes:
-        `WORD`
-            Tokenize by word.
-        `WHITESPACE`
-            Tokenize by whitespace.
-        `LOWERCASE`
-            Tokenize by lowercase.
-        `FIELD`
-            Tokenize by field.
-        `GSE`
-            Tokenize using GSE (for Chinese and Japanese).
-        `TRIGRAM`
-            Tokenize into trigrams.
-        `KAGOME_JA`
-            Tokenize using the 'Kagome' tokenizer (for Japanese).
-        `KAGOME_KR`
-            Tokenize using the 'Kagome' tokenizer and a Korean MeCab dictionary (for Korean).
+        WORD: Tokenize by word.
+        WHITESPACE: Tokenize by whitespace.
+        LOWERCASE: Tokenize by lowercase.
+        FIELD: Tokenize by field.
+        GSE: Tokenize using GSE (for Chinese and Japanese).
+        TRIGRAM: Tokenize into trigrams.
+        KAGOME_JA: Tokenize using the 'Kagome' tokenizer (for Japanese).
+        KAGOME_KR: Tokenize using the 'Kagome' tokenizer and a Korean MeCab dictionary (for Korean).
     """
 
     WORD = "word"
@@ -153,33 +157,24 @@ class Tokenization(str, Enum):
     KAGOME_KR = "kagome_kr"
 
 
-class GenerativeSearches(str, Enum):
+class GenerativeSearches(str, BaseEnum):
     """The available generative search modules in Weaviate.
 
     These modules generate text from text-based inputs.
     See the [docs](https://weaviate.io/developers/weaviate/modules/reader-generator-modules) for more details.
 
     Attributes:
-        `AWS`
-            Weaviate module backed by AWS Bedrock generative models.
-        `ANTHROPIC`
-            Weaviate module backed by Anthropic generative models.
-        `ANYSCALE`
-            Weaviate module backed by Anyscale generative models.
-        `COHERE`
-            Weaviate module backed by Cohere generative models.
-        `DATABRICKS`
-            Weaviate module backed by Databricks generative models.
-        `FRIENDLIAI`
-            Weaviate module backed by FriendliAI generative models.
-        `MISTRAL`
-            Weaviate module backed by Mistral generative models.
-        `OLLAMA`
-            Weaviate module backed by generative models deployed on Ollama infrastructure.
-        `OPENAI`
-            Weaviate module backed by OpenAI and Azure-OpenAI generative models.
-        `PALM`
-            Weaviate module backed by PaLM generative models.
+        AWS: Weaviate module backed by AWS Bedrock generative models.
+        ANTHROPIC: Weaviate module backed by Anthropic generative models.
+        ANYSCALE: Weaviate module backed by Anyscale generative models.
+        COHERE: Weaviate module backed by Cohere generative models.
+        DATABRICKS: Weaviate module backed by Databricks generative models.
+        FRIENDLIAI: Weaviate module backed by FriendliAI generative models.
+        MISTRAL: Weaviate module backed by Mistral generative models.
+        NVIDIA: Weaviate module backed by NVIDIA generative models.
+        OLLAMA: Weaviate module backed by generative models deployed on Ollama infrastructure.
+        OPENAI: Weaviate module backed by OpenAI and Azure-OpenAI generative models.
+        PALM: Weaviate module backed by PaLM generative models.
     """
 
     AWS = "generative-aws"
@@ -187,30 +182,29 @@ class GenerativeSearches(str, Enum):
     ANYSCALE = "generative-anyscale"
     COHERE = "generative-cohere"
     DATABRICKS = "generative-databricks"
+    DUMMY = "generative-dummy"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
+    NVIDIA = "generative-nvidia"
     OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
     PALM = "generative-palm"  # rename to google once all versions support it
+    XAI = "generative-xai"
 
 
-class Rerankers(str, Enum):
+class Rerankers(str, BaseEnum):
     """The available reranker modules in Weaviate.
 
     These modules rerank the results of a search query.
     See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules#re-ranking) for more details.
 
     Attributes:
-        `NONE`
-            No reranker.
-        `COHERE`
-            Weaviate module backed by Cohere reranking models.
-        `TRANSFORMERS`
-            Weaviate module backed by Transformers reranking models.
-        `VOYAGEAI`
-            Weaviate module backed by VoyageAI reranking models.
-        `JINAAI`
-            Weaviate module backed by JinaAI reranking models.
+        NONE: No reranker.
+        COHERE: Weaviate module backed by Cohere reranking models.
+        TRANSFORMERS: Weaviate module backed by Transformers reranking models.
+        VOYAGEAI: Weaviate module backed by VoyageAI reranking models.
+        JINAAI: Weaviate module backed by JinaAI reranking models.
+        NVIDIA: Weaviate module backed by NVIDIA reranking models.
     """
 
     NONE = "none"
@@ -218,30 +212,27 @@ class Rerankers(str, Enum):
     TRANSFORMERS = "reranker-transformers"
     VOYAGEAI = "reranker-voyageai"
     JINAAI = "reranker-jinaai"
+    NVIDIA = "reranker-nvidia"
 
 
-class StopwordsPreset(str, Enum):
+class StopwordsPreset(str, BaseEnum):
     """Preset stopwords to use in the `Stopwords` class.
 
     Attributes:
-        `EN`
-            English stopwords.
-        `NONE`
-            No stopwords.
+        EN: English stopwords.
+        NONE: No stopwords.
     """
 
     NONE = "none"
     EN = "en"
 
 
-class ReplicationDeletionStrategy(str, Enum):
+class ReplicationDeletionStrategy(str, BaseEnum):
     """How object deletions in multi node environments should be resolved.
 
     Attributes:
-        `PERMANENT_DELETION`
-            Once an object has been deleted on one node it will be deleted on all nodes in case of conflicts.
-        `NO_AUTOMATED_RESOLUTION`
-            No deletion resolution.
+        PERMANENT_DELETION: Once an object has been deleted on one node it will be deleted on all nodes in case of conflicts.
+        NO_AUTOMATED_RESOLUTION: No deletion resolution.
     """
 
     DELETE_ON_CONFLICT = "DeleteOnConflict"
@@ -249,32 +240,38 @@ class ReplicationDeletionStrategy(str, Enum):
     TIME_BASED_RESOLUTION = "TimeBasedResolution"
 
 
-class PQEncoderType(str, Enum):
+class PQEncoderType(str, BaseEnum):
     """Type of the PQ encoder.
 
     Attributes:
-        `KMEANS`
-            K-means encoder.
-        `TILE`
-            Tile encoder.
+        KMEANS: K-means encoder.
+        TILE: Tile encoder.
     """
 
     KMEANS = "kmeans"
     TILE = "tile"
 
 
-class PQEncoderDistribution(str, Enum):
+class PQEncoderDistribution(str, BaseEnum):
     """Distribution of the PQ encoder.
 
     Attributes:
-        `LOG_NORMAL`
-            Log-normal distribution.
-        `NORMAL`
-            Normal distribution.
+        LOG_NORMAL: Log-normal distribution.
+        NORMAL: Normal distribution.
     """
 
     LOG_NORMAL = "log-normal"
     NORMAL = "normal"
+
+
+class MultiVectorAggregation(str, BaseEnum):
+    """Aggregation type to use for multivector indices.
+
+    Attributes:
+        MAX_SIM: Maximum similarity.
+    """
+
+    MAX_SIM = "maxSim"
 
 
 class _PQEncoderConfigCreate(_ConfigCreateModel):
@@ -438,6 +435,7 @@ class _GenerativeAnyscale(_GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
+    baseURL: Optional[str]
     temperature: Optional[float]
     model: Optional[str]
 
@@ -469,6 +467,27 @@ class _GenerativeMistral(_GenerativeProvider):
     temperature: Optional[float]
     model: Optional[str]
     maxTokens: Optional[int]
+    baseURL: Optional[str]
+
+
+class _GenerativeNvidia(_GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+    maxTokens: Optional[int]
+    baseURL: Optional[str]
+
+
+class _GenerativeXai(_GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.XAI, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+    maxTokens: Optional[int]
+    baseURL: Optional[str]
 
 
 class _GenerativeFriendliai(_GenerativeProvider):
@@ -625,6 +644,20 @@ class _RerankerVoyageAIConfig(_RerankerProvider):
     model: Optional[Union[RerankerVoyageAIModel, str]] = Field(default=None)
 
 
+class _RerankerNvidiaConfig(_RerankerProvider):
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.NVIDIA, frozen=True, exclude=True
+    )
+    model: Optional[str] = Field(default=None)
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
 class _Generative:
     """Use this factory class to create the correct object for the `generative_config` argument in the `collections.create()` method.
 
@@ -636,16 +669,16 @@ class _Generative:
     def anyscale(
         model: Optional[str] = None,
         temperature: Optional[float] = None,
+        base_url: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAnyscale` object for use when generating using the `generative-anyscale` module.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
-        return _GenerativeAnyscale(model=model, temperature=temperature)
+        return _GenerativeAnyscale(model=model, temperature=temperature, baseURL=base_url)
 
     @staticmethod
     def custom(
@@ -654,11 +687,9 @@ class _Generative:
     ) -> _GenerativeProvider:
         """Create a `_GenerativeCustom` object for use when generating using a custom specification.
 
-        Arguments:
-            `module_name`
-                The name of the module to use, REQUIRED.
-            `module_config`
-                The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
+        Args:
+            module_name: The name of the module to use, REQUIRED.
+            module_config: The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
         """
         return _GenerativeCustom(generative=_EnumLikeStr(module_name), module_config=module_config)
 
@@ -673,17 +704,12 @@ class _Generative:
     ) -> _GenerativeProvider:
         """Create a `_GenerativeDatabricks` object for use when performing AI generation using the `generative-databricks` module.
 
-        Arguments:
-            `endpoint`
-                The URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_k`
-                The top K value to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P value to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            endpoint: The URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K value to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeDatabricks(
             endpoint=endpoint,
@@ -701,18 +727,13 @@ class _Generative:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> _GenerativeProvider:
-        """
-        Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
+        """Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
 
-        Arguments:
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeFriendliai(
             model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
@@ -723,18 +744,59 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        base_url: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeMistral` object for use when performing AI generation using the `generative-mistral` module.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
-        return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
+        return _GenerativeMistral(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
+
+    @staticmethod
+    def nvidia(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeNvidia(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
+
+    @staticmethod
+    def xai(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeXai` object for use when performing AI generation using the `generative-xai` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeXai(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
 
     @staticmethod
     def ollama(
@@ -742,15 +804,12 @@ class _Generative:
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
     ) -> _GenerativeProvider:
-        """
-        Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
+        """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
 
-        Arguments:
-            `api_endpoint`
-                The API endpoint to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            api_endpoint: The API endpoint to use. Defaults to `None`, which uses the server-defined default
                 Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeOllama(model=model, apiEndpoint=api_endpoint)
 
@@ -769,21 +828,14 @@ class _Generative:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `frequency_penalty`
-                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `presence_penalty`
-                The presence penalty to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeOpenAIConfig(
             baseURL=base_url,
@@ -811,23 +863,15 @@ class _Generative:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
         for detailed usage.
 
-        Arguments:
-            `resource_name`
-                The name of the Azure OpenAI resource to use.
-            `deployment_id`
-                The Azure OpenAI deployment ID to use.
-            `frequency_penalty`
-                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `presence_penalty`
-                The presence penalty to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        Args:
+            resource_name: The name of the Azure OpenAI resource to use.
+            deployment_id: The Azure OpenAI deployment ID to use.
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAzureOpenAIConfig(
             baseURL=base_url,
@@ -855,21 +899,14 @@ class _Generative:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-cohere)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `k`
-                The number of sequences to generate. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `return_likelihoods`
-                Whether to return the likelihoods. Defaults to `None`, which uses the server-defined default
-            `stop_sequences`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            k: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            return_likelihoods: Whether to return the likelihoods. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeCohereConfig(
             baseURL=base_url,
@@ -882,8 +919,14 @@ class _Generative:
         )
 
     @staticmethod
-    @deprecated(
-        "This method is deprecated and will be removed in Q2 25. Please use `google` instead."
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="""
+This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Generative.google` instead.
+""",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '25. Please use `google` instead."
     )
     def palm(
         project_id: str,
@@ -899,21 +942,14 @@ class _Generative:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-palm)
         for detailed usage.
 
-        Arguments:
-            `project_id`
-                The PalM project ID to use.
-            `api_endpoint`
-                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            `max_output_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_k`
-                The top K to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            project_id: The PalM project ID to use.
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         _Warnings.palm_to_google_gen()
         return _GenerativeGoogleConfig(
@@ -941,21 +977,14 @@ class _Generative:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
         for detailed usage.
 
-        Arguments:
-            `project_id`
-                The PalM project ID to use.
-            `api_endpoint`
-                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            `max_output_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_k`
-                The top K to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            project_id: The PalM project ID to use.
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
@@ -979,15 +1008,11 @@ class _Generative:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use, REQUIRED for service "bedrock".
-            `region`
-                The AWS region to run the model from, REQUIRED.
-            `endpoint`
-                The model to use, REQUIRED for service "sagemaker".
-            `service`
-                The AWS service to use, options are "bedrock" and "sagemaker".
+        Args:
+            model: The model to use, REQUIRED for service "bedrock".
+            region: The AWS region to run the model from, REQUIRED.
+            endpoint: The model to use, REQUIRED for service "sagemaker".
+            service: The AWS service to use, options are "bedrock" and "sagemaker".
         """
         return _GenerativeAWSConfig(
             model=model,
@@ -1005,22 +1030,15 @@ class _Generative:
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeProvider:
-        """
-        Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
+        """Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `stop_sequences`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_k`
-                The top K to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnthropicConfig(
             model=model,
@@ -1054,11 +1072,9 @@ class _Reranker:
     ) -> _RerankerProvider:
         """Create a `_RerankerCustomConfig` object for use when reranking using a custom module.
 
-        Arguments:
-            `module_name`
-                The name of the module to use, REQUIRED.
-            `module_config`
-                The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
+        Args:
+            module_name: The name of the module to use, REQUIRED.
+            module_config: The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
         """
         return _RerankerCustomConfig(
             reranker=_EnumLikeStr(module_name), module_config=module_config
@@ -1070,12 +1086,11 @@ class _Reranker:
     ) -> _RerankerProvider:
         """Create a `_RerankerCohereConfig` object for use when reranking using the `reranker-cohere` module.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-cohere)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/reranker)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _RerankerCohereConfig(model=model)
 
@@ -1085,12 +1100,11 @@ class _Reranker:
     ) -> _RerankerProvider:
         """Create a `_RerankerJinaAIConfig` object for use when reranking using the `reranker-jinaai` module.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-jinaai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/reranker)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _RerankerJinaAIConfig(model=model)
 
@@ -1100,14 +1114,29 @@ class _Reranker:
     ) -> _RerankerProvider:
         """Create a `_RerankerVoyageAIConfig` object for use when reranking using the `reranker-voyageai` module.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-voyageai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/reranker)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _RerankerVoyageAIConfig(model=model)
+
+    @staticmethod
+    def nvidia(
+        model: Optional[str] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> _RerankerProvider:
+        """Create a `_RerankerNvidiaConfig` object for use when reranking using the `reranker-nvidia` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/reranker)
+        for detailed usage.
+
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
+        """
+        return _RerankerNvidiaConfig(model=model, baseURL=base_url)
 
 
 class _CollectionConfigCreateBase(_ConfigCreateModel):
@@ -1134,7 +1163,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
 
-        for cls_field in self.model_fields:
+        for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if cls_field in ["name", "model", "properties", "references"] or val is None:
                 continue
@@ -1170,6 +1199,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
 
 class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
+    property_descriptions: Optional[Dict[str, str]] = Field(default=None)
     invertedIndexConfig: Optional[_InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
     )
@@ -1224,6 +1254,18 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         if self.description is not None:
             schema["description"] = self.description
+        if self.property_descriptions is not None:
+            if (p := schema["properties"]) is None:
+                raise WeaviateInvalidInputError(
+                    "Cannot update property descriptions without existing properties in the schema"
+                )
+            props = {prop["name"]: prop for prop in p}
+            for prop_name, prop_desc in self.property_descriptions.items():
+                if prop_name not in props:
+                    raise WeaviateInvalidInputError(
+                        f"Property {prop_name} does not exist in the existing properties"
+                    )
+                props[prop_name]["description"] = prop_desc
         if self.invertedIndexConfig is not None:
             schema["invertedIndexConfig"] = self.invertedIndexConfig.merge_with_existing(
                 schema["invertedIndexConfig"]
@@ -1248,7 +1290,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                     k: v for k, v in schema["moduleConfig"].items() if "generative" not in k
                 }
             self.__add_to_module_config(
-                schema, self.generativeConfig.generative.value, self.generativeConfig._to_dict()
+                schema,
+                self.generativeConfig.generative.value,
+                self.generativeConfig._to_dict(),
             )
         if self.rerankerConfig is not None:
             # clear any existing reranker config
@@ -1257,7 +1301,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                     k: v for k, v in schema["moduleConfig"].items() if "reranker" not in k
                 }
             self.__add_to_module_config(
-                schema, self.rerankerConfig.reranker.value, self.rerankerConfig._to_dict()
+                schema,
+                self.rerankerConfig.reranker.value,
+                self.rerankerConfig._to_dict(),
             )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
@@ -1282,9 +1328,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                             schema["vectorConfig"][vc.name]["vectorIndexConfig"]
                         )
                     )
-                    schema["vectorConfig"][vc.name][
-                        "vectorIndexType"
-                    ] = vc.vectorIndexConfig.vector_index_type()
+                    schema["vectorConfig"][vc.name]["vectorIndexType"] = (
+                        vc.vectorIndexConfig.vector_index_type()
+                    )
         return schema
 
     @staticmethod
@@ -1392,6 +1438,7 @@ class _Property(_PropertyBase):
     tokenization: Optional[Tokenization]
     vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
+    vectorizer_configs: Optional[Dict[str, PropertyVectorizerConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -1411,7 +1458,11 @@ class _Property(_PropertyBase):
                 "skip": self.vectorizer_config.skip,
                 "vectorizePropertyName": self.vectorizer_config.vectorize_property_name,
             }
-
+        if self.vectorizer_configs is not None:
+            module_config = {
+                k: {"skip": v.skip, "vectorizePropertyName": v.vectorize_property_name}
+                for k, v in self.vectorizer_configs.items()
+            }
         if len(module_config) > 0:
             out["moduleConfig"] = module_config
         return out
@@ -1508,7 +1559,28 @@ SQConfig = _SQConfig
 
 
 @dataclass
+class _MuveraConfig(_ConfigBase):
+    enabled: Optional[bool]
+    ksim: Optional[int]
+    dprojections: Optional[int]
+    repetitions: Optional[int]
+
+
+MuveraConfig = _MuveraConfig
+
+
+@dataclass
+class _MultiVectorConfig(_ConfigBase):
+    encoding: Optional[_MuveraConfig]
+    aggregation: str
+
+
+MultiVector = _MultiVectorConfig
+
+
+@dataclass
 class _VectorIndexConfig(_ConfigBase):
+    multi_vector: Optional[_MultiVectorConfig]
     quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1609,7 +1681,8 @@ class _NamedVectorizerConfig(_ConfigBase):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        ret_dict["properties"] = ret_dict.pop("sourceProperties", None)
+        if "sourceProperties" in ret_dict:
+            ret_dict["properties"] = ret_dict.pop("sourceProperties")
         return ret_dict
 
 
@@ -1727,26 +1800,16 @@ class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
 
     Attributes:
-        `name`
-            The name of the property, REQUIRED.
-        `data_type`
-            The data type of the property, REQUIRED.
-        `description`
-            A description of the property.
-        `index_filterable`
-            Whether the property should be filterable in the inverted index.
-        `index_range_filters`
-            Whether the property should support range filters in the inverted index.
-        `index_searchable`
-            Whether the property should be searchable in the inverted index.
-        `nested_properties`
-            nested properties for data type OBJECT and OBJECT_ARRAY`.
-        `skip_vectorization`
-            Whether to skip vectorization of the property. Defaults to `False`.
-        `tokenization`
-            The tokenization method to use for the inverted index. Defaults to `None`.
-        `vectorize_property_name`
-            Whether to vectorize the property name. Defaults to `True`.
+        name: The name of the property, REQUIRED.
+        data_type: The data type of the property, REQUIRED.
+        description: A description of the property.
+        index_filterable: Whether the property should be filterable in the inverted index.
+        index_range_filters: Whether the property should support range filters in the inverted index.
+        index_searchable: Whether the property should be searchable in the inverted index.
+        nested_properties: nested properties for data type OBJECT and OBJECT_ARRAY`.
+        skip_vectorization: Whether to skip vectorization of the property. Defaults to `False`.
+        tokenization: The tokenization method to use for the inverted index. Defaults to `None`.
+        vectorize_property_name: Whether to vectorize the property name. Defaults to `True`.
     """
 
     name: str
@@ -1769,17 +1832,19 @@ class Property(_ConfigCreateModel):
         return v
 
     def _to_dict(
-        self, vectorizer: Optional[Union[Vectorizers, _EnumLikeStr]] = None
+        self, vectorizers: Optional[Sequence[Union[Vectorizers, _EnumLikeStr]]] = None
     ) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
-        if vectorizer is not None and vectorizer != Vectorizers.NONE:
-            ret_dict["moduleConfig"] = {
-                vectorizer.value: {
-                    "skip": self.skip_vectorization,
-                    "vectorizePropertyName": self.vectorize_property_name,
-                }
-            }
+        if vectorizers is not None:
+            for vectorizer in vectorizers:
+                if vectorizer is not None and vectorizer != Vectorizers.NONE:
+                    if "moduleConfig" not in ret_dict:
+                        ret_dict["moduleConfig"] = {}
+                    ret_dict["moduleConfig"][vectorizer.value] = {
+                        "skip": self.skip_vectorization,
+                        "vectorizePropertyName": self.vectorize_property_name,
+                    }
             del ret_dict["skip_vectorization"]
             del ret_dict["vectorize_property_name"]
         if self.nestedProperties is not None:
@@ -1808,12 +1873,9 @@ class _ReferencePropertyMultiTarget(_ReferencePropertyBase):
     of having cross-references to multiple other collections at once.
 
     Attributes:
-        `name`
-            The name of the property, REQUIRED.
-        `target_collections`
-            The names of the target collections, REQUIRED.
-        `description`
-            A description of the property.
+        name: The name of the property, REQUIRED.
+        target_collections: The names of the target collections, REQUIRED.
+        description: A description of the property.
     """
 
     target_collections: List[str]
@@ -1835,12 +1897,9 @@ class ReferenceProperty(_ReferencePropertyBase):
     of having only cross-references to a single other collection.
 
     Attributes:
-        `name`
-            The name of the property, REQUIRED.
-        `target_collection`
-            The name of the target collection, REQUIRED.
-        `description`
-            A description of the property.
+        name: The name of the property, REQUIRED.
+        target_collection: The name of the target collection, REQUIRED.
+        description: A description of the property.
     """
 
     target_collection: str
@@ -1890,7 +1949,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     @field_validator("vectorizerConfig", mode="after")
     @classmethod
     def validate_vector_names(
-        cls, v: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]], info: ValidationInfo
+        cls,
+        v: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]],
+        info: ValidationInfo,
     ) -> Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]:
         if isinstance(v, list):
             names = [vc.name for vc in v]
@@ -1911,7 +1972,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
 
-        for cls_field in self.model_fields:
+        for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if cls_field in ["name", "model", "properties", "references"] or val is None:
                 continue
@@ -1951,7 +2012,10 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     def __add_props(
         self,
         props: Optional[
-            Union[Sequence[Union[Property, _ReferencePropertyBase]], List[_ReferencePropertyBase]]
+            Union[
+                Sequence[Union[Property, _ReferencePropertyBase]],
+                List[_ReferencePropertyBase],
+            ]
         ],
         ret_dict: Dict[str, Any],
     ) -> None:
@@ -1962,9 +2026,13 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             [
                 (
                     prop._to_dict(
-                        self.vectorizerConfig.vectorizer
+                        [self.vectorizerConfig.vectorizer]
                         if isinstance(self.vectorizerConfig, _VectorizerConfigCreate)
-                        else None
+                        else (
+                            None
+                            if self.vectorizerConfig is None
+                            else [conf.vectorizer.vectorizer for conf in self.vectorizerConfig]
+                        )
                     )
                     if isinstance(prop, Property)
                     else prop._to_dict()
@@ -1973,6 +2041,35 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             ]
         )
         ret_dict["properties"] = existing_props
+
+
+class _VectorIndexMultivectorEncoding:
+    @staticmethod
+    def muvera(
+        ksim: Optional[int] = None,
+        dprojections: Optional[int] = None,
+        repetitions: Optional[int] = None,
+    ) -> _EncodingConfigCreate:
+        return _MuveraConfigCreate(
+            enabled=True,
+            ksim=ksim,
+            dprojections=dprojections,
+            repetitions=repetitions,
+        )
+
+
+class _VectorIndexMultiVector:
+    Encoding = _VectorIndexMultivectorEncoding
+
+    @staticmethod
+    def multi_vector(
+        encoding: Optional[_EncodingConfigCreate] = None,
+        aggregation: Optional[MultiVectorAggregation] = None,
+    ) -> _MultiVectorConfigCreate:
+        return _MultiVectorConfigCreate(
+            encoding=encoding if encoding is not None else None,
+            aggregation=aggregation.value if aggregation is not None else None,
+        )
 
 
 class _VectorIndexQuantizer:
@@ -1989,7 +2086,7 @@ class _VectorIndexQuantizer:
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         if bit_compression is not None:
@@ -2010,7 +2107,7 @@ class _VectorIndexQuantizer:
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _BQConfigCreate(
@@ -2028,7 +2125,7 @@ class _VectorIndexQuantizer:
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _SQConfigCreate(
@@ -2039,6 +2136,7 @@ class _VectorIndexQuantizer:
 
 
 class _VectorIndex:
+    MultiVector = _VectorIndexMultiVector
     Quantizer = _VectorIndexQuantizer
 
     @staticmethod
@@ -2050,6 +2148,7 @@ class _VectorIndex:
         return _VectorIndexConfigSkipCreate(
             distance=None,
             quantizer=None,
+            multivector=None,
         )
 
     @staticmethod
@@ -2066,12 +2165,13 @@ class _VectorIndex:
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector: Optional[_MultiVectorConfigCreate] = None,
     ) -> _VectorIndexConfigHNSWCreate:
         """Create a `_VectorIndexConfigHNSWCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigHNSWCreate(
@@ -2087,6 +2187,7 @@ class _VectorIndex:
             maxConnections=max_connections,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
+            multivector=multi_vector,
         )
 
     @staticmethod
@@ -2099,13 +2200,14 @@ class _VectorIndex:
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigFlatCreate(
             distance=distance_metric,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
+            multivector=None,
         )
 
     @staticmethod
@@ -2119,11 +2221,16 @@ class _VectorIndex:
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigDynamicCreate(
-            distance=distance_metric, threshold=threshold, hnsw=hnsw, flat=flat, quantizer=None
+            distance=distance_metric,
+            threshold=threshold,
+            hnsw=hnsw,
+            flat=flat,
+            quantizer=None,
+            multivector=None,
         )
 
 
@@ -2154,7 +2261,7 @@ class Configure:
     ) -> _InvertedIndexConfigCreate:
         """Create an `InvertedIndexConfigCreate` object to be used when defining the configuration of the keyword searching algorithm of Weaviate.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         if bm25_b is None and bm25_k1 is not None or bm25_k1 is None and bm25_b is not None:
@@ -2185,13 +2292,10 @@ class Configure:
     ) -> _MultiTenancyConfigCreate:
         """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
 
-        Arguments:
-            `enabled`
-                Whether multi-tenancy is enabled. Defaults to `True`.
-            `auto_tenant_creation`
-                Automatically create nonexistent tenants during object creation. Defaults to `None`, which uses the server-defined default.
-            `auto_tenant_activation`
-                Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
+        Args:
+            enabled: Whether multi-tenancy is enabled. Defaults to `True`.
+            auto_tenant_creation: Automatically create nonexistent tenants during object creation. Defaults to `None`, which uses the server-defined default.
+            auto_tenant_activation: Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
         return _MultiTenancyConfigCreate(
             enabled=enabled,
@@ -2209,13 +2313,10 @@ class Configure:
 
         NOTE: `async_enabled` is only available with WeaviateDB `>=v1.26.0`
 
-        Arguments:
-            `factor`
-                The replication factor.
-            `async_enabled`
-                Enabled async replication.
-            `deletion_strategy`
-                How conflicts between different nodes about deleted objects are resolved.
+        Args:
+            factor: The replication factor.
+            async_enabled: Enabled async replication.
+            deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
         """
         return _ReplicationConfigCreate(
             factor=factor,
@@ -2237,18 +2338,13 @@ class Configure:
 
         See [the docs](https://weaviate.io/developers/weaviate/concepts/replication-architecture#replication-vs-sharding) for more details.
 
-        Arguments:
-            `virtual_per_physical`
-                The number of virtual shards per physical shard.
-            `desired_count`
-                The desired number of physical shards.
-            `actual_count` DEPRECATED
-                The actual number of physical shards. This is a read-only field so has no effect.
+        Args:
+            virtual_per_physical: The number of virtual shards per physical shard.
+            desired_count: The desired number of physical shards.
+            actual_count: The actual number of physical shards. This is a read-only field so has no effect.
                 It is kept for backwards compatibility but will be removed in a future release.
-            `desired_virtual_count`
-                The desired number of virtual shards.
-            `actual_virtual_count` DEPRECATED
-                The actual number of virtual shards. This is a read-only field so has no effect.
+            desired_virtual_count: The desired number of virtual shards.
+            actual_virtual_count: The actual number of virtual shards. This is a read-only field so has no effect.
                 It is kept for backwards compatibility but will be removed in a future release.
         """
         if actual_count is not None:
@@ -2277,7 +2373,7 @@ class _VectorIndexQuantizerUpdate:
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         if bit_compression is not None:
@@ -2301,7 +2397,7 @@ class _VectorIndexQuantizerUpdate:
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _BQConfigUpdate(rescoreLimit=rescore_limit, enabled=enabled)
@@ -2316,7 +2412,7 @@ class _VectorIndexQuantizerUpdate:
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _SQConfigUpdate(
@@ -2342,7 +2438,7 @@ class _VectorIndexUpdate:
 
         Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigHNSWUpdate(
@@ -2365,7 +2461,7 @@ class _VectorIndexUpdate:
 
         Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigFlatUpdate(
@@ -2385,7 +2481,7 @@ class _VectorIndexUpdate:
 
         Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigDynamicUpdate(
@@ -2423,7 +2519,7 @@ class Reconfigure:
 
         Use this method when defining the `inverted_index_config` argument in `collection.update()`.
 
-        Arguments:
+        Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _InvertedIndexConfigUpdate(
@@ -2446,32 +2542,31 @@ class Reconfigure:
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
 
-        Arguments:
-            `factor`
-                The replication factor.
-            `async_enabled`
-                Enable async replication.
-            `deletion_strategy`
-                How conflicts between different nodes about deleted objects are resolved.
+        Args:
+            factor: The replication factor.
+            async_enabled: Enable async replication.
+            deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
         """
         return _ReplicationConfigUpdate(
-            factor=factor, asyncEnabled=async_enabled, deletionStrategy=deletion_strategy
+            factor=factor,
+            asyncEnabled=async_enabled,
+            deletionStrategy=deletion_strategy,
         )
 
     @staticmethod
     def multi_tenancy(
-        auto_tenant_creation: Optional[bool] = None, auto_tenant_activation: Optional[bool] = None
+        auto_tenant_creation: Optional[bool] = None,
+        auto_tenant_activation: Optional[bool] = None,
     ) -> _MultiTenancyConfigUpdate:
         """Create a `MultiTenancyConfigUpdate` object.
 
         Use this method when defining the `multi_tenancy` argument in `collection.update()`.
 
-        Arguments:
-            `auto_tenant_creation`
-                When set, implicitly creates nonexistent tenants during object creation
-            `auto_tenant_activation`
-                Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
+        Args:
+            auto_tenant_creation: When set, implicitly creates nonexistent tenants during object creation
+            auto_tenant_activation: Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
         return _MultiTenancyConfigUpdate(
-            autoTenantCreation=auto_tenant_creation, autoTenantActivation=auto_tenant_activation
+            autoTenantCreation=auto_tenant_creation,
+            autoTenantActivation=auto_tenant_activation,
         )

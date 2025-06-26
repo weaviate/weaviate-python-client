@@ -16,41 +16,50 @@ from typing import (
     cast,
 )
 
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, deprecated
 
 if sys.version_info < (3, 9):
-    from typing_extensions import Annotated, get_type_hints, get_origin, get_args
+    from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 else:
-    from typing import Annotated, get_type_hints, get_origin, get_args
+    from typing import Annotated, get_args, get_origin, get_type_hints
 
+from weaviate.collections.classes.generative import (
+    _GenerativeConfigRuntime,
+    _GenerativeConfigRuntimeOptions,
+    _GroupedTask,
+    _SinglePrompt,
+    _to_text_array,
+)
 from weaviate.collections.classes.grpc import (
-    QueryNested,
-    _QueryReference,
-    _QueryReferenceMultiTarget,
-    GroupBy,
-    MetadataQuery,
     METADATA,
     PROPERTIES,
     REFERENCES,
+    GroupBy,
+    MetadataQuery,
+    QueryNested,
     Rerank,
+    _QueryReference,
+    _QueryReferenceMultiTarget,
 )
 from weaviate.collections.classes.types import (
-    Properties,
-    References,
     IReferences,
-    TReferences,
     M,
     P,
+    Properties,
     R,
+    References,
     TProperties,
+    TReferences,
     WeaviateProperties,
     _WeaviateInput,
 )
-from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _to_beacons
+from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+)
+from weaviate.proto.v1 import generative_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
-
-from weaviate.proto.v1 import search_get_pb2, generative_pb2
+from weaviate.util import _ServerVersion, _to_beacons
 
 
 @dataclass
@@ -94,7 +103,7 @@ class _Object(Generic[P, R, M]):
     metadata: M
     properties: P
     references: R
-    vector: Dict[str, List[float]]
+    vector: Dict[str, Union[List[float], List[List[float]]]]
     collection: str
 
 
@@ -124,19 +133,102 @@ class GroupByObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
     belongs_to_group: str
 
 
+GenerativeMetadata = Union[
+    generative_pb2.GenerativeAnthropicMetadata,
+    generative_pb2.GenerativeAnyscaleMetadata,
+    generative_pb2.GenerativeAWSMetadata,
+    generative_pb2.GenerativeCohereMetadata,
+    generative_pb2.GenerativeDatabricksMetadata,
+    generative_pb2.GenerativeDummyMetadata,
+    generative_pb2.GenerativeFriendliAIMetadata,
+    generative_pb2.GenerativeGoogleMetadata,
+    generative_pb2.GenerativeMistralMetadata,
+    generative_pb2.GenerativeNvidiaMetadata,
+    generative_pb2.GenerativeOllamaMetadata,
+    generative_pb2.GenerativeOpenAIMetadata,
+]
+
+
 @dataclass
+class GenerativeSingle:
+    """The generative data returned relevant to a single prompt generative query."""
+
+    debug: Optional[generative_pb2.GenerativeDebug]
+    metadata: Optional[GenerativeMetadata]
+    text: Optional[str]
+
+
+@dataclass
+class GenerativeGrouped:
+    """The generative data returned relevant to a grouped prompt generative query."""
+
+    metadata: Optional[GenerativeMetadata]
+    text: Optional[str]
+
+
 class GenerativeObject(Generic[P, R], Object[P, R]):
     """A single Weaviate object returned by a query within the `generate` namespace of a collection."""
 
-    generated: Optional[str]
+    __generated: Optional[str]
+    generative: Optional[GenerativeSingle]
+
+    # init required because of nuances of dataclass when defining @property generated and private var __generated
+    def __init__(
+        self,
+        generated: Optional[str],
+        generative: Optional[GenerativeSingle],
+        uuid: uuid_package.UUID,
+        metadata: MetadataReturn,
+        properties: P,
+        references: R,
+        vector: Dict[str, Union[List[float], List[List[float]]]],
+        collection: str,
+    ) -> None:
+        self.__generated = generated
+        self.generative = generative
+        super().__init__(
+            uuid=uuid,
+            metadata=metadata,
+            properties=properties,
+            references=references,
+            vector=vector,
+            collection=collection,
+        )
+
+    @property
+    @deprecated(
+        "The generated field is deprecated. Use generative.text instead.", category=None
+    )  # todo: turn into a runtime warning in the future
+    def generated(self) -> Optional[str]:
+        """The single generated text of the object."""
+        return self.__generated
 
 
-@dataclass
 class GenerativeReturn(Generic[P, R]):
     """The return type of a query within the `generate` namespace of a collection."""
 
+    __generated: Optional[str]
     objects: List[GenerativeObject[P, R]]
-    generated: Optional[str]
+    generative: Optional[GenerativeGrouped]
+
+    # init required because of nuances of dataclass when defining @property generated and private var __generated
+    def __init__(
+        self,
+        generated: Optional[str],
+        objects: List[GenerativeObject[P, R]],
+        generative: Optional[GenerativeGrouped],
+    ) -> None:
+        self.__generated = generated
+        self.objects = objects
+        self.generative = generative
+
+    @property
+    @deprecated(
+        "The generated field is deprecated. Use generative.text instead.", category=None
+    )  # todo: turn into a runtime warning in the future
+    def generated(self) -> Optional[str]:
+        """The grouped generated text of the objects."""
+        return self.__generated
 
 
 @dataclass
@@ -194,26 +286,113 @@ class _RawGQLReturn:
 
 
 class _Generative:
-    single: Optional[str]
-    grouped: Optional[str]
+    single: Union[str, _SinglePrompt, None]
+    grouped: Union[str, _GroupedTask, None]
     grouped_properties: Optional[List[str]]
+    generative_provider: Optional[_GenerativeConfigRuntime]
 
     def __init__(
         self,
-        single: Optional[str],
-        grouped: Optional[str],
+        single: Union[str, _SinglePrompt, None],
+        grouped: Union[str, _GroupedTask, None],
         grouped_properties: Optional[List[str]],
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
     ) -> None:
         self.single = single
         self.grouped = grouped
         self.grouped_properties = grouped_properties
+        self.generative_provider = generative_provider
 
-    def to_grpc(self) -> generative_pb2.GenerativeSearch:
-        return generative_pb2.GenerativeSearch(
-            single_response_prompt=self.single,
-            grouped_response_task=self.grouped,
-            grouped_properties=self.grouped_properties,
-        )
+    def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
+        if server_version.is_lower_than(1, 27, 14):
+            if self.generative_provider is not None:
+                raise WeaviateUnsupportedFeatureError("Dynamic RAG", str(server_version), "1.30.0")
+
+            if isinstance(self.single, _SinglePrompt):
+                single_prompt: Optional[str] = self.single.prompt
+            else:
+                single_prompt = self.single
+
+            if isinstance(self.grouped, _GroupedTask):
+                grouped_task: Optional[str] = self.grouped.prompt
+                grouped_properties = self.grouped.non_blob_properties
+            else:
+                grouped_task = self.grouped
+                grouped_properties = self.grouped_properties
+
+            return generative_pb2.GenerativeSearch(
+                single_response_prompt=single_prompt,
+                grouped_response_task=grouped_task,
+                grouped_properties=grouped_properties,
+            )
+        else:
+            single: Optional[generative_pb2.GenerativeSearch.Single] = None
+            if isinstance(self.single, _SinglePrompt):
+                single = generative_pb2.GenerativeSearch.Single(
+                    prompt=self.single.prompt,
+                    queries=(
+                        [
+                            self.generative_provider._to_grpc(
+                                _GenerativeConfigRuntimeOptions(
+                                    self.single.metadata,
+                                    self.single.images,
+                                    self.single.image_properties,
+                                )
+                            )
+                        ]
+                        if self.generative_provider is not None
+                        else None
+                    ),
+                    debug=self.single.debug,
+                )
+            if isinstance(self.single, str):
+                single = generative_pb2.GenerativeSearch.Single(
+                    prompt=self.single,
+                    queries=(
+                        [self.generative_provider._to_grpc(_GenerativeConfigRuntimeOptions())]
+                        if self.generative_provider is not None
+                        else None
+                    ),
+                )
+
+            grouped: Optional[generative_pb2.GenerativeSearch.Grouped] = None
+            if isinstance(self.grouped, _GroupedTask):
+                grouped = generative_pb2.GenerativeSearch.Grouped(
+                    task=self.grouped.prompt,
+                    properties=_to_text_array(self.grouped.non_blob_properties),
+                    queries=(
+                        [
+                            self.generative_provider._to_grpc(
+                                _GenerativeConfigRuntimeOptions(
+                                    self.grouped.metadata,
+                                    self.grouped.images,
+                                    self.grouped.image_properties,
+                                )
+                            )
+                        ]
+                        if self.generative_provider is not None
+                        else None
+                    ),
+                )
+            if isinstance(self.grouped, str):
+                grouped = generative_pb2.GenerativeSearch.Grouped(
+                    task=self.grouped,
+                    properties=(
+                        _to_text_array(self.grouped_properties)
+                        if self.grouped_properties is not None
+                        else None
+                    ),
+                    queries=(
+                        [self.generative_provider._to_grpc(_GenerativeConfigRuntimeOptions())]
+                        if self.generative_provider is not None
+                        else None
+                    ),
+                )
+
+            return generative_pb2.GenerativeSearch(
+                single=single,
+                grouped=grouped,
+            )
 
 
 class _GroupBy:
@@ -259,6 +438,10 @@ def __is_nested(value: Any) -> bool:
 
 def __create_nested_property_from_nested(name: str, value: Any) -> QueryNested:
     inner_type = get_args(value)[0]
+    # If this nested property contains an object array, use the element type
+    if get_origin(inner_type) is list:
+        inner_type = get_args(inner_type)[0]
+
     return QueryNested(
         name=name,
         properties=[
@@ -388,7 +571,8 @@ def _extract_types_from_reference(
 
 
 def _extract_types_from_annotated_reference(
-    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation], field: str
+    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation],
+    field: str,
 ) -> Tuple[Type[Properties], Type["References"]]:
     """Extract inner type from Annotated[CrossReference[Properties, References]]."""
     assert get_origin(type_) is Annotated, f"field: {field} with type: {type_} must be annotated"
@@ -410,14 +594,14 @@ def __create_link_to_from_annotated_reference(
     value: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation],
 ) -> Union[_QueryReference, _QueryReferenceMultiTarget]:
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
-    assert (
-        get_origin(value) is Annotated
-    ), f"field: {link_on} with type: {value} must be Annotated[CrossReference]"
+    assert get_origin(value) is Annotated, (
+        f"field: {link_on} with type: {value} must be Annotated[CrossReference]"
+    )
     args = cast(List[CrossReference[Properties, References]], get_args(value))
     inner_type = args[0]
-    assert (
-        get_origin(inner_type) is _CrossReference
-    ), f"field: {link_on} with inner_type: {inner_type} must be CrossReference"
+    assert get_origin(inner_type) is _CrossReference, (
+        f"field: {link_on} with inner_type: {inner_type} must be CrossReference"
+    )
     inner_type_metadata = cast(
         Tuple[CrossReferenceAnnotation], getattr(value, "__metadata__", None)
     )
@@ -467,7 +651,9 @@ def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
     ]
 
 
-def _extract_references_from_data_model(type_: Type["References"]) -> Optional[REFERENCES]:
+def _extract_references_from_data_model(
+    type_: Type["References"],
+) -> Optional[REFERENCES]:
     """Extract references of References recursively from References.
 
     Checks to see if there is a _Reference[References], Annotated[_Reference[References]], or _Nested[References]

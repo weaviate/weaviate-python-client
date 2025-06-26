@@ -18,11 +18,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WEAVIATE_124: 1.24.26
-  WEAVIATE_125: 1.25.29
-  WEAVIATE_126: 1.26.13
-  WEAVIATE_127: 1.27.9
-  WEAVIATE_128: 1.28.2-2c00437
+  WEAVIATE_125: 1.25.34
+  WEAVIATE_126: 1.26.17
+  WEAVIATE_127: 1.27.14
+  WEAVIATE_128: 1.28.8
+  WEAVIATE_129: 1.29.1
+  WEAVIATE_130: 1.30.1
+  WEAVIATE_131: stable-v1.31-81f8efb
 
 jobs:
   lint-and-format:
@@ -35,8 +37,10 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
-      - name: "Black"
-        run: black --check weaviate test mock_tests integration
+      - name: "Ruff lint"
+        run: ruff check weaviate test mock_tests integration
+      - name: "Ruff format"
+        run: ruff format --diff weaviate test mock_tests integration
       - name: "Flake 8"
         run: flake8 weaviate test mock_tests integration
       - name: "Check release for pypi"
@@ -54,8 +58,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
-        folder: ["weaviate"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        folder: ["weaviate", "integration", "integration_embedded"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,11 +67,10 @@ jobs:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
-      - name: Run mypy
-        run: mypy --config-file ./pyproject.toml --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
       - uses: jakebailey/pyright-action@v2
         with:
-          version: 1.1.347
+          version: 1.1.399
+          working-directory: ${{ matrix.folder }}
 
   unit-tests:
     name: Run Unit Tests
@@ -75,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@v4
@@ -98,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -129,11 +132,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_124},
-          { py: "3.10", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_127},
-          { py: "3.13", weaviate: $WEAVIATE_128}
+          { py: "3.9", weaviate: $WEAVIATE_130},
+          { py: "3.10", weaviate: $WEAVIATE_130},
+          { py: "3.11", weaviate: $WEAVIATE_130},
+          { py: "3.12", weaviate: $WEAVIATE_130},
+          { py: "3.13", weaviate: $WEAVIATE_130}
         ]
         optional_dependencies: [false]
     steps:
@@ -154,8 +157,6 @@ jobs:
       - run: |
           pip install -r requirements-devel.txt
           pip install .
-      - name: free space
-        run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run integration tests with auth secrets
@@ -169,7 +170,7 @@ jobs:
         run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v4
@@ -186,11 +187,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_128},
-          { py: "3.10", weaviate: $WEAVIATE_128},
-          { py: "3.11", weaviate: $WEAVIATE_128},
-          { py: "3.12", weaviate: $WEAVIATE_128},
-          { py: "3.13", weaviate: $WEAVIATE_128}
+          { py: "3.9", weaviate: $WEAVIATE_129},
+          { py: "3.10", weaviate: $WEAVIATE_129},
+          { py: "3.11", weaviate: $WEAVIATE_129},
+          { py: "3.12", weaviate: $WEAVIATE_129},
+          { py: "3.13", weaviate: $WEAVIATE_129}
         ]
         optional_dependencies: [false]
     steps:
@@ -207,8 +208,6 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: pip install -r requirements-devel.txt
       - run: pip install .
-      - name: free space
-        run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
         run: /bin/bash ci/start_weaviate_jt.sh ${{ matrix.versions.weaviate }}
       - name: Run journey tests
@@ -246,7 +245,6 @@ jobs:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-
   build-package:
     name: Build package
     runs-on: ubuntu-latest
@@ -281,7 +279,10 @@ jobs:
           $WEAVIATE_125,
           $WEAVIATE_126,
           $WEAVIATE_127,
-          $WEAVIATE_128
+          $WEAVIATE_128,
+          $WEAVIATE_129,
+          $WEAVIATE_130,
+          $WEAVIATE_131
         ]
     steps:
       - name: Checkout
@@ -301,22 +302,11 @@ jobs:
       - run: |
           pip install weaviate_client-*.whl
           pip install -r requirements-devel.txt  # install test dependencies
-      - name: free space
-        run: sudo rm -rf /usr/local/lib/android
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
-      - name: Run integration tests with auth secrets
-        if: ${{ !github.event.pull_request.head.repo.fork }}
-        env:
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
-          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
-          OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
+      - name: Run integration tests without auth secrets (auth tests ran in previous job)
         run: pytest -v -n auto --dist loadgroup integration
-      - name: Run integration tests without auth secrets (for forks)
-        if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v -n auto integration
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI

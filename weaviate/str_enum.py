@@ -1,7 +1,7 @@
 # MetaEnum and BaseEnum are required to support `in` statements:
 #    'ALL' in ConsistencyLevel == True
 #    12345 in ConsistencyLevel == False
-from enum import EnumMeta, Enum
+from enum import Enum, EnumMeta
 from typing import Any
 
 

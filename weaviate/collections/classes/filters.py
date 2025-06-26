@@ -1,17 +1,15 @@
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Sequence, Union
-from typing_extensions import TypeAlias
+
 from pydantic import Field
-from weaviate.collections.classes.types import GeoCoordinate
+from typing_extensions import TypeAlias
 
-
-from weaviate.collections.classes.types import _WeaviateInput
-from weaviate.types import UUID
-from weaviate.proto.v1 import base_pb2
-from weaviate.util import get_valid_uuid, _capitalize_first_letter
-
+from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.proto.v1 import base_pb2
+from weaviate.types import UUID
+from weaviate.util import get_valid_uuid, _capitalize_first_letter
 
 
 class _Operator(str, Enum):
@@ -239,7 +237,9 @@ class _FilterByProperty(_FilterBase):
         return _FilterValue(
             target=self._target_path(),
             value=_GeoCoordinateFilter(
-                latitude=coordinate.latitude, longitude=coordinate.longitude, distance=distance
+                latitude=coordinate.latitude,
+                longitude=coordinate.longitude,
+                distance=distance,
             ),
             operator=_Operator.WITHIN_GEO_RANGE,
         )
@@ -249,11 +249,10 @@ class _FilterByTime(_FilterBase):
     def contains_any(self, dates: List[datetime]) -> _Filters:
         """Filter for objects with the given time.
 
-        Arguments:
-            `dates`
-                List of dates to filter on.
-            `on_reference_path`
-                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        Args:
+            dates: List of dates to filter on.
+            on_reference_path: If the filter is on a cross-ref property, the path to the property to be filtered on,
+                example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
             target=self._target_path(),
@@ -264,11 +263,10 @@ class _FilterByTime(_FilterBase):
     def equal(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is equal to the given time.
 
-        Arguments:
-            `date`
-                date to filter on.
-            `on_reference_path`
-                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        Args:
+            date: date to filter on.
+            on_reference_path: If the filter is on a cross-ref property, the path to the property to be filtered on,
+                example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
             target=self._target_path(),
@@ -279,11 +277,10 @@ class _FilterByTime(_FilterBase):
     def not_equal(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is not equal to the given time.
 
-        Arguments:
-            `date`
-                date to filter on.
-            `on_reference_path`
-                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        Args:
+            date: date to filter on.
+            on_reference_path: If the filter is on a cross-ref property, the path to the property to be filtered on,
+                example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
             target=self._target_path(),
@@ -294,11 +291,10 @@ class _FilterByTime(_FilterBase):
     def less_than(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is less than the given time.
 
-        Arguments:
-            `date`
-                date to filter on.
-            `on_reference_path`
-                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        Args:
+            date: date to filter on.
+            on_reference_path: If the filter is on a cross-ref property, the path to the property to be filtered on,
+                example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
             target=self._target_path(),
@@ -309,11 +305,10 @@ class _FilterByTime(_FilterBase):
     def less_or_equal(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is less than or equal to the given time.
 
-        Arguments:
-            `date`
-                date to filter on.
-            `on_reference_path`
-                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        Args:
+            date: date to filter on.
+            on_reference_path: If the filter is on a cross-ref property, the path to the property to be filtered on,
+                example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
             target=self._target_path(),
@@ -324,11 +319,10 @@ class _FilterByTime(_FilterBase):
     def greater_than(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is greater than the given time.
 
-        Arguments:
-            `date`
-                date to filter on.
-            `on_reference_path`
-                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        Args:
+            date: date to filter on.
+            on_reference_path: If the filter is on a cross-ref property, the path to the property to be filtered on,
+                example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
             target=self._target_path(),
@@ -339,14 +333,15 @@ class _FilterByTime(_FilterBase):
     def greater_or_equal(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is greater than or equal to the given time.
 
-        Arguments:
-            `date`
-                date to filter on.
-            `on_reference_path`
-                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        Args:
+            date: date to filter on.
+            on_reference_path: If the filter is on a cross-ref property, the path to the property to be filtered on,
+                example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
-            target=self._target_path(), value=date, operator=_Operator.GREATER_THAN_EQUAL
+            target=self._target_path(),
+            value=date,
+            operator=_Operator.GREATER_THAN_EQUAL,
         )
 
 
@@ -402,9 +397,8 @@ class _FilterByCount(_FilterBase):
     def equal(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
-        Arguments:
-            `count`
-                count to filter on.
+        Args:
+            count: count to filter on.
         """
         return _FilterValue(
             target=self._target_path(),
@@ -415,9 +409,8 @@ class _FilterByCount(_FilterBase):
     def not_equal(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
-        Arguments:
-            `count`
-                count to filter on.
+        Args:
+            count: count to filter on.
         """
         return _FilterValue(
             target=self._target_path(),
@@ -428,9 +421,8 @@ class _FilterByCount(_FilterBase):
     def less_than(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
-        Arguments:
-            `count`
-                count to filter on.
+        Args:
+            count: count to filter on.
         """
         return _FilterValue(
             target=self._target_path(),
@@ -441,9 +433,8 @@ class _FilterByCount(_FilterBase):
     def less_or_equal(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
-        Arguments:
-            `count`
-                count to filter on.
+        Args:
+            count: count to filter on.
         """
         return _FilterValue(
             target=self._target_path(),
@@ -454,9 +445,8 @@ class _FilterByCount(_FilterBase):
     def greater_than(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
-        Arguments:
-            `count`
-                count to filter on.
+        Args:
+            count: count to filter on.
         """
         return _FilterValue(
             target=self._target_path(),
@@ -467,12 +457,13 @@ class _FilterByCount(_FilterBase):
     def greater_or_equal(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
-        Arguments:
-            `count`
-                count to filter on.
+        Args:
+            count: count to filter on.
         """
         return _FilterValue(
-            target=self._target_path(), value=count, operator=_Operator.GREATER_THAN_EQUAL
+            target=self._target_path(),
+            value=count,
+            operator=_Operator.GREATER_THAN_EQUAL,
         )
 
 
