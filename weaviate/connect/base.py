@@ -1,6 +1,4 @@
-import datetime
 import os
-import time
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, TypeVar, Union, cast
 from urllib.parse import urlparse
 
@@ -199,13 +197,3 @@ def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> D
         proxies["grpc"] = grpc_proxy[0] if grpc_proxy[0] else grpc_proxy[1]
 
     return proxies
-
-
-def _get_epoch_time() -> int:
-    """Get the current epoch time as an integer.
-
-    Returns:
-        Current epoch time.
-    """
-    dts = datetime.datetime.utcnow()
-    return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)
