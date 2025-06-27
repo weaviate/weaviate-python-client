@@ -15,6 +15,7 @@ from weaviate.collections.classes.config import (
     _ReferencePropertyMultiTarget,
     _ReplicationConfigUpdate,
     _RerankerProvider,
+    _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
 )
@@ -51,6 +52,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
+        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> None: ...

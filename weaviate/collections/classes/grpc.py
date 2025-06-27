@@ -290,9 +290,9 @@ class BM25OperatorFactory:
 
 
 OneDimensionalVectorType = Sequence[NUMBER]
-"""Represents a one-dimensional vector, e.g. one produced by `text2vec-jinaai`"""
+"""Represents a one-dimensional vector, e.g. one produced by the `Configure.Vectors.text2vec_jinaai()` module"""
 TwoDimensionalVectorType = Sequence[Sequence[NUMBER]]
-"""Represents a two-dimensional vector, e.g. one produced by `text2colbert-jinaai"""
+"""Represents a two-dimensional vector, e.g. one produced by the `Configure.MultiVectors.text2vec_jinaai()` module"""
 
 PrimitiveVectorType = Union[OneDimensionalVectorType, TwoDimensionalVectorType]
 

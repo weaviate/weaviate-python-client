@@ -1,4 +1,4 @@
-from typing import Callable, Generator, Tuple, Union
+from typing import Callable, Generator, Optional, Tuple, Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -28,7 +28,7 @@ ClientFactory = Callable[[int, int], weaviate.WeaviateClient]
 
 @pytest.fixture(scope="module")
 def client_factory() -> Generator[Callable[[int, int], weaviate.WeaviateClient], None, None]:
-    client: weaviate.WeaviateClient = None
+    client: Optional[weaviate.WeaviateClient] = None
 
     def maker(http: int, grpc: int) -> weaviate.WeaviateClient:
         nonlocal client
@@ -593,7 +593,7 @@ async def test_async_client_with_extra_options() -> None:
 
 def test_client_error_for_wcs_without_auth() -> None:
     with pytest.raises(weaviate.exceptions.AuthenticationFailedError) as e:
-        weaviate.connect_to_wcs(cluster_url=WCS_URL, auth_credentials=None)
+        weaviate.connect_to_wcs(cluster_url=WCS_URL, auth_credentials=None)  # pyright: ignore
         assert "wvc.init.Auth.api_key" in e.value.message
 
 

@@ -7,7 +7,11 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Uni
 
 import pytest
 
-from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
+from integration.conftest import (
+    CollectionFactory,
+    CollectionFactoryGet,
+    _sanitize_collection_name,
+)
 from integration.constants import WEAVIATE_LOGO_NEW_ENCODED, WEAVIATE_LOGO_OLD_ENCODED
 from weaviate.collections.classes.batch import ErrorObject
 from weaviate.collections.classes.config import (
@@ -40,7 +44,11 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
     _CrossReference,
 )
-from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties, _PhoneNumber
+from weaviate.collections.classes.types import (
+    PhoneNumber,
+    WeaviateProperties,
+    _PhoneNumber,
+)
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     WeaviateInsertInvalidPropertyError,
@@ -71,7 +79,7 @@ def test_insert_with_typed_dict_generic(
 
     dummy = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     collection = collection_factory_get(dummy.name, TestInsert)
     uuid = collection.data.insert(properties=TestInsert(name="some name"))
@@ -87,7 +95,7 @@ def test_insert_with_dict_generic(
 ) -> None:
     dummy = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     collection = collection_factory_get(dummy.name, Dict[str, str])
     uuid = collection.data.insert(properties={"name": "some name"})
@@ -100,7 +108,7 @@ def test_insert_with_dict_generic(
 def test_insert_with_no_generic(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     uuid = collection.data.insert(properties={"name": "some name"})
     objects = collection.query.fetch_objects()
@@ -112,7 +120,7 @@ def test_insert_with_no_generic(collection_factory: CollectionFactory) -> None:
 def test_insert_with_consistency_level(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     ).with_consistency_level(ConsistencyLevel.ALL)
     uuid = collection.data.insert(properties={"name": "some name"})
     objects = collection.query.fetch_objects()
@@ -134,7 +142,7 @@ def test_insert_bad_input(collection_factory: CollectionFactory) -> None:
 
 def test_delete_by_id(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     uuid = collection.data.insert(properties={})
@@ -145,7 +153,7 @@ def test_delete_by_id(collection_factory: CollectionFactory) -> None:
 
 def test_delete_by_id_consistency_level(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     ).with_consistency_level(ConsistencyLevel.ALL)
 
     uuid = collection.data.insert(properties={})
@@ -224,7 +232,7 @@ def test_insert_many(
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     if not should_error:
         ret = collection.data.insert_many(objects)
@@ -258,7 +266,7 @@ def test_insert_many_all_error(
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         multi_tenancy_config=Configure.multi_tenancy(True),
     )
     with pytest.raises(WeaviateInsertManyAllFailedError) as e:
@@ -278,7 +286,7 @@ def test_insert_many_with_typed_dict(
 
     dummy = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     collection = collection_factory_get(dummy.name, TestInsertManyWithTypedDict)
     ret = collection.data.insert_many(
@@ -297,7 +305,7 @@ def test_insert_many_with_typed_dict(
 
 def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
     ref_collection = collection_factory(
-        name="target", vectorizer_config=Configure.Vectorizer.none()
+        name="target", vector_config=Configure.Vectors.self_provided()
     )
     uuid_to1 = ref_collection.data.insert(properties={})
     uuid_to2 = ref_collection.data.insert(properties={})
@@ -306,7 +314,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
         name="source",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[ReferenceProperty(name="ref_single", target_collection=ref_collection.name)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     collection.config.add_reference(
         ReferenceProperty.MultiTarget(
@@ -377,7 +385,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
 def test_insert_many_error(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     ret = collection.data.insert_many(
         [
@@ -403,7 +411,7 @@ def test_insert_many_error(collection_factory: CollectionFactory) -> None:
 def test_replace(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     uuid = collection.data.insert(properties={"name": "some name"})
     collection.data.replace(properties={"name": "other name"}, uuid=uuid)
@@ -413,7 +421,7 @@ def test_replace(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize("to_uuids", [UUID3, [UUID3]])
 def test_replace_with_refs(collection_factory: CollectionFactory, to_uuids: UUIDS) -> None:
     ref_collection = collection_factory(
-        name="target", vectorizer_config=Configure.Vectorizer.none()
+        name="target", vector_config=Configure.Vectors.self_provided()
     )
     ref_collection.data.insert(properties={}, uuid=UUID1)
     ref_collection.data.insert(properties={}, uuid=UUID2)
@@ -423,7 +431,7 @@ def test_replace_with_refs(collection_factory: CollectionFactory, to_uuids: UUID
         name="source",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     uuid = collection.data.insert(
         properties={"name": "some name"},
@@ -453,7 +461,7 @@ def test_replace_with_refs(collection_factory: CollectionFactory, to_uuids: UUID
 def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     uuid = collection.data.insert(properties={"name": "some name"}, vector=[1, 2, 3])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
@@ -463,7 +471,10 @@ def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> Non
     collection.data.replace(properties={"name": "other name"}, uuid=uuid)
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "other name"
-    assert "default" not in obj.vector
+    if collection._connection._weaviate_version.is_lower_than(1, 27, 0):
+        assert len(obj.vector["default"]) == 0
+    else:
+        assert "default" not in obj.vector
 
     collection.data.replace(properties={"name": "real name"}, uuid=uuid, vector=[2, 3, 4])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
@@ -474,7 +485,7 @@ def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> Non
 @pytest.mark.parametrize("to_uuids", [UUID3, [UUID3]])
 def test_update_with_refs(collection_factory: CollectionFactory, to_uuids: UUIDS) -> None:
     ref_collection = collection_factory(
-        name="target", vectorizer_config=Configure.Vectorizer.none()
+        name="target", vector_config=Configure.Vectors.self_provided()
     )
     ref_collection.data.insert(properties={}, uuid=UUID1)
     ref_collection.data.insert(properties={}, uuid=UUID2)
@@ -484,7 +495,7 @@ def test_update_with_refs(collection_factory: CollectionFactory, to_uuids: UUIDS
         name="source",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     uuid = collection.data.insert(
         properties={"name": "some name"},
@@ -528,7 +539,7 @@ def test_types(collection_factory: CollectionFactory, data_type: DataType, value
     name = "name"
     collection = collection_factory(
         properties=[Property(name=name, data_type=data_type)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     uuid_object = collection.data.insert(properties={name: value})
 
@@ -545,7 +556,7 @@ def test_types(collection_factory: CollectionFactory, data_type: DataType, value
 def test_bm25(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     res = collection.data.insert_many(
@@ -562,7 +573,7 @@ def test_bm25(collection_factory: CollectionFactory) -> None:
 def test_bm25_group_by(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     res = collection.data.insert_many(
@@ -590,7 +601,7 @@ def test_bm25_group_by(collection_factory: CollectionFactory) -> None:
 def test_bm25_limit(collection_factory: CollectionFactory, limit: int) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT, tokenization=Tokenization.WORD)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     res = collection.data.insert_many(
@@ -608,7 +619,7 @@ def test_bm25_limit(collection_factory: CollectionFactory, limit: int) -> None:
 def test_bm25_offset(collection_factory: CollectionFactory, offset: int, expected: int) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT, tokenization=Tokenization.WORD)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     res = collection.data.insert_many(
@@ -627,7 +638,7 @@ def test_bm25_offset(collection_factory: CollectionFactory, offset: int, expecte
 def test_fetch_objects_offset(collection_factory: CollectionFactory, offset: int) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     nr_objects = 5
@@ -642,7 +653,7 @@ def test_fetch_objects_offset(collection_factory: CollectionFactory, offset: int
 def test_fetch_objects_limit(collection_factory: CollectionFactory, limit: int) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     for i in range(5):
         collection.data.insert({"Name": str(i)})
@@ -653,7 +664,7 @@ def test_fetch_objects_limit(collection_factory: CollectionFactory, limit: int) 
 def test_search_after(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     nr_objects = 10
@@ -669,7 +680,7 @@ def test_search_after(collection_factory: CollectionFactory) -> None:
 def test_auto_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         inverted_index_config=Configure.inverted_index(),
     )
     for _ in range(4):
@@ -702,7 +713,7 @@ def test_query_properties(collection_factory: CollectionFactory) -> None:
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     collection.data.insert({"Name": "rain", "Age": 1})
     collection.data.insert({"Name": "sun", "Age": 2})
@@ -728,9 +739,7 @@ def test_query_properties(collection_factory: CollectionFactory) -> None:
 def test_near_object(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
     )
     uuid_banana = collection.data.insert({"Name": "Banana"})
     collection.data.insert({"Name": "Fruit"})
@@ -756,9 +765,7 @@ def test_near_object(collection_factory: CollectionFactory) -> None:
 def test_near_object_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
     )
     uuid_banana = collection.data.insert({"Name": "Banana"})
     uuid_fruit = collection.data.insert({"Name": "Fruit"})
@@ -776,9 +783,7 @@ def test_near_object_limit(collection_factory: CollectionFactory) -> None:
 def test_near_object_offset(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
     )
     uuid_banana = collection.data.insert({"Name": "Banana"})
     uuid_fruit = collection.data.insert({"Name": "Fruit"})
@@ -798,9 +803,7 @@ def test_near_object_group_by_argument(collection_factory: CollectionFactory) ->
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Count", data_type=DataType.INT),
         ],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
     )
     uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
     collection.data.insert({"Name": "Banana", "Count": 72})
@@ -820,14 +823,14 @@ def test_near_object_group_by_argument(collection_factory: CollectionFactory) ->
     assert len(ret.objects) == 4
     assert ret.objects[0].belongs_to_group == "Banana"
     assert ret.objects[1].belongs_to_group == "Banana"
-    assert ret.objects[2].belongs_to_group == "car"
-    assert ret.objects[3].belongs_to_group == "Mountain"
+    assert ret.objects[2].belongs_to_group == "Mountain"
+    assert ret.objects[3].belongs_to_group == "car"
 
 
 def test_multi_searches(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     collection.data.insert(properties={"name": "word"})
@@ -854,7 +857,7 @@ def test_multi_searches(collection_factory: CollectionFactory) -> None:
 
 def test_fetch_objects_with_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
 
@@ -867,7 +870,7 @@ def test_fetch_objects_with_limit(collection_factory: CollectionFactory) -> None
 
 def test_add_property(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
     uuid1 = collection.data.insert({"name": "first"})
@@ -882,9 +885,7 @@ def test_add_property(collection_factory: CollectionFactory) -> None:
 
 def test_add_property_with_vectorizer(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
     collection.config.add_property(
@@ -924,7 +925,7 @@ def test_add_property_with_vectorizer(collection_factory: CollectionFactory) -> 
 
 def test_add_reference(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
     uuid1 = collection.data.insert({"name": "first"})
@@ -946,7 +947,7 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
 
 def test_collection_config_get(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -959,7 +960,9 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
     assert config.properties[0].data_type == DataType.TEXT
     assert config.properties[1].name == "age"
     assert config.properties[1].data_type == DataType.INT
-    assert config.vectorizer == Vectorizers.NONE
+    assert config.vectorizer is None
+    assert config.vector_config is not None
+    assert config.vector_config["default"].vectorizer.vectorizer == Vectorizers.NONE
 
 
 @pytest.mark.parametrize("return_properties", [None, [], ["name"], False, True])
@@ -991,7 +994,7 @@ def test_return_properties_metadata_references_combos(
     include_vector: bool,
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -1067,7 +1070,7 @@ def test_insert_date_property(
     collection_factory: CollectionFactory, hours: int, minutes: int, sign: int
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[Property(name="date", data_type=DataType.DATE)],
     )
 
@@ -1088,7 +1091,7 @@ def test_insert_date_property(
 
 def test_exist(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     uuid1 = collection.data.insert({})
@@ -1101,7 +1104,7 @@ def test_return_list_properties(collection_factory: CollectionFactory) -> None:
     name_small = "TestReturnList"
     collection = collection_factory(
         name=name_small,
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="ints", data_type=DataType.INT_ARRAY),
             Property(name="floats", data_type=DataType.NUMBER_ARRAY),
@@ -1143,9 +1146,7 @@ def test_near_text(
     return_properties: Optional[PROPERTIES],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
 
@@ -1176,7 +1177,7 @@ def test_near_text(
 
 def test_near_text_error(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
 
     with pytest.raises(ValueError):
@@ -1184,10 +1185,14 @@ def test_near_text_error(collection_factory: CollectionFactory) -> None:
 
 
 def test_near_text_group_by_argument(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip(
+            'Vectors not passed to GroupByHit in servers for versions < 1.27.0. Therefore `assert "default" in ret.objects[i].vector` fails always.'
+        )
+
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
 
@@ -1222,9 +1227,7 @@ def test_near_text_group_by_argument(collection_factory: CollectionFactory) -> N
 
 def test_near_text_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
 
@@ -1252,9 +1255,7 @@ def test_near_text_limit(collection_factory: CollectionFactory) -> None:
 
 def test_near_text_offset(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
 
@@ -1302,7 +1303,7 @@ def test_near_image(
     certainty: Optional[float],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.img2vec_neural(image_fields=["imageProp"]),
+        vector_config=Configure.Vectors.img2vec_neural(image_fields=["imageProp"]),
         properties=[
             Property(name="imageProp", data_type=DataType.BLOB),
         ],
@@ -1359,7 +1360,7 @@ def test_near_media(
     certainty: Optional[float],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.img2vec_neural(image_fields=["imageProp"]),
+        vector_config=Configure.Vectors.img2vec_neural(image_fields=["imageProp"]),
         properties=[
             Property(name="imageProp", data_type=DataType.BLOB),
         ],
@@ -1407,7 +1408,7 @@ def test_return_properties_with_query_specific_typed_dict(
     collection_factory: CollectionFactory, which_case: int
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="int_", data_type=DataType.INT),
             Property(name="ints", data_type=DataType.INT_ARRAY),
@@ -1469,7 +1470,7 @@ def test_return_properties_with_general_typed_dict(collection_factory: Collectio
         ints: List[int]
 
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="int_", data_type=DataType.INT),
             Property(name="ints", data_type=DataType.INT_ARRAY),
@@ -1494,7 +1495,7 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
         int_: int
 
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="int_", data_type=DataType.INT),
             Property(name="ints", data_type=DataType.INT_ARRAY),
@@ -1515,7 +1516,7 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
 
 def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
             Property(name="ints", data_type=DataType.INT_ARRAY),
@@ -1581,7 +1582,7 @@ def test_sort(
     expected: List[int],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="age", data_type=DataType.INT),
             Property(name="name", data_type=DataType.TEXT),
@@ -1607,7 +1608,7 @@ def test_sort(
 def test_optional_ref_returns(collection_factory: CollectionFactory) -> None:
     ref_collection = collection_factory(
         name="target",
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
     )
     uuid_to1 = ref_collection.data.insert(properties={"text": "ref text"})
@@ -1617,7 +1618,7 @@ def test_optional_ref_returns(collection_factory: CollectionFactory) -> None:
         references=[
             ReferenceProperty(name="ref", target_collection=ref_collection.name),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
     )
     collection.data.insert({}, references={"ref": uuid_to1})
 
@@ -1636,7 +1637,7 @@ def test_return_properties_with_type_hint_generic(
     value: str,
 ) -> None:
     dummy = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
@@ -1738,9 +1739,7 @@ def test_none_query_hybrid_bm25(collection_factory: CollectionFactory) -> None:
         properties=[
             Property(name="text", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
+        vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
     )
 
     collection.data.insert({"text": "banana"})
