@@ -10,12 +10,12 @@ deprecation==2.1.0
 build
 twine
 wheel
-importlib_metadata==8.6.1
+importlib_metadata==8.7.0
 setuptools_scm
 Sphinx>=7.0.0
 sphinx-rtd-theme==3.0.2
 autodoc-pydantic==2.2.0
-importlib_metadata==8.6.1
+importlib_metadata==8.7.0
 
 pytest==8.4.1
 pytest-cov==6.2.1
