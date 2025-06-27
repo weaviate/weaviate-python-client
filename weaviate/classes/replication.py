@@ -1,3 +1,3 @@
-from weaviate.cluster.models import TransferType
+from weaviate.cluster.models import ReplicationType
 
-__all__ = ["TransferType"]
+__all__ = ["ReplicationType"]

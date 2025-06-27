@@ -4,8 +4,8 @@ from typing import Generic, List, Optional, Union
 from httpx import Response
 
 from weaviate.cluster.models import (
+    ReplicationType,
     ShardingState,
-    TransferType,
 )
 from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import NodeMinimal, NodeVerbose, _ConvertFromREST
@@ -26,7 +26,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
         shard: str,
         source_node: str,
         target_node: str,
-        transfer_type: TransferType = TransferType.COPY,
+        replication_type: ReplicationType = ReplicationType.COPY,
     ) -> executor.Result[uuid.UUID]:
         """Replicate a shard from one node to another.
 
@@ -35,7 +35,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
             shard: The name of the shard.
             source_node: The source node.
             target_node: The target node.
-            transfer_type: The type of transfer (COPY or MOVE).
+            replication_type: The type of replication (COPY or MOVE).
 
         Returns:
             A UUID representing the replicate task.
@@ -45,11 +45,11 @@ class _ClusterExecutor(Generic[ConnectionType]):
             return uuid.UUID(response.json()["id"])
 
         body = {
-            "collectionId": collection,
-            "shardId": shard,
-            "sourceNodeName": source_node,
-            "destinationNodeName": target_node,
-            "transferType": transfer_type.value,
+            "collection": collection,
+            "shard": shard,
+            "sourceNode": source_node,
+            "targetNode": target_node,
+            "type": replication_type.value,
         }
         return executor.execute(
             response_callback=resp,

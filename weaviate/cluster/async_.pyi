@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Literal, Optional, Union, overload
 
-from weaviate.cluster.models import ShardingState, TransferType
+from weaviate.cluster.models import ReplicationType, ShardingState
 from weaviate.cluster.replicate import _ReplicateAsync
 from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import NodeMinimal, NodeVerbose
@@ -49,7 +49,7 @@ class _ClusterAsync(_ClusterExecutor[ConnectionAsync]):
         shard: str,
         source_node: str,
         target_node: str,
-        transfer_type: TransferType = TransferType.COPY,
+        replication_type: ReplicationType = ReplicationType.COPY,
     ) -> uuid.UUID: ...
     async def query_sharding_state(
         self,

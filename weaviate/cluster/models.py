@@ -4,8 +4,8 @@ from enum import Enum
 from typing import Generic, List, TypedDict, TypeVar
 
 
-class TransferType(str, Enum):
-    """Enum for transfer types."""
+class ReplicationType(str, Enum):
+    """Enum for replication types."""
 
     COPY = "COPY"
     MOVE = "MOVE"
@@ -50,7 +50,7 @@ class ReplicateOperation(Generic[H]):
     status: ReplicateOperationStatus
     status_history: H
     target_node: str
-    transfer_type: TransferType
+    transfer_type: ReplicationType
     uuid: uuid.UUID
 
     @staticmethod
@@ -60,11 +60,11 @@ class ReplicateOperation(Generic[H]):
     ):
         common = {
             "collection": data["collection"],
-            "shard": data["shardId"],
-            "source_node": data["sourceNodeId"],
+            "shard": data["shard"],
+            "source_node": data["sourceNode"],
             "status": ReplicateOperationStatus._from_weaviate(data["status"]),
-            "target_node": data["targetNodeId"],
-            "transfer_type": TransferType(data["transferType"]),
+            "target_node": data["targetNode"],
+            "transfer_type": ReplicationType(data["type"]),
             "uuid": uuid.UUID(data["id"]),
         }
         if include_history and data["statusHistory"] is not None:

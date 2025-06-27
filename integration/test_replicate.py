@@ -11,8 +11,8 @@ pytestmark = pytest.mark.xdist_group(name="replicate")
 
 def replicate_collection(collection_factory: CollectionFactory):
     dummy = collection_factory("dummy", ports=PORTS)
-    if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):
-        pytest.skip("Replication operations require Weaviate 1.31.0 or higher")
+    if dummy._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("Replication operations require Weaviate 1.32.0 or higher")
 
     collection = collection_factory(
         properties=[
@@ -99,7 +99,7 @@ def test_replicate_and_get(
     assert op1.shard == shard
     assert op1.source_node == src_node
     assert op1.target_node == tgt_node
-    assert op1.transfer_type == weaviate.classes.replication.TransferType.COPY
+    assert op1.transfer_type == weaviate.classes.replication.ReplicationType.COPY
     assert op1.status is not None
     assert op1.status_history is None
 
@@ -110,7 +110,7 @@ def test_replicate_and_get(
     assert op2.shard == shard
     assert op2.source_node == src_node
     assert op2.target_node == tgt_node
-    assert op2.transfer_type == weaviate.classes.replication.TransferType.COPY
+    assert op2.transfer_type == weaviate.classes.replication.ReplicationType.COPY
     assert op2.status is not None
     assert op2.status_history is not None
 

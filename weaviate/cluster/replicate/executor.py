@@ -124,11 +124,11 @@ class _ReplicateExecutor(Generic[ConnectionType]):
 
         params = {}
         if collection:
-            params["collectionId"] = collection
+            params["collection"] = collection
         if shard:
-            params["shardId"] = shard
+            params["shard"] = shard
         if target_node:
-            params["nodeName"] = target_node
+            params["node"] = target_node
         if include_history:
             params["includeHistory"] = include_history
 
