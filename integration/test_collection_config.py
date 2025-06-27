@@ -1430,9 +1430,6 @@ def test_config_multi_vector_enabled(
             Configure.MultiVectors.text2vec_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
-                vector_index_config=Configure.VectorIndex.hnsw(
-                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector()
-                ),
             )
         ],
     )
@@ -1477,14 +1474,10 @@ def test_config_muvera_enabled(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vector_config=[
-            Configure.Vectors.text2vec_jinaai(
+            Configure.MultiVectors.text2vec_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
-                vector_index_config=Configure.VectorIndex.hnsw(
-                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector(
-                        encoding=Configure.VectorIndex.MultiVector.Encoding.muvera()
-                    )
-                ),
+                encoding=Configure.VectorIndex.MultiVector.Encoding.muvera(),
             )
         ],
     )
@@ -1513,9 +1506,6 @@ def test_config_muvera_disabled(
             Configure.MultiVectors.text2vec_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
-                vector_index_config=Configure.VectorIndex.hnsw(
-                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector()
-                ),
             )
         ],
     )

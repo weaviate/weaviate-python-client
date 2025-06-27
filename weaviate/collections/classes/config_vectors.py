@@ -9,12 +9,15 @@ from weaviate.collections.classes.config_base import (
 )
 from weaviate.collections.classes.config_vector_index import (
     VectorIndexType,
+    _MultiVectorConfigCreate,
     _MultiVectorEncodingConfigCreate,
     _QuantizerConfigCreate,
-    _VectorIndex,
     _VectorIndexConfigCreate,
+    _VectorIndexConfigDynamicCreate,
     _VectorIndexConfigDynamicUpdate,
+    _VectorIndexConfigFlatCreate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigUpdate,
 )
@@ -97,39 +100,103 @@ class _VectorConfigUpdate(_ConfigUpdateModel):
 
 class _IndexWrappers:
     @staticmethod
+    def __hnsw(
+        *,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        multivector: Optional[_MultiVectorConfigCreate] = None,
+    ) -> _VectorIndexConfigHNSWCreate:
+        return _VectorIndexConfigHNSWCreate(
+            cleanupIntervalSeconds=None,
+            distance=None,
+            dynamicEfMin=None,
+            dynamicEfMax=None,
+            dynamicEfFactor=None,
+            efConstruction=None,
+            ef=None,
+            filterStrategy=None,
+            flatSearchCutoff=None,
+            maxConnections=None,
+            vectorCacheMaxObjects=None,
+            quantizer=quantizer,
+            multivector=multivector,
+        )
+
+    @staticmethod
+    def __flat(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigFlatCreate:
+        return _VectorIndexConfigFlatCreate(
+            distance=None,
+            vectorCacheMaxObjects=None,
+            quantizer=quantizer,
+            multivector=None,
+        )
+
+    @staticmethod
     def single(
         vector_index_config: Optional[_VectorIndexConfigCreate],
         quantizer: Optional[_QuantizerConfigCreate],
     ) -> Optional[_VectorIndexConfigCreate]:
         if quantizer is not None:
             if vector_index_config is None:
-                vector_index_config = _VectorIndex.hnsw(quantizer=quantizer)
+                vector_index_config = _IndexWrappers.__hnsw(quantizer=quantizer)
             else:
-                vector_index_config.quantizer = quantizer
+                if isinstance(vector_index_config, _VectorIndexConfigDynamicCreate):
+                    if vector_index_config.hnsw is None:
+                        vector_index_config.hnsw = _IndexWrappers.__hnsw(quantizer=quantizer)
+                    else:
+                        vector_index_config.hnsw.quantizer = quantizer
+                    if vector_index_config.flat is None:
+                        vector_index_config.flat = _IndexWrappers.__flat(quantizer=quantizer)
+                    else:
+                        vector_index_config.flat.quantizer = quantizer
+                else:
+                    vector_index_config.quantizer = quantizer
         return vector_index_config
 
     @staticmethod
     def multi(
         vector_index_config: Optional[_VectorIndexConfigCreate],
-        encoding: Optional[_MultiVectorEncodingConfigCreate],
         quantizer: Optional[_QuantizerConfigCreate],
+        multi_vector_config: Optional[_MultiVectorConfigCreate],
+        encoding: Optional[_MultiVectorEncodingConfigCreate],
     ) -> Optional[_VectorIndexConfigCreate]:
+        if multi_vector_config is None:
+            multi_vector_config = _MultiVectorConfigCreate(aggregation=None, encoding=None)
         if encoding is not None:
-            if vector_index_config is None:
-                vector_index_config = _VectorIndex.hnsw(
-                    multi_vector=_VectorIndex.MultiVector.multi_vector(encoding=encoding)
-                )
-            else:
-                if vector_index_config.multivector is None:
-                    vector_index_config.multivector = _VectorIndex.MultiVector.multi_vector(
-                        encoding=encoding
-                    )
-                else:
-                    vector_index_config.multivector.encoding = encoding
+            multi_vector_config.encoding = encoding
+        if vector_index_config is None:
+            vector_index_config = _IndexWrappers.__hnsw(multivector=multi_vector_config)
+        else:
+            vector_index_config.multivector = multi_vector_config
         return _IndexWrappers.single(vector_index_config, quantizer)
 
 
 class _MultiVectors:
+    @staticmethod
+    def self_provided(
+        *,
+        name: Optional[str] = None,
+        encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ):
+        """Create a multi-vector using no vectorizer. You will need to provide the vectors yourself.
+
+        Args:
+            name: The name of the vector.
+            encoding: The type of multi-vector encoding to use in the vector index. Defaults to `None`, which uses the server-defined default.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            multi_vector_config: The configuration for the multi-vector index. Use `wvc.config.Configure.VectorIndex.MultiVector` to create a multi-vector configuration. None by default
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+            vector_index_config=_IndexWrappers.multi(
+                vector_index_config, quantizer, multi_vector_config, encoding
+            ),
+        )
+
     @staticmethod
     def text2vec_jinaai(
         *,
@@ -139,6 +206,7 @@ class _MultiVectors:
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
+        multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -154,13 +222,16 @@ class _MultiVectors:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             encoding: The type of multi-vector encoding to use in the vector index. Defaults to `None`, which uses the server-defined default.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            multi_vector_config: The configuration for the multi-vector index. Use `wvc.config.Configure.VectorIndex.MultiVector` to create a multi-vector configuration. None by default
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vector_index_config=_IndexWrappers.multi(vector_index_config, encoding, quantizer),
+            vector_index_config=_IndexWrappers.multi(
+                vector_index_config, quantizer, multi_vector_config, encoding
+            ),
             vectorizer=_Text2ColbertJinaAIConfig(
                 model=model, dimensions=dimensions, vectorizeClassName=vectorize_collection_name
             ),

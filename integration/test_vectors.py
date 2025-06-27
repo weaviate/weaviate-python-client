@@ -782,12 +782,10 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
             )
         ],
         vector_config=[
-            wvc.config.Configure.Vectors.self_provided(
+            wvc.config.Configure.MultiVectors.self_provided(
                 name="colbert",
-                vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
-                    multi_vector=wvc.config.Configure.VectorIndex.MultiVector.multi_vector(
-                        aggregation=wvc.config.MultiVectorAggregation.MAX_SIM
-                    )
+                multi_vector_config=wvc.config.Configure.VectorIndex.MultiVector.multi_vector(
+                    aggregation=wvc.config.MultiVectorAggregation.MAX_SIM
                 ),
             ),
             wvc.config.Configure.Vectors.self_provided(

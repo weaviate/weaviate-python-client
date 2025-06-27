@@ -433,7 +433,7 @@ class _VectorIndex:
     @overload
     @staticmethod
     @deprecated(
-        'Using the "quantizer" argument is deprecated. Instead, specify it at the top-level when creating your `vector_config` with `Vectors.module()`'
+        'Using the "multi_vector" argument is deprecated. Instead, specify it at the top-level in `multi_vector_index_config` when creating your `vector_config` with `MultiVectors.module()`'
     )
     def hnsw(
         cleanup_interval_seconds: Optional[int] = None,
@@ -448,8 +448,8 @@ class _VectorIndex:
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
         *,
-        quantizer: _QuantizerConfigCreate,
-        multi_vector: Optional[_MultiVectorConfigCreate] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector: _MultiVectorConfigCreate,
     ) -> _VectorIndexConfigHNSWCreate: ...
 
     @overload
@@ -493,6 +493,8 @@ class _VectorIndex:
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if multi_vector is not None:
+            _Warnings.multi_vector_in_hnsw_config()
         return _VectorIndexConfigHNSWCreate(
             cleanupIntervalSeconds=cleanup_interval_seconds,
             distance=distance_metric,
