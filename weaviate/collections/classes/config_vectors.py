@@ -120,9 +120,12 @@ class _IndexWrappers:
                     multi_vector=_VectorIndex.MultiVector.multi_vector(encoding=encoding)
                 )
             else:
-                vector_index_config.multivector = _VectorIndex.MultiVector.multi_vector(
-                    encoding=encoding
-                )
+                if vector_index_config.multivector is None:
+                    vector_index_config.multivector = _VectorIndex.MultiVector.multi_vector(
+                        encoding=encoding
+                    )
+                else:
+                    vector_index_config.multivector.encoding = encoding
         return _IndexWrappers.single(vector_index_config, quantizer)
 
 
@@ -139,7 +142,7 @@ class _MultiVectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a multi-vector using the `text2colbert_jinaai` module.
+        """Create a multi-vector using the `text2colbert-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/colbert) for detailed usage.
 
@@ -226,7 +229,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_cohere` model.
+        """Create a vector using the `text2vec-cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
         for detailed usage.
@@ -269,7 +272,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2vec_cohere` model.
+        """Create a vector using the `multi2vec_cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
         for detailed usage.
@@ -310,7 +313,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_contextionary` model.
+        """Create a vector using the `text2vec_contextionary` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
         for detailed usage.
@@ -342,7 +345,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec-databricks` model.
+        """Create a vector using the `text2vec-databricks` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
         for detailed usage.
@@ -378,7 +381,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec-mistral` model.
+        """Create a vector using the `text2vec-mistral` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
         for detailed usage.
@@ -414,7 +417,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec-ollama` model.
+        """Create a vector using the `text2vec-ollama` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
         for detailed usage.
@@ -456,7 +459,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_openai` model.
+        """Create a vector using the `text2vec-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
         for detailed usage.
@@ -503,7 +506,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_aws` model.
+        """Create a vector using the `text2vec-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
         for detailed usage.
@@ -540,7 +543,7 @@ class _Vectors:
         image_fields: List[str],
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
-        """Create a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model.
+        """Create a vector using the `img2vec-neural` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
         for detailed usage.
@@ -571,7 +574,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2vec_clip` model.
+        """Create a vector using the `multi2vec-clip` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
         for detailed usage.
@@ -613,7 +616,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2vec_google` model.
+        """Create a vector using the `multi2vec-google` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
         for detailed usage.
@@ -663,7 +666,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2vec_bind` model.
+        """Create a vector using the `multi2vec-bind` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
         for detailed usage.
@@ -710,7 +713,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2vec_voyageai` model.
+        """Create a vector using the `multi2vec-voyageai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
         for detailed usage.
@@ -758,7 +761,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2vec_nvidia` model.
+        """Create a vector using the `multi2vec-nvidia` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
         for detailed usage.
@@ -801,7 +804,7 @@ class _Vectors:
         reference_properties: List[str],
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `ref2vec_centroid` model.
+        """Create a vector using the `ref2vec-centroid` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
         for detailed usage.
@@ -836,7 +839,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_azure_openai` model.
+        """Create a vector using the `text2vec-openai` module running with Azure.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
         for detailed usage.
@@ -876,7 +879,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_gpt4all` model.
+        """Create a vector using the `text2vec-gpt4all` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
         for detailed usage.
@@ -913,7 +916,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_huggingface` model.
+        """Create a vector using the `text2vec-huggingface` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
         for detailed usage.
@@ -966,7 +969,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_palm` model.
+        """Create a vector using the `text2vec-google` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
@@ -1009,7 +1012,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_palm` model.
+        """Create a vector using the `text2vec-google` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
@@ -1052,7 +1055,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec_transformers` model.
+        """Create a vector using the `text2vec-transformers` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
         for detailed usage.
@@ -1093,7 +1096,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec-jinaai` model.
+        """Create a vector using the `text2vec-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings) for detailed usage.
 
@@ -1132,7 +1135,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2vec_jinaai` model.
+        """Create a vector using the `multi2vec-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
         for detailed usage.
@@ -1176,7 +1179,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec-jinaai` model.
+        """Create a vector using the `text2vec-voyageai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
         for detailed usage.
@@ -1241,7 +1244,7 @@ class _Vectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `text2vec-nvidia` model.
+        """Create a vector using the `text2vec-nvidia` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
         for detailed usage.

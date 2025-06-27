@@ -219,7 +219,7 @@ class _Warnings:
     @staticmethod
     def deprecated_tenant_type(old: str, new: str) -> None:
         warnings.warn(
-            message=f"""Dep020: The tenant status {old} is deprecated and will be removed by Q1 2025. Please use {new} instead.""",
+            message=f"""Dep021: The tenant status {old} is deprecated and will be removed by Q1 2025. Please use {new} instead.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -227,8 +227,38 @@ class _Warnings:
     @staticmethod
     def vectorizer_config_in_config_update() -> None:
         warnings.warn(
-            message="""Dep021: You are using the `vectorizer_config` argument in the `collection.config.update()` method with a collection with named vectors, which is deprecated.
+            message="""Dep022: You are using the `vectorizer_config` argument in the `collection.config.update()` method with a collection with named vectors, which is deprecated.
             Use the `vector_config` argument instead.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def vectorizer_config_in_config_create() -> None:
+        warnings.warn(
+            message="""Dep022: You are using the `vectorizer_config` argument in the `collection.config.create()`, which is deprecated.
+            Use the `vector_config` argument instead.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def vector_index_config_in_config_create() -> None:
+        warnings.warn(
+            message="""Dep023: You are using the `vector_index_config` argument in the `collection.config.create()`, which is deprecated.
+            Use the `vector_config` argument instead defining `vector_index_config` as a sub-argument.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def encoding_in_multi_vector_config() -> None:
+        warnings.warn(
+            message="""Dep024: You are using the `encoding` argument in the `Configure.VectorIndex.MultiVector.multi_vector()`, which is deprecated.
+            Use the `encoding` argument inside `Configure.MultiVector.module()` instead.
             """,
             category=DeprecationWarning,
             stacklevel=1,

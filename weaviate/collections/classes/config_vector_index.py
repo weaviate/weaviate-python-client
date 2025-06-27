@@ -1,8 +1,9 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, overload
 
 from pydantic import Field
+from typing_extensions import deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
@@ -320,11 +321,30 @@ class _VectorIndexMultivectorEncoding:
 class _VectorIndexMultiVector:
     Encoding = _VectorIndexMultivectorEncoding
 
+    @deprecated(
+        'Using the "encoding" argument is deprecated. Instead, specify it at the top-level when creating your `vector_config`'
+    )
+    @overload
+    @staticmethod
+    def multi_vector(
+        encoding: _MultiVectorEncodingConfigCreate,
+        aggregation: Optional[MultiVectorAggregation] = None,
+    ) -> _MultiVectorConfigCreate: ...
+
+    @overload
+    @staticmethod
+    def multi_vector(
+        encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
+        aggregation: Optional[MultiVectorAggregation] = None,
+    ) -> _MultiVectorConfigCreate: ...
+
     @staticmethod
     def multi_vector(
         encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
         aggregation: Optional[MultiVectorAggregation] = None,
     ) -> _MultiVectorConfigCreate:
+        if encoding is not None:
+            _Warnings.encoding_in_multi_vector_config()
         return _MultiVectorConfigCreate(
             encoding=encoding if encoding is not None else None,
             aggregation=aggregation.value if aggregation is not None else None,
@@ -409,6 +429,46 @@ class _VectorIndex:
             quantizer=None,
             multivector=None,
         )
+
+    @overload
+    @staticmethod
+    @deprecated(
+        'Using the "quantizer" argument is deprecated. Instead, specify it at the top-level when creating your `vector_config` with `Vectors.module()`'
+    )
+    def hnsw(
+        cleanup_interval_seconds: Optional[int] = None,
+        distance_metric: Optional[VectorDistances] = None,
+        dynamic_ef_factor: Optional[int] = None,
+        dynamic_ef_max: Optional[int] = None,
+        dynamic_ef_min: Optional[int] = None,
+        ef: Optional[int] = None,
+        ef_construction: Optional[int] = None,
+        filter_strategy: Optional[VectorFilterStrategy] = None,
+        flat_search_cutoff: Optional[int] = None,
+        max_connections: Optional[int] = None,
+        vector_cache_max_objects: Optional[int] = None,
+        *,
+        quantizer: _QuantizerConfigCreate,
+        multi_vector: Optional[_MultiVectorConfigCreate] = None,
+    ) -> _VectorIndexConfigHNSWCreate: ...
+
+    @overload
+    @staticmethod
+    def hnsw(
+        cleanup_interval_seconds: Optional[int] = None,
+        distance_metric: Optional[VectorDistances] = None,
+        dynamic_ef_factor: Optional[int] = None,
+        dynamic_ef_max: Optional[int] = None,
+        dynamic_ef_min: Optional[int] = None,
+        ef: Optional[int] = None,
+        ef_construction: Optional[int] = None,
+        filter_strategy: Optional[VectorFilterStrategy] = None,
+        flat_search_cutoff: Optional[int] = None,
+        max_connections: Optional[int] = None,
+        vector_cache_max_objects: Optional[int] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector: Optional[_MultiVectorConfigCreate] = None,
+    ) -> _VectorIndexConfigHNSWCreate: ...
 
     @staticmethod
     def hnsw(

@@ -52,6 +52,7 @@ from weaviate.connect.v4 import (
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.warnings import _Warnings
 
 CollectionType = TypeVar("CollectionType", Collection, CollectionAsync)
 
@@ -211,6 +212,10 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             raise WeaviateInvalidInputError(
                 "Named vectorizers are only supported in Weaviate v1.24.0 and higher"
             )
+        if vectorizer_config is not None:
+            _Warnings.vectorizer_config_in_config_create()
+        if vector_index_config is not None:
+            _Warnings.vector_index_config_in_config_create()
         try:
             config = _CollectionConfigCreate(
                 description=description,
