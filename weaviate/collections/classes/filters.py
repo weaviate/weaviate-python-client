@@ -9,7 +9,7 @@ from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2
 from weaviate.types import UUID
-from weaviate.util import get_valid_uuid, _capitalize_first_letter
+from weaviate.util import _capitalize_first_letter, get_valid_uuid
 
 
 class _Operator(str, Enum):
