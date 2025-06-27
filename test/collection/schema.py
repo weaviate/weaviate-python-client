@@ -1,7 +1,7 @@
 from typing import Literal, Optional
 
 
-def multi_vector_schema(quantizer: Optional[Literal["pq", "bq", "sq"]] = None) -> dict:
+def multi_vector_schema(quantizer: Optional[Literal["pq", "bq", "sq", "rq"]] = None) -> dict:
     return {
         "class": "Something",
         "invertedIndexConfig": {
@@ -63,6 +63,10 @@ def multi_vector_schema(quantizer: Optional[Literal["pq", "bq", "sq"]] = None) -
                         "trainingLimit": 100000,
                         "rescoreLimit": 20,
                     },
+                    "rq": {
+                        "enabled": quantizer == "rq",
+                        "bits": 8,
+                    },
                 },
                 "vectorIndexType": "hnsw",
                 "vectorizer": {"none": {}},
@@ -93,6 +97,10 @@ def multi_vector_schema(quantizer: Optional[Literal["pq", "bq", "sq"]] = None) -
                         "enabled": quantizer == "sq",
                         "trainingLimit": 100000,
                         "rescoreLimit": 20,
+                    },
+                    "rq": {
+                        "enabled": quantizer == "rq",
+                        "bits": 8,
                     },
                 },
                 "vectorIndexType": "hnsw",
