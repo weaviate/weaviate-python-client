@@ -1,4 +1,4 @@
-from . import aggregate, backup, batch, cluster, config, data, query, tenants, users
+from . import aggregate, backup, batch, cluster, config, data, query, replication, tenants, users
 
 __all__ = [
     "aggregate",
@@ -8,6 +8,7 @@ __all__ = [
     "config",
     "data",
     "query",
+    "replication",
     "tenants",
     "users",
 ]
