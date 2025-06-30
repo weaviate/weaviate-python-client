@@ -1940,7 +1940,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 ret_dict["vectorIndexType"] = val.vector_index_type().value
                 ret_dict[cls_field] = val._to_dict()
             elif isinstance(val, _VectorConfigCreate):
-                ret_dict["vectorConfig"] = {"default": val._to_dict()}
+                ret_dict["vectorConfig"] = {val.name or "default": val._to_dict()}
             elif (
                 isinstance(val, list)
                 and len(val) > 0
