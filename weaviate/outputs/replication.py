@@ -1,5 +1,6 @@
 from weaviate.cluster.models import (
     ReplicateOperation,
+    ReplicateOperations,
     ReplicateOperationState,
     ReplicateOperationStatus,
     ReplicateOperationWithHistory,
@@ -8,6 +9,7 @@ from weaviate.cluster.models import (
 
 __all__ = [
     "ReplicateOperation",
+    "ReplicateOperations",
     "ReplicateOperationWithHistory",
     "ReplicateOperationWithoutHistory",
     "ReplicateOperationState",
