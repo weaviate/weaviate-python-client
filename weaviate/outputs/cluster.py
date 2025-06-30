@@ -1,3 +1,4 @@
+from weaviate.cluster.models import ShardingState, ShardReplicas
 from weaviate.collections.classes.cluster import (
     Node,
     NodeMinimal,
@@ -7,4 +8,13 @@ from weaviate.collections.classes.cluster import (
     Stats,
 )
 
-__all__ = ["Node", "NodeMinimal", "NodeVerbose", "Shard", "Shards", "Stats"]
+__all__ = [
+    "Node",
+    "NodeMinimal",
+    "NodeVerbose",
+    "Shard",
+    "Shards",
+    "Stats",
+    "ShardingState",
+    "ShardReplicas",
+]
