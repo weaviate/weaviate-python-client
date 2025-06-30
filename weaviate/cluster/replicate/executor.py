@@ -1,10 +1,13 @@
-from typing import Generic, List, Literal, Optional, Union, overload
+from typing import Generic, Literal, Optional, overload
 
 from httpx import Response
 
 from weaviate.cluster.models import (
     ReplicateOperation,
-    ReplicateOperationStatus,
+    ReplicateOperations,
+    ReplicateOperationWithHistory,
+    ReplicateOperationWithoutHistory,
+    _ReplicateOperation,
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
@@ -18,18 +21,16 @@ class _ReplicateExecutor(Generic[ConnectionType]):
     @overload
     def get(
         self, *, uuid: UUID, include_history: Literal[False] = False
-    ) -> executor.Result[Optional[ReplicateOperation[None]]]: ...
+    ) -> executor.Result[Optional[ReplicateOperationWithoutHistory]]: ...
 
     @overload
     def get(
         self, *, uuid: UUID, include_history: Literal[True]
-    ) -> executor.Result[Optional[ReplicateOperation[List[ReplicateOperationStatus]]]]: ...
+    ) -> executor.Result[Optional[ReplicateOperationWithHistory]]: ...
 
     def get(
         self, *, uuid: UUID, include_history: bool = False
-    ) -> executor.Result[
-        Union[ReplicateOperation[None], ReplicateOperation[List[ReplicateOperationStatus]], None]
-    ]:
+    ) -> executor.Result[Optional[ReplicateOperation]]:
         """Get the a replicate operation by its UUID.
 
         Args:
@@ -43,7 +44,7 @@ class _ReplicateExecutor(Generic[ConnectionType]):
         def resp(response: Response):
             if response.status_code == 404:
                 return None
-            return ReplicateOperation._from_weaviate(response.json(), include_history)
+            return _ReplicateOperation._from_weaviate(response.json(), include_history)
 
         params = {}
         if include_history:
@@ -58,15 +59,15 @@ class _ReplicateExecutor(Generic[ConnectionType]):
             error_msg="Failed to get replicate operation",
         )
 
-    def list_all(self) -> executor.Result[list[ReplicateOperation[list[ReplicateOperationStatus]]]]:
+    def list_all(self) -> executor.Result[list[ReplicateOperationWithHistory]]:
         """List all replicate operations.
 
         Returns:
             A list of replicate operations.
         """
 
-        def resp(response: Response) -> list[ReplicateOperation]:
-            return [ReplicateOperation._from_weaviate(item) for item in response.json()]
+        def resp(response: Response) -> list[ReplicateOperationWithHistory]:
+            return [_ReplicateOperation._from_weaviate(item, True) for item in response.json()]  # pyright: ignore[reportReturnType]
 
         return executor.execute(
             response_callback=resp,
@@ -85,7 +86,7 @@ class _ReplicateExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         target_node: Optional[str] = None,
         include_history: Literal[True],
-    ) -> executor.Result[list[ReplicateOperation[list[ReplicateOperationStatus]]]]: ...
+    ) -> executor.Result[list[ReplicateOperationWithHistory]]: ...
 
     @overload
     def query(
@@ -95,7 +96,7 @@ class _ReplicateExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         target_node: Optional[str] = None,
         include_history: Literal[False] = False,
-    ) -> executor.Result[list[ReplicateOperation[None]]]: ...
+    ) -> executor.Result[list[ReplicateOperationWithoutHistory]]: ...
 
     def query(
         self,
@@ -104,7 +105,7 @@ class _ReplicateExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         target_node: Optional[str] = None,
         include_history: bool = False,
-    ) -> executor.Result[list[ReplicateOperation]]:
+    ) -> executor.Result[ReplicateOperations]:
         """Query replicate operations by collection, shard, node, or any combination of the three.
 
         Args:
@@ -117,9 +118,10 @@ class _ReplicateExecutor(Generic[ConnectionType]):
             A list of replicate operations specific to the provided parameters.
         """
 
-        def resp(response: Response) -> list[ReplicateOperation]:
+        def resp(response: Response) -> ReplicateOperations:
             return [
-                ReplicateOperation._from_weaviate(item, include_history) for item in response.json()
+                _ReplicateOperation._from_weaviate(item, include_history)
+                for item in response.json()  # pyright: ignore[reportReturnType]
             ]
 
         params = {}

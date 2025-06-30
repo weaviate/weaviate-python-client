@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, List, TypedDict, TypeVar
+from typing import Generic, List, TypedDict, TypeVar, Union
 
 
 class ReplicationType(str, Enum):
@@ -41,7 +41,7 @@ H = TypeVar("H", None, List[ReplicateOperationStatus])
 
 
 @dataclass
-class ReplicateOperation(Generic[H]):
+class _ReplicateOperation(Generic[H]):
     """Class representing a replication operation."""
 
     collection: str
@@ -56,7 +56,7 @@ class ReplicateOperation(Generic[H]):
     @staticmethod
     def _from_weaviate(
         data: dict,
-        include_history: bool = True,
+        include_history: bool,
     ):
         common = {
             "collection": data["collection"],
@@ -68,17 +68,26 @@ class ReplicateOperation(Generic[H]):
             "uuid": uuid.UUID(data["id"]),
         }
         if include_history and data["statusHistory"] is not None:
-            return ReplicateOperation(
+            return _ReplicateOperation(
                 **common,
                 status_history=[
                     ReplicateOperationStatus._from_weaviate(status)
                     for status in data["statusHistory"]
                 ],
             )
-        return ReplicateOperation(
+        return _ReplicateOperation(
             **common,
             status_history=None,
         )
+
+
+ReplicateOperationWithoutHistory = _ReplicateOperation[None]
+ReplicateOperationWithHistory = _ReplicateOperation[List[ReplicateOperationStatus]]
+
+ReplicateOperation = Union[ReplicateOperationWithoutHistory, ReplicateOperationWithHistory]
+ReplicateOperations = Union[
+    List[ReplicateOperationWithoutHistory], List[ReplicateOperationWithHistory]
+]
 
 
 class _ReplicationShardReplicas(TypedDict):
