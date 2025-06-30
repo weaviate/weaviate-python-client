@@ -38,6 +38,7 @@ from weaviate.collections.classes.config_vector_index import (
     _BQConfigUpdate,
     _PQConfigUpdate,
     _PQEncoderConfigUpdate,
+    _RQConfigUpdate,
     _SQConfigUpdate,
     _VectorIndex,
     _VectorIndexConfigCreate,
@@ -1138,6 +1139,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 and (
                     vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
             )
             or (
@@ -1145,6 +1147,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 and (
                     vector_index_config["pq"]["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
             )
             or (
@@ -1152,6 +1155,15 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 and (
                     vector_index_config["pq"]["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("rq", {"enabled": False})["enabled"]
+                )
+            )
+            or (
+                isinstance(quantizer, _RQConfigUpdate)
+                and (
+                    vector_index_config["pq"]["enabled"]
+                    or vector_index_config.get("bq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("sq", {"enabled": False})["enabled"]
                 )
             )
         ):
@@ -1486,8 +1498,14 @@ class _SQConfig(_ConfigBase):
     training_limit: int
 
 
+@dataclass
+class _RQConfig(_ConfigBase):
+    bits: Optional[int]
+
+
 BQConfig = _BQConfig
 SQConfig = _SQConfig
+RQConfig = _RQConfig
 
 
 @dataclass
@@ -1513,7 +1531,7 @@ MultiVector = _MultiVectorConfig
 @dataclass
 class _VectorIndexConfig(_ConfigBase):
     multi_vector: Optional[_MultiVectorConfig]
-    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
+    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig, RQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -1523,6 +1541,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _SQConfig):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
+        elif isinstance(self.quantizer, _RQConfig):
+            out["rq"] = {**out.pop("quantizer"), "enabled": True}
         return out
 
 
@@ -2194,6 +2214,19 @@ class _VectorIndexQuantizerUpdate:
             enabled=enabled, rescoreLimit=rescore_limit, trainingLimit=training_limit
         )
 
+    @staticmethod
+    def rq(
+        enabled: bool = True,
+    ) -> _RQConfigUpdate:
+        """Create a `_RQConfigUpdate` object to be used when updating the Rotational quantization (RQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _RQConfigUpdate(enabled=enabled)
+
 
 class _VectorIndexUpdate:
     Quantizer = _VectorIndexQuantizerUpdate
@@ -2207,7 +2240,9 @@ class _VectorIndexUpdate:
         flat_search_cutoff: Optional[int] = None,
         filter_strategy: Optional[VectorFilterStrategy] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
+        quantizer: Optional[
+            Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate, _RQConfigUpdate]
+        ] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 

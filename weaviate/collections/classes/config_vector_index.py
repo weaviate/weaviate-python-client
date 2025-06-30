@@ -271,6 +271,14 @@ class _SQConfigCreate(_QuantizerConfigCreate):
         return "sq"
 
 
+class _RQConfigCreate(_QuantizerConfigCreate):
+    bits: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "rq"
+
+
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
@@ -291,6 +299,14 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
     @staticmethod
     def quantizer_name() -> str:
         return "bq"
+
+
+class _RQConfigUpdate(_QuantizerConfigUpdate):
+    enabled: Optional[bool]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "rq"
 
 
 class _SQConfigUpdate(_QuantizerConfigUpdate):
@@ -411,6 +427,21 @@ class _VectorIndexQuantizer:
             cache=cache,
             rescoreLimit=rescore_limit,
             trainingLimit=training_limit,
+        )
+
+    @staticmethod
+    def rq(
+        bits: Optional[int] = None,
+    ) -> _RQConfigCreate:
+        """Create a `_RQConfigCreate` object to be used when defining the Rotational quantization (RQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _RQConfigCreate(
+            bits=bits,
         )
 
 
