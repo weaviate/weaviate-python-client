@@ -117,9 +117,7 @@ def test_update(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
-        vector_config=[
-            wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
-        ],
+        vector_config=wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
     )
 
     uuid = collection.data.insert(
@@ -148,9 +146,7 @@ def test_replace(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
-        vector_config=[
-            wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
-        ],
+        vector_config=wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
     )
 
     uuid = collection.data.insert(
