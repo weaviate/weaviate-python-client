@@ -33,7 +33,7 @@ class ReplicateOperationStatus:
     def _from_weaviate(cls, data: dict) -> "ReplicateOperationStatus":
         return cls(
             state=ReplicateOperationState(data["state"]),
-            errors=data["errors"],
+            errors=data["errors"] or [],
         )
 
 
