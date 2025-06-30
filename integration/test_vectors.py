@@ -16,7 +16,10 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigHNSW,
 )
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.grpc import _ListOfVectorsQuery, _MultiTargetVectorJoin
+from weaviate.collections.classes.grpc import (
+    _ListOfVectorsQuery,
+    _MultiTargetVectorJoin,
+)
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.types import INCLUDE_VECTOR
 
@@ -33,23 +36,23 @@ def test_create_named_vectors(
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title", source_properties=["title"], vectorize_collection_name=False
+        vector_config=[
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="title", source_properties=["title"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+            wvc.config.Configure.Vectors.text2vec_contextionary(
                 name="content", source_properties=["content"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+            wvc.config.Configure.Vectors.text2vec_contextionary(
                 name="All", vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+            wvc.config.Configure.Vectors.text2vec_contextionary(
                 name="AllExplicit",
                 source_properties=["title", "content"],
                 vectorize_collection_name=False,
             ),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn2"),
+            wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
+            wvc.config.Configure.Vectors.self_provided(name="bringYourOwn2"),
         ],
     )
 
@@ -85,11 +88,11 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title", source_properties=["title"], vectorize_collection_name=False
+        vector_config=[
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="title", source_properties=["title"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+            wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
         ],
     )
 
@@ -114,9 +117,7 @@ def test_update(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
-        ],
+        vector_config=wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
     )
 
     uuid = collection.data.insert(
@@ -145,9 +146,7 @@ def test_replace(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
-        ],
+        vector_config=wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
     )
 
     uuid = collection.data.insert(
@@ -177,11 +176,11 @@ def test_query(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title", source_properties=["title"], vectorize_collection_name=False
+        vector_config=[
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="title", source_properties=["title"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+            wvc.config.Configure.Vectors.text2vec_contextionary(
                 name="content", source_properties=["content"], vectorize_collection_name=False
             ),
         ],
@@ -207,11 +206,11 @@ def test_generate(openai_collection: OpenAICollection) -> None:
     if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
         pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = openai_collection(
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_openai(
-                "text", source_properties=["text"], vectorize_collection_name=False
+        vector_config=[
+            wvc.config.Configure.Vectors.text2vec_openai(
+                name="text", source_properties=["text"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_openai(
+            wvc.config.Configure.Vectors.text2vec_openai(
                 name="content", source_properties=["content"], vectorize_collection_name=False
             ),
         ],
@@ -252,11 +251,11 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title", source_properties=["title"], vectorize_collection_name=False
+        vector_config=[
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="title", source_properties=["title"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+            wvc.config.Configure.Vectors.self_provided(name="bringYourOwn"),
         ],
     )
     uuid1 = uuid.uuid4()
@@ -279,21 +278,21 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="second", data_type=wvc.config.DataType.TEXT),
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title",
+        vector_config=[
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="title",
                 source_properties=["title"],
                 vectorize_collection_name=False,
                 vector_index_config=wvc.config.Configure.VectorIndex.flat(
                     distance_metric=wvc.config.VectorDistances.HAMMING,
-                    quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
                 ),
+                quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
             ),
-            wvc.config.Configure.NamedVectors.none(
-                "custom",
+            wvc.config.Configure.Vectors.self_provided(
+                name="custom",
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "default",
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="default",
                 vectorize_collection_name=False,  # needed as contextionary cant handle "_" in collection names
             ),
         ],
@@ -334,15 +333,15 @@ def test_aggregation(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="second", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="number", data_type=wvc.config.DataType.INT),
         ],
-        # vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_contextionary(vectorize_collection_name=False),
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "first",
+        # vector_config=wvc.config.Configure.Vectorizer.text2vec_contextionary(vectorize_collection_name=False),
+        vector_config=[
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="first",
                 source_properties=["first"],
                 vectorize_collection_name=False,
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "second",
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="second",
                 source_properties=["second"],
                 vectorize_collection_name=False,
             ),
@@ -408,14 +407,14 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
             wvc.config.Property(name="second", data_type=wvc.config.DataType.TEXT),
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "first",
+        vector_config=[
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="first",
                 source_properties=["first"],
                 vectorize_collection_name=False,
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "second",
+            wvc.config.Configure.Vectors.text2vec_contextionary(
+                name="second",
                 source_properties=["second"],
                 vectorize_collection_name=False,
             ),
@@ -429,8 +428,8 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
     assert config.vector_config["second"].vector_index_config.quantizer is None
 
     collection.config.update(
-        vectorizer_config=[
-            wvc.config.Reconfigure.NamedVectors.update(
+        vector_config=[
+            wvc.config.Reconfigure.Vectors.update(
                 name="second",
                 vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(
                     quantizer=wvc.config.Reconfigure.VectorIndex.Quantizer.pq()
@@ -458,13 +457,13 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
 #             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
 #             wvc.config.Property(name="second", data_type=wvc.config.DataType.TEXT),
 #         ],
-#         vectorizer_config=[
-#             wvc.config.Configure.NamedVectors.text2vec_contextionary(
+#         vector_config=[
+#             wvc.config.Configure.Vectors.text2vec_contextionary(
 #                 "first",
 #                 source_properties=["first"],
 #                 vectorize_collection_name=False,
 #             ),
-#             wvc.config.Configure.NamedVectors.text2vec_contextionary(
+#             wvc.config.Configure.Vectors.text2vec_contextionary(
 #                 "second",
 #                 source_properties=["second"],
 #                 vectorize_collection_name=False,
@@ -483,8 +482,8 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
 
 #     with pytest.raises(WeaviateInvalidInputError):
 #         collection.config.update(
-#             vectorizer_config=[
-#                 wvc.config.Reconfigure.NamedVectors.update(
+#             vector_config=[
+#                 wvc.config.ReConfigure.Vectors.update(
 #                     name="second",
 #                     vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(
 #                         quantizer=wvc.config.Reconfigure.VectorIndex.Quantizer.bq()
@@ -497,12 +496,12 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
 def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection_factory(
-            vectorizer_config=[
-                wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                    "title", source_properties=["title"], vectorize_collection_name=False
+            vector_config=[
+                wvc.config.Configure.Vectors.text2vec_contextionary(
+                    name="title", source_properties=["title"], vectorize_collection_name=False
                 ),
-                wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                    "title", source_properties=["content"], vectorize_collection_name=False
+                wvc.config.Configure.Vectors.text2vec_contextionary(
+                    name="title", source_properties=["content"], vectorize_collection_name=False
                 ),
             ],
         )
@@ -529,9 +528,9 @@ def test_named_vector_multi_target(
 
     collection = collection_factory(
         properties=[],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+        vector_config=[
+            wvc.config.Configure.Vectors.self_provided(name="first"),
+            wvc.config.Configure.Vectors.self_provided(name="second"),
         ],
     )
 
@@ -549,9 +548,9 @@ def test_named_vector_multi_target_vector_per_target(collection_factory: Collect
 
     collection = collection_factory(
         properties=[],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+        vector_config=[
+            wvc.config.Configure.Vectors.self_provided(name="first"),
+            wvc.config.Configure.Vectors.self_provided(name="second"),
         ],
     )
 
@@ -571,9 +570,9 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
 
     collection = collection_factory(
         properties=[],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+        vector_config=[
+            wvc.config.Configure.Vectors.self_provided(name="first"),
+            wvc.config.Configure.Vectors.self_provided(name="second"),
         ],
     )
 
@@ -582,7 +581,7 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
         with pytest.raises(WeaviateInvalidInputError):
             collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
         with pytest.raises(WeaviateInvalidInputError):
-            collection.query.near_vector([[[1.0, 0.0], [1.0, 0.0]], [1.0, 0.0, 0.0]])
+            collection.query.near_vector([[[1.0, 0.0], [1.0, 0.0]], [1.0, 0.0, 0.0]])  # type: ignore
     else:
         # throws an error in the server instead as implicit multi vector is understood now as using multi-vectors
         with pytest.raises(WeaviateQueryError):
@@ -618,9 +617,9 @@ def test_same_target_vector_multiple_input(
 
     collection = collection_factory(
         properties=[],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+        vector_config=[
+            wvc.config.Configure.Vectors.self_provided(name="first"),
+            wvc.config.Configure.Vectors.self_provided(name="second"),
         ],
     )
 
@@ -670,9 +669,9 @@ def test_same_target_vector_multiple_input_combinations(
 
     collection = collection_factory(
         properties=[],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+        vector_config=[
+            wvc.config.Configure.Vectors.self_provided(name="first"),
+            wvc.config.Configure.Vectors.self_provided(name="second"),
         ],
     )
 
@@ -696,9 +695,9 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
 
     collection = collection_factory(
         properties=[],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+        vector_config=[
+            wvc.config.Configure.Vectors.self_provided(name="first"),
+            wvc.config.Configure.Vectors.self_provided(name="second"),
         ],
     )
 
@@ -707,7 +706,7 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
 
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection.query.near_vector(
-            [[0.0, 1.0], [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]],
+            [[0.0, 1.0], [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]],  # # type: ignore
             target_vector=["first", "second", "second"],
             return_metadata=wvc.query.MetadataQuery.full(),
         )
@@ -727,8 +726,7 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
     [
         (False, {}),
         (["bringYourOwn1"], {"bringYourOwn1": [0, 1, 2]}),
-        # TODO: to be uncommented when https://github.com/weaviate/weaviate/issues/6279 is resolved
-        # (True, {"bringYourOwn1": [0, 1, 2], "bringYourOwn2": [3, 4, 5]})
+        (True, {"bringYourOwn1": [0, 1, 2], "bringYourOwn2": [3, 4, 5]}),
     ],
 )
 def test_include_vector_on_references(
@@ -736,8 +734,10 @@ def test_include_vector_on_references(
 ) -> None:
     """Test include vector on reference."""
     dummy = collection_factory()
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectorizers are only supported in Weaviate v1.24.0 and higher.")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip(
+            "https://github.com/weaviate/weaviate/issues/6279 was resolved in >1.26.0 only."
+        )
 
     ref_collection = collection_factory(
         name="Target",
@@ -777,16 +777,14 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
                 data_type=wvc.config.DataType.TEXT,
             )
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none(
+        vector_config=[
+            wvc.config.Configure.MultiVectors.self_provided(
                 name="colbert",
-                vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
-                    multi_vector=wvc.config.Configure.VectorIndex.MultiVector.multi_vector(
-                        aggregation=wvc.config.MultiVectorAggregation.MAX_SIM
-                    )
+                multi_vector_config=wvc.config.Configure.VectorIndex.MultiVector.multi_vector(
+                    aggregation=wvc.config.MultiVectorAggregation.MAX_SIM
                 ),
             ),
-            wvc.config.Configure.NamedVectors.none(
+            wvc.config.Configure.Vectors.self_provided(
                 name="regular",
             ),
         ],
@@ -880,8 +878,8 @@ def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
                 data_type=wvc.config.DataType.TEXT,
             )
         ],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2colbert_jinaai(
+        vector_config=[
+            wvc.config.Configure.MultiVectors.text2vec_jinaai(
                 name="colbert",
             )
         ],
