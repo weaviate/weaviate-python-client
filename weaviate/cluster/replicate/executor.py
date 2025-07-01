@@ -130,7 +130,7 @@ class _ReplicateExecutor(Generic[ConnectionType]):
         if shard:
             params["shard"] = shard
         if target_node:
-            params["node"] = target_node
+            params["targetNode"] = target_node
         if include_history:
             params["includeHistory"] = include_history
 
