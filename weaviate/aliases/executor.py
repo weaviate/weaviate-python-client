@@ -91,7 +91,7 @@ class _AliasExecutor(Generic[ConnectionType]):
         self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
 
         def resp(res: Response) -> bool:
-            return res.status_code == 200
+            return res.status_code == 204
 
         return executor.execute(
             response_callback=resp,
@@ -99,7 +99,7 @@ class _AliasExecutor(Generic[ConnectionType]):
             path=f"/aliases/{alias_name}",
             error_msg=f"Could not delete alias {alias_name}",
             status_codes=_ExpectedStatusCodes(
-                ok_in=[200, 404],
+                ok_in=[204, 404],
                 error="delete aliases",
             ),
         )

@@ -63,10 +63,13 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
         assert all_alias["Test_alias2"].alias == "Test_alias2"
         assert all_alias["Test_alias2"].collection == name2
 
-        client.alias.delete(alias_name="Test_alias1")
-        client.alias.delete(alias_name="Test_alias2")
+        # Delete existing aliases
+        assert client.alias.delete(alias_name="Test_alias1")
+        assert client.alias.delete(alias_name="Test_alias2")
         all_alias = client.alias.list_all()
         assert len(all_alias) == 0
+
+        assert not client.alias.delete(alias_name="Test_alias1")
 
     finally:
         client.collections.delete(name)
@@ -92,13 +95,33 @@ def test_alias_creation_and_update(client: weaviate.WeaviateClient, request: Sub
         assert all_alias["Test_alias1"].alias == "Test_alias1"
         assert all_alias["Test_alias1"].collection == name
 
-        client.alias.update(alias_name="Test_alias1", new_target_collection=name2)
+        assert client.alias.update(alias_name="Test_alias1", new_target_collection=name2)
         all_alias = client.alias.list_all()
         assert all_alias["Test_alias1"].alias == "Test_alias1"
         assert all_alias["Test_alias1"].collection == name2
 
+        # return status code not yet correct
+        # assert not client.alias.update(alias_name="does_not_exist", new_target_collection=name2)
     finally:
         client.collections.delete(name)
         client.collections.delete(name2)
         client.alias.delete(alias_name="Test_alias1")
         client.alias.delete(alias_name="Test_alias2")
+
+
+def test_alias_get(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    name = _sanitize_collection_name(request.node.name)
+
+    client.collections.delete(name)
+    client.alias.delete(alias_name="Test_alias1")
+    try:
+        client.collections.create(name=name)
+
+        client.alias.create(alias_name="Test_alias1", target_collection=name)
+        alias = client.alias.get(alias_name="Test_alias1")
+        assert alias is not None
+        assert alias.alias == "Test_alias1"
+        assert alias.collection == name
+    finally:
+        client.collections.delete(name)
+        client.alias.delete(alias_name="Test_alias1")
