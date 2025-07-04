@@ -78,6 +78,10 @@ class PermissionsUsers(TypedDict):
     users: str
 
 
+class PermissionsAlias(TypedDict):
+    alias: str
+
+
 # action is always present in WeaviatePermission
 class WeaviatePermissionRequired(TypedDict):
     action: str
@@ -93,6 +97,7 @@ class WeaviatePermission(
     roles: Optional[PermissionRoles]
     tenants: Optional[PermissionsTenants]
     users: Optional[PermissionsUsers]
+    aliases: Optional[PermissionsAlias]
 
 
 class WeaviateRole(TypedDict):
@@ -116,6 +121,17 @@ class WeaviateDBUserRoleNames(TypedDict):
 
 class _Action:
     pass
+
+
+class AliasAction(str, _Action, Enum):
+    CREATE = "create_aliases"
+    READ = "read_aliases"
+    UPDATE = "update_aliases"
+    DELETE = "delete_aliases"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in AliasAction]
 
 
 class CollectionsAction(str, _Action, Enum):
@@ -285,6 +301,13 @@ class _UsersPermission(_Permission[UsersAction]):
         return [{"action": action, "users": {"users": self.users}} for action in self.actions]
 
 
+class _AliasPermission(_Permission[AliasAction]):
+    alias: str
+
+    def _to_weaviate(self) -> List[WeaviatePermission]:
+        return [{"action": action, "aliases": {"alias": self.alias}} for action in self.actions]
+
+
 class _BackupsPermission(_Permission[BackupsAction]):
     collection: str
 
@@ -343,6 +366,10 @@ class UsersPermissionOutput(_UsersPermission):
     pass
 
 
+class AliasPermissionOutput(_AliasPermission):
+    pass
+
+
 class ClusterPermissionOutput(_ClusterPermission):
     pass
 
@@ -360,6 +387,7 @@ class TenantsPermissionOutput(_TenantsPermission):
 
 
 PermissionsOutputType = Union[
+    AliasPermissionOutput,
     ClusterPermissionOutput,
     CollectionsPermissionOutput,
     DataPermissionOutput,
@@ -378,6 +406,7 @@ class RoleBase:
 
 @dataclass
 class Role(RoleBase):
+    alias_permissions: List[AliasPermissionOutput]
     cluster_permissions: List[ClusterPermissionOutput]
     collections_permissions: List[CollectionsPermissionOutput]
     data_permissions: List[DataPermissionOutput]
@@ -390,6 +419,7 @@ class Role(RoleBase):
     @property
     def permissions(self) -> List[PermissionsOutputType]:
         permissions: List[PermissionsOutputType] = []
+        permissions.extend(self.alias_permissions)
         permissions.extend(self.cluster_permissions)
         permissions.extend(self.collections_permissions)
         permissions.extend(self.data_permissions)
@@ -402,6 +432,7 @@ class Role(RoleBase):
 
     @classmethod
     def _from_weaviate_role(cls, role: WeaviateRole) -> "Role":
+        alias_permissions: List[AliasPermissionOutput] = []
         cluster_permissions: List[ClusterPermissionOutput] = []
         users_permissions: List[UsersPermissionOutput] = []
         collections_permissions: List[CollectionsPermissionOutput] = []
@@ -484,11 +515,21 @@ class Role(RoleBase):
                             actions={NodesAction(permission["action"])},
                         )
                     )
+            elif permission["action"] in AliasAction.values():
+                aliases = permission.get("aliases")
+                if aliases is not None:
+                    alias_permissions.append(
+                        AliasPermissionOutput(
+                            alias=aliases["alias"],
+                            actions={AliasAction(permission["action"])},
+                        )
+                    )
             else:
                 _Warnings.unknown_permission_encountered(permission)
 
         return cls(
             name=role["name"],
+            alias_permissions=_join_permissions(alias_permissions),
             cluster_permissions=_join_permissions(cluster_permissions),
             users_permissions=_join_permissions(users_permissions),
             collections_permissions=_join_permissions(collections_permissions),
@@ -539,6 +580,7 @@ PermissionsCreateType = List[_Permission]
 
 
 class Actions:
+    Alias = AliasAction
     Data = DataAction
     Collections = CollectionsAction
     Roles = RolesAction
@@ -584,6 +626,35 @@ class NodesPermissions:
 
 class Permissions:
     Nodes = NodesPermissions
+
+    @staticmethod
+    def alias(
+        *,
+        alias: Union[str, Sequence[str]],
+        create: bool = False,
+        read: bool = False,
+        update: bool = False,
+        delete: bool = False,
+    ) -> PermissionsCreateType:
+        permissions: List[_Permission] = []
+        if isinstance(alias, str):
+            alias = [alias]
+
+        for a in alias:
+            permission = _AliasPermission(alias=a, actions=set())
+
+            if create:
+                permission.actions.add(AliasAction.CREATE)
+            if read:
+                permission.actions.add(AliasAction.READ)
+            if update:
+                permission.actions.add(AliasAction.UPDATE)
+            if delete:
+                permission.actions.add(AliasAction.DELETE)
+
+            if len(permission.actions) > 0:
+                permissions.append(permission)
+        return permissions
 
     @staticmethod
     def data(
