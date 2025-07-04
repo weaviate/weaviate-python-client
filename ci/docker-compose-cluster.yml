@@ -23,6 +23,7 @@ services:
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
       AUTOSCHEMA_ENABLED: 'false'
+      REPLICA_MOVEMENT_ENABLED: 'true'
 
   weaviate-node-2:
     init: true
@@ -56,6 +57,7 @@ services:
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
       AUTOSCHEMA_ENABLED: 'false'
+      REPLICA_MOVEMENT_ENABLED: 'true'
 
   weaviate-node-3:
     init: true
@@ -89,4 +91,5 @@ services:
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
       AUTOSCHEMA_ENABLED: 'false'
+      REPLICA_MOVEMENT_ENABLED: 'true'
 ...

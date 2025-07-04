@@ -8,8 +8,8 @@ from weaviate.client_executor import _WeaviateClientExecutor
 
 from .auth import AuthCredentials
 from .backup import _Backup, _BackupAsync
+from .cluster import _Cluster, _ClusterAsync
 from .collections.batch.client import _BatchClientWrapper
-from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections import _Collections, _CollectionsAsync
 from .config import AdditionalConfig
 from .connect import executor
@@ -48,6 +48,8 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         debug (_DebugAsync): Debug object instance connected to the same Weaviate instance as the Client.
             This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
             We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk.
+        replication (_ReplicationAsync): Replication object instance connected to the same Weaviate instance as the Client.
+            This namespace contains all functionality to manage replication operations in Weaviate.
         roles (_RolesAsync): Roles object instance connected to the same Weaviate instance as the Client.
             This namespace contains all functionality to manage Weaviate's RBAC functionality.
         users (_UsersAsync): Users object instance connected to the same Weaviate instance as the Client.
@@ -112,6 +114,8 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         debug (_Debug): Debug object instance connected to the same Weaviate instance as the Client.
             This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
             We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk.
+        replication (_Replication): Replication object instance connected to the same Weaviate instance as the Client.
+            This namespace contains all functionality to manage replication operations in Weaviate.
         roles (_Roles): Roles object instance connected to the same Weaviate instance as the Client.
             This namespace contains all functionality to manage Weaviate's RBAC functionality.
         users (_Users): Users object instance connected to the same Weaviate instance as the Client.

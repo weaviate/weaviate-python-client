@@ -44,9 +44,13 @@ class Node(Generic[Sh, St]):
     version: str
 
 
+NodeVerbose = Node[Shards, Stats]
+NodeMinimal = Node[None, None]
+
+
 class _ConvertFromREST:
     @staticmethod
-    def nodes_verbose(nodes: List[NodeREST]) -> List[Node[Shards, Stats]]:
+    def nodes_verbose(nodes: List[NodeREST]) -> List[NodeVerbose]:
         return [
             Node(
                 git_hash=node.get("gitHash", "None"),
@@ -86,7 +90,7 @@ class _ConvertFromREST:
         ]
 
     @staticmethod
-    def nodes_minimal(nodes: List[NodeREST]) -> List[Node[None, None]]:
+    def nodes_minimal(nodes: List[NodeREST]) -> List[NodeMinimal]:
         return [
             Node(
                 git_hash=node.get("gitHash", "None"),
