@@ -7,6 +7,7 @@ from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.classes.rbac import Actions, Permissions, RoleScope
 from weaviate.rbac.models import (
+    AliasPermissionOutput,
     BackupsPermissionOutput,
     ClusterPermissionOutput,
     CollectionsPermissionOutput,
@@ -20,7 +21,7 @@ from weaviate.rbac.models import (
     _Permission,
 )
 
-RBAC_PORTS = (8092, 50063)
+RBAC_PORTS = (8081, 50052)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 
@@ -31,6 +32,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Permissions.backup(collection="Test", manage=True),
             Role(
                 name="ManageAllBackups",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -47,6 +49,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Permissions.cluster(read=True),
             Role(
                 name="ReadCluster",
+                alias_permissions=[],
                 cluster_permissions=[ClusterPermissionOutput(actions={Actions.Cluster.READ})],
                 users_permissions=[],
                 collections_permissions=[],
@@ -61,6 +64,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Permissions.collections(collection="Test", create_collection=True),
             Role(
                 name="CreateAllCollections",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[
@@ -79,6 +83,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Permissions.data(collection="*", create=True),
             Role(
                 name="CreateAllData",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -97,6 +102,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             ),
             Role(
                 name="CreateDataInColsAndTenants",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -124,6 +130,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Permissions.Nodes.verbose(collection="Test", read=True),
             Role(
                 name="VerboseNodes",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -142,6 +149,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Permissions.Nodes.minimal(read=True),
             Role(
                 name="MinimalNodes",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -160,6 +168,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Permissions.roles(role="*", create=True),
             Role(
                 name="ManageAllRoles",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -178,6 +187,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Permissions.tenants(collection="*", read=True, update=True),
             Role(
                 name="TenantsReadRole",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -201,6 +211,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Role(
                 name="ReadSpecificTenantsInCols",
                 cluster_permissions=[],
+                alias_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
                 roles_permissions=[],
@@ -236,11 +247,31 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Role(
                 name="UserAssignRole",
                 cluster_permissions=[],
+                alias_permissions=[],
                 users_permissions=[
                     UsersPermissionOutput(
                         users="*", actions={Actions.Users.ASSIGN_AND_REVOKE, Actions.Users.READ}
                     )
                 ],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+            ),
+        ),
+        (
+            Permissions.alias(alias="*", read=True, delete=True),
+            Role(
+                name="UserAssignRole",
+                alias_permissions=[
+                    AliasPermissionOutput(
+                        alias="*", actions={Actions.Alias.READ, Actions.Alias.DELETE}
+                    )
+                ],
+                cluster_permissions=[],
+                users_permissions=[],
                 collections_permissions=[],
                 roles_permissions=[],
                 data_permissions=[],
