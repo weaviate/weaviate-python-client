@@ -26,7 +26,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 
 @pytest.mark.parametrize(
-    "permissions,expected",
+    "permissions,expected,min_version",
     [
         (
             Permissions.backup(collection="Test", manage=True),
@@ -298,7 +298,7 @@ def test_create_role(
     client_factory: ClientFactory,
     permissions: List[_Permission],
     expected: Role,
-    min_version: Optional[int] = 32,
+    min_version: Optional[int],
 ) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
