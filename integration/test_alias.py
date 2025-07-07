@@ -37,6 +37,8 @@ def client(client_factory: ClientFactory) -> Generator[weaviate.WeaviateClient, 
 
 
 def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("Aliases are not supported in Weaviate versions < 1.32.0")
     name = _sanitize_collection_name(request.node.name)
     name2 = _sanitize_collection_name(request.node.name + "_2")
 
@@ -77,6 +79,9 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
 
 
 def test_alias_creation_and_update(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("Aliases are not supported in Weaviate versions < 1.32.0")
+
     name = _sanitize_collection_name(request.node.name)
     name2 = _sanitize_collection_name(request.node.name + "_2")
 
@@ -110,6 +115,9 @@ def test_alias_creation_and_update(client: weaviate.WeaviateClient, request: Sub
 
 
 def test_alias_get(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("Aliases are not supported in Weaviate versions < 1.32.0")
+
     name = _sanitize_collection_name(request.node.name)
 
     client.collections.delete(name)
