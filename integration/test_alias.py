@@ -1,4 +1,4 @@
-from typing import Callable, Generator
+from typing import Callable, Generator, Optional
 from _pytest.fixtures import SubRequest
 
 import pytest
@@ -11,7 +11,7 @@ ClientFactory = Callable[[int, int], weaviate.WeaviateClient]
 
 @pytest.fixture(scope="module")
 def client_factory() -> Generator[Callable[[int, int], weaviate.WeaviateClient], None, None]:
-    client: weaviate.WeaviateClient = None
+    client: Optional[weaviate.WeaviateClient] = None
 
     def maker(http: int, grpc: int) -> weaviate.WeaviateClient:
         nonlocal client
@@ -101,7 +101,7 @@ def test_alias_creation_and_update(client: weaviate.WeaviateClient, request: Sub
         assert all_alias["Test_alias1"].collection == name2
 
         # return status code not yet correct
-        # assert not client.alias.update(alias_name="does_not_exist", new_target_collection=name2)
+        assert not client.alias.update(alias_name="does_not_exist", new_target_collection=name2)
     finally:
         client.collections.delete(name)
         client.collections.delete(name2)

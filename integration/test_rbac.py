@@ -21,7 +21,7 @@ from weaviate.rbac.models import (
     _Permission,
 )
 
-RBAC_PORTS = (8081, 50052)
+RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 
