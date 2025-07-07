@@ -42,8 +42,8 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
         pytest.skip("Aliases are not supported in Weaviate versions < 1.32.0")
     name = _sanitize_collection_name(request.node.name)
     name2 = _sanitize_collection_name(request.node.name + "_2")
-    alias1: str = _sanitize_collection_name(request.node.name)
-    alias2: str = _sanitize_collection_name(request.node.name + "_2")
+    alias1: str = "alias" + _sanitize_collection_name(request.node.name)
+    alias2: str = "alias" + _sanitize_collection_name(request.node.name + "_2")
 
     client.collections.delete(name)
     client.collections.delete(name2)
@@ -91,7 +91,7 @@ def test_alias_creation_and_update(client: weaviate.WeaviateClient, request: Sub
 
     name = _sanitize_collection_name(request.node.name)
     name2 = _sanitize_collection_name(request.node.name + "_2")
-    alias1: str = _sanitize_collection_name(request.node.name)
+    alias1: str = "alias" + _sanitize_collection_name(request.node.name)
 
     client.collections.delete(name)
     client.collections.delete(name2)
@@ -129,7 +129,7 @@ def test_alias_get(client: weaviate.WeaviateClient, request: SubRequest) -> None
         pytest.skip("Aliases are not supported in Weaviate versions < 1.32.0")
 
     name = _sanitize_collection_name(request.node.name)
-    alias1: str = _sanitize_collection_name(request.node.name)
+    alias1: str = "alias" + _sanitize_collection_name(request.node.name)
 
     client.collections.delete(name)
     client.alias.delete(alias_name=alias1)
