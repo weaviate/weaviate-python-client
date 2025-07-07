@@ -86,7 +86,7 @@ jobs:
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
-      - run: pip install -r requirements-devel.txt
+      - run: pip install -r requirements-test.txt
       - name: Run unittests
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
@@ -113,7 +113,7 @@ jobs:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: |
-          pip install -r requirements-devel.txt
+          pip install -r requirements-test.txt
           pip install .
       - name: Run integration tests
         if: ${{ !github.event.pull_request.head.repo.fork }}
@@ -155,7 +155,7 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
-          pip install -r requirements-devel.txt
+          pip install -r requirements-test.txt
           pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
@@ -206,7 +206,7 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - run: pip install -r requirements-devel.txt
+      - run: pip install -r requirements-test.txt
       - run: pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate_jt.sh ${{ matrix.versions.weaviate }}
@@ -259,7 +259,7 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
-        run: pip install -r requirements-devel.txt
+        run: pip install -r requirements-test.txt
       - name: Build a binary wheel
         run: python -m build
       - name: Create Wheel Artifacts
@@ -301,7 +301,7 @@ jobs:
           name: weaviate-python-client-wheel
       - run: |
           pip install weaviate_client-*.whl
-          pip install -r requirements-devel.txt  # install test dependencies
+          pip install -r requirements-test.txt  # install test dependencies
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
@@ -323,7 +323,7 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
-        run: pip install -r requirements-devel.txt
+        run: pip install -r requirements-test.txt
       - name: Build a binary wheel
         run: python -m build
       - name: Publish distribution 📦 to PyPI on new tags
