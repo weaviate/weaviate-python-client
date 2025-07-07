@@ -86,7 +86,7 @@ jobs:
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
-      - run: pip install -r requirements-test.txt requirements-devel.txt
+      - run: pip install -r requirements-test.txt -r requirements-devel.txt
       - name: Run unittests
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
@@ -259,7 +259,7 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
-        run: pip install -r requirements-test.txt requirements-devel.txt
+        run: pip install -r requirements-test.txt -r requirements-devel.txt
       - name: Build a binary wheel
         run: python -m build
       - name: Create Wheel Artifacts
