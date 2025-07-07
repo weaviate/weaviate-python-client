@@ -3,6 +3,7 @@ from _pytest.fixtures import SubRequest
 
 import pytest
 import weaviate
+import weaviate.classes as wvc
 from .conftest import _sanitize_collection_name
 
 
@@ -48,7 +49,9 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
     client.alias.delete(alias_name="Test_alias2")
 
     try:
-        client.collections.create(name=name)
+        client.collections.create(
+            name=name, vectorizer_config=wvc.config.Configure.Vectorizer.none()
+        )
         client.collections.create(name=name2)
 
         client.alias.create(alias_name="Test_alias1", target_collection=name)
