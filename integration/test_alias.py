@@ -42,8 +42,8 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
         pytest.skip("Aliases are not supported in Weaviate versions < 1.32.0")
     name = _sanitize_collection_name(request.node.name)
     name2 = _sanitize_collection_name(request.node.name + "_2")
-    alias1: str = "alias" + _sanitize_collection_name(request.node.name)
-    alias2: str = "alias" + _sanitize_collection_name(request.node.name + "_2")
+    alias1: str = "Alias" + _sanitize_collection_name(request.node.name)
+    alias2: str = "Alias" + _sanitize_collection_name(request.node.name + "_2")
 
     client.collections.delete(name)
     client.collections.delete(name2)
@@ -61,6 +61,11 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
         client.alias.create(alias_name=alias1, target_collection=name)
         client.alias.create(alias_name=alias2, target_collection=name2)
         all_alias = client.alias.list_all()
+        all_alias = {
+            alias[0]: alias[1]
+            for alias in all_alias.items()
+            if alias[1].collection in [name, name2]
+        }
         assert len(all_alias) == 2
         assert all_alias[alias1].alias == alias1
         assert all_alias[alias1].collection == name
@@ -91,7 +96,7 @@ def test_alias_creation_and_update(client: weaviate.WeaviateClient, request: Sub
 
     name = _sanitize_collection_name(request.node.name)
     name2 = _sanitize_collection_name(request.node.name + "_2")
-    alias1: str = "alias" + _sanitize_collection_name(request.node.name)
+    alias1: str = "Alias" + _sanitize_collection_name(request.node.name)
 
     client.collections.delete(name)
     client.collections.delete(name2)
@@ -106,15 +111,16 @@ def test_alias_creation_and_update(client: weaviate.WeaviateClient, request: Sub
         )
 
         client.alias.create(alias_name=alias1, target_collection=name)
-        all_alias = client.alias.list_all()
-        assert len(all_alias) == 1
-        assert all_alias[alias1].alias == alias1
-        assert all_alias[alias1].collection == name
+        alias = client.alias.get(alias_name=alias1)
+        assert alias is not None
+        assert alias.alias == alias1
+        assert alias.collection == name
 
         assert client.alias.update(alias_name=alias1, new_target_collection=name2)
-        all_alias = client.alias.list_all()
-        assert all_alias[alias1].alias == alias1
-        assert all_alias[alias1].collection == name2
+        alias = client.alias.get(alias_name=alias1)
+        assert alias is not None
+        assert alias.alias == alias1
+        assert alias.collection == name2
 
         # return status code not yet correct
         assert not client.alias.update(alias_name="does_not_exist", new_target_collection=name2)
@@ -129,7 +135,7 @@ def test_alias_get(client: weaviate.WeaviateClient, request: SubRequest) -> None
         pytest.skip("Aliases are not supported in Weaviate versions < 1.32.0")
 
     name = _sanitize_collection_name(request.node.name)
-    alias1: str = "alias" + _sanitize_collection_name(request.node.name)
+    alias1: str = "Alias" + _sanitize_collection_name(request.node.name)
 
     client.collections.delete(name)
     client.alias.delete(alias_name=alias1)
