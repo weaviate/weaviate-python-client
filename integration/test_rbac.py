@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -264,7 +264,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
         (
             Permissions.alias(alias="*", read=True, delete=True),
             Role(
-                name="UserAssignRole",
+                name="AlliasRole",
                 alias_permissions=[
                     AliasPermissionOutput(
                         alias="*", actions={Actions.Alias.READ, Actions.Alias.DELETE}
@@ -279,15 +279,24 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[],
             ),
+            32,  # Minimum version for alias permissions
         ),
     ],
 )
 def test_create_role(
-    client_factory: ClientFactory, permissions: List[_Permission], expected: Role
+    client_factory: ClientFactory,
+    permissions: List[_Permission],
+    expected: Role,
+    min_version: Optional[int] = 32,
 ) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        if min_version is not None and client._connection._weaviate_version.is_lower_than(
+            1, min_version, 0
+        ):
+            pytest.skip(f"This test requires Weaviate 1.{min_version}.0 or higher")
+
         try:
             client.roles.delete(expected.name)
             client.roles.create(
