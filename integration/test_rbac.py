@@ -44,6 +44,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.cluster(read=True),
@@ -59,6 +60,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.collections(collection="Test", create_collection=True),
@@ -78,6 +80,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.data(collection="*", create=True),
@@ -95,6 +98,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.data(
@@ -125,6 +129,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.Nodes.verbose(collection="Test", read=True),
@@ -144,6 +149,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 ],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.Nodes.minimal(read=True),
@@ -163,6 +169,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 ],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.roles(role="*", create=True),
@@ -182,6 +189,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.tenants(collection="*", read=True, update=True),
@@ -203,6 +211,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                     )
                 ],
             ),
+            None,
         ),
         (
             Permissions.tenants(
@@ -241,6 +250,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                     ),
                 ],
             ),
+            None,
         ),
         (
             Permissions.users(user="*", assign_and_revoke=True, read=True),
@@ -260,6 +270,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.alias(alias="*", read=True, delete=True),
