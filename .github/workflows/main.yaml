@@ -323,7 +323,7 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
-        run: pip install -r requirements-test.txt
+        run: pip install -r requirements-devel.txt
       - name: Build a binary wheel
         run: python -m build
       - name: Publish distribution 📦 to PyPI on new tags
