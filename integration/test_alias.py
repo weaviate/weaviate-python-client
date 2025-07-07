@@ -52,7 +52,9 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
         client.collections.create(
             name=name, vectorizer_config=wvc.config.Configure.Vectorizer.none()
         )
-        client.collections.create(name=name2)
+        client.collections.create(
+            name=name2, vectorizer_config=wvc.config.Configure.Vectorizer.none()
+        )
 
         client.alias.create(alias_name="Test_alias1", target_collection=name)
         client.alias.create(alias_name="Test_alias2", target_collection=name2)
@@ -94,8 +96,12 @@ def test_alias_creation_and_update(client: weaviate.WeaviateClient, request: Sub
     client.alias.delete(alias_name="Test_alias2")
 
     try:
-        client.collections.create(name=name)
-        client.collections.create(name=name2)
+        client.collections.create(
+            name=name, vectorizer_config=wvc.config.Configure.Vectorizer.none()
+        )
+        client.collections.create(
+            name=name2, vectorizer_config=wvc.config.Configure.Vectorizer.none()
+        )
 
         client.alias.create(alias_name="Test_alias1", target_collection=name)
         all_alias = client.alias.list_all()
@@ -126,7 +132,9 @@ def test_alias_get(client: weaviate.WeaviateClient, request: SubRequest) -> None
     client.collections.delete(name)
     client.alias.delete(alias_name="Test_alias1")
     try:
-        client.collections.create(name=name)
+        client.collections.create(
+            name=name, vectorizer_config=wvc.config.Configure.Vectorizer.none()
+        )
 
         client.alias.create(alias_name="Test_alias1", target_collection=name)
         alias = client.alias.get(alias_name="Test_alias1")
