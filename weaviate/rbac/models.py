@@ -69,6 +69,11 @@ class PermissionBackup(TypedDict):
     collection: str
 
 
+class PermissionReplicate(TypedDict):
+    collection: str
+    shard: str
+
+
 class PermissionRoles(TypedDict):
     role: str
     scope: NotRequired[str]
@@ -94,6 +99,7 @@ class WeaviatePermission(
     collections: Optional[PermissionCollections]
     nodes: Optional[PermissionNodes]
     backups: Optional[PermissionBackup]
+    replicate: Optional[PermissionReplicate]
     roles: Optional[PermissionRoles]
     tenants: Optional[PermissionsTenants]
     users: Optional[PermissionsUsers]
@@ -217,6 +223,17 @@ class BackupsAction(str, _Action, Enum):
         return [action.value for action in BackupsAction]
 
 
+class ReplicateAction(str, _Action, Enum):
+    CREATE = "create_replicate"
+    READ = "read_replicate"
+    UPDATE = "update_replicate"
+    DELETE = "delete_replicate"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in ReplicateAction]
+
+
 ActionT = TypeVar("ActionT", bound=Enum)
 
 
@@ -271,6 +288,23 @@ class _NodesPermission(_Permission[NodesAction]):
                 "nodes": {
                     "collection": _capitalize_first_letter(self.collection),
                     "verbosity": self.verbosity,
+                },
+            }
+            for action in self.actions
+        ]
+
+
+class _ReplicatePermission(_Permission[ReplicateAction]):
+    collection: str
+    shard: str
+
+    def _to_weaviate(self) -> List[WeaviatePermission]:
+        return [
+            {
+                "action": action,
+                "replicate": {
+                    "collection": _capitalize_first_letter(self.collection),
+                    "shard": self.shard,
                 },
             }
             for action in self.actions
@@ -358,6 +392,10 @@ class DataPermissionOutput(_DataPermission):
     pass
 
 
+class ReplicatePermissionOutput(_ReplicatePermission):
+    pass
+
+
 class RolesPermissionOutput(_RolesPermission):
     pass
 
@@ -396,6 +434,7 @@ PermissionsOutputType = Union[
     BackupsPermissionOutput,
     NodesPermissionOutput,
     TenantsPermissionOutput,
+    ReplicatePermissionOutput,
 ]
 
 
@@ -415,6 +454,7 @@ class Role(RoleBase):
     backups_permissions: List[BackupsPermissionOutput]
     nodes_permissions: List[NodesPermissionOutput]
     tenants_permissions: List[TenantsPermissionOutput]
+    replicate_permissions: List[ReplicatePermissionOutput]
 
     @property
     def permissions(self) -> List[PermissionsOutputType]:
@@ -428,6 +468,7 @@ class Role(RoleBase):
         permissions.extend(self.backups_permissions)
         permissions.extend(self.nodes_permissions)
         permissions.extend(self.tenants_permissions)
+        permissions.extend(self.replicate_permissions)
         return permissions
 
     @classmethod
@@ -441,6 +482,7 @@ class Role(RoleBase):
         backups_permissions: List[BackupsPermissionOutput] = []
         nodes_permissions: List[NodesPermissionOutput] = []
         tenants_permissions: List[TenantsPermissionOutput] = []
+        replicate_permissions: List[ReplicatePermissionOutput] = []
 
         for permission in role["permissions"]:
             if permission["action"] in ClusterAction.values():
@@ -515,6 +557,16 @@ class Role(RoleBase):
                             actions={NodesAction(permission["action"])},
                         )
                     )
+            elif permission["action"] in ReplicateAction.values():
+                replicate = permission.get("replicate")
+                if replicate is not None:
+                    replicate_permissions.append(
+                        ReplicatePermissionOutput(
+                            collection=replicate["collection"],
+                            shard=replicate.get("shard", "*"),
+                            actions={ReplicateAction(permission["action"])},
+                        )
+                    )
             elif permission["action"] in AliasAction.values():
                 aliases = permission.get("aliases")
                 if aliases is not None:
@@ -538,6 +590,7 @@ class Role(RoleBase):
             backups_permissions=_join_permissions(backups_permissions),
             nodes_permissions=_join_permissions(nodes_permissions),
             tenants_permissions=_join_permissions(tenants_permissions),
+            replicate_permissions=_join_permissions(replicate_permissions),
         )
 
 
@@ -589,6 +642,7 @@ class Actions:
     Backups = BackupsAction
     Tenants = TenantsAction
     Users = UsersAction
+    Replicate = ReplicateAction
 
 
 class NodesPermissions:
@@ -746,6 +800,41 @@ class Permissions:
                     permission.actions.add(TenantsAction.UPDATE)
                 if delete:
                     permission.actions.add(TenantsAction.DELETE)
+
+                if len(permission.actions) > 0:
+                    permissions.append(permission)
+
+        return permissions
+
+    @staticmethod
+    def replicate(
+        *,
+        collection: Union[str, Sequence[str]],
+        shard: Union[str, Sequence[str], None] = None,
+        create: bool = False,
+        read: bool = False,
+        update: bool = False,
+        delete: bool = False,
+    ) -> PermissionsCreateType:
+        permissions: List[_Permission] = []
+        if isinstance(collection, str):
+            collection = [collection]
+        if shard is None:
+            shard = ["*"]
+        if isinstance(shard, str):
+            shard = [shard]
+        for c in collection:
+            for s in shard:
+                permission = _ReplicatePermission(collection=c, shard=s, actions=set())
+
+                if create:
+                    permission.actions.add(ReplicateAction.CREATE)
+                if read:
+                    permission.actions.add(ReplicateAction.READ)
+                if update:
+                    permission.actions.add(ReplicateAction.UPDATE)
+                if delete:
+                    permission.actions.add(ReplicateAction.DELETE)
 
                 if len(permission.actions) > 0:
                     permissions.append(permission)

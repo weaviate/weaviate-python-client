@@ -9,8 +9,8 @@ from weaviate.client_executor import _WeaviateClientExecutor
 
 from .auth import AuthCredentials
 from .backup import _Backup, _BackupAsync
+from .cluster import _Cluster, _ClusterAsync
 from .collections.batch.client import _BatchClientWrapper
-from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections import _Collections, _CollectionsAsync
 from .config import AdditionalConfig
 from .connect import executor

@@ -15,8 +15,8 @@ from weaviate.users.async_ import _UsersAsync
 from weaviate.users.sync import _Users
 
 from .backup import _Backup, _BackupAsync
+from .cluster import _Cluster, _ClusterAsync
 from .collections.batch.client import _BatchClientWrapper
-from .collections.cluster import _Cluster, _ClusterAsync
 from .debug import _Debug, _DebugAsync
 from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
