@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -7,6 +7,7 @@ from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.classes.rbac import Actions, Permissions, RoleScope
 from weaviate.rbac.models import (
+    AliasPermissionOutput,
     BackupsPermissionOutput,
     ClusterPermissionOutput,
     CollectionsPermissionOutput,
@@ -26,12 +27,13 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 
 @pytest.mark.parametrize(
-    "permissions,expected",
+    "permissions,expected,min_version",
     [
         (
             Permissions.backup(collection="Test", manage=True),
             Role(
                 name="ManageAllBackups",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -44,11 +46,13 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.cluster(read=True),
             Role(
                 name="ReadCluster",
+                alias_permissions=[],
                 cluster_permissions=[ClusterPermissionOutput(actions={Actions.Cluster.READ})],
                 users_permissions=[],
                 collections_permissions=[],
@@ -59,11 +63,13 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.collections(collection="Test", create_collection=True),
             Role(
                 name="CreateAllCollections",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[
@@ -78,11 +84,13 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.data(collection="*", create=True),
             Role(
                 name="CreateAllData",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -95,6 +103,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.data(
@@ -102,6 +111,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             ),
             Role(
                 name="CreateDataInColsAndTenants",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -125,11 +135,13 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.Nodes.verbose(collection="Test", read=True),
             Role(
                 name="VerboseNodes",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -144,11 +156,13 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.Nodes.minimal(read=True),
             Role(
                 name="MinimalNodes",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -163,11 +177,13 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.roles(role="*", create=True),
             Role(
                 name="ManageAllRoles",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -182,11 +198,13 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.tenants(collection="*", read=True, update=True),
             Role(
                 name="TenantsReadRole",
+                alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
@@ -203,6 +221,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 ],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.tenants(
@@ -211,6 +230,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Role(
                 name="ReadSpecificTenantsInCols",
                 cluster_permissions=[],
+                alias_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
                 roles_permissions=[],
@@ -241,12 +261,14 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 ],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.users(user="*", assign_and_revoke=True, read=True),
             Role(
                 name="UserAssignRole",
                 cluster_permissions=[],
+                alias_permissions=[],
                 users_permissions=[
                     UsersPermissionOutput(
                         users="*", actions={Actions.Users.ASSIGN_AND_REVOKE, Actions.Users.READ}
@@ -266,6 +288,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             Role(
                 name="UserAssignRole",
                 cluster_permissions=[],
+                alias_permissions=[],
                 users_permissions=[
                     UsersPermissionOutput(
                         users="*", actions={Actions.Users.ASSIGN_AND_REVOKE, Actions.Users.READ}
@@ -285,8 +308,9 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 collection=["ColA", "ColB"], shard=["tenant1", "tenant2"], read=True, update=True
             ),
             Role(
-                name="ReplicateSpecificShardsInCols",
+                name="Replicate",
                 cluster_permissions=[],
+                alias_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
                 roles_permissions=[],
@@ -317,20 +341,45 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                     ),
                 ],
             ),
+            32,
+        ),
+        (
+            Permissions.alias(alias="*", read=True, delete=True),
+            Role(
+                name="AlliasRole",
+                alias_permissions=[
+                    AliasPermissionOutput(
+                        alias="*", actions={Actions.Alias.READ, Actions.Alias.DELETE}
+                    )
+                ],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+            ),
+            32,  # Minimum version for alias permissions
         ),
     ],
 )
 def test_create_role(
-    client_factory: ClientFactory, permissions: List[_Permission], expected: Role
+    client_factory: ClientFactory,
+    permissions: List[_Permission],
+    expected: Role,
+    min_version: Optional[int],
 ) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        if (
-            expected.name == "ReplicateSpecificShardsInCols"
-            and client._connection._weaviate_version.is_lower_than(1, 31, 0)
+        if min_version is not None and client._connection._weaviate_version.is_lower_than(
+            1, min_version, 0
         ):
-            pytest.skip("This test requires Weaviate 1.31.0 or higher")
+            pytest.skip(f"This test requires Weaviate 1.{min_version}.0 or higher")
+
         try:
             client.roles.delete(expected.name)
             client.roles.create(
