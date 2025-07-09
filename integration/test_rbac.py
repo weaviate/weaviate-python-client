@@ -282,6 +282,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.users(user="*", assign_and_revoke=True, read=True),
@@ -302,6 +303,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 tenants_permissions=[],
                 replicate_permissions=[],
             ),
+            None,
         ),
         (
             Permissions.replicate(
