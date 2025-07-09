@@ -80,7 +80,12 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
         # Delete existing aliases
         assert client.alias.delete(alias_name=alias1)
         assert client.alias.delete(alias_name=alias2)
-        all_alias = client.alias.list_all()
+        all_alias = client.alias.list_all(collection=name2)
+        all_alias = {
+            alias[0]: alias[1]
+            for alias in all_alias.items()
+            if alias[1].collection in [name, name2]
+        }
         assert len(all_alias) == 0
 
         assert not client.alias.delete(alias_name=alias1)
