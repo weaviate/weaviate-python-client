@@ -104,7 +104,7 @@ class _AliasExecutor(Generic[ConnectionType]):
             ),
         )
 
-    def update(self, *, alias_name: str, new_target_collection) -> executor.Result[bool]:
+    def update(self, *, alias_name: str, new_target_collection: str) -> executor.Result[bool]:
         """Replace an alias."""
         self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
 
