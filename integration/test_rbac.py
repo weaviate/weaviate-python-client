@@ -285,27 +285,6 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             None,
         ),
         (
-            Permissions.users(user="*", assign_and_revoke=True, read=True),
-            Role(
-                name="UserAssignRole",
-                cluster_permissions=[],
-                alias_permissions=[],
-                users_permissions=[
-                    UsersPermissionOutput(
-                        users="*", actions={Actions.Users.ASSIGN_AND_REVOKE, Actions.Users.READ}
-                    )
-                ],
-                collections_permissions=[],
-                roles_permissions=[],
-                data_permissions=[],
-                backups_permissions=[],
-                nodes_permissions=[],
-                tenants_permissions=[],
-                replicate_permissions=[],
-            ),
-            None,
-        ),
-        (
             Permissions.replicate(
                 collection=["ColA", "ColB"], shard=["tenant1", "tenant2"], read=True, update=True
             ),
