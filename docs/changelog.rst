@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 4.16.0
+--------------
+This minor version includes:
+    - Support for new 1.32 features:
+        - collection aliasing
+        - replica movement
+        - RQ configuration
+    - Introduction of ``Configure.Vectors`` and ``Configure.MultiVectors`` and deprecation of legacy ``Configure.Vectorizer`` and ``Configure.NamedVectors``
+        - Usage of ``Configure.MultiVectors`` is reserved for modules like ``text2multivec-jinaai``, which was previously known as ``text2colbert-jinaai``
+    - Addition of helper methods for updating tenant activity statuses: ``collection.tenants.activate()``, ``collection.tenants.deactivate()`` and ``collection.tenants.offload()``
+
+
 Version 4.15.4
 --------------
 This patch version includes:
