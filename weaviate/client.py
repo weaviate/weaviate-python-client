@@ -4,12 +4,13 @@ from typing import Any, Optional, Tuple, Union
 
 from typing_extensions import deprecated
 
+from weaviate.aliases import _Alias, _AliasAsync
 from weaviate.client_executor import _WeaviateClientExecutor
 
 from .auth import AuthCredentials
 from .backup import _Backup, _BackupAsync
+from .cluster import _Cluster, _ClusterAsync
 from .collections.batch.client import _BatchClientWrapper
-from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections import _Collections, _CollectionsAsync
 from .config import AdditionalConfig
 from .connect import executor
@@ -72,7 +73,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
             additional_config=additional_config,
             skip_init_checks=skip_init_checks,
         )
-
+        self.alias = _AliasAsync(self._connection)
         self.backup = _BackupAsync(self._connection)
         self.cluster = _ClusterAsync(self._connection)
         self.collections = _CollectionsAsync(self._connection)
@@ -139,6 +140,9 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
 
         collections = _Collections(self._connection)
 
+        self.alias = _Alias(
+            self._connection,
+        )
         self.batch = _BatchClientWrapper(self._connection, config=collections)
         self.backup = _Backup(self._connection)
         self.cluster = _Cluster(self._connection)

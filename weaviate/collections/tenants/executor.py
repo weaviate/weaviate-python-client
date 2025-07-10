@@ -347,7 +347,11 @@ class _TenantsExecutor(Generic[ConnectionType]):
         def resp_rest(res: Response) -> Optional[TenantOutputType]:
             if res.status_code == 404:
                 return None
-            return Tenant(**res.json())
+            data = res.json()
+            return TenantOutput(
+                name=data["name"],
+                activity_status=TenantActivityStatus(data["activityStatus"]),
+            )
 
         return executor.execute(
             response_callback=resp_rest,

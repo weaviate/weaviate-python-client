@@ -3,7 +3,10 @@ from __future__ import annotations
 from typing import Awaitable, Callable, Dict, List, Optional, Union
 
 import httpx
-from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
+from authlib.integrations.httpx_client import (  # type: ignore
+    AsyncOAuth2Client,
+    OAuth2Client,
+)
 
 from weaviate.auth import (
     AuthBearerToken,
