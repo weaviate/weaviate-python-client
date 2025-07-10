@@ -157,14 +157,10 @@ class _BaseExecutor(Generic[ConnectionType]):
 
         if len(add_props.vector_bytes) > 0:
             vec = _ByteOps.decode_float32s(add_props.vector_bytes)
-            if len(vec) == 0:
-                return {}
             return {"default": vec}
 
         vecs: Dict[str, Union[List[float], List[List[float]]]] = {}
         for vec in add_props.vectors:
-            if len(vec.vector_bytes) == 0:
-                continue
             if vec.type == base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32:
                 vecs[vec.name] = _Unpack.single(vec.vector_bytes)
             elif vec.type == base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32:
