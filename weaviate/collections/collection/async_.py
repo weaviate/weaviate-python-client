@@ -2,6 +2,7 @@ import json
 from dataclasses import asdict
 from typing import Generic, List, Literal, Optional, Type, Union, overload
 
+from weaviate.cluster import _ClusterAsync
 from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.collections.backups import _CollectionBackupAsync
 from weaviate.collections.classes.cluster import Shard
@@ -16,7 +17,6 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.cluster import _ClusterAsync
 from weaviate.collections.config import _ConfigCollectionAsync
 from weaviate.collections.data import _DataCollectionAsync
 from weaviate.collections.generate import _GenerateCollectionAsync

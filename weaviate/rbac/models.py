@@ -69,6 +69,11 @@ class PermissionBackup(TypedDict):
     collection: str
 
 
+class PermissionReplicate(TypedDict):
+    collection: str
+    shard: str
+
+
 class PermissionRoles(TypedDict):
     role: str
     scope: NotRequired[str]
@@ -76,6 +81,10 @@ class PermissionRoles(TypedDict):
 
 class PermissionsUsers(TypedDict):
     users: str
+
+
+class PermissionsAlias(TypedDict):
+    alias: str
 
 
 # action is always present in WeaviatePermission
@@ -90,9 +99,11 @@ class WeaviatePermission(
     collections: Optional[PermissionCollections]
     nodes: Optional[PermissionNodes]
     backups: Optional[PermissionBackup]
+    replicate: Optional[PermissionReplicate]
     roles: Optional[PermissionRoles]
     tenants: Optional[PermissionsTenants]
     users: Optional[PermissionsUsers]
+    aliases: Optional[PermissionsAlias]
 
 
 class WeaviateRole(TypedDict):
@@ -116,6 +127,17 @@ class WeaviateDBUserRoleNames(TypedDict):
 
 class _Action:
     pass
+
+
+class AliasAction(str, _Action, Enum):
+    CREATE = "create_aliases"
+    READ = "read_aliases"
+    UPDATE = "update_aliases"
+    DELETE = "delete_aliases"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in AliasAction]
 
 
 class CollectionsAction(str, _Action, Enum):
@@ -201,6 +223,17 @@ class BackupsAction(str, _Action, Enum):
         return [action.value for action in BackupsAction]
 
 
+class ReplicateAction(str, _Action, Enum):
+    CREATE = "create_replicate"
+    READ = "read_replicate"
+    UPDATE = "update_replicate"
+    DELETE = "delete_replicate"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in ReplicateAction]
+
+
 ActionT = TypeVar("ActionT", bound=Enum)
 
 
@@ -261,6 +294,23 @@ class _NodesPermission(_Permission[NodesAction]):
         ]
 
 
+class _ReplicatePermission(_Permission[ReplicateAction]):
+    collection: str
+    shard: str
+
+    def _to_weaviate(self) -> List[WeaviatePermission]:
+        return [
+            {
+                "action": action,
+                "replicate": {
+                    "collection": _capitalize_first_letter(self.collection),
+                    "shard": self.shard,
+                },
+            }
+            for action in self.actions
+        ]
+
+
 class _RolesPermission(_Permission[RolesAction]):
     role: str
     scope: Optional[str] = None
@@ -283,6 +333,13 @@ class _UsersPermission(_Permission[UsersAction]):
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [{"action": action, "users": {"users": self.users}} for action in self.actions]
+
+
+class _AliasPermission(_Permission[AliasAction]):
+    alias: str
+
+    def _to_weaviate(self) -> List[WeaviatePermission]:
+        return [{"action": action, "aliases": {"alias": self.alias}} for action in self.actions]
 
 
 class _BackupsPermission(_Permission[BackupsAction]):
@@ -335,11 +392,19 @@ class DataPermissionOutput(_DataPermission):
     pass
 
 
+class ReplicatePermissionOutput(_ReplicatePermission):
+    pass
+
+
 class RolesPermissionOutput(_RolesPermission):
     pass
 
 
 class UsersPermissionOutput(_UsersPermission):
+    pass
+
+
+class AliasPermissionOutput(_AliasPermission):
     pass
 
 
@@ -360,6 +425,7 @@ class TenantsPermissionOutput(_TenantsPermission):
 
 
 PermissionsOutputType = Union[
+    AliasPermissionOutput,
     ClusterPermissionOutput,
     CollectionsPermissionOutput,
     DataPermissionOutput,
@@ -368,6 +434,7 @@ PermissionsOutputType = Union[
     BackupsPermissionOutput,
     NodesPermissionOutput,
     TenantsPermissionOutput,
+    ReplicatePermissionOutput,
 ]
 
 
@@ -378,6 +445,7 @@ class RoleBase:
 
 @dataclass
 class Role(RoleBase):
+    alias_permissions: List[AliasPermissionOutput]
     cluster_permissions: List[ClusterPermissionOutput]
     collections_permissions: List[CollectionsPermissionOutput]
     data_permissions: List[DataPermissionOutput]
@@ -386,10 +454,12 @@ class Role(RoleBase):
     backups_permissions: List[BackupsPermissionOutput]
     nodes_permissions: List[NodesPermissionOutput]
     tenants_permissions: List[TenantsPermissionOutput]
+    replicate_permissions: List[ReplicatePermissionOutput]
 
     @property
     def permissions(self) -> List[PermissionsOutputType]:
         permissions: List[PermissionsOutputType] = []
+        permissions.extend(self.alias_permissions)
         permissions.extend(self.cluster_permissions)
         permissions.extend(self.collections_permissions)
         permissions.extend(self.data_permissions)
@@ -398,10 +468,12 @@ class Role(RoleBase):
         permissions.extend(self.backups_permissions)
         permissions.extend(self.nodes_permissions)
         permissions.extend(self.tenants_permissions)
+        permissions.extend(self.replicate_permissions)
         return permissions
 
     @classmethod
     def _from_weaviate_role(cls, role: WeaviateRole) -> "Role":
+        alias_permissions: List[AliasPermissionOutput] = []
         cluster_permissions: List[ClusterPermissionOutput] = []
         users_permissions: List[UsersPermissionOutput] = []
         collections_permissions: List[CollectionsPermissionOutput] = []
@@ -410,6 +482,7 @@ class Role(RoleBase):
         backups_permissions: List[BackupsPermissionOutput] = []
         nodes_permissions: List[NodesPermissionOutput] = []
         tenants_permissions: List[TenantsPermissionOutput] = []
+        replicate_permissions: List[ReplicatePermissionOutput] = []
 
         for permission in role["permissions"]:
             if permission["action"] in ClusterAction.values():
@@ -484,11 +557,31 @@ class Role(RoleBase):
                             actions={NodesAction(permission["action"])},
                         )
                     )
+            elif permission["action"] in ReplicateAction.values():
+                replicate = permission.get("replicate")
+                if replicate is not None:
+                    replicate_permissions.append(
+                        ReplicatePermissionOutput(
+                            collection=replicate["collection"],
+                            shard=replicate.get("shard", "*"),
+                            actions={ReplicateAction(permission["action"])},
+                        )
+                    )
+            elif permission["action"] in AliasAction.values():
+                aliases = permission.get("aliases")
+                if aliases is not None:
+                    alias_permissions.append(
+                        AliasPermissionOutput(
+                            alias=aliases["alias"],
+                            actions={AliasAction(permission["action"])},
+                        )
+                    )
             else:
                 _Warnings.unknown_permission_encountered(permission)
 
         return cls(
             name=role["name"],
+            alias_permissions=_join_permissions(alias_permissions),
             cluster_permissions=_join_permissions(cluster_permissions),
             users_permissions=_join_permissions(users_permissions),
             collections_permissions=_join_permissions(collections_permissions),
@@ -497,6 +590,7 @@ class Role(RoleBase):
             backups_permissions=_join_permissions(backups_permissions),
             nodes_permissions=_join_permissions(nodes_permissions),
             tenants_permissions=_join_permissions(tenants_permissions),
+            replicate_permissions=_join_permissions(replicate_permissions),
         )
 
 
@@ -539,6 +633,7 @@ PermissionsCreateType = List[_Permission]
 
 
 class Actions:
+    Alias = AliasAction
     Data = DataAction
     Collections = CollectionsAction
     Roles = RolesAction
@@ -547,6 +642,7 @@ class Actions:
     Backups = BackupsAction
     Tenants = TenantsAction
     Users = UsersAction
+    Replicate = ReplicateAction
 
 
 class NodesPermissions:
@@ -584,6 +680,35 @@ class NodesPermissions:
 
 class Permissions:
     Nodes = NodesPermissions
+
+    @staticmethod
+    def alias(
+        *,
+        alias: Union[str, Sequence[str]],
+        create: bool = False,
+        read: bool = False,
+        update: bool = False,
+        delete: bool = False,
+    ) -> PermissionsCreateType:
+        permissions: List[_Permission] = []
+        if isinstance(alias, str):
+            alias = [alias]
+
+        for a in alias:
+            permission = _AliasPermission(alias=a, actions=set())
+
+            if create:
+                permission.actions.add(AliasAction.CREATE)
+            if read:
+                permission.actions.add(AliasAction.READ)
+            if update:
+                permission.actions.add(AliasAction.UPDATE)
+            if delete:
+                permission.actions.add(AliasAction.DELETE)
+
+            if len(permission.actions) > 0:
+                permissions.append(permission)
+        return permissions
 
     @staticmethod
     def data(
@@ -675,6 +800,41 @@ class Permissions:
                     permission.actions.add(TenantsAction.UPDATE)
                 if delete:
                     permission.actions.add(TenantsAction.DELETE)
+
+                if len(permission.actions) > 0:
+                    permissions.append(permission)
+
+        return permissions
+
+    @staticmethod
+    def replicate(
+        *,
+        collection: Union[str, Sequence[str]],
+        shard: Union[str, Sequence[str], None] = None,
+        create: bool = False,
+        read: bool = False,
+        update: bool = False,
+        delete: bool = False,
+    ) -> PermissionsCreateType:
+        permissions: List[_Permission] = []
+        if isinstance(collection, str):
+            collection = [collection]
+        if shard is None:
+            shard = ["*"]
+        if isinstance(shard, str):
+            shard = [shard]
+        for c in collection:
+            for s in shard:
+                permission = _ReplicatePermission(collection=c, shard=s, actions=set())
+
+                if create:
+                    permission.actions.add(ReplicateAction.CREATE)
+                if read:
+                    permission.actions.add(ReplicateAction.READ)
+                if update:
+                    permission.actions.add(ReplicateAction.UPDATE)
+                if delete:
+                    permission.actions.add(ReplicateAction.DELETE)
 
                 if len(permission.actions) > 0:
                     permissions.append(permission)
