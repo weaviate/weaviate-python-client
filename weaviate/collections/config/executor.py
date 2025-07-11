@@ -33,7 +33,6 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigUpdate,
     _RerankerProvider,
     _ShardStatus,
-    _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
 )
@@ -142,7 +141,6 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> executor.Result[None]:
@@ -155,12 +153,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             inverted_index_config: Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
             replication_config: Configuration for the replication. Use `Reconfigure.replication` to generate one.
             reranker_config: Configuration for the reranker. Use `Reconfigure.replication` to generate one.
-            vector_index_config (DEPRECATED use `vector_config`): Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
+            vector_index_config`: DEPRECATED USE `vectorizer_config` INSTEAD. Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
             vectorizer_config: Configurations for the vector index (or indices) of your collection.
-                Use `Reconfigure.vector_index` if using legacy vectorization and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
-                Using this argument with a list of `Reconfigure.NamedVectors` is **DEPRECATED**. Use the `vector_config` argument instead in such a case.
-            vector_config: Configuration for the vector index (or indices) of your collection.
-                Use `Reconfigure.Vectors` for both single and multiple vectorizers. Supply a list to update many vectorizers at once.
+                Use `Reconfigure.vector_index` if there is only one vectorizer and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
             multi_tenancy_config: Configuration for multi-tenancy settings. Use `Reconfigure.multi_tenancy` to generate one.
                 Only `auto_tenant_creation` is supported.
 
@@ -176,15 +171,6 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         """
         if vector_index_config is not None:
             _Warnings.vector_index_config_in_config_update()
-        if vectorizer_config is not None and not isinstance(
-            vectorizer_config,
-            (
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigDynamicUpdate,
-            ),
-        ):
-            _Warnings.vectorizer_config_in_config_update()
         try:
             config = _CollectionConfigUpdate(
                 description=description,
@@ -196,7 +182,6 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 multi_tenancy_config=multi_tenancy_config,
                 generative_config=generative_config,
                 reranker_config=reranker_config,
-                vector_config=vector_config,
             )
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e
@@ -251,10 +236,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
             vector_config: Dict[str, Any] = schema.get("vectorConfig", {})
             if len(vector_config) > 0:
-                obj["moduleConfig"] = {
-                    list(conf["vectorizer"].keys()).pop(): modconf
-                    for conf in vector_config.values()
-                }
+                obj["vectorConfig"] = {key: modconf for key in vector_config.keys()}
 
             def inner_resp(res: Response) -> None:
                 return None

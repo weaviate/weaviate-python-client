@@ -5,11 +5,7 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
-from integration.conftest import (
-    CollectionFactory,
-    OpenAICollection,
-    _sanitize_collection_name,
-)
+from integration.conftest import CollectionFactory, OpenAICollection, _sanitize_collection_name
 from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
@@ -1283,30 +1279,6 @@ def test_named_vectors_export_and_import(
 
 
 @pytest.mark.parametrize("source_properties", [None, ["text"]])
-def test_vectors_export_and_import(
-    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
-) -> None:
-    collection = collection_factory(
-        properties=[Property(name="text", data_type=DataType.TEXT)],
-        vector_config=Configure.Vectors.text2vec_contextionary(
-            vectorize_collection_name=False,
-            source_properties=source_properties,
-        ),
-    )
-    config = collection.config.get()
-
-    name = f"TestCollectionConfigExportAndRecreate_{collection.name}"
-    config.name = name
-    with weaviate.connect_to_local() as client:
-        client.collections.delete(name)
-        client.collections.create_from_config(config)
-        new = client.collections.use(name).config.get()
-        assert config == new
-        assert config.to_dict() == new.to_dict()
-        client.collections.delete(name)
-
-
-@pytest.mark.parametrize("source_properties", [None, ["text"]])
 def test_named_vectors_export_and_import_dict(
     collection_factory: CollectionFactory, source_properties: Optional[List[str]]
 ) -> None:
@@ -1319,30 +1291,6 @@ def test_named_vectors_export_and_import_dict(
                 source_properties=source_properties,
             ),
         ],
-    )
-    config = collection.config.get()
-
-    name = f"TestCollectionConfigExportAndRecreateDict_{collection.name}"
-    config.name = name
-    with weaviate.connect_to_local() as client:
-        client.collections.delete(name)
-        client.collections.create_from_dict(config.to_dict())
-        new = client.collections.use(name).config.get()
-        assert config == new
-        assert config.to_dict() == new.to_dict()
-        client.collections.delete(name)
-
-
-@pytest.mark.parametrize("source_properties", [None, ["text"]])
-def test_vectors_export_and_import_dict(
-    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
-) -> None:
-    collection = collection_factory(
-        properties=[Property(name="text", data_type=DataType.TEXT)],
-        vector_config=Configure.Vectors.text2vec_contextionary(
-            vectorize_collection_name=False,
-            source_properties=source_properties,
-        ),
     )
     config = collection.config.get()
 
@@ -1449,10 +1397,13 @@ def test_config_multi_vector_enabled(
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vector_config=[
-            Configure.MultiVectors.text2vec_jinaai(
+        vectorizer_config=[
+            Configure.NamedVectors.text2colbert_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
+                vector_index_config=Configure.VectorIndex.hnsw(
+                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector()
+                ),
             )
         ],
     )
@@ -1496,11 +1447,15 @@ def test_config_muvera_enabled(
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vector_config=[
-            Configure.MultiVectors.text2vec_jinaai(
+        vectorizer_config=[
+            Configure.NamedVectors.text2colbert_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
-                encoding=Configure.VectorIndex.MultiVector.Encoding.muvera(),
+                vector_index_config=Configure.VectorIndex.hnsw(
+                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector(
+                        encoding=Configure.VectorIndex.MultiVector.Encoding.muvera()
+                    )
+                ),
             )
         ],
     )
@@ -1525,10 +1480,13 @@ def test_config_muvera_disabled(
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        vector_config=[
-            Configure.MultiVectors.text2vec_jinaai(
+        vectorizer_config=[
+            Configure.NamedVectors.text2colbert_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
+                vector_index_config=Configure.VectorIndex.hnsw(
+                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector()
+                ),
             )
         ],
     )

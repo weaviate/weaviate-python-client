@@ -28,7 +28,6 @@ from weaviate.collections.classes.config import (
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
     _RerankerProvider,
-    _VectorConfigCreate,
     _VectorIndexConfigCreate,
     _VectorizerConfigCreate,
 )
@@ -59,9 +58,6 @@ class CollectionFactory(Protocol):
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerProvider] = None,
-        vector_config: Optional[
-            Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
-        ] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -133,9 +129,6 @@ def collection_factory(
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerProvider] = None,
-        vector_config: Optional[
-            Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
-        ] = None,
     ) -> Collection[Any, Any]:
         try:
             nonlocal client_fixture, name_fixtures, call_counter  # noqa: F824
@@ -155,8 +148,7 @@ def collection_factory(
             collection: Collection[Any, Any] = client_fixture.collections.create(
                 name=name_fixture,
                 description=description,
-                vectorizer_config=vectorizer_config
-                or (Configure.Vectorizer.none() if vector_config is None else None),
+                vectorizer_config=vectorizer_config or Configure.Vectorizer.none(),
                 properties=properties,
                 references=references,
                 inverted_index_config=inverted_index_config,
@@ -167,7 +159,6 @@ def collection_factory(
                 replication_config=replication_config,
                 vector_index_config=vector_index_config,
                 reranker_config=reranker_config,
-                vector_config=vector_config,
             )
             return collection
         except Exception as e:
@@ -324,9 +315,6 @@ class OpenAICollection(Protocol):
         vectorizer_config: Optional[
             Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
         ] = None,
-        vector_config: Optional[
-            Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
-        ] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -341,18 +329,17 @@ def openai_collection(
         vectorizer_config: Optional[
             Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
         ] = None,
-        vector_config: Optional[
-            Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
-        ] = None,
     ) -> Collection[Any, Any]:
         api_key = os.environ.get("OPENAI_APIKEY")
         if api_key is None:
             pytest.skip("No OpenAI API key found.")
 
+        if vectorizer_config is None:
+            vectorizer_config = Configure.Vectorizer.none()
+
         collection = collection_factory(
             name=name,
-            vectorizer_config=vectorizer_config,
-            vector_config=vector_config or Configure.Vectors.self_provided(),
+            vectorizer_config=vectorizer_config or Configure.Vectorizer.none(),
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
                 Property(name="content", data_type=DataType.TEXT),
