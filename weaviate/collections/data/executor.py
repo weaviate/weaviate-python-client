@@ -243,8 +243,6 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
 
         This is equivalent to a PUT operation.
 
-        If the object does not exist yet, it will be created.
-
         Args:
             uuid: The UUID of the object, REQUIRED.
             properties: The properties of the object, REQUIRED.
