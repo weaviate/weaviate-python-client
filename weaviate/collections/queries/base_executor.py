@@ -156,7 +156,8 @@ class _BaseExecutor(Generic[ConnectionType]):
             return {}
 
         if len(add_props.vector_bytes) > 0:
-            return {"default": _ByteOps.decode_float32s(add_props.vector_bytes)}
+            vec = _ByteOps.decode_float32s(add_props.vector_bytes)
+            return {"default": vec}
 
         vecs: Dict[str, Union[List[float], List[List[float]]]] = {}
         for vec in add_props.vectors:

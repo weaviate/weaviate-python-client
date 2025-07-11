@@ -6,7 +6,6 @@
 import contextlib
 import os
 import sys
-
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as version_func
 

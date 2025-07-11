@@ -19,7 +19,10 @@ from weaviate.collections.classes.tenants import (
     TenantCreate,
 )
 from weaviate.collections.tenants import TenantCreateInputType
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
+from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+)
 
 
 def test_shards_on_tenants(

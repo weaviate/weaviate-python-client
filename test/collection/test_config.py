@@ -15,11 +15,20 @@ from weaviate.collections.classes.config import (
     _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
-from weaviate.collections.classes.config_vectorizers import Multi2VecField, VectorDistances
+from weaviate.collections.classes.config_vectorizers import (
+    Multi2VecField,
+    VectorDistances,
+)
 
 DEFAULTS = {
-    "vectorizer": "none",
-    "vectorIndexType": "hnsw",
+    "vectorConfig": {
+        "default": {
+            "vectorIndexType": "hnsw",
+            "vectorizer": {
+                "none": {},
+            },
+        }
+    }
 }
 
 
@@ -674,7 +683,7 @@ def test_config_with_default_vectorizer(
 ) -> None:
     config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
     assert config._to_dict() == {
-        **DEFAULTS,
+        "vectorIndexType": "hnsw",
         "vectorizer": vectorizer_config.vectorizer.value,
         "class": "Test",
         "moduleConfig": expected,
@@ -783,7 +792,7 @@ def test_config_with_vectorizer_and_properties(
         name="test", properties=properties, vectorizer_config=vectorizer_config
     )
     assert config._to_dict() == {
-        **DEFAULTS,
+        "vectorIndexType": "hnsw",
         "vectorizer": vectorizer_config.vectorizer.value,
         "class": "Test",
         "properties": expected_props,
@@ -1057,7 +1066,6 @@ def test_config_with_generative(
     config = _CollectionConfigCreate(name="test", generative_config=generative_config)
     assert config._to_dict() == {
         **DEFAULTS,
-        "vectorizer": "none",
         "class": "Test",
         "moduleConfig": expected_mc,
     }
@@ -1137,7 +1145,6 @@ def test_config_with_reranker(
     config = _CollectionConfigCreate(name="test", reranker_config=reranker_config)
     assert config._to_dict() == {
         **DEFAULTS,
-        "vectorizer": "none",
         "class": "Test",
         "moduleConfig": expected_mc,
     }
