@@ -1605,3 +1605,20 @@ def test_config_add_property(
     collection.config.add_property(Property(name="description", data_type=DataType.TEXT))
     config = collection.config.get()
     assert "description" in [prop.name for prop in config.properties]
+
+
+def test_create_collection_with_deprecated_vectorizer_syntax(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(),
+        vectorizer_config=None,
+        properties=[
+            Property(name="title", data_type=DataType.TEXT),
+            Property(name="i", data_type=DataType.NUMBER),
+        ],
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True, auto_tenant_creation=True),
+    )
+    config = collection.config.get()
+    assert config.vector_index_type == "hnsw"
+    assert config.vector_config is None
