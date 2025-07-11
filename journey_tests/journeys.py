@@ -1,11 +1,6 @@
 from typing import List, cast
 
-from weaviate import (
-    WeaviateAsyncClient,
-    WeaviateClient,
-    connect_to_local,
-    use_async_with_local,
-)
+from weaviate import WeaviateAsyncClient, WeaviateClient, connect_to_local, use_async_with_local
 from weaviate.classes.config import DataType, Property
 
 

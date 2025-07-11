@@ -66,6 +66,18 @@ from weaviate.collections.classes.config_vectorizers import (
 from ...warnings import _Warnings
 
 
+class _NamedVectorizerConfigCreate(_ConfigCreateModel):
+    vectorizer: Vectorizers
+    properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
+
+    def _to_dict(self) -> Dict[str, Any]:
+        return self._to_vectorizer_dict(self.vectorizer, super()._to_dict())
+
+    @staticmethod
+    def _to_vectorizer_dict(vectorizer: Vectorizers, values: Dict[str, Any]) -> Dict[str, Any]:
+        return {str(vectorizer.value): values}
+
+
 class _NamedVectorConfigCreate(_ConfigCreateModel):
     name: str
     properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
