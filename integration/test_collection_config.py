@@ -1605,3 +1605,23 @@ def test_config_add_property(
     collection.config.add_property(Property(name="description", data_type=DataType.TEXT))
     config = collection.config.get()
     assert "description" in [prop.name for prop in config.properties]
+
+
+def test_collection_config_create_with_deprecated_syntax(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        vector_index_config=wvc.config.Configure.VectorIndex.hnsw(),
+        vectorizer_config=None,
+        multi_tenancy_config=wvc.config.Configure.multi_tenancy(
+            enabled=True, auto_tenant_creation=True
+        ),
+        replication_config=wvc.config.Configure.replication(
+            factor=1,
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vectorizer_config is None
+    assert config.vector_config is None
+    assert config.vectorizer == Vectorizers.NONE

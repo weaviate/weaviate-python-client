@@ -1924,7 +1924,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         v: Union[_VectorConfigCreate, List[_VectorConfigCreate], None],
         info: ValidationInfo,
     ) -> Union[_VectorConfigCreate, List[_VectorConfigCreate], None]:
-        if v is None and info.data["vectorizerConfig"] is None:
+        if v is None and info.data["vectorizerConfig"] is None and info.data["vectorIndexConfig"]:
             return _VectorConfigCreate(
                 name="default", vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
             )
