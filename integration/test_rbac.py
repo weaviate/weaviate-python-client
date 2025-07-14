@@ -325,12 +325,14 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             32,
         ),
         (
-            Permissions.alias(alias="*", read=True, delete=True),
+            Permissions.alias(alias="*", collection="*", read=True, delete=True),
             Role(
                 name="AlliasRole",
                 alias_permissions=[
                     AliasPermissionOutput(
-                        alias="*", actions={Actions.Alias.READ, Actions.Alias.DELETE}
+                        alias="*",
+                        collection="*",
+                        actions={Actions.Alias.READ, Actions.Alias.DELETE},
                     )
                 ],
                 cluster_permissions=[],

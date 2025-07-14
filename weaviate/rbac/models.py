@@ -85,6 +85,7 @@ class PermissionsUsers(TypedDict):
 
 class PermissionsAlias(TypedDict):
     alias: str
+    collection: str
 
 
 # action is always present in WeaviatePermission
@@ -337,9 +338,13 @@ class _UsersPermission(_Permission[UsersAction]):
 
 class _AliasPermission(_Permission[AliasAction]):
     alias: str
+    collection: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
-        return [{"action": action, "aliases": {"alias": self.alias}} for action in self.actions]
+        return [
+            {"action": action, "aliases": {"alias": self.alias, "collection": self.collection}}
+            for action in self.actions
+        ]
 
 
 class _BackupsPermission(_Permission[BackupsAction]):
@@ -573,6 +578,7 @@ class Role(RoleBase):
                     alias_permissions.append(
                         AliasPermissionOutput(
                             alias=aliases["alias"],
+                            collection=aliases["collection"],
                             actions={AliasAction(permission["action"])},
                         )
                     )
@@ -685,6 +691,7 @@ class Permissions:
     def alias(
         *,
         alias: Union[str, Sequence[str]],
+        collection: Union[str, Sequence[str]],
         create: bool = False,
         read: bool = False,
         update: bool = False,
@@ -693,21 +700,24 @@ class Permissions:
         permissions: List[_Permission] = []
         if isinstance(alias, str):
             alias = [alias]
+        if isinstance(collection, str):
+            collection = [collection]
 
         for a in alias:
-            permission = _AliasPermission(alias=a, actions=set())
+            for c in collection:
+                permission = _AliasPermission(alias=a, collection=c, actions=set())
 
-            if create:
-                permission.actions.add(AliasAction.CREATE)
-            if read:
-                permission.actions.add(AliasAction.READ)
-            if update:
-                permission.actions.add(AliasAction.UPDATE)
-            if delete:
-                permission.actions.add(AliasAction.DELETE)
+                if create:
+                    permission.actions.add(AliasAction.CREATE)
+                if read:
+                    permission.actions.add(AliasAction.READ)
+                if update:
+                    permission.actions.add(AliasAction.UPDATE)
+                if delete:
+                    permission.actions.add(AliasAction.DELETE)
 
-            if len(permission.actions) > 0:
-                permissions.append(permission)
+                if len(permission.actions) > 0:
+                    permissions.append(permission)
         return permissions
 
     @staticmethod

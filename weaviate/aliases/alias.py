@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class AliasReturn(BaseModel):
-    """Return type of the backup status methods."""
+    """Returned aliases from Weaviate."""
 
     alias: str
     collection: str
