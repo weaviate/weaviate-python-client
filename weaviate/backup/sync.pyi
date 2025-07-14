@@ -36,7 +36,7 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         roles_restore: Optional[Literal["noRestore", "all"]] = None,
-        user_restore: Optional[Literal["noRestore", "all"]] = None,
+        users_restore: Optional[Literal["noRestore", "all"]] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,

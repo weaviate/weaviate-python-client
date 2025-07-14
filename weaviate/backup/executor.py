@@ -240,7 +240,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         roles_restore: Optional[Literal["noRestore", "all"]] = None,
-        user_restore: Optional[Literal["noRestore", "all"]] = None,
+        users_restore: Optional[Literal["noRestore", "all"]] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -309,8 +309,8 @@ class _BackupExecutor(Generic[ConnectionType]):
         if roles_restore is not None:
             configPayload["rolesOptions"] = roles_restore
 
-        if user_restore is not None:
-            configPayload["usersOptions"] = user_restore
+        if users_restore is not None:
+            configPayload["usersOptions"] = users_restore
 
         if len(configPayload) > 0:
             payload["config"] = configPayload
