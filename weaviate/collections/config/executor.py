@@ -492,7 +492,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
     @overload
     @deprecated(
-        "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.NamedVectors`."
+        "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.MultiVectors`."
     )
     def add_vector(
         self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]

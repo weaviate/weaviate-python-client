@@ -71,7 +71,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     ) -> None: ...
     @overload
     @deprecated(
-        "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.NamedVectors`."
+        "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.MultiVectors`."
     )
     async def add_vector(
         self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
