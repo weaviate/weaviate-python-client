@@ -1562,13 +1562,23 @@ def test_config_add_vector(
     )
 
     collection.config.add_vector(
-        vector_config=Configure.NamedVectors.none(
+        vector_config=Configure.Vectors.self_provided(
             name="vec",
         ),
     )
     config = collection.config.get()
     assert config.vector_config is not None
     assert "vec" in config.vector_config
+
+    # Use deprecated syntax
+    collection.config.add_vector(
+        vector_config=Configure.NamedVectors.none(
+            name="vec2",
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert "vec2" in config.vector_config
 
 
 @pytest.mark.parametrize(

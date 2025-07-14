@@ -14,6 +14,7 @@ from typing import (
 
 from httpx import Response
 from pydantic_core import ValidationError
+from typing_extensions import deprecated
 
 from weaviate.collections.classes.config import (
     CollectionConfig,
@@ -33,6 +34,7 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigUpdate,
     _RerankerProvider,
     _ShardStatus,
+    _VectorConfigCreate,
     _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
@@ -488,8 +490,28 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         exists = executor.result(self.__reference_exists(reference_name=ref.name))
         return executor.result(resp(exists))
 
+    @overload
+    @deprecated(
+        "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.NamedVectors`."
+    )
     def add_vector(
         self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
+    ) -> executor.Result[None]: ...
+
+    @overload
+    def add_vector(
+        self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
+    ) -> executor.Result[None]: ...
+
+    def add_vector(
+        self,
+        *,
+        vector_config: Union[
+            _NamedVectorConfigCreate,
+            _VectorConfigCreate,
+            List[_NamedVectorConfigCreate],
+            List[_VectorConfigCreate],
+        ],
     ) -> executor.Result[None]:
         """Add a vector to the collection in Weaviate.
 
@@ -504,13 +526,29 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         _validate_input(
             [
                 _ValidateArgument(
-                    expected=[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]],
+                    expected=[
+                        _NamedVectorConfigCreate,
+                        _VectorConfigCreate,
+                        List[_NamedVectorConfigCreate],
+                        List[_VectorConfigCreate],
+                    ],
                     name="vector_config",
                     value=vector_config,
                 )
             ]
         )
+        if isinstance(vector_config, list):
+            for c in vector_config:
+                if isinstance(c, _NamedVectorConfigCreate):
+                    _Warnings.named_vector_syntax_in_config_add_vector(c.name)
+                if c.name is None:
+                    raise WeaviateInvalidInputError(
+                        "The configured vector must have a name when adding it to a collection."
+                    )
         if isinstance(vector_config, _NamedVectorConfigCreate):
+            _Warnings.named_vector_syntax_in_config_add_vector(vector_config.name)
+            vector_config = [vector_config]
+        if isinstance(vector_config, _VectorConfigCreate):
             vector_config = [vector_config]
 
         def resp(schema: Dict[str, Any]) -> executor.Result[None]:
