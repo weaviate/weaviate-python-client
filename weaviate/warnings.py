@@ -212,6 +212,16 @@ class _Warnings:
         )
 
     @staticmethod
+    def named_vector_syntax_in_config_add_vector(name: str) -> None:
+        warnings.warn(
+            message=f"""Dep026: You are using the named vector syntax for vector {name}, e.g. `Configure.NamedVectors` in `collection.config.add_vector()`, which is deprecated.
+            Use `Configure.Vectors` or `Configure.MultiVectors` instead.`
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def encoding_in_multi_vector_config() -> None:
         warnings.warn(
             message="""Dep026: You are using the `encoding` argument in `Configure.VectorIndex.MultiVectors.multi_vector()`, which is deprecated.
