@@ -209,7 +209,7 @@ class _MultiVectors:
         source_properties: Optional[List[str]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a multi-vector using the `text2colbert-jinaai` module.
 
@@ -344,7 +344,7 @@ class _Vectors:
         truncate: Optional[CohereTruncation] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-cohere` module.
 
@@ -387,7 +387,7 @@ class _Vectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         truncate: Optional[CohereTruncation] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec_cohere` module.
 
@@ -426,7 +426,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec_contextionary` module.
 
@@ -458,7 +458,7 @@ class _Vectors:
         instruction: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-databricks` module.
 
@@ -494,7 +494,7 @@ class _Vectors:
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-mistral` module.
 
@@ -530,7 +530,7 @@ class _Vectors:
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-ollama` module.
 
@@ -572,7 +572,7 @@ class _Vectors:
         type_: Optional[OpenAIType] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-openai` module.
 
@@ -619,7 +619,7 @@ class _Vectors:
         service: Union[AWSService, str] = "bedrock",
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-aws` module.
 
@@ -937,7 +937,7 @@ class _Vectors:
         resource_name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-openai` module running with Azure.
 
@@ -977,7 +977,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-gpt4all` module.
 
@@ -1014,7 +1014,7 @@ class _Vectors:
         use_cache: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-huggingface` module.
 
@@ -1067,7 +1067,7 @@ class _Vectors:
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
@@ -1110,7 +1110,7 @@ class _Vectors:
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
@@ -1153,7 +1153,7 @@ class _Vectors:
         query_inference_url: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-transformers` module.
 
@@ -1194,7 +1194,7 @@ class _Vectors:
         model: Optional[Union[JinaModel, str]] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-jinaai` module.
 
@@ -1274,7 +1274,7 @@ class _Vectors:
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-voyageai` module.
 
@@ -1315,7 +1315,7 @@ class _Vectors:
         model: Optional[Union[WeaviateModel, str]] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         return _VectorConfigCreate(
             name=name,
@@ -1339,7 +1339,7 @@ class _Vectors:
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-nvidia` module.
 
