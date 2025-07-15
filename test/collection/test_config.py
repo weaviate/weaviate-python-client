@@ -1921,3 +1921,484 @@ def test_config_with_named_vectors(
         "class": "Test",
         "vectorConfig": expected,
     }
+
+
+TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
+    (
+        [Configure.Vectors.text2vec_contextionary(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-contextionary": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_azure_openai(
+                name="test",
+                resource_name="resource",
+                deployment_id="deployment",
+                source_properties=["prop"],
+                dimensions=512,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "resourceName": "resource",
+                        "deploymentId": "deployment",
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                        "dimensions": 512,
+                        "isAzure": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.text2vec_cohere(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-cohere": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.multi2vec_cohere(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-cohere": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.multi2vec_voyageai(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-voyageai": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.multi2vec_nvidia(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-nvidia": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.multi2vec_jinaai(name="test", dimensions=256, text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-jinaai": {
+                        "dimensions": 256,
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.multi2multivec_jinaai(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2multivec-jinaai": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.text2vec_gpt4all(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-gpt4all": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            },
+        },
+    ),
+    (
+        [Configure.Vectors.text2vec_huggingface(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-huggingface": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_aws(
+                name="test", region="us-east-1", source_properties=["prop"]
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-aws": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "region": "us-east-1",
+                        "service": "bedrock",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_databricks(
+                name="test", endpoint="http://api.custom.com", instruction="instruction"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-databricks": {
+                        "vectorizeClassName": True,
+                        "instruction": "instruction",
+                        "endpoint": "http://api.custom.com",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_ollama(
+                name="test",
+                source_properties=["prop"],
+                api_endpoint="https://123.0.0.4",
+                model="cool-model",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-ollama": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "apiEndpoint": "https://123.0.0.4",
+                        "model": "cool-model",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_openai(
+                name="test", source_properties=["prop"], base_url="https://api.openai.com/"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "baseURL": "https://api.openai.com/",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.text2vec_mistral(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-mistral": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_google(
+                name="test",
+                project_id="project",
+                source_properties=["prop"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-palm": {
+                        "projectId": "project",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_google_aistudio(
+                name="test",
+                source_properties=["prop"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-palm": {
+                        "apiEndpoint": "generativelanguage.googleapis.com",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.text2vec_transformers(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-transformers": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "poolingStrategy": "masked_mean",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_voyageai(
+                name="test", source_properties=["prop"], truncate=True
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-voyageai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "truncate": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.text2vec_nvidia(name="test", source_properties=["prop"], truncate=True)],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-nvidia": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "truncate": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_weaviate(
+                name="test",
+                source_properties=["prop"],
+                base_url="https://api.embedding.weaviate.io",
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-weaviate": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "baseURL": "https://api.embedding.weaviate.io",
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.img2vec_neural(
+                name="test",
+                image_fields=["test"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "img2vec-neural": {
+                        "imageFields": ["test"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_clip(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-clip": {
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_google(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_bind(
+                name="test",
+                audio_fields=["audio"],
+                depth_fields=["depth"],
+                image_fields=["image"],
+                imu_fields=["imu"],
+                text_fields=["text"],
+                thermal_fields=["thermal"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-bind": {
+                        "audioFields": ["audio"],
+                        "depthFields": ["depth"],
+                        "imageFields": ["image"],
+                        "IMUFields": ["imu"],
+                        "textFields": ["text"],
+                        "thermalFields": ["thermal"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            },
+        },
+    ),
+    (
+        [Configure.Vectors.ref2vec_centroid(name="test", reference_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "ref2vec-centroid": {"referenceProperties": ["prop"], "method": "mean"},
+                },
+                "vectorIndexType": "hnsw",
+            },
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS)
+def test_config_with_vectors(
+    vectorizer_config: List[_NamedVectorConfigCreate], expected: dict
+) -> None:
+    config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
+    assert config._to_dict() == {
+        "class": "Test",
+        "vectorConfig": expected,
+    }
