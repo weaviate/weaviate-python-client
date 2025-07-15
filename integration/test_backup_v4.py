@@ -20,6 +20,13 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
 )
 
+from weaviate.auth import Auth
+from .conftest import ClientFactory, _sanitize_collection_name
+from _pytest.fixtures import SubRequest
+
+RBAC_PORTS = (8093, 50065)
+RBAC_AUTH_CREDS = Auth.api_key("admin-key")
+
 pytestmark = pytest.mark.xdist_group(name="backup")
 
 BACKEND = BackupStorage.FILESYSTEM
@@ -76,7 +83,9 @@ CLASSES = ["Paragraph", "Article"]
 
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local()
+    client = weaviate.connect_to_local(
+        port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=RBAC_AUTH_CREDS
+    )
     client.collections.delete(CLASSES)
 
     col_para = client.collections.create(
@@ -510,3 +519,50 @@ def test_cancel_backup(
     )
     # there can be a race between the cancel and the backup completion
     assert status_resp.status == BackupStatus.CANCELED or status_resp.status == BackupStatus.SUCCESS
+
+
+def test_backup_and_restore_with_roles_and_users(
+    client_factory: ClientFactory, request: SubRequest
+) -> None:
+    backup_id = _create_backup_id()
+    client = client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS)
+    if client._connection._weaviate_version.is_lower_than(1, 30, 10):
+        pytest.skip("User and roles are only supported from Weaviate 1.30.10")
+
+    name = _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name)
+    client.collections.delete(name)
+    client.collections.create(name=name)
+
+    client.users.db.delete(user_id=name)
+    client.users.db.create(user_id=name)
+
+    client.roles.delete(role_name=name)
+    client.roles.create(
+        role_name=name,
+        permissions=wvc.rbac.Permissions.collections(collection="*", create_collection=True),
+    )
+
+    resp = client.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        wait_for_completion=True,
+        include_collections=[name],
+    )
+    assert resp.status == BackupStatus.SUCCESS
+
+    client.users.db.delete(user_id=name)
+    client.roles.delete(role_name=name)
+    client.collections.delete(name)
+    assert client.users.db.get(user_id=name) is None
+    assert client.roles.get(role_name=name) is None
+
+    resp = client.backup.restore(
+        backup_id=backup_id,
+        backend=BACKEND,
+        wait_for_completion=True,
+        roles_restore="all",
+        users_restore="all",
+    )
+
+    assert client.users.db.get(user_id=name) is not None
+    assert client.roles.get(role_name=name) is not None
