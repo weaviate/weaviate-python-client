@@ -51,7 +51,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.text2vec_contextionary(),
         {
             "text2vec-contextionary": {
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -66,7 +66,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "text2vec-openai": {
                 "resourceName": "resource",
                 "deploymentId": "deployment",
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
                 "baseURL": "https://api.openai.com/",
                 "dimensions": 356,
                 "isAzure": True,
@@ -77,7 +77,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.text2vec_cohere(),
         {
             "text2vec-cohere": {
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -150,7 +150,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.text2vec_gpt4all(),
         {
             "text2vec-gpt4all": {
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -176,7 +176,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                     "useCache": False,
                 },
                 "model": "model",
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -209,7 +209,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         {
             "text2vec-huggingface": {
                 "endpointURL": "https://api.huggingface.co/",
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -288,7 +288,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_openai(),
-        {"text2vec-openai": {"vectorizeClassName": True, "isAzure": False}},
+        {"text2vec-openai": {"vectorizeClassName": False, "isAzure": False}},
     ),
     (
         Configure.Vectorizer.text2vec_openai(
@@ -330,7 +330,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         {
             "text2vec-palm": {
                 "projectId": "project",
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -341,7 +341,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         {
             "text2vec-palm": {
                 "projectId": "project",
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -350,7 +350,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         {
             "text2vec-palm": {
                 "apiEndpoint": "generativelanguage.googleapis.com",
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -390,7 +390,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.text2vec_transformers(),
         {
             "text2vec-transformers": {
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
                 "poolingStrategy": "masked_mean",
             }
         },
@@ -693,7 +693,7 @@ TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS = [
         ],
         {
             "text2vec-transformers": {
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
                 "poolingStrategy": "masked_mean",
             }
         },
@@ -722,7 +722,7 @@ TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS = [
         ],
         {
             "text2vec-jinaai": {
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
             }
         },
         [
@@ -748,7 +748,7 @@ TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS = [
         ],
         {
             "text2vec-transformers": {
-                "vectorizeClassName": True,
+                "vectorizeClassName": False,
                 "poolingStrategy": "masked_mean",
             }
         },
@@ -1399,7 +1399,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-contextionary": {
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "properties": ["prop"],
                     }
                 },
@@ -1423,7 +1423,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "text2vec-openai": {
                         "resourceName": "resource",
                         "deploymentId": "deployment",
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "properties": ["prop"],
                         "dimensions": 512,
                         "isAzure": True,
@@ -1439,7 +1439,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-cohere": {
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "properties": ["prop"],
                     }
                 },
@@ -1511,7 +1511,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-gpt4all": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1525,7 +1525,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-huggingface": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1543,7 +1543,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-aws": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "region": "us-east-1",
                         "service": "bedrock",
                     }
@@ -1562,7 +1562,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-databricks": {
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "instruction": "instruction",
                         "endpoint": "http://api.custom.com",
                     }
@@ -1585,7 +1585,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-ollama": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "apiEndpoint": "https://123.0.0.4",
                         "model": "cool-model",
                     }
@@ -1605,7 +1605,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-openai": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "baseURL": "https://api.openai.com/",
                         "isAzure": False,
                     }
@@ -1620,7 +1620,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-mistral": {
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "properties": ["prop"],
                     }
                 },
@@ -1642,7 +1642,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "text2vec-palm": {
                         "projectId": "project",
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1663,7 +1663,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "text2vec-palm": {
                         "projectId": "project",
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1683,7 +1683,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "text2vec-palm": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1697,7 +1697,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-transformers": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "poolingStrategy": "masked_mean",
                     }
                 },
@@ -1716,7 +1716,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-voyageai": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "truncate": True,
                     }
                 },
@@ -1735,7 +1735,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-nvidia": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "truncate": True,
                     }
                 },
@@ -1757,7 +1757,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-weaviate": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "baseURL": "https://api.embedding.weaviate.io",
                         "dimensions": 768,
                     }
@@ -1912,7 +1912,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-contextionary": {
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "properties": ["prop"],
                     }
                 },
@@ -1936,7 +1936,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-openai": {
                         "resourceName": "resource",
                         "deploymentId": "deployment",
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "properties": ["prop"],
                         "dimensions": 512,
                         "isAzure": True,
@@ -1952,7 +1952,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-cohere": {
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "properties": ["prop"],
                     }
                 },
@@ -2038,7 +2038,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-gpt4all": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2052,7 +2052,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-huggingface": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2070,7 +2070,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-aws": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "region": "us-east-1",
                         "service": "bedrock",
                     }
@@ -2089,7 +2089,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-databricks": {
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "instruction": "instruction",
                         "endpoint": "http://api.custom.com",
                     }
@@ -2112,7 +2112,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-ollama": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "apiEndpoint": "https://123.0.0.4",
                         "model": "cool-model",
                     }
@@ -2132,7 +2132,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-openai": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "baseURL": "https://api.openai.com/",
                         "isAzure": False,
                     }
@@ -2147,7 +2147,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-mistral": {
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "properties": ["prop"],
                     }
                 },
@@ -2169,7 +2169,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-palm": {
                         "projectId": "project",
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2189,7 +2189,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-palm": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2203,7 +2203,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-transformers": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "poolingStrategy": "masked_mean",
                     }
                 },
@@ -2222,7 +2222,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-voyageai": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "truncate": True,
                     }
                 },
@@ -2237,7 +2237,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-nvidia": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "truncate": True,
                     }
                 },
@@ -2259,7 +2259,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-weaviate": {
                         "properties": ["prop"],
-                        "vectorizeClassName": True,
+                        "vectorizeClassName": False,
                         "baseURL": "https://api.embedding.weaviate.io",
                         "dimensions": 768,
                     }
