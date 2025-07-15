@@ -38,6 +38,7 @@ from weaviate.collections.classes.config_vectorizers import (
     WeaviateModel,
     _Img2VecNeuralConfig,
     _map_multi2vec_fields,
+    _Multi2MultiVecJinaConfig,
     _Multi2VecBindConfig,
     _Multi2VecClipConfig,
     _Multi2VecCohereConfig,
@@ -208,7 +209,7 @@ class _MultiVectors:
         source_properties: Optional[List[str]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a multi-vector using the `text2colbert-jinaai` module.
 
@@ -234,6 +235,51 @@ class _MultiVectors:
             ),
             vectorizer=_Text2ColbertJinaAIConfig(
                 model=model, dimensions=dimensions, vectorizeClassName=vectorize_collection_name
+            ),
+        )
+
+    @staticmethod
+    def multi2vec_jinaai(
+        *,
+        name: Optional[str] = None,
+        encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        model: Optional[Union[JinaMultimodalModel, str]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `multi2multivec-jinaai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            encoding: The type of multi-vector encoding to use in the vector index. Defaults to `None`, which uses the server-defined default.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            text_fields: The text fields to use in vectorization.
+            multi_vector_config: The configuration for the multi-vector index. Use `wvc.config.Configure.VectorIndex.MultiVector` to create a multi-vector configuration. None by default
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+
+        Raises:
+            pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2MultiVecJinaConfig(
+                baseURL=base_url,
+                model=model,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+            ),
+            vector_index_config=_IndexWrappers.multi(
+                vector_index_config, quantizer, multi_vector_config, encoding
             ),
         )
 
@@ -298,7 +344,7 @@ class _Vectors:
         truncate: Optional[CohereTruncation] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-cohere` module.
 
@@ -341,7 +387,7 @@ class _Vectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         truncate: Optional[CohereTruncation] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec_cohere` module.
 
@@ -357,7 +403,6 @@ class _Vectors:
             text_fields: The text fields to use in vectorization.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
@@ -368,7 +413,6 @@ class _Vectors:
                 baseURL=base_url,
                 model=model,
                 truncate=truncate,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -382,7 +426,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec_contextionary` module.
 
@@ -414,7 +458,7 @@ class _Vectors:
         instruction: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-databricks` module.
 
@@ -450,7 +494,7 @@ class _Vectors:
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-mistral` module.
 
@@ -486,7 +530,7 @@ class _Vectors:
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-ollama` module.
 
@@ -528,7 +572,7 @@ class _Vectors:
         type_: Optional[OpenAIType] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-openai` module.
 
@@ -575,7 +619,7 @@ class _Vectors:
         service: Union[AWSService, str] = "bedrock",
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-aws` module.
 
@@ -643,7 +687,6 @@ class _Vectors:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-clip` module.
 
@@ -657,7 +700,6 @@ class _Vectors:
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         """
         return _VectorConfigCreate(
@@ -665,7 +707,6 @@ class _Vectors:
             vectorizer=_Multi2VecClipConfig(
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
-                vectorizeClassName=vectorize_collection_name,
                 inferenceUrl=inference_url,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
@@ -685,7 +726,6 @@ class _Vectors:
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_interval_seconds: Optional[int] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-google` module.
 
@@ -704,7 +744,6 @@ class _Vectors:
             video_fields: The video fields to use in vectorization.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _VectorConfigCreate(
             name=name,
@@ -717,7 +756,6 @@ class _Vectors:
                 dimensions=dimensions,
                 modelId=model_id,
                 videoIntervalSeconds=video_interval_seconds,
-                vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -735,7 +773,6 @@ class _Vectors:
         thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-bind` module.
 
@@ -753,7 +790,6 @@ class _Vectors:
             thermal_fields: The thermal fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _VectorConfigCreate(
             name=name,
@@ -765,7 +801,6 @@ class _Vectors:
                 textFields=_map_multi2vec_fields(text_fields),
                 thermalFields=_map_multi2vec_fields(thermal_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
-                vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -782,7 +817,6 @@ class _Vectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         truncation: Optional[bool] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-voyageai` module.
 
@@ -799,7 +833,6 @@ class _Vectors:
             text_fields: The text fields to use in vectorization.
             truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `VoyageaiMultimodalModel` type.
@@ -811,7 +844,6 @@ class _Vectors:
                 model=model,
                 truncation=truncation,
                 output_encoding=output_encoding,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -830,7 +862,6 @@ class _Vectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         truncation: Optional[bool] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-nvidia` module.
 
@@ -847,7 +878,6 @@ class _Vectors:
             text_fields: The text fields to use in vectorization.
             truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `NvidiaMultimodalModel` type.
@@ -859,7 +889,6 @@ class _Vectors:
                 model=model,
                 truncation=truncation,
                 output_encoding=output_encoding,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -908,7 +937,7 @@ class _Vectors:
         resource_name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-openai` module running with Azure.
 
@@ -948,7 +977,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-gpt4all` module.
 
@@ -985,7 +1014,7 @@ class _Vectors:
         use_cache: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-huggingface` module.
 
@@ -1038,7 +1067,7 @@ class _Vectors:
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
@@ -1081,7 +1110,7 @@ class _Vectors:
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
@@ -1124,7 +1153,7 @@ class _Vectors:
         query_inference_url: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-transformers` module.
 
@@ -1165,7 +1194,7 @@ class _Vectors:
         model: Optional[Union[JinaModel, str]] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-jinaai` module.
 
@@ -1204,7 +1233,6 @@ class _Vectors:
         model: Optional[Union[JinaMultimodalModel, str]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-jinaai` module.
 
@@ -1220,7 +1248,6 @@ class _Vectors:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             text_fields: The text fields to use in vectorization.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
@@ -1231,7 +1258,6 @@ class _Vectors:
                 baseURL=base_url,
                 model=model,
                 dimensions=dimensions,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -1248,7 +1274,7 @@ class _Vectors:
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-voyageai` module.
 
@@ -1289,7 +1315,7 @@ class _Vectors:
         model: Optional[Union[WeaviateModel, str]] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         return _VectorConfigCreate(
             name=name,
@@ -1313,7 +1339,7 @@ class _Vectors:
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-nvidia` module.
 

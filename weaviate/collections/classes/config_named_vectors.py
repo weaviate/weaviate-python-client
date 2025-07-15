@@ -148,7 +148,7 @@ class _NamedVectors:
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2colbert_jinaai` module.
 
@@ -184,7 +184,7 @@ class _NamedVectors:
         truncate: Optional[CohereTruncation] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_cohere` model.
 
@@ -226,7 +226,7 @@ class _NamedVectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         truncate: Optional[CohereTruncation] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_cohere` model.
 
@@ -252,7 +252,6 @@ class _NamedVectors:
                 baseURL=base_url,
                 model=model,
                 truncate=truncate,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -265,7 +264,7 @@ class _NamedVectors:
         *,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_contextionary` model.
 
@@ -295,7 +294,7 @@ class _NamedVectors:
         instruction: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-databricks` model.
 
@@ -329,7 +328,7 @@ class _NamedVectors:
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-mistral` model.
 
@@ -363,7 +362,7 @@ class _NamedVectors:
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-ollama` model.
 
@@ -403,7 +402,7 @@ class _NamedVectors:
         type_: Optional[OpenAIType] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_openai` model.
 
@@ -449,7 +448,7 @@ class _NamedVectors:
         service: Union[AWSService, str] = "bedrock",
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_aws` model.
 
@@ -513,7 +512,7 @@ class _NamedVectors:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_clip` model.
 
@@ -533,7 +532,6 @@ class _NamedVectors:
             vectorizer=_Multi2VecClipConfig(
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
-                vectorizeClassName=vectorize_collection_name,
                 inferenceUrl=inference_url,
             ),
             vector_index_config=vector_index_config,
@@ -553,7 +551,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         name: str,
         *,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
         location: str,
         project_id: str,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -593,7 +591,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 dimensions=dimensions,
                 modelId=model_id,
                 videoIntervalSeconds=video_interval_seconds,
-                vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
         )
@@ -611,7 +608,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         video_interval_seconds: Optional[int] = None,
         model_id: Optional[str] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_google` model.
 
@@ -642,7 +639,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 dimensions=dimensions,
                 modelId=model_id,
                 videoIntervalSeconds=video_interval_seconds,
-                vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
         )
@@ -659,7 +655,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_bind` model.
 
@@ -688,7 +684,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 textFields=_map_multi2vec_fields(text_fields),
                 thermalFields=_map_multi2vec_fields(thermal_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
-                vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
         )
@@ -704,7 +699,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_voyageai` model.
 
@@ -731,7 +726,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 model=model,
                 truncation=truncation,
                 output_encoding=output_encoding,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -749,7 +743,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_nvidia` model.
 
@@ -776,7 +770,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 model=model,
                 truncation=truncation,
                 output_encoding=output_encoding,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -822,7 +815,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_azure_openai` model.
 
@@ -860,7 +853,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_gpt4all` model.
 
@@ -895,7 +888,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         use_cache: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_huggingface` model.
 
@@ -952,7 +945,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
         api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
@@ -1000,7 +993,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
 
@@ -1042,7 +1035,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
 
@@ -1084,7 +1077,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         query_inference_url: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_transformers` model.
 
@@ -1123,7 +1116,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model: Optional[Union[JinaModel, str]] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
 
@@ -1160,7 +1153,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_jinaai` model.
 
@@ -1186,7 +1179,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 baseURL=base_url,
                 model=model,
                 dimensions=dimensions,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -1202,7 +1194,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
 
@@ -1241,7 +1233,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         dimensions: Optional[int] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         return _NamedVectorConfigCreate(
             name=name,
@@ -1264,7 +1256,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
+        vectorize_collection_name: bool = False,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-nvidia` model.
 
