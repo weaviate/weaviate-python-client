@@ -560,7 +560,7 @@ def test_backup_and_restore_with_roles_and_users(
         backend=BACKEND,
         wait_for_completion=True,
         roles_restore="all",
-        user_restore="all",
+        users_restore="all",
     )
 
     assert client.users.db.get(user_id=name) is not None
