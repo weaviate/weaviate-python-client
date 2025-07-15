@@ -238,6 +238,51 @@ class _MultiVectors:
             ),
         )
 
+    @staticmethod
+    def multi2vec_jinaai(
+        *,
+        name: Optional[str] = None,
+        encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        model: Optional[Union[JinaMultimodalModel, str]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `multi2multivec-jinaai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            encoding: The type of multi-vector encoding to use in the vector index. Defaults to `None`, which uses the server-defined default.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            text_fields: The text fields to use in vectorization.
+            multi_vector_config: The configuration for the multi-vector index. Use `wvc.config.Configure.VectorIndex.MultiVector` to create a multi-vector configuration. None by default
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+
+        Raises:
+            pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2MultiVecJinaConfig(
+                baseURL=base_url,
+                model=model,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+            ),
+            vector_index_config=_IndexWrappers.multi(
+                vector_index_config, quantizer, multi_vector_config, encoding
+            ),
+        )
+
 
 class _Vectors:
     @staticmethod
@@ -1213,45 +1258,6 @@ class _Vectors:
                 baseURL=base_url,
                 model=model,
                 dimensions=dimensions,
-                imageFields=_map_multi2vec_fields(image_fields),
-                textFields=_map_multi2vec_fields(text_fields),
-            ),
-            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
-        )
-
-    @staticmethod
-    def multi2multivec_jinaai(
-        *,
-        name: Optional[str] = None,
-        quantizer: Optional[_QuantizerConfigCreate] = None,
-        base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        model: Optional[Union[JinaMultimodalModel, str]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2multivec-jinaai` module.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
-        for detailed usage.
-
-        Args:
-            name: The name of the vector.
-            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
-            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            image_fields: The image fields to use in vectorization.
-            model: The model to use. Defaults to `None`, which uses the server-defined default.
-            text_fields: The text fields to use in vectorization.
-            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
-
-        Raises:
-            pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
-        """
-        return _VectorConfigCreate(
-            name=name,
-            vectorizer=_Multi2MultiVecJinaConfig(
-                baseURL=base_url,
-                model=model,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),

@@ -2014,7 +2014,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
-        [Configure.Vectors.multi2multivec_jinaai(name="test", text_fields=["prop"])],
+        [Configure.MultiVectors.multi2vec_jinaai(name="test", text_fields=["prop"])],
         {
             "test": {
                 "vectorizer": {
