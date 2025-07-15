@@ -20,6 +20,8 @@ from weaviate.collections.classes.config_vectorizers import (
     VectorDistances,
 )
 
+from weaviate.collections.classes.config_vectors import _VectorConfigCreate
+
 DEFAULTS = {
     "vectorConfig": {
         "default": {
@@ -106,7 +108,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-cohere": {
                 "model": "embed-multilingual-v2.0",
                 "truncate": "NONE",
-                "vectorizeClassName": False,
                 "baseURL": "https://api.cohere.ai/",
             }
         },
@@ -124,7 +125,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "voyage-multimodal-3",
                 "truncation": False,
                 "output_encoding": "base64",
-                "vectorizeClassName": False,
                 "baseURL": "https://api.voyageai.com/",
             }
         },
@@ -142,7 +142,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "nvidia/nvclip",
                 "truncation": False,
                 "output_encoding": "base64",
-                "vectorizeClassName": False,
                 "baseURL": "https://integrate.api.nvidia.com/",
             }
         },
@@ -434,7 +433,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-jinaai": {
                 "model": "jina-clip-v2",
                 "dimensions": 512,
-                "vectorizeClassName": False,
             }
         },
     ),
@@ -521,7 +519,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-clip": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
-                "vectorizeClassName": True,
             }
         },
     ),
@@ -542,7 +539,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "projectId": "project",
                 "location": "us-central1",
                 "videoIntervalSeconds": 1,
-                "vectorizeClassName": True,
             }
         },
     ),
@@ -563,7 +559,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "projectId": "project",
                 "location": "us-central1",
                 "videoIntervalSeconds": 1,
-                "vectorizeClassName": True,
             }
         },
     ),
@@ -576,7 +571,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-clip": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
-                "vectorizeClassName": True,
             }
         },
     ),
@@ -590,7 +584,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-clip": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
-                "vectorizeClassName": False,
                 "weights": {
                     "imageFields": [0.5],
                     "textFields": [0.5],
@@ -615,7 +608,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "IMUFields": ["imu"],
                 "textFields": ["text"],
                 "thermalFields": ["thermal"],
-                "vectorizeClassName": True,
             }
         },
     ),
@@ -636,7 +628,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "IMUFields": ["imu"],
                 "textFields": ["text"],
                 "thermalFields": ["thermal"],
-                "vectorizeClassName": True,
             }
         },
     ),
@@ -658,7 +649,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "IMUFields": ["imu"],
                 "textFields": ["text"],
                 "thermalFields": ["thermal"],
-                "vectorizeClassName": False,
                 "weights": {
                     "audioFields": [0.5],
                     "depthFields": [0.5],
@@ -1463,7 +1453,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-cohere": {
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -1477,7 +1466,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-voyageai": {
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -1491,7 +1479,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-nvidia": {
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -1510,7 +1497,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "multi2vec-jinaai": {
                         "dimensions": 256,
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -1812,7 +1798,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "multi2vec-clip": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
-                        "vectorizeClassName": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1837,7 +1822,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "textFields": ["text"],
                         "projectId": "project",
                         "location": "us-central1",
-                        "vectorizeClassName": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1862,7 +1846,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "textFields": ["text"],
                         "projectId": "project",
                         "location": "us-central1",
-                        "vectorizeClassName": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1891,7 +1874,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "IMUFields": ["imu"],
                         "textFields": ["text"],
                         "thermalFields": ["thermal"],
-                        "vectorizeClassName": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1984,7 +1966,6 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-cohere": {
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -1998,7 +1979,6 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-voyageai": {
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -2012,7 +1992,6 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-nvidia": {
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -2027,7 +2006,6 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "multi2vec-jinaai": {
                         "dimensions": 256,
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -2041,7 +2019,6 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2multivec-jinaai": {
-                        "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
                 },
@@ -2318,7 +2295,6 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "multi2vec-clip": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
-                        "vectorizeClassName": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2343,7 +2319,6 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "textFields": ["text"],
                         "projectId": "project",
                         "location": "us-central1",
-                        "vectorizeClassName": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2372,7 +2347,6 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "IMUFields": ["imu"],
                         "textFields": ["text"],
                         "thermalFields": ["thermal"],
-                        "vectorizeClassName": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2393,11 +2367,9 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
 ]
 
 
-@pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS)
-def test_config_with_vectors(
-    vectorizer_config: List[_NamedVectorConfigCreate], expected: dict
-) -> None:
-    config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
+@pytest.mark.parametrize("vector_config,expected", TEST_CONFIG_WITH_VECTORS_PARAMETERS)
+def test_config_with_vectors(vector_config: List[_VectorConfigCreate], expected: dict) -> None:
+    config = _CollectionConfigCreate(name="test", vector_config=vector_config)
     assert config._to_dict() == {
         "class": "Test",
         "vectorConfig": expected,

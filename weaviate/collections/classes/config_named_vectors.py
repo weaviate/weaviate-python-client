@@ -252,7 +252,6 @@ class _NamedVectors:
                 baseURL=base_url,
                 model=model,
                 truncate=truncate,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -533,7 +532,6 @@ class _NamedVectors:
             vectorizer=_Multi2VecClipConfig(
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
-                vectorizeClassName=vectorize_collection_name,
                 inferenceUrl=inference_url,
             ),
             vector_index_config=vector_index_config,
@@ -593,7 +591,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 dimensions=dimensions,
                 modelId=model_id,
                 videoIntervalSeconds=video_interval_seconds,
-                vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
         )
@@ -642,7 +639,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 dimensions=dimensions,
                 modelId=model_id,
                 videoIntervalSeconds=video_interval_seconds,
-                vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
         )
@@ -688,7 +684,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 textFields=_map_multi2vec_fields(text_fields),
                 thermalFields=_map_multi2vec_fields(thermal_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
-                vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
         )
@@ -731,7 +726,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 model=model,
                 truncation=truncation,
                 output_encoding=output_encoding,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -776,7 +770,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 model=model,
                 truncation=truncation,
                 output_encoding=output_encoding,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
@@ -1186,7 +1179,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 baseURL=base_url,
                 model=model,
                 dimensions=dimensions,
-                vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
             ),
