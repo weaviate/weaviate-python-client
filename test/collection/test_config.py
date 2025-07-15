@@ -2022,6 +2022,11 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "textFields": ["prop"],
                     }
                 },
+                "vectorIndexConfig": {
+                    "multivector": {
+                        "enabled": True,
+                    },
+                },
                 "vectorIndexType": "hnsw",
             }
         },
