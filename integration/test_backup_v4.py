@@ -546,12 +546,13 @@ def test_backup_and_restore_with_roles_and_users(
         backup_id=backup_id,
         backend=BACKEND,
         wait_for_completion=True,
+        include_collections=[name],
     )
     assert resp.status == BackupStatus.SUCCESS
 
     client.users.db.delete(user_id=name)
     client.roles.delete(role_name=name)
-
+    client.collections.delete(name)
     assert client.users.db.get(user_id=name) is None
     assert client.roles.get(role_name=name) is None
 
