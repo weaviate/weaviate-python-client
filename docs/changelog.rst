@@ -8,6 +8,8 @@ This minor version includes:
         - collection aliasing
         - replica movement
         - RQ configuration
+        - Restoring of users and RBAC roles from backups
+        - Support for the new ``multi2multivec-jinaai`` module
     - Introduction of ``Configure.Vectors`` and ``Configure.MultiVectors`` and deprecation of legacy ``Configure.Vectorizer`` and ``Configure.NamedVectors``
         - Usage of ``Configure.MultiVectors`` is reserved for modules like ``text2multivec-jinaai``, which was previously known as ``text2colbert-jinaai``
     - Addition of helper methods for updating tenant activity statuses: ``collection.tenants.activate()``, ``collection.tenants.deactivate()`` and ``collection.tenants.offload()``
