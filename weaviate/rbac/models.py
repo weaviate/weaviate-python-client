@@ -339,7 +339,7 @@ class _AliasPermission(_Permission[AliasAction]):
     alias: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
-        return [{"action": action, "aliases": {"alias": self.alias}} for action in self.actions]
+        return [{"action": action, "aliases": {"alias": _capitalize_first_letter(self.alias)}} for action in self.actions]
 
 
 class _BackupsPermission(_Permission[BackupsAction]):
