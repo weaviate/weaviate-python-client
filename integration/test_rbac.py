@@ -353,7 +353,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 name="AlliasRole",
                 alias_permissions=[
                     AliasPermissionOutput(
-                        alias="MyCAR", # capitalized the first letter.
+                        alias="MyCAR",  # capitalized the first letter.
                         collection="*",
                         actions={Actions.Alias.READ, Actions.Alias.DELETE},
                     )
