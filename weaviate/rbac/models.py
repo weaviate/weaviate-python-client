@@ -342,7 +342,13 @@ class _AliasPermission(_Permission[AliasAction]):
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
-            {"action": action, "aliases": {"alias": self.alias, "collection": self.collection}}
+            {
+                "action": action,
+                "aliases": {
+                    "alias": _capitalize_first_letter(self.alias),
+                    "collection": self.collection,
+                },
+            }
             for action in self.actions
         ]
 
