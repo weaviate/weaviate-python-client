@@ -584,7 +584,7 @@ class _Vectorizer:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         interference_url: Optional[str] = None,
         inference_url: Optional[str] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
@@ -627,7 +627,7 @@ class _Vectorizer:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecBindConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
@@ -685,7 +685,7 @@ class _Vectorizer:
         region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC - will be validated in the model
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
 
@@ -711,7 +711,7 @@ class _Vectorizer:
     def text2vec_azure_openai(
         resource_name: str,
         deployment_id: str,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
@@ -742,7 +742,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_contextionary(
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecContextionaryConfigCreate` object for use when vectorizing using the `text2vec-contextionary` model.
 
@@ -775,7 +775,7 @@ class _Vectorizer:
     def text2vec_cohere(
         model: Optional[Union[CohereModel, str]] = None,
         truncate: Optional[CohereTruncation] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecCohereConfigCreate` object for use when vectorizing using the `text2vec-cohere` model.
@@ -804,7 +804,7 @@ class _Vectorizer:
         *,
         model: Optional[Union[CohereMultimodalModel, str]] = None,
         truncate: Optional[CohereTruncation] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -839,7 +839,7 @@ class _Vectorizer:
         model: Optional[Union[CohereMultimodalModel, str]] = None,
         truncation: Optional[bool] = None,
         output_encoding: Optional[str],
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -876,7 +876,7 @@ class _Vectorizer:
         model: Optional[str] = None,
         truncation: Optional[bool] = None,
         output_encoding: Optional[str],
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -912,7 +912,7 @@ class _Vectorizer:
         *,
         endpoint: str,
         instruction: Optional[str] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecDatabricksConfig` object for use when vectorizing using the `text2vec-databricks` model.
 
@@ -935,7 +935,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_gpt4all(
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGPT4AllConfigCreate` object for use when vectorizing using the `text2vec-gpt4all` model.
 
@@ -959,7 +959,7 @@ class _Vectorizer:
         wait_for_model: Optional[bool] = None,
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecHuggingFaceConfigCreate` object for use when vectorizing using the `text2vec-huggingface` model.
 
@@ -997,7 +997,7 @@ class _Vectorizer:
         *,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecMistralConfig` object for use when vectorizing using the `text2vec-mistral` model.
 
@@ -1018,7 +1018,7 @@ class _Vectorizer:
         *,
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOllamaConfig` object for use when vectorizing using the `text2vec-ollama` model.
 
@@ -1042,7 +1042,7 @@ class _Vectorizer:
         model: Optional[Union[OpenAIModel, str]] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
@@ -1086,7 +1086,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-palm` model.
 
@@ -1116,7 +1116,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def text2vec_google_aistudio(
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
@@ -1145,7 +1145,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
@@ -1190,7 +1190,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         dimensions: Optional[int] = None,
         model_id: Optional[str] = None,
         video_interval_seconds: Optional[int] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
 
@@ -1234,7 +1234,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         dimensions: Optional[int] = None,
         model_id: Optional[str] = None,
         video_interval_seconds: Optional[int] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
@@ -1269,7 +1269,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def text2vec_transformers(
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
         query_inference_url: Optional[str] = None,
@@ -1300,7 +1300,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def text2vec_jinaai(
         model: Optional[Union[JinaModel, str]] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
@@ -1328,7 +1328,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def multi2vec_jinaai(
         *,
         model: Optional[Union[JinaMultimodalModel, str]] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -1364,7 +1364,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model: Optional[Union[VoyageModel, str]] = None,
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecVoyageConfigCreate` object for use when vectorizing using the `text2vec-voyageai` model.
 
@@ -1391,7 +1391,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         model: Optional[Union[WeaviateModel, str]] = None,
         base_url: Optional[str] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
         dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """TODO: add docstrings when the documentation is available."""
@@ -1408,7 +1408,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model: Optional[str] = None,
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
-        vectorize_collection_name: bool = False,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecNvidiaConfigCreate` object for use when vectorizing using the `text2vec-nvidia` model.
 
