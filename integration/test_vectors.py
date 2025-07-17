@@ -743,7 +743,7 @@ def test_include_vector_on_references(
         name="Target",
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn1"),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn2"),
+            wvc.config.Configure.NamedVectors.user_provided_vectors(name="bringYourOwn2"), # assert alternate syntax works too
         ],
     )
 

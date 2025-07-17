@@ -388,7 +388,7 @@ def test_vector_per_target(
         properties=[],
         vectorizer_config=[
             Configure.NamedVectors.none("first"),
-            Configure.NamedVectors.none("second"),
+            Configure.NamedVectors.user_provided_vectors("second"), # assert alternate syntax works too
         ],
     )
 
