@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.16.1
+--------------
+This patch version includes:
+  - Fixes capitalization of alias permissions
+  - Changes default value for ``vectorize_collection_name`` back to ``True`` in deprecated methods ``Configure.Vectorizer`` and ``Configure.NamedVectors``
+  - Add ``rescore_limit`` to RQ configuration
+
 Version 4.16.0
 --------------
 This minor version includes:
