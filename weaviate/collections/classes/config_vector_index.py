@@ -273,6 +273,7 @@ class _SQConfigCreate(_QuantizerConfigCreate):
 
 class _RQConfigCreate(_QuantizerConfigCreate):
     bits: Optional[int]
+    rescoreLimit: Optional[int]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -303,6 +304,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 
 class _RQConfigUpdate(_QuantizerConfigUpdate):
     enabled: Optional[bool]
+    rescoreLimit: Optional[int]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -432,6 +434,7 @@ class _VectorIndexQuantizer:
     @staticmethod
     def rq(
         bits: Optional[int] = None,
+        rescore_limit: Optional[int] = None,
     ) -> _RQConfigCreate:
         """Create a `_RQConfigCreate` object to be used when defining the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -442,6 +445,7 @@ class _VectorIndexQuantizer:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _RQConfigCreate(
             bits=bits,
+            rescoreLimit=rescore_limit,
         )
 
 

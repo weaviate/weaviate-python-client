@@ -622,7 +622,7 @@ def test_hnsw_with_rq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
-            quantizer=Configure.VectorIndex.Quantizer.rq(bits=8),
+            quantizer=Configure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=20),
         ),
     )
 
@@ -633,6 +633,7 @@ def test_hnsw_with_rq(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.vector_index_config.quantizer, _RQConfig)
     assert config.vector_index_config.quantizer is not None
     assert config.vector_index_config.quantizer.bits == 8
+    assert config.vector_index_config.quantizer.rescore_limit == 20
 
 
 @pytest.mark.parametrize(
