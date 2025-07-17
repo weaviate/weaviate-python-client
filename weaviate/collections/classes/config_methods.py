@@ -151,6 +151,7 @@ def __get_quantizer_config(
     elif "rq" in config and config["rq"].get("enabled"):
         quantizer = _RQConfig(
             bits=config["rq"].get("bits"),
+            rescore_limit=config["rq"].get("rescoreLimit"),
         )
     return quantizer
 

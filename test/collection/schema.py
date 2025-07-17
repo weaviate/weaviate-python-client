@@ -66,6 +66,7 @@ def multi_vector_schema(quantizer: Optional[Literal["pq", "bq", "sq", "rq"]] = N
                     "rq": {
                         "enabled": quantizer == "rq",
                         "bits": 8,
+                        "rescoreLimit": 20,
                     },
                 },
                 "vectorIndexType": "hnsw",
@@ -101,6 +102,7 @@ def multi_vector_schema(quantizer: Optional[Literal["pq", "bq", "sq", "rq"]] = N
                     "rq": {
                         "enabled": quantizer == "rq",
                         "bits": 8,
+                        "rescoreLimit": 20,
                     },
                 },
                 "vectorIndexType": "hnsw",
