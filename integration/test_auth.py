@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Dict, Optional
 
 import httpx
@@ -134,13 +135,14 @@ def test_client_with_authentication_with_anon_weaviate() -> None:
 
     auth = wvc.init.Auth.client_password(username="someUser", password="SomePw")
     with pytest.warns(UserWarning) as recwarn:
+        warnings.filterwarnings(action="ignore", message=r"datetime.datetime.utcnow")
         with weaviate.connect_to_local(auth_credentials=auth) as client:
             client.collections.list_all()
         if len(recwarn) > 1:
             for rwarning in recwarn.list:
                 print(rwarning.message)
         assert len(recwarn) == 1
-        assert str(recwarn.list[0].message).startswith("Auth001")
+        assert any(str(warn.message).startswith("Auth001") for warn in recwarn.list)
 
 
 def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:

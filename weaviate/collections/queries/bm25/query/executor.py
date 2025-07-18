@@ -29,7 +29,7 @@ from weaviate.collections.queries.base_executor import _BaseExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
-from weaviate.proto.v1.search_get_pb2 import SearchReply
+from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import INCLUDE_VECTOR
 
 
@@ -340,7 +340,7 @@ class _BM25QueryExecutor(
             )
 
         def resp(
-            res: SearchReply,
+            res: search_get_pb2.SearchReply,
         ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
             return cast(
                 Any,
