@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.16.2
+--------------
+This patch version includes:
+ - Renames ``model_id`` to ``model`` in ``Configure.Vectors``
+
 Version 4.16.1
 --------------
 This patch version includes:
