@@ -14,6 +14,7 @@ from typing import (
 
 from httpx import Response
 from pydantic_core import ValidationError
+from typing_extensions import deprecated
 
 from weaviate.collections.classes.config import (
     CollectionConfig,
@@ -33,6 +34,8 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigUpdate,
     _RerankerProvider,
     _ShardStatus,
+    _VectorConfigCreate,
+    _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
 )
@@ -141,6 +144,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
+        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> executor.Result[None]:
@@ -153,9 +157,12 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             inverted_index_config: Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
             replication_config: Configuration for the replication. Use `Reconfigure.replication` to generate one.
             reranker_config: Configuration for the reranker. Use `Reconfigure.replication` to generate one.
-            vector_index_config`: DEPRECATED USE `vectorizer_config` INSTEAD. Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
+            vector_index_config (DEPRECATED use `vector_config`): Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
             vectorizer_config: Configurations for the vector index (or indices) of your collection.
-                Use `Reconfigure.vector_index` if there is only one vectorizer and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
+                Use `Reconfigure.vector_index` if using legacy vectorization and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
+                Using this argument with a list of `Reconfigure.NamedVectors` is **DEPRECATED**. Use the `vector_config` argument instead in such a case.
+            vector_config: Configuration for the vector index (or indices) of your collection.
+                Use `Reconfigure.Vectors` for both single and multiple vectorizers. Supply a list to update many vectorizers at once.
             multi_tenancy_config: Configuration for multi-tenancy settings. Use `Reconfigure.multi_tenancy` to generate one.
                 Only `auto_tenant_creation` is supported.
 
@@ -171,6 +178,15 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         """
         if vector_index_config is not None:
             _Warnings.vector_index_config_in_config_update()
+        if vectorizer_config is not None and not isinstance(
+            vectorizer_config,
+            (
+                _VectorIndexConfigHNSWUpdate,
+                _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigDynamicUpdate,
+            ),
+        ):
+            _Warnings.vectorizer_config_in_config_update()
         try:
             config = _CollectionConfigUpdate(
                 description=description,
@@ -182,6 +198,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 multi_tenancy_config=multi_tenancy_config,
                 generative_config=generative_config,
                 reranker_config=reranker_config,
+                vector_config=vector_config,
             )
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e
@@ -236,7 +253,10 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
             vector_config: Dict[str, Any] = schema.get("vectorConfig", {})
             if len(vector_config) > 0:
-                obj["vectorConfig"] = {key: modconf for key in vector_config.keys()}
+                obj["moduleConfig"] = {
+                    list(conf["vectorizer"].keys()).pop(): modconf
+                    for conf in vector_config.values()
+                }
 
             def inner_resp(res: Response) -> None:
                 return None
@@ -470,8 +490,28 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         exists = executor.result(self.__reference_exists(reference_name=ref.name))
         return executor.result(resp(exists))
 
+    @overload
+    @deprecated(
+        "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.MultiVectors`."
+    )
     def add_vector(
         self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
+    ) -> executor.Result[None]: ...
+
+    @overload
+    def add_vector(
+        self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
+    ) -> executor.Result[None]: ...
+
+    def add_vector(
+        self,
+        *,
+        vector_config: Union[
+            _NamedVectorConfigCreate,
+            _VectorConfigCreate,
+            List[_NamedVectorConfigCreate],
+            List[_VectorConfigCreate],
+        ],
     ) -> executor.Result[None]:
         """Add a vector to the collection in Weaviate.
 
@@ -486,13 +526,29 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         _validate_input(
             [
                 _ValidateArgument(
-                    expected=[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]],
+                    expected=[
+                        _NamedVectorConfigCreate,
+                        _VectorConfigCreate,
+                        List[_NamedVectorConfigCreate],
+                        List[_VectorConfigCreate],
+                    ],
                     name="vector_config",
                     value=vector_config,
                 )
             ]
         )
+        if isinstance(vector_config, list):
+            for c in vector_config:
+                if isinstance(c, _NamedVectorConfigCreate):
+                    _Warnings.named_vector_syntax_in_config_add_vector(c.name)
+                if c.name is None:
+                    raise WeaviateInvalidInputError(
+                        "The configured vector must have a name when adding it to a collection."
+                    )
         if isinstance(vector_config, _NamedVectorConfigCreate):
+            _Warnings.named_vector_syntax_in_config_add_vector(vector_config.name)
+            vector_config = [vector_config]
+        if isinstance(vector_config, _VectorConfigCreate):
             vector_config = [vector_config]
 
         def resp(schema: Dict[str, Any]) -> executor.Result[None]:

@@ -1,0 +1,37 @@
+---
+version: '3.4'
+services:
+  weaviate-backup:
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --scheme
+      - http
+      - --write-timeout=600s
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
+    ports:
+      - 8093:8080
+      - 50065:50051
+    restart: on-failure:0
+    environment:
+      ENABLE_MODULES: "backup-filesystem,generative-dummy,reranker-dummy"
+      AUTHENTICATION_APIKEY_ENABLED: "true"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: "admin-key,custom-key"
+      AUTHENTICATION_APIKEY_USERS: "admin-user,custom-user"
+      AUTHORIZATION_ADMIN_USERS: "admin-user"
+      BACKUP_FILESYSTEM_PATH: "/tmp/backups"
+      PERSISTENCE_DATA_PATH: "./data-weaviate-0"
+      CLUSTER_IN_LOCALHOST: "true"
+      CLUSTER_GOSSIP_BIND_PORT: "7100"
+      CLUSTER_DATA_BIND_PORT: "7101"
+      RAFT_BOOTSTRAP_EXPECT: "1"
+      AUTHORIZATION_ENABLE_RBAC: "true"
+      AUTHENTICATION_DB_USERS_ENABLED: "true"
+      AUTHENTICATION_OIDC_ENABLED: 'true'
+      AUTHENTICATION_OIDC_CLIENT_ID: 'wcs'
+      AUTHENTICATION_OIDC_ISSUER: 'https://auth.wcs.api.weaviate.io/auth/realms/SeMI'
+      AUTHENTICATION_OIDC_USERNAME_CLAIM: 'email'
+      AUTHENTICATION_OIDC_GROUPS_CLAIM: 'groups'
+...

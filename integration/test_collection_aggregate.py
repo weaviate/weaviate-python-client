@@ -17,7 +17,12 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
     Metrics,
 )
-from weaviate.collections.classes.config import Configure, DataType, Property, ReferenceProperty
+from weaviate.collections.classes.config import (
+    Configure,
+    DataType,
+    Property,
+    ReferenceProperty,
+)
 from weaviate.collections.classes.filters import Filter, _Filters
 from weaviate.collections.classes.grpc import Move
 from weaviate.collections.classes.tenants import Tenant

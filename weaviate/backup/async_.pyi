@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from weaviate.backup.backup import (
     BackupConfigCreate,
@@ -35,6 +35,8 @@ class _BackupAsync(_BackupExecutor[ConnectionAsync]):
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        roles_restore: Optional[Literal["noRestore", "all"]] = None,
+        users_restore: Optional[Literal["noRestore", "all"]] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,

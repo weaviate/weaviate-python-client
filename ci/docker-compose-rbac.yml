@@ -13,7 +13,7 @@ services:
     image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
       - 8092:8085
-      - "50063:50051"
+      - 50063:50051
     restart: on-failure:0
     environment:
       ENABLE_MODULES: "generative-dummy,reranker-dummy"

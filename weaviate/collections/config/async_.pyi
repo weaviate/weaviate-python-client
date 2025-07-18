@@ -1,5 +1,7 @@
 from typing import Dict, List, Literal, Optional, Union, overload
 
+from typing_extensions import deprecated
+
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
@@ -15,6 +17,8 @@ from weaviate.collections.classes.config import (
     _ReferencePropertyMultiTarget,
     _ReplicationConfigUpdate,
     _RerankerProvider,
+    _VectorConfigCreate,
+    _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
 )
@@ -51,6 +55,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
+        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> None: ...
@@ -64,6 +69,14 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     async def add_reference(
         self, ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget]
     ) -> None: ...
+    @overload
+    @deprecated(
+        "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.MultiVectors`."
+    )
     async def add_vector(
         self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
+    ) -> None: ...
+    @overload
+    async def add_vector(
+        self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...

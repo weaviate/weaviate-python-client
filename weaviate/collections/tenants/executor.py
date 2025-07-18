@@ -16,6 +16,7 @@ from weaviate.collections.classes.tenants import (
 from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.collections.tenants.types import (
     TenantCreateInputType,
+    TenantInputType,
     TenantOutputType,
     TenantUpdateInputType,
 )
@@ -47,7 +48,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
         self,
         tenants: Union[TenantCreateInputType, Sequence[TenantCreateInputType]],
     ) -> executor.Result[None]:
-        """Create the specified tenants for a collection in Weaviate.
+        """Create the specified tenants for this collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
@@ -94,9 +95,9 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def remove(
         self,
-        tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]],
+        tenants: Union[TenantInputType, Sequence[TenantInputType]],
     ) -> executor.Result[None]:
-        """Remove the specified tenants from a collection in Weaviate.
+        """Remove the specified tenants from this collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
@@ -170,7 +171,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
         )
 
     def __get_with_grpc(
-        self, *, tenants: Optional[Sequence[Union[str, Tenant]]] = None
+        self, *, tenants: Optional[Sequence[TenantInputType]] = None
     ) -> executor.Result[Dict[str, TenantOutputType]]:
         names = (
             [tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
@@ -228,7 +229,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def __map_create_tenants(
         self,
-        tenants: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]],
+        tenants: Union[TenantCreateInputType, Sequence[TenantCreateInputType]],
     ) -> List[dict]:
         if (
             isinstance(tenants, str)
@@ -260,7 +261,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             ]
 
     def get(self) -> executor.Result[Dict[str, TenantOutputType]]:
-        """Return all tenants currently associated with a collection in Weaviate.
+        """Return all tenants currently associated with this collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
@@ -282,9 +283,9 @@ class _TenantsExecutor(Generic[ConnectionType]):
         )
 
     def get_by_names(
-        self, tenants: Sequence[Union[str, Tenant]]
+        self, tenants: Sequence[TenantInputType]
     ) -> executor.Result[Dict[str, TenantOutputType]]:
-        """Return named tenants currently associated with a collection in Weaviate.
+        """Return named tenants currently associated with this collection in Weaviate.
 
         If the tenant does not exist, it will not be included in the response.
         If no names are provided, all tenants will be returned.
@@ -308,10 +309,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
             )
         return self.__get_with_grpc(tenants=tenants)
 
-    def get_by_name(
-        self, tenant: Union[str, Tenant]
-    ) -> executor.Result[Optional[TenantOutputType]]:
-        """Return a specific tenant associated with a collection in Weaviate.
+    def get_by_name(self, tenant: TenantInputType) -> executor.Result[Optional[TenantOutputType]]:
+        """Return a specific tenant associated with this collection in Weaviate.
 
         If the tenant does not exist, `None` will be returned.
 
@@ -348,7 +347,11 @@ class _TenantsExecutor(Generic[ConnectionType]):
         def resp_rest(res: Response) -> Optional[TenantOutputType]:
             if res.status_code == 404:
                 return None
-            return Tenant(**res.json())
+            data = res.json()
+            return TenantOutput(
+                name=data["name"],
+                activity_status=TenantActivityStatus(data["activityStatus"]),
+            )
 
         return executor.execute(
             response_callback=resp_rest,
@@ -401,7 +404,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
         self,
         tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]],
     ) -> executor.Result[None]:
-        """Update the specified tenants for a collection in Weaviate.
+        """Update the specified tenants for this collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
@@ -428,8 +431,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
             )
         return self.__update(tenants=tenants)
 
-    def exists(self, tenant: Union[str, Tenant]) -> executor.Result[bool]:
-        """Check if a tenant exists for a collection in Weaviate.
+    def exists(self, tenant: TenantInputType) -> executor.Result[bool]:
+        """Check if a tenant exists for this collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
@@ -447,7 +450,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(
-                    expected=[str, Tenant, Sequence[Union[str, Tenant]]],
+                    expected=[str, Tenant],
                     name="tenant",
                     value=tenant,
                 )
@@ -466,4 +469,101 @@ class _TenantsExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(
                 ok_in=[200, 404], error=f"Check if tenant exists for {self._name}"
             ),  # allow 404 to perform bool check on response code
+        )
+
+    def __update_tenant_activity_status(
+        self,
+        tenant: Union[TenantInputType, Sequence[TenantInputType]],
+        activity_status: TenantUpdateActivityStatus,
+    ) -> executor.Result[None]:
+        if self._validate_arguments:
+            _validate_input(
+                _ValidateArgument(
+                    expected=[
+                        str,
+                        Tenant,
+                        Sequence[Union[str, Tenant]],
+                    ],
+                    name="tenant",
+                    value=tenant,
+                )
+            )
+        if isinstance(tenant, str) or isinstance(tenant, Tenant):
+            tenants = [
+                TenantUpdate(
+                    name=tenant.name if isinstance(tenant, Tenant) else tenant,
+                    activity_status=activity_status,
+                )
+            ]
+        else:
+            tenants = [
+                TenantUpdate(
+                    name=t.name if isinstance(t, Tenant) else t,
+                    activity_status=activity_status,
+                )
+                for t in tenant
+            ]
+        return self.__update(tenants=tenants)
+
+    def activate(
+        self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
+    ) -> executor.Result[None]:
+        """Activate the specified tenants for this collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Args:
+            tenant: A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to activate for the given collection.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
+        """
+        self.__update_tenant_activity_status(
+            tenant=tenant,
+            activity_status=TenantUpdateActivityStatus.ACTIVE,
+        )
+
+    def deactivate(
+        self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
+    ) -> executor.Result[None]:
+        """Deactivate the specified tenants for this collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Args:
+            tenant: A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to deactivate for the given collection.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
+        """
+        self.__update_tenant_activity_status(
+            tenant=tenant,
+            activity_status=TenantUpdateActivityStatus.INACTIVE,
+        )
+
+    def offload(
+        self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
+    ) -> executor.Result[None]:
+        """Offload the specified tenants for this collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Args:
+            tenant: A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to offload for the given collection.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
+        """
+        self.__update_tenant_activity_status(
+            tenant=tenant,
+            activity_status=TenantUpdateActivityStatus.OFFLOADED,
         )

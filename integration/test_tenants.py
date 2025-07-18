@@ -19,7 +19,10 @@ from weaviate.collections.classes.tenants import (
     TenantCreate,
 )
 from weaviate.collections.tenants import TenantCreateInputType
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
+from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+)
 
 
 def test_shards_on_tenants(
@@ -504,3 +507,24 @@ def test_tenants_auto_tenant_creation(
                 collection=collection.name, properties={"name": "some name"}, tenant=f"tenant-{i}"
             )
     assert len(client.batch.failed_objects) == 0
+
+
+def test_tenants_deactivate_then_activate(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+
+    t = Tenant(name="tenant1")
+    collection.tenants.create([t])
+    tenant1 = collection.with_tenant(t)
+
+    tenant1.data.insert(properties={"name": "some name"})
+    assert tenant1.query.fetch_objects().objects[0].properties["name"] == "some name"
+
+    collection.tenants.deactivate(t)
+    assert collection.tenants.get()["tenant1"].activity_status == TenantActivityStatus.INACTIVE
+
+    collection.tenants.activate(t)
+    assert tenant1.query.fetch_objects().objects[0].properties["name"] == "some name"

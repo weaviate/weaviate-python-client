@@ -134,7 +134,7 @@ class _Warnings:
     def vector_index_config_in_config_update() -> None:
         warnings.warn(
             message="""Dep017: You are using the `vector_index_config` argument in the `collection.config.update()` method, which is deprecated.
-            Use the `vectorizer_config` argument instead.
+            Use the `vector_config` argument instead.
             """,
             category=DeprecationWarning,
             stacklevel=1,
@@ -177,6 +177,66 @@ class _Warnings:
     def oidc_with_wcd_deprecated() -> None:
         warnings.warn(
             message="""Dep022: connecting to Weaviate Cloud (WCD) using OIDC is deprecated and will be removed in August 2025. Please use API keys instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def vectorizer_config_in_config_update() -> None:
+        warnings.warn(
+            message="""Dep023: You are using the `vectorizer_config` argument in the `collection.config.update()` method with a collection with named vectors, which is deprecated.
+            Use the `vector_config` argument instead.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def vectorizer_config_in_config_create() -> None:
+        warnings.warn(
+            message="""Dep024: You are using the `vectorizer_config` argument in `collection.config.create()`, which is deprecated.
+            Use the `vector_config` argument instead.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def vector_index_config_in_config_create() -> None:
+        warnings.warn(
+            message="""Dep025: You are using the `vector_index_config` argument in `collection.config.create()`, which is deprecated.
+            Use the `vector_config` argument instead defining `vector_index_config` as a sub-argument.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def named_vector_syntax_in_config_add_vector(name: str) -> None:
+        warnings.warn(
+            message=f"""Dep026: You are using the named vector syntax for vector {name}, e.g. `Configure.NamedVectors` in `collection.config.add_vector()`, which is deprecated.
+            Use `Configure.Vectors` or `Configure.MultiVectors` instead.`
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def encoding_in_multi_vector_config() -> None:
+        warnings.warn(
+            message="""Dep026: You are using the `encoding` argument in `Configure.VectorIndex.MultiVectors.multi_vector()`, which is deprecated.
+            Use the `encoding` argument inside `Configure.MultiVectors.module()` instead.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def multi_vector_in_hnsw_config() -> None:
+        warnings.warn(
+            message="""Dep027: You are using the `multi_vector` argument in `Configure.VectorIndex.hnsw()`, which is deprecated.
+            Use the `multi_vector` argument inside `Configure.MultiVectors.module()` instead.
+            """,
             category=DeprecationWarning,
             stacklevel=1,
         )

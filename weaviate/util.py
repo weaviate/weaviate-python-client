@@ -576,6 +576,10 @@ class _ServerVersion:
         if not self >= _ServerVersion(1, 25, 0):
             raise WeaviateUnsupportedFeatureError(feature, str(self), "1.25.0")
 
+    def check_is_at_least_1_32_0(self, feature: str) -> None:
+        if not self >= _ServerVersion(1, 32, 0):
+            raise WeaviateUnsupportedFeatureError(feature, str(self), "1.32.0")
+
     @property
     def supports_tenants_get_grpc(self) -> bool:
         return self >= _ServerVersion(1, 25, 0)

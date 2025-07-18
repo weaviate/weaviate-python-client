@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from typing import Dict, Generic, List, Optional, Tuple, Union
+from typing import Dict, Generic, List, Literal, Optional, Tuple, Union
 
 from httpx import Response
 
@@ -239,6 +239,8 @@ class _BackupExecutor(Generic[ConnectionType]):
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        roles_restore: Optional[Literal["noRestore", "all"]] = None,
+        users_restore: Optional[Literal["noRestore", "all"]] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -281,7 +283,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             "include": include_collections,
             "exclude": exclude_collections,
         }
-
+        configPayload = {}
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
@@ -289,11 +291,8 @@ class _BackupExecutor(Generic[ConnectionType]):
                     str(self._connection._weaviate_version),
                     "1.25.0",
                 )
-            if not isinstance(config, BackupConfigRestore):
-                raise WeaviateInvalidInputError(
-                    f"Expected 'config' to be of type 'BackupConfigRestore', but got {type(config)}."
-                )
-            payload["config"] = config._to_dict()
+
+            configPayload = config._to_dict()
 
         if backup_location is not None:
             if self._connection._weaviate_version.is_lower_than(1, 27, 2):
@@ -305,7 +304,16 @@ class _BackupExecutor(Generic[ConnectionType]):
 
             if "config" not in payload:
                 payload["config"] = {}
-            payload["config"].update(backup_location._to_dict())
+            configPayload.update(backup_location._to_dict())
+
+        if roles_restore is not None:
+            configPayload["rolesOptions"] = roles_restore
+
+        if users_restore is not None:
+            configPayload["usersOptions"] = users_restore
+
+        if len(configPayload) > 0:
+            payload["config"] = configPayload
 
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
