@@ -133,25 +133,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-<<<<<<< HEAD
-          { py: "3.9", weaviate: $WEAVIATE_130, grpc-version: "1.59.0"},
-          { py: "3.10", weaviate: $WEAVIATE_130, grpc-version: "1.66.0"},
-          { py: "3.11", weaviate: $WEAVIATE_130, grpc-version: "1.70.0"},
-          { py: "3.12", weaviate: $WEAVIATE_130, grpc-version: "1.70.0"},
-          { py: "3.13", weaviate: $WEAVIATE_130, grpc-version: "1.70.0"}
-||||||| 4d017cb4
-          { py: "3.9", weaviate: $WEAVIATE_130},
-          { py: "3.10", weaviate: $WEAVIATE_130},
-          { py: "3.11", weaviate: $WEAVIATE_130},
-          { py: "3.12", weaviate: $WEAVIATE_130},
-          { py: "3.13", weaviate: $WEAVIATE_130}
-=======
-          { py: "3.9", weaviate: $WEAVIATE_131},
-          { py: "3.10", weaviate: $WEAVIATE_131},
-          { py: "3.11", weaviate: $WEAVIATE_131},
-          { py: "3.12", weaviate: $WEAVIATE_131},
-          { py: "3.13", weaviate: $WEAVIATE_131}
->>>>>>> main
+          { py: "3.9", weaviate: $WEAVIATE_131, grpc-version: "1.59.0"},
+          { py: "3.10", weaviate: $WEAVIATE_131, grpc-version: "1.66.0"},
+          { py: "3.11", weaviate: $WEAVIATE_131, grpc-version: "1.70.0"},
+          { py: "3.12", weaviate: $WEAVIATE_131, grpc-version: "1.70.0"},
+          { py: "3.13", weaviate: $WEAVIATE_131, grpc-version: "1.70.0"}
         ]
         optional_dependencies: [false]
     steps:
@@ -170,14 +156,8 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
-<<<<<<< HEAD
-          pip install -r requirements-devel.txt
-          pip install grpcio==${{ matrix.versions.grpc-version }} grpcio-tools==${{ matrix.versions.grpc-version }} grpcio-health-checking==${{ matrix.versions.grpc-version }}
-||||||| 4d017cb4
-          pip install -r requirements-devel.txt
-=======
           pip install -r requirements-test.txt
->>>>>>> main
+          pip install grpcio==${{ matrix.versions.grpc-version }} grpcio-tools==${{ matrix.versions.grpc-version }} grpcio-health-checking==${{ matrix.versions.grpc-version }}
           pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
@@ -304,7 +284,7 @@ jobs:
           { extra: "1.59.5", server: $WEAVIATE_128},
           { extra: "1.62.0", server: $WEAVIATE_129},
           { extra: "1.69.0", server: $WEAVIATE_130},
-          { extra: "1.70.0", server: $WEAVIATE_131}
+          { extra: "1.70.0", server: $WEAVIATE_131},
           { extra: "1.71.0", server: $WEAVIATE_132}
         ]
     steps:
