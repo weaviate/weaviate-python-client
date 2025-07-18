@@ -15,7 +15,7 @@ from importlib.metadata import version as metadata_version
 
 def get_protobuf_version() -> version.Version:
     """Get the installed protobuf version."""
-    return version.parse(metadata_version('grpcio-tools'))
+    return version.parse(metadata_version('grpcio'))
 
 
 pb_version = get_protobuf_version()
