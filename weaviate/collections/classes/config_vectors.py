@@ -720,7 +720,7 @@ class _Vectors:
         dimensions: Optional[int] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         location: str,
-        model_id: Optional[str] = None,
+        model: Optional[str] = None,
         project_id: str,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -738,7 +738,7 @@ class _Vectors:
             dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             location: Where the model runs. REQUIRED.
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
             project_id: The project ID to use, REQUIRED.
             text_fields: The text fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
@@ -754,7 +754,7 @@ class _Vectors:
                 textFields=_map_multi2vec_fields(text_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
                 dimensions=dimensions,
-                modelId=model_id,
+                modelId=model,
                 videoIntervalSeconds=video_interval_seconds,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
@@ -1062,7 +1062,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         api_endpoint: Optional[str] = None,
-        model_id: Optional[str] = None,
+        model: Optional[str] = None,
         project_id: str,
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
@@ -1078,7 +1078,7 @@ class _Vectors:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
             project_id: The project ID to use, REQUIRED.
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
@@ -1094,7 +1094,7 @@ class _Vectors:
             vectorizer=_Text2VecGoogleConfig(
                 projectId=project_id,
                 apiEndpoint=api_endpoint,
-                modelId=model_id,
+                modelId=model,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
             ),
@@ -1106,7 +1106,7 @@ class _Vectors:
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-        model_id: Optional[str] = None,
+        model: Optional[str] = None,
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
@@ -1120,7 +1120,7 @@ class _Vectors:
         Args:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
@@ -1135,7 +1135,7 @@ class _Vectors:
             vectorizer=_Text2VecGoogleConfig(
                 projectId=None,
                 apiEndpoint="generativelanguage.googleapis.com",
-                modelId=model_id,
+                modelId=model,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
             ),
