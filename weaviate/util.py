@@ -716,16 +716,23 @@ def _datetime_to_string(value: TIME) -> str:
 
 
 def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+    if string[-1] != "Z":
+        string = "".join(string.rsplit(":", 1))
+
+    # Weaviate can return up to 9 digits for milliseconds, but Python datetime only supports 6 digits.
+    string = re.sub(r"(?<=\.\d{6})\d+(?=[Z+-])", "", string)
+    # pick format with or without microseconds
+    date_format = "%Y-%m-%dT%H:%M:%S.%f%z" if "." in string else "%Y-%m-%dT%H:%M:%S%z"
+
     try:
-        return datetime.datetime.strptime(
-            "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-        )
-    except ValueError:  # if the string does not have microseconds
-        return datetime.datetime.strptime(
-            "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
-            "%Y-%m-%dT%H:%M:%S%z",
-        )
+        return datetime.datetime.strptime(string, date_format)
+    except ValueError as e:
+        # note that the year 9999 is valid and does not need to be handled. for 5 digit years only the first
+        # 4 digits are considered and it wrapps around
+        if "year 0 is out of range" in str(e):
+            _Warnings.datetime_year_zero(string)
+            return datetime.datetime.min
+        raise e
 
 
 class _WeaviateUUIDInt(uuid_lib.UUID):

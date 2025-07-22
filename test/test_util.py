@@ -1,6 +1,7 @@
 import unittest
 import uuid as uuid_lib
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -9,6 +10,7 @@ from test.util import check_error_message
 from weaviate.exceptions import SchemaValidationException
 from weaviate.util import (
     MINIMUM_NO_WARNING_VERSION,
+    _datetime_from_weaviate_str,
     _is_sub_schema,
     _sanitize_str,
     generate_uuid5,
@@ -429,6 +431,37 @@ MINIMUM_NO_WARNING_VERSION_MINOR = int(MINIMUM_NO_WARNING_VERSION_MINOR)
 )
 def test_is_weaviate_too_old(version: str, too_old: bool):
     assert is_weaviate_too_old(version) is too_old
+
+
+@pytest.mark.parametrize(
+    "input_str,expected",
+    [
+        # Test parsing with microseconds and Z timezone
+        (
+            "2023-01-15T14:30:45.123456Z",
+            datetime(2023, 1, 15, 14, 30, 45, 123456, tzinfo=timezone.utc),
+        ),
+        # Test parsing without microseconds
+        (
+            "2023-01-15T14:30:45Z",
+            datetime(2023, 1, 15, 14, 30, 45, 0, tzinfo=timezone.utc),
+        ),
+        # Test parsing with offset timezone
+        (
+            "2023-01-15T14:30:45.123456+02:00",
+            datetime(2023, 1, 15, 14, 30, 45, 123456, tzinfo=timezone(timedelta(hours=2))),
+        ),
+        # Test truncating excess microseconds
+        (
+            "2023-01-15T14:30:45.123456789Z",
+            datetime(2023, 1, 15, 14, 30, 45, 123456, tzinfo=timezone.utc),
+        ),
+        # Test handling year 0 (should return datetime.min)
+        ("0000-01-15T14:30:45.123456Z", datetime.min),
+    ],
+)
+def test_datetime_from_weaviate_str(input_str: str, expected: datetime) -> None:
+    assert _datetime_from_weaviate_str(input_str) == expected
 
 
 @pytest.mark.parametrize(

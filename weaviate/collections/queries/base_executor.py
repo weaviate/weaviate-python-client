@@ -270,15 +270,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         if value.HasField("uuid_value"):
             return uuid_lib.UUID(value.uuid_value)
         if value.HasField("date_value"):
-            try:
-                return _datetime_from_weaviate_str(value.date_value)
-            except ValueError as e:
-                # note that the year 9999 is valid and does not need to be handled. for 5 digit years only the first
-                # 4 digits are considered and it wrapps around
-                if "year 0 is out of range" in str(e):
-                    _Warnings.datetime_year_zero(value.date_value)
-                    return datetime.datetime.min
-
+            return _datetime_from_weaviate_str(value.date_value)
         if value.HasField("string_value"):
             return str(value.string_value)
         if value.HasField("text_value"):
