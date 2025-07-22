@@ -872,7 +872,7 @@ class _Vectorizer:
         *,
         model: Optional[str] = None,
         truncation: Optional[bool] = None,
-        output_encoding: Optional[str],
+        output_encoding: Optional[str] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
