@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.16.3
+--------------
+This patch version includes:
+  - Fix for dates with nananosecond precision
+  - Relax requirements for grcp dependencies and support protobuf 4, 5 and 6
+
 Version 4.16.2
 --------------
 This patch version includes:
