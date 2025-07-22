@@ -124,7 +124,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-voyageai": {
                 "model": "voyage-multimodal-3",
                 "truncation": False,
-                "output_encoding": "base64",
                 "baseURL": "https://api.voyageai.com/",
             }
         },
@@ -133,7 +132,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.multi2vec_nvidia(
             model="nvidia/nvclip",
             truncation=False,
-            output_encoding="base64",
             vectorize_collection_name=False,
             base_url="https://integrate.api.nvidia.com",
         ),
@@ -141,7 +139,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-nvidia": {
                 "model": "nvidia/nvclip",
                 "truncation": False,
-                "output_encoding": "base64",
                 "baseURL": "https://integrate.api.nvidia.com/",
             }
         },
