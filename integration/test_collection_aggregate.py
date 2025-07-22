@@ -85,9 +85,13 @@ def test_aggregation_top_occurence_with_limit(collection_factory: CollectionFact
     collection.data.insert({"text": "one"})
     collection.data.insert({"text": "one"})
     collection.data.insert({"text": "two"})
-    res = collection.aggregate.over_all(
+    res_old = collection.aggregate.over_all(
         return_metrics=[Metrics("text").text(min_occurrences=1)],
     )
+    res = collection.aggregate.over_all(
+        return_metrics=[Metrics("text").text(limit=1)],
+    )
+    assert res.properties["text"] == res_old.properties["text"]
     assert isinstance(res.properties["text"], AggregateText)
     assert len(res.properties["text"].top_occurrences) == 1
     assert res.properties["text"].top_occurrences[0].count == 2

@@ -6,6 +6,7 @@ from typing_extensions import TypeVar, deprecated
 
 from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
 from weaviate.proto.v1 import aggregate_pb2
+from weaviate.warnings import _Warnings
 
 N = TypeVar("N", int, float)
 
@@ -401,8 +402,9 @@ class Metrics:
             raise ValueError(
                 "You cannot use both `limit` and `min_occurrences` at the same time. Use `limit` instead."
             )
-        if limit is not None:
-            min_occurrences = limit
+
+        if min_occurrences is not None:
+            _Warnings.min_occurrences_metric_deprecated()
 
         effective_limit = limit if limit is not None else min_occurrences
 
