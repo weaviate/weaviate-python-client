@@ -507,7 +507,6 @@ class _Multi2VecVoyageaiConfig(_Multi2VecBase):
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncation: Optional[bool]
-    output_encoding: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -523,7 +522,6 @@ class _Multi2VecNvidiaConfig(_Multi2VecBase):
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncation: Optional[bool]
-    output_encoding: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -852,8 +850,8 @@ class _Vectorizer:
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            output_encoding: Format in which the embeddings are encoded. Defaults to `None`, so the embeddings are represented as a list of floating-point numbers.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            output_encoding: Deprecated, has no effect.
+            vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
@@ -865,7 +863,6 @@ class _Vectorizer:
             baseURL=base_url,
             model=model,
             truncation=truncation,
-            output_encoding=output_encoding,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
         )
@@ -889,8 +886,8 @@ class _Vectorizer:
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            output_encoding: Format in which the embeddings are encoded. Defaults to `None`, so the embeddings are represented as a list of floating-point numbers.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            output_encoding: Deprecated, has no effect.
+            vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
@@ -902,7 +899,6 @@ class _Vectorizer:
             baseURL=base_url,
             model=model,
             truncation=truncation,
-            output_encoding=output_encoding,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
         )
