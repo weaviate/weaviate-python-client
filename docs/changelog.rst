@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.16.4
+--------------
+This patch version includes:
+  - Changes default value for ``vectorize_collection_name`` to ``True`` in new methods of ``Configure.Vectors`` and ``Configure.MultiVectors``
+    - This is a short-term fix to implicit default behaviour that is caused by an server-side issue
+    - Once that is resolved, then this default will be changed back to ``False`` in a future release
+
 Version 4.16.3
 --------------
 This patch version includes:
