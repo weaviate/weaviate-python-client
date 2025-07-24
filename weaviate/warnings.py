@@ -242,6 +242,16 @@ class _Warnings:
         )
 
     @staticmethod
+    def min_occurrences_metric_deprecated() -> None:
+        warnings.warn(
+            message="""Dep028: You are using the `min_occurrences` argument in the `Metrics.text()` method, which is deprecated.
+            Use the `limit` argument instead.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are using the datetime object {date} without a timezone. The timezone will be set to UTC.
