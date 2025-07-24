@@ -43,6 +43,11 @@ class WeaviateStub(object):
                 request_serializer=v1_dot_aggregate__pb2.AggregateRequest.SerializeToString,
                 response_deserializer=v1_dot_aggregate__pb2.AggregateReply.FromString,
                 )
+        self.BatchSend = channel.unary_unary(
+                '/weaviate.v1.Weaviate/BatchSend',
+                request_serializer=v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
+                response_deserializer=v1_dot_batch__pb2.BatchSendReply.FromString,
+                )
 
 
 class WeaviateServicer(object):
@@ -78,6 +83,12 @@ class WeaviateServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def BatchSend(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WeaviateServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -105,6 +116,11 @@ def add_WeaviateServicer_to_server(servicer, server):
                     servicer.Aggregate,
                     request_deserializer=v1_dot_aggregate__pb2.AggregateRequest.FromString,
                     response_serializer=v1_dot_aggregate__pb2.AggregateReply.SerializeToString,
+            ),
+            'BatchSend': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchSend,
+                    request_deserializer=v1_dot_batch__pb2.BatchObjectsRequest.FromString,
+                    response_serializer=v1_dot_batch__pb2.BatchSendReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -198,5 +214,22 @@ class Weaviate(object):
         return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/Aggregate',
             v1_dot_aggregate__pb2.AggregateRequest.SerializeToString,
             v1_dot_aggregate__pb2.AggregateReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchSend(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/BatchSend',
+            v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
+            v1_dot_batch__pb2.BatchSendReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

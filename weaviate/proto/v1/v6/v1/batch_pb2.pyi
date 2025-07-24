@@ -3,7 +3,8 @@ from weaviate.proto.v1.v6.v1 import base_pb2 as _base_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -14,6 +15,16 @@ class BatchObjectsRequest(_message.Message):
     objects: _containers.RepeatedCompositeFieldContainer[BatchObject]
     consistency_level: _base_pb2.ConsistencyLevel
     def __init__(self, objects: _Optional[_Iterable[_Union[BatchObject, _Mapping]]] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
+
+class BatchStop(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class BatchSendReply(_message.Message):
+    __slots__ = ("next",)
+    NEXT_FIELD_NUMBER: _ClassVar[int]
+    next: int
+    def __init__(self, next: _Optional[int] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")

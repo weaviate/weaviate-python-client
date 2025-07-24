@@ -2,7 +2,7 @@
 
 set -e  # Exit on any error
 
-echo "This script compiles protos for Protobuf 4, 5.1, 5.2, and 6 versions."
+echo "This script compiles protos for Protobuf 4, 5, and 6 versions."
 
 # Get script directory and navigate to project root
 SCRIPT_DIR="${0%/*}"
@@ -30,12 +30,10 @@ compile_protos() {
     echo "Installing protobuf $version and grpcio-tools..."
     if [ "$version" = "v4" ]; then
         pip install "grpcio-tools==1.59.5"
-    elif [ "$version" = "v51" ]; then
-        pip install "grpcio-tools==1.60.0"
-    elif [ "$version" = "v52" ]; then
-        pip install "grpcio-tools==1.66.2"
+    elif [ "$version" = "v5" ]; then
+        pip install "grpcio-tools==1.63.0"
     elif [ "$version" = "v6" ]; then
-        pip install "grpcio-tools==1.70.0"
+        pip install "grpcio-tools==1.72.1"
     else
         echo "Unsupported version: $version"
         exit 1
@@ -68,7 +66,7 @@ compile_protos() {
 }
 
 
-for version in "v4" "v51" "v52" "v6"; do
+for version in "v4" "v5" "v6"; do
    compile_protos "$version"
 done
 
