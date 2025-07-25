@@ -15,6 +15,16 @@ class BatchObjectsRequest(_message.Message):
     consistency_level: _base_pb2.ConsistencyLevel
     def __init__(self, objects: _Optional[_Iterable[_Union[BatchObject, _Mapping]]] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
 
+class BatchStop(_message.Message):
+    __slots__ = []
+    def __init__(self) -> None: ...
+
+class BatchSendReply(_message.Message):
+    __slots__ = ["next"]
+    NEXT_FIELD_NUMBER: _ClassVar[int]
+    next: int
+    def __init__(self, next: _Optional[int] = ...) -> None: ...
+
 class BatchObject(_message.Message):
     __slots__ = ["uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors"]
     class Properties(_message.Message):
