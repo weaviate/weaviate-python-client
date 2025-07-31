@@ -175,11 +175,11 @@ def test_add_reference(
     client_factory: ClientFactory,
     from_object_uuid: UUID,
     to_object_uuid: UUID,
-    to_object_collection: Optional[bool],
+    to_object_collection: bool,
 ) -> None:
     """Test the `add_reference` method."""
     client, name = client_factory()
-    with client.batch.fixed_size() as batch:
+    with client.batch.dynamic() as batch:
         batch.add_object(
             properties={},
             collection=name,
@@ -194,8 +194,16 @@ def test_add_reference(
             from_uuid=from_object_uuid,
             from_collection=name,
             from_property="test",
-            to=to_object_uuid,
+            to=ReferenceToMulti(target_collection=name, uuids=to_object_uuid)
+            if to_object_collection
+            else to_object_uuid,
         )
+    assert len(client.batch.failed_objects) == 0, [
+        obj.message for obj in client.batch.failed_objects
+    ]
+    assert len(client.batch.failed_references) == 0, [
+        ref.message for ref in client.batch.failed_references
+    ]
     objs = (
         client.collections.use(name)
         .query.fetch_objects(return_references=QueryReference(link_on="test"))
@@ -683,6 +691,10 @@ def test_batching_error_logs(
     client_factory: ClientFactory, caplog: pytest.LogCaptureFixture
 ) -> None:
     client, name = client_factory()
+    if client._connection._weaviate_version.is_at_least(1, 32, 0):  # change to 1.33.0 when released
+        pytest.skip(
+            "Batching error logs do not get emitted by the new server-side batching functionality."
+        )
     with client.batch.fixed_size() as batch:
         for obj in [{"name": i} for i in range(100)]:
             batch.add_object(properties=obj, collection=name)

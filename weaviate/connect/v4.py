@@ -9,6 +9,7 @@ from typing import (
     Any,
     Awaitable,
     Dict,
+    Generator,
     List,
     Literal,
     Optional,
@@ -909,8 +910,8 @@ class _ConnectionBase:
 class ConnectionSync(_ConnectionBase):
     """Connection class used to communicate to a weaviate instance."""
 
-    def connect(self) -> None:
-        if self._connected:
+    def connect(self, force: bool = False) -> None:
+        if self._connected and not force:
             return None
 
         self._open_connections_rest(self._auth, "sync")
@@ -1021,6 +1022,53 @@ class ConnectionSync(_ConnectionBase):
             for err in res.errors:
                 objects[err.index] = err.error
             return objects
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            raise WeaviateBatchError(str(error.details()))
+
+    def grpc_batch_send(
+        self,
+        request: batch_pb2.BatchSendRequest,
+        timeout: Union[int, float],
+        max_retries: float,
+    ) -> batch_pb2.BatchSendReply:
+        try:
+            assert self.grpc_stub is not None
+            res = _Retry(max_retries).with_exponential_backoff(
+                count=0,
+                error="Batch send",
+                f=self.grpc_stub.BatchSend,
+                request=request,
+                metadata=self.grpc_headers(),
+                timeout=timeout,
+            )
+            res = cast(batch_pb2.BatchSendReply, res)
+            return res
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            raise WeaviateBatchError(str(error.details()))
+
+    def grpc_batch_stream(
+        self,
+        request: batch_pb2.BatchStreamRequest,
+        timeout: Union[int, float],
+        max_retries: float,
+    ) -> Generator[batch_pb2.BatchStreamMessage, None, None]:
+        try:
+            assert self.grpc_stub is not None
+            for msg in _Retry(max_retries).with_exponential_backoff(
+                count=0,
+                error="Batch stream",
+                f=self.grpc_stub.BatchStream,
+                request=request,
+                metadata=self.grpc_headers(),
+                timeout=timeout,
+            ):
+                yield msg
         except RpcError as e:
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:

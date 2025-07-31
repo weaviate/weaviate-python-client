@@ -25,7 +25,8 @@ env:
   WEAVIATE_129: 1.29.9
   WEAVIATE_130: 1.30.11
   WEAVIATE_131: 1.31.5
-  WEAVIATE_132: 1.32.0-rc.1-098c594
+  WEAVIATE_132: 1.32.0
+  WEAVIATE_133: 1.33.0-dev-6540ef9.arm64
 
 jobs:
   lint-and-format:
@@ -285,7 +286,8 @@ jobs:
           { extra: "1.62.0", server: $WEAVIATE_129},
           { extra: "1.69.0", server: $WEAVIATE_130},
           { extra: "1.70.0", server: $WEAVIATE_131},
-          { extra: "1.71.0", server: $WEAVIATE_132}
+          { extra: "1.71.0", server: $WEAVIATE_132},
+          { extra: "1.72.2", server: $WEAVIATE_133}
         ]
     steps:
       - name: Checkout

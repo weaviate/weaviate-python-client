@@ -19,8 +19,8 @@ from typing import (
 
 from httpx import Response
 
+from weaviate.collections.batch.grpc_batch import _BatchGRPC
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
-from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
     BatchObjectReturn,
@@ -74,6 +74,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
         self.__batch_grpc = _BatchGRPC(
             weaviate_version=connection._weaviate_version,
             consistency_level=consistency_level,
+            grpc_max_msg_size=connection._grpc_max_msg_size,
         )
         self.__batch_rest = _BatchREST(consistency_level=consistency_level)
         self.__batch_delete = _BatchDeleteGRPC(
