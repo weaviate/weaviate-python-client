@@ -2223,6 +2223,7 @@ class _VectorIndexQuantizerUpdate:
     def rq(
         rescore_limit: Optional[int] = None,
         enabled: bool = True,
+        bits: Optional[int] = None,
     ) -> _RQConfigUpdate:
         """Create a `_RQConfigUpdate` object to be used when updating the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -2231,7 +2232,7 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _RQConfigUpdate(enabled=enabled, rescoreLimit=rescore_limit)
+        return _RQConfigUpdate(enabled=enabled, rescoreLimit=rescore_limit, bits=bits)
 
 
 class _VectorIndexUpdate:
