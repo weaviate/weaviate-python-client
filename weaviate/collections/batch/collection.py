@@ -1,8 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Generic, List, Optional, Union
+from typing import TYPE_CHECKING, Generic, List, Optional, Type, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
+    _BatchBaseNew,
     _BatchDataWrapper,
     _BatchMode,
     _DynamicBatching,
@@ -10,6 +11,7 @@ from weaviate.collections.batch.base import (
     _RateLimitedBatching,
 )
 from weaviate.collections.batch.batch_wrapper import (
+    BatchCollectionProtocol,
     _BatchWrapper,
     _ContextManagerWrapper,
 )
@@ -25,6 +27,57 @@ if TYPE_CHECKING:
 
 
 class _BatchCollection(Generic[Properties], _BatchBase):
+    def __init__(
+        self,
+        executor: ThreadPoolExecutor,
+        connection: ConnectionSync,
+        consistency_level: Optional[ConsistencyLevel],
+        results: _BatchDataWrapper,
+        batch_mode: _BatchMode,
+        name: str,
+        tenant: Optional[str],
+        vectorizer_batching: bool,
+    ) -> None:
+        super().__init__(
+            connection=connection,
+            consistency_level=consistency_level,
+            results=results,
+            batch_mode=batch_mode,
+            executor=executor,
+            vectorizer_batching=vectorizer_batching,
+        )
+        self.__name = name
+        self.__tenant = tenant
+
+    def add_object(
+        self,
+        properties: Optional[Properties] = None,
+        references: Optional[ReferenceInputs] = None,
+        uuid: Optional[UUID] = None,
+        vector: Optional[VECTORS] = None,
+    ) -> UUID:
+        return self._add_object(
+            collection=self.__name,
+            properties=properties,
+            references=references,
+            uuid=uuid,
+            vector=vector,
+            tenant=self.__tenant,
+        )
+
+    def add_reference(
+        self, from_uuid: UUID, from_property: str, to: Union[ReferenceInput, List[UUID]]
+    ) -> None:
+        self._add_reference(
+            from_uuid,
+            self.__name,
+            from_property,
+            to,
+            self.__tenant,
+        )
+
+
+class _BatchCollectionNew(Generic[Properties], _BatchBaseNew):
     def __init__(
         self,
         executor: ThreadPoolExecutor,
@@ -106,8 +159,12 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         )
 
 
-BatchCollection = _BatchCollection[Properties]
-CollectionBatchingContextManager = _ContextManagerWrapper[BatchCollection[Properties]]
+BatchCollection = _BatchCollection
+BatchCollectionNew = _BatchCollectionNew
+CollectionBatchingContextManager = _ContextManagerWrapper[
+    Union[BatchCollection[Properties], BatchCollectionNew[Properties]],
+    BatchCollectionProtocol[Properties],
+]
 
 
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
@@ -118,6 +175,9 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         name: str,
         tenant: Optional[str],
         config: "_ConfigCollection",
+        batch_client: Union[
+            Type[_BatchCollection[Properties]], Type[_BatchCollectionNew[Properties]]
+        ],
     ) -> None:
         super().__init__(connection, consistency_level)
         self.__name = name
@@ -126,10 +186,11 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self._vectorizer_batching: Optional[bool] = None
         self.__executor = ThreadPoolExecutor()
         # define one executor per client with it shared between all child batch contexts
+        self.__batch_client = batch_client
 
     def __create_batch_and_reset(
         self,
-    ) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+    ):
         if self._vectorizer_batching is None:
             try:
                 config = self.__config.get(simple=True)
@@ -150,7 +211,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
-            _BatchCollection[Properties](
+            self.__batch_client(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,

@@ -1,8 +1,9 @@
 import time
-from typing import Any, Generic, List, Optional, TypeVar, cast
+from typing import Any, Generic, List, Optional, Protocol, TypeVar, Union, cast
 
 from weaviate.collections.batch.base import (
     _BatchBase,
+    _BatchBaseNew,
     _BatchDataWrapper,
     _BatchMode,
     _DynamicBatching,
@@ -14,9 +15,13 @@ from weaviate.collections.classes.batch import (
     Shard,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
+from weaviate.collections.classes.tenants import Tenant
+from weaviate.collections.classes.types import Properties, WeaviateProperties
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.logger import logger
+from weaviate.types import UUID, VECTORS
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 
 
@@ -28,7 +33,7 @@ class _BatchWrapper:
     ):
         self._connection = connection
         self._consistency_level = consistency_level
-        self._current_batch: Optional[_BatchBase] = None
+        self._current_batch: Optional[Union[_BatchBase, _BatchBaseNew]] = None
         # config options
         self._batch_mode: _BatchMode = _DynamicBatching()
 
@@ -120,15 +125,125 @@ class _BatchWrapper:
         return self._batch_data.results
 
 
-T = TypeVar("T", bound=_BatchBase)
+class BatchClientProtocol(Protocol):
+    def add_object(
+        self,
+        collection: str,
+        properties: Optional[WeaviateProperties] = None,
+        references: Optional[ReferenceInputs] = None,
+        uuid: Optional[UUID] = None,
+        vector: Optional[VECTORS] = None,
+        tenant: Optional[Union[str, Tenant]] = None,
+    ) -> UUID:
+        """Add one object to this batch.
+
+        NOTE: If the UUID of one of the objects already exists then the existing object will be
+        replaced by the new object.
+
+        Args:
+            collection: The name of the collection this object belongs to.
+            properties: The data properties of the object to be added as a dictionary.
+            references: The references of the object to be added as a dictionary.
+            uuid: The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
+                If it is None an UUIDv4 will generated, by default None
+            vector: The embedding of the object. Can be used when a collection does not have a vectorization module or the given
+                vector was generated using the _identical_ vectorization module that is configured for the class. In this
+                case this vector takes precedence.
+                Supported types are:
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+            tenant: The tenant name or Tenant object to be used for this request.
+
+        Returns:
+            The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
+
+        Raises:
+            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
+        """
+        ...
+
+    def add_reference(
+        self,
+        from_uuid: UUID,
+        from_collection: str,
+        from_property: str,
+        to: ReferenceInput,
+        tenant: Optional[Union[str, Tenant]] = None,
+    ) -> None:
+        """Add one reference to this batch.
+
+        Args:
+            from_uuid: The UUID of the object, as an uuid.UUID object or str, that should reference another object.
+            from_collection: The name of the collection that should reference another object.
+            from_property: The name of the property that contains the reference.
+            to: The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
+                For multi-target references use wvc.Reference.to_multi_target().
+            tenant: The tenant name or Tenant object to be used for this request.
+
+        Raises:
+            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
+        """
+        ...
 
 
-class _ContextManagerWrapper(Generic[T]):
+class BatchCollectionProtocol(Generic[Properties], Protocol[Properties]):
+    def add_object(
+        self,
+        properties: Optional[Properties] = None,
+        references: Optional[ReferenceInputs] = None,
+        uuid: Optional[UUID] = None,
+        vector: Optional[VECTORS] = None,
+    ) -> UUID:
+        """Add one object to this batch.
+
+        NOTE: If the UUID of one of the objects already exists then the existing object will be replaced by the new object.
+
+        Args:
+            properties: The data properties of the object to be added as a dictionary.
+            references: The references of the object to be added as a dictionary.
+            uuid: The UUID of the object as an uuid.UUID object or str. If it is None an UUIDv4 will generated, by default None
+            vector: The embedding of the object. Can be used when a collection does not have a vectorization module or the given
+                vector was generated using the _identical_ vectorization module that is configured for the class. In this
+                case this vector takes precedence. Supported types are:
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+
+        Returns:
+            The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
+
+        Raises:
+            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
+        """
+        ...
+
+    def add_reference(
+        self, from_uuid: UUID, from_property: str, to: Union[ReferenceInput, List[UUID]]
+    ) -> None:
+        """Add a reference to this batch.
+
+        Args:
+            from_uuid: The UUID of the object, as an uuid.UUID object or str, that should reference another object.
+            from_property: The name of the property that contains the reference.
+            to: The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
+                For multi-target references use wvc.Reference.to_multi_target().
+
+        Raises:
+            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
+        """
+        ...
+
+
+T = TypeVar("T", bound=Union[_BatchBase, _BatchBaseNew])
+P = TypeVar("P", bound=Union[BatchClientProtocol, BatchCollectionProtocol[Properties]])
+
+
+class _ContextManagerWrapper(Generic[T, P]):
     def __init__(self, current_batch: T):
         self.__current_batch: T = current_batch
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.__current_batch._shutdown()
 
-    def __enter__(self) -> T:
-        return self.__current_batch
+    def __enter__(self) -> P:
+        self.__current_batch._start()
+        return self.__current_batch  # pyright: ignore[reportReturnType]
