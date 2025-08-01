@@ -320,6 +320,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     )
     projectId: Optional[str]
     apiEndpoint: Optional[str]
+    dimensions: Optional[int]
     modelId: Optional[str]
     vectorizeClassName: bool
     titleProperty: Optional[str]
@@ -1103,6 +1104,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Text2VecGoogleConfig(
             projectId=project_id,
             apiEndpoint=api_endpoint,
+            dimensions=None,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
@@ -1130,6 +1132,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Text2VecGoogleConfig(
             projectId=None,
             apiEndpoint="generativelanguage.googleapis.com",
+            dimensions=None,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
@@ -1154,6 +1157,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1161,6 +1165,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Text2VecGoogleConfig(
             projectId=project_id,
             apiEndpoint=api_endpoint,
+            dimensions=None,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
@@ -1227,7 +1232,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        dimensions: Optional[int] = None,
         model_id: Optional[str] = None,
         video_interval_seconds: Optional[int] = None,
         vectorize_collection_name: bool = True,
@@ -1243,7 +1247,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
-            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
@@ -1257,7 +1260,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             videoFields=_map_multi2vec_fields(video_fields),
-            dimensions=dimensions,
+            dimensions=None,
             modelId=model_id,
             videoIntervalSeconds=video_interval_seconds,
         )
