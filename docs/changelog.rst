@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.16.5
+--------------
+This patch version includes:
+    - Add ``dimensions`` property to Google vectorizers in ``Configure.Vectors``
+
 Version 4.16.4
 --------------
 This patch version includes:
