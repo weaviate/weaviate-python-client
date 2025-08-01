@@ -974,6 +974,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizer=_Text2VecGoogleConfig(
                 projectId=project_id,
                 apiEndpoint=api_endpoint,
+                dimensions=None,
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
@@ -1018,6 +1019,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizer=_Text2VecGoogleConfig(
                 projectId=project_id,
                 apiEndpoint=api_endpoint,
+                dimensions=None,
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
@@ -1058,6 +1060,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizer=_Text2VecGoogleConfig(
                 projectId=None,
                 apiEndpoint="generativelanguage.googleapis.com",
+                dimensions=None,
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
