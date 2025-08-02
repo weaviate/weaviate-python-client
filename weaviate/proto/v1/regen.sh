@@ -2,7 +2,7 @@
 
 set -e  # Exit on any error
 
-echo "This script compiles protos for Protobuf 4, 5.1, 5.2, and 6 versions."
+echo "This script compiles protos for Protobuf 4, 5, and 6 versions."
 
 # Get script directory and navigate to project root
 SCRIPT_DIR="${0%/*}"
@@ -24,22 +24,15 @@ source "$PROTO_VENV/bin/activate"
 pip install --upgrade pip
 
 compile_protos() {
-    local version=$1
-    local output_dir="$PROJECT_ROOT/$version"
+
+
+    local pip_version=${1}
+    local version=v${1//./}
+
+    local output_dir="$PROJECT_ROOT/${version}"
 
     echo "Installing protobuf $version and grpcio-tools..."
-    if [ "$version" = "v4" ]; then
-        pip install "grpcio-tools==1.59.5"
-    elif [ "$version" = "v51" ]; then
-        pip install "grpcio-tools==1.60.0"
-    elif [ "$version" = "v52" ]; then
-        pip install "grpcio-tools==1.66.2"
-    elif [ "$version" = "v6" ]; then
-        pip install "grpcio-tools==1.70.0"
-    else
-        echo "Unsupported version: $version"
-        exit 1
-    fi
+    pip install "grpcio-tools==$pip_version"
 
     echo "Compiling protos for Protobuf $version... in $output_dir"
 
@@ -67,10 +60,19 @@ compile_protos() {
     fi
 }
 
+# v4
+compile_protos "1.59.5"
+compile_protos "1.61.3"   # no earlier versions on pypi
 
-for version in "v4" "v51" "v52" "v6"; do
-   compile_protos "$version"
-done
+# v5
+compile_protos "1.63.0"
+compile_protos "1.65.1"  # .0 was yanked
+compile_protos "1.67.0"
+compile_protos "1.69.0"
+compile_protos "1.71.0"
+
+#v6
+compile_protos "1.72.1" # .0 was yanked
 
 deactivate
 rm -rf "$PROTO_VENV"
