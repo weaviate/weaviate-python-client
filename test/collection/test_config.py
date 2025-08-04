@@ -2214,6 +2214,20 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [Configure.Vectors.text2vec_model2vec(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-model2vec": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [
             Configure.Vectors.text2vec_voyageai(
                 name="test", source_properties=["prop"], truncate=True
