@@ -115,6 +115,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
+    TEXT2VEC_MODEL2VEC = "text2vec-model2vec"
     TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
@@ -174,6 +175,14 @@ class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
         default=Vectorizers.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
     )
     vectorizeClassName: bool
+
+
+class _Text2VecModel2Vec(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2VEC_MODEL2VEC, frozen=True, exclude=True
+    )
+    vectorizeClassName: bool
+    inferenceUrl: Optional[str]
 
 
 class _VectorizerCustomConfig(_VectorizerConfigCreate):
@@ -335,6 +344,7 @@ class _Text2VecTransformersConfig(_VectorizerConfigCreate):
     inferenceUrl: Optional[str]
     passageInferenceUrl: Optional[str]
     queryInferenceUrl: Optional[str]
+    dimensions: Optional[int] = None
 
 
 class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
