@@ -344,6 +344,7 @@ class _Text2VecTransformersConfig(_VectorizerConfigCreate):
     inferenceUrl: Optional[str]
     passageInferenceUrl: Optional[str]
     queryInferenceUrl: Optional[str]
+    dimensions: Optional[int] = None
 
 
 class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):

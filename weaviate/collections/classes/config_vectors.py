@@ -466,7 +466,7 @@ class _Vectors:
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec_model2vec` module.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-model2vec)
+        See the [documentation](https://docs.weaviate.io/weaviate/model-providers/model2vec)
         for detailed usage.
 
         Args:
@@ -1186,6 +1186,7 @@ class _Vectors:
     def text2vec_transformers(
         *,
         name: Optional[str] = None,
+        dimensions: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
@@ -1202,6 +1203,7 @@ class _Vectors:
 
         Args:
             name: The name of the vector.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             inference_url: The inferenceUrl to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
             passage_inference_url: The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
@@ -1216,6 +1218,7 @@ class _Vectors:
             source_properties=source_properties,
             vectorizer=_Text2VecTransformersConfig(
                 poolingStrategy=pooling_strategy,
+                dimensions=dimensions,
                 vectorizeClassName=vectorize_collection_name,
                 inferenceUrl=inference_url,
                 passageInferenceUrl=passage_inference_url,
