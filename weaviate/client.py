@@ -10,7 +10,7 @@ from weaviate.client_executor import _WeaviateClientExecutor
 from .auth import AuthCredentials
 from .backup import _Backup, _BackupAsync
 from .cluster import _Cluster, _ClusterAsync
-from .collections.batch.client import _BatchClient, _BatchClientNew, _BatchClientWrapper
+from .collections.batch.client import _BatchClientWrapper
 from .collections.collections import _Collections, _CollectionsAsync
 from .config import AdditionalConfig
 from .connect import executor
@@ -146,9 +146,6 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         self.batch = _BatchClientWrapper(
             self._connection,
             config=collections,
-            batch_client=_BatchClientNew
-            if self._connection._weaviate_version.is_at_least(1, 33, 0)
-            else _BatchClient,
             consistency_level=None,
         )
         self.backup = _Backup(self._connection)

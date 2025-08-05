@@ -10,6 +10,7 @@ import weaviate
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
 from weaviate import BatchClient, ClientBatchingContextManager
+from weaviate.collections.batch.client import _BatchClient, _BatchClientNew
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
     Configure,
@@ -135,6 +136,7 @@ def test_flushing(client_factory: ClientFactory) -> None:
     """Test that batch is working normally after flushing."""
     client, name = client_factory()
     with client.batch.dynamic() as batch:
+        assert isinstance(batch, _BatchClientNew)
         batch.add_object(collection=name, properties={})
         batch.flush()
         objs = client.collections.use(name).query.fetch_objects().objects
@@ -740,3 +742,14 @@ def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
 
     assert len(client.batch.failed_references) == 0, client.batch.failed_references
     client.collections.delete(["target", "source"])
+
+
+def test_client_instance_type(client_factory: ClientFactory) -> None:
+    client, _ = client_factory()
+    with client.batch.dynamic() as batch:
+        if client._connection._weaviate_version.is_at_least(
+            1, 32, 0
+        ):  # change to 1.33.0 when released
+            assert isinstance(batch, _BatchClientNew)
+        else:
+            assert isinstance(batch, _BatchClient)

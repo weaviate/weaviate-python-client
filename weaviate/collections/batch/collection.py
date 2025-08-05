@@ -209,9 +209,15 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                     raise e
                 self._vectorizer_batching = False
 
+        batch_client = (
+            _BatchCollectionNew
+            if self._connection._weaviate_version.is_at_least(1, 32, 0)
+            else _BatchCollection
+        )  # todo: change to 1.33.0 when it lands
+
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
-            self.__batch_client(
+            batch_client(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,

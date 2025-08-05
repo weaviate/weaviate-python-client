@@ -846,6 +846,14 @@ class _BatchBaseNew:
 
     def _start(self) -> None:
         self.__bg_thread = self.__start_bg_threads()
+        now = time.time()
+        while self.__stream_id is None:
+            # wait for the stream to be started by __batch_stream
+            time.sleep(0.01)
+            if time.time() - now > 10:
+                raise WeaviateBatchValidationError(
+                    "Batch stream was not started within 10 seconds. Please check your connection."
+                )
 
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished

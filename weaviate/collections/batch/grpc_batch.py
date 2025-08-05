@@ -174,11 +174,10 @@ class _BatchGRPC(_BaseGRPC):
 
         def request_maker():
             return batch_pb2.BatchSendRequest(
-                objects=batch_pb2.BatchSendObjects(
+                stream_id=stream_id,
+                objects=batch_pb2.BatchObjects(
                     values=[],
-                    consistency_level=self._consistency_level,
-                    stream_id=stream_id,
-                )
+                ),
             )
 
         request = request_maker()
@@ -205,11 +204,10 @@ class _BatchGRPC(_BaseGRPC):
 
         def request_maker():
             return batch_pb2.BatchSendRequest(
-                references=batch_pb2.BatchSendReferences(
+                stream_id=stream_id,
+                references=batch_pb2.BatchReferences(
                     values=[],
-                    consistency_level=self._consistency_level,
-                    stream_id=stream_id,
-                )
+                ),
             )
 
         request = request_maker()
@@ -318,9 +316,7 @@ class _BatchGRPC(_BaseGRPC):
             max_retries: The maximum number of retries in case of a failure.
         """
         request = batch_pb2.BatchSendRequest(
-            stop=batch_pb2.BatchStop(
-                stream_id=stream_id,
-            )
+            stream_id=stream_id, stop=batch_pb2.BatchSendRequest.BatchStop()
         )
         connection.grpc_batch_send(
             request=request,

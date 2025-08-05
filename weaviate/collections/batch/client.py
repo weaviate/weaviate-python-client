@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Optional, Type, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -187,14 +187,12 @@ class _BatchClientWrapper(_BatchWrapper):
         self,
         connection: ConnectionSync,
         config: "_Collections",
-        batch_client: Union[Type[_BatchClient], Type[_BatchClientNew]],
         consistency_level: Optional[ConsistencyLevel],
     ):
         super().__init__(connection, consistency_level)
         self.__config = config
         self._vectorizer_batching: Optional[bool] = None
         self.__executor = ThreadPoolExecutor()
-        self.__batch_client = batch_client
         # define one executor per client with it shared between all child batch contexts
 
     def __create_batch_and_reset(self):
@@ -225,8 +223,15 @@ class _BatchClientWrapper(_BatchWrapper):
                 self._vectorizer_batching = False
 
         self._batch_data = _BatchDataWrapper()  # clear old data
+
+        batch_client = (
+            _BatchClientNew
+            if self._connection._weaviate_version.is_at_least(1, 32, 0)
+            else _BatchClient
+        )  # todo: change to 1.33.0 when it lands
+
         return _ContextManagerWrapper(
-            self.__batch_client(
+            batch_client(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
