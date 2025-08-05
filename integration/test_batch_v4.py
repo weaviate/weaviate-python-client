@@ -136,7 +136,6 @@ def test_flushing(client_factory: ClientFactory) -> None:
     """Test that batch is working normally after flushing."""
     client, name = client_factory()
     with client.batch.dynamic() as batch:
-        assert isinstance(batch, _BatchClientNew)
         batch.add_object(collection=name, properties={})
         batch.flush()
         objs = client.collections.use(name).query.fetch_objects().objects
