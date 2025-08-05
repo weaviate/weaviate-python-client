@@ -91,7 +91,7 @@ class Vectorizers(str, Enum):
         TEXT2VEC_GPT4ALL: Weaviate module backed by GPT-4-All text-based embedding models.
         TEXT2VEC_HUGGINGFACE: Weaviate module backed by HuggingFace text-based embedding models.
         TEXT2VEC_OPENAI: Weaviate module backed by OpenAI and Azure-OpenAI text-based embedding models.
-        TEXT2VEC_PALM: Weaviate module backed by PaLM text-based embedding models.
+        TEXT2VEC_GOOGLE: Weaviate module backed by a Google (and formerly PaLM) text-based embedding models.
         TEXT2VEC_TRANSFORMERS: Weaviate module backed by Transformers text-based embedding models.
         TEXT2VEC_JINAAI: Weaviate module backed by Jina AI text-based embedding models.
         TEXT2VEC_VOYAGEAI: Weaviate module backed by Voyage AI text-based embedding models.
@@ -99,7 +99,7 @@ class Vectorizers(str, Enum):
         TEXT2VEC_WEAVIATE: Weaviate module backed by Weaviate's self-hosted text-based embedding models.
         IMG2VEC_NEURAL: Weaviate module backed by a ResNet-50 neural network for images.
         MULTI2VEC_CLIP: Weaviate module backed by a Sentence-BERT CLIP model for images and text.
-        MULTI2VEC_PALM: Weaviate module backed by a palm model for images and text.
+        MULTI2VEC_GOOGLE: Weaviate module backed by a Google (and formerly PaLM) model for images and text.
         MULTI2VEC_BIND: Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         MULTI2VEC_VOYAGEAI: Weaviate module backed by a Voyage AI multimodal embedding models.
         MULTI2VEC_NVIDIA: Weaviate module backed by NVIDIA multimodal embedding models.
@@ -118,7 +118,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
-    TEXT2VEC_PALM = "text2vec-palm"  # change to google once 1.27 is the lowest supported version
+    TEXT2VEC_GOOGLE = "text2vec-google"
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_JINAAI = "text2vec-jinaai"
     TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
@@ -129,7 +129,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_JINAAI = "multi2vec-jinaai"
     MULTI2MULTI_JINAAI = "multi2multivec-jinaai"
     MULTI2VEC_BIND = "multi2vec-bind"
-    MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
+    MULTI2VEC_GOOGLE = "multi2vec-google"
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
     MULTI2VEC_NVIDIA = "multi2vec-nvidia"
     REF2VEC_CENTROID = "ref2vec-centroid"
@@ -316,7 +316,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
 
 class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
-        default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True
+        default=Vectorizers.TEXT2VEC_GOOGLE, frozen=True, exclude=True
     )
     projectId: Optional[str]
     apiEndpoint: Optional[str]
@@ -480,7 +480,7 @@ class _Multi2VecClipConfig(_Multi2VecBase):
 
 class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
-        default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
+        default=Vectorizers.MULTI2VEC_GOOGLE, frozen=True, exclude=True
     )
     videoFields: Optional[List[Multi2VecField]]
     projectId: str
