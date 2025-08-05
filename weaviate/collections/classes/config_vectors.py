@@ -461,7 +461,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        api_endpoint: Optional[str] = None,
+        inference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec_model2vec` module.
@@ -471,8 +471,7 @@ class _Vectors:
 
         Args:
             name: The name of the vector.
-            api_endpoint: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-                Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
+            inference_url: The inferenceUrl to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
@@ -483,7 +482,7 @@ class _Vectors:
             source_properties=source_properties,
             vectorizer=_Text2VecModel2Vec(
                 vectorizeClassName=vectorize_collection_name,
-                inferenceUrl=api_endpoint,
+                inferenceUrl=inference_url,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
