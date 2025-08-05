@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.16.6
+--------------
+This patch version includes:
+    - Add ``dimensions`` property to ``text2vec-transformers`` vectorizers in ``Configure.Vectors``
+    - Add ``text2vec-model2vec`` vectorizer in ``Configure.Vectors``
+    - Deprecate ``text2vec-contextionary`` vectorizer
+
 Version 4.16.5
 --------------
 This patch version includes:
