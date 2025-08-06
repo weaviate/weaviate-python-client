@@ -43,11 +43,6 @@ def test_known_groups(client_factory: ClientFactory) -> None:
         if client._connection._weaviate_version.is_lower_than(1, 32, 0):
             pytest.skip("This test requires Weaviate 1.32.0 or higher")
 
-        client.groups.oidc.revoke_roles(group_id="known-group1", role_names="viewer")
-        client.groups.oidc.revoke_roles(group_id="known-group2", role_names="viewer")
-
-        assert len(client.groups.oidc.get_known_group_names()) == 0
-
         client.groups.oidc.assign_roles(group_id="known-group1", role_names="viewer")
         client.groups.oidc.assign_roles(group_id="known-group2", role_names="viewer")
 
@@ -59,7 +54,10 @@ def test_known_groups(client_factory: ClientFactory) -> None:
         client.groups.oidc.revoke_roles(group_id="known-group1", role_names="viewer")
         client.groups.oidc.revoke_roles(group_id="known-group2", role_names="viewer")
 
-        assert len(client.groups.oidc.get_known_group_names()) == 0
+        groups = client.groups.oidc.get_known_group_names()
+        assert len(groups) >= 2  # other tests may add groups
+        assert "known-group1" not in groups
+        assert "known-group2" not in groups
 
 
 def test_get_group_assignments(client_factory: ClientFactory) -> None:
