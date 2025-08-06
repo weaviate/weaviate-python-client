@@ -1,12 +1,17 @@
 from weaviate.rbac.models import (
+    AliasPermissionOutput,
     BackupsPermissionOutput,
     ClusterPermissionOutput,
     CollectionsPermissionOutput,
     DataPermissionOutput,
+    GroupAssignment,
+    GroupsPermissionOutput,
     NodesPermissionOutput,
     PermissionsOutputType,
+    ReplicatePermissionOutput,
     RoleScope,
     RolesPermissionOutput,
+    TenantsPermissionOutput,
     UserAssignment,
     UsersPermissionOutput,
 )
@@ -22,4 +27,9 @@ __all__ = [
     "RoleScope",
     "UsersPermissionOutput",
     "UserAssignment",
+    "AliasPermissionOutput",
+    "ReplicatePermissionOutput",
+    "GroupsPermissionOutput",
+    "TenantsPermissionOutput",
+    "GroupAssignment",
 ]
