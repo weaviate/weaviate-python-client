@@ -279,14 +279,14 @@ class _BatchGRPC(_BaseGRPC):
             )
         return len(references)
 
-    def stream(
+    def dynamic(
         self,
         connection: ConnectionSync,
         *,
         timeout: Union[int, float],
         max_retries: float,
     ) -> Generator[batch_pb2.BatchStreamMessage, None, None]:
-        """Start a new stream for receiving messages about the ongoing batch from Weaviate.
+        """Start a new stream for receiving messages about the ongoing dynamic batch from Weaviate.
 
         Args:
             connection: The connection to the Weaviate instance.
@@ -294,7 +294,55 @@ class _BatchGRPC(_BaseGRPC):
             max_retries: The maximum number of retries in case of a failure.
         """
         return connection.grpc_batch_stream(
-            request=batch_pb2.BatchStreamRequest(),
+            request=batch_pb2.BatchStreamRequest(dynamic=batch_pb2.BatchStreamRequest.Dynamic()),
+            timeout=timeout,
+            max_retries=max_retries,
+        )
+
+    def fixed_size(
+        self,
+        connection: ConnectionSync,
+        *,
+        size: int,
+        timeout: Union[int, float],
+        max_retries: float,
+    ) -> Generator[batch_pb2.BatchStreamMessage, None, None]:
+        """Start a new stream for receiving messages about the ongoing fixed-size batch from Weaviate.
+
+        Args:
+            connection: The connection to the Weaviate instance.
+            size: The size of the batch to be sent.
+            timeout: The timeout in seconds for the request.
+            max_retries: The maximum number of retries in case of a failure.
+        """
+        return connection.grpc_batch_stream(
+            request=batch_pb2.BatchStreamRequest(
+                fixed_size=batch_pb2.BatchStreamRequest.FixedSize(size=size)
+            ),
+            timeout=timeout,
+            max_retries=max_retries,
+        )
+
+    def rate_limited(
+        self,
+        connection: ConnectionSync,
+        *,
+        rate: int,
+        timeout: Union[int, float],
+        max_retries: float,
+    ) -> Generator[batch_pb2.BatchStreamMessage, None, None]:
+        """Start a new stream for receiving messages about the ongoing rate-limited batch from Weaviate.
+
+        Args:
+            connection: The connection to the Weaviate instance.
+            rate: The rate limit for the batch in objects per second.
+            timeout: The timeout in seconds for the request.
+            max_retries: The maximum number of retries in case of a failure.
+        """
+        return connection.grpc_batch_stream(
+            request=batch_pb2.BatchStreamRequest(
+                rate_limited=batch_pb2.BatchStreamRequest.RateLimited(rate=rate)
+            ),
             timeout=timeout,
             max_retries=max_retries,
         )
