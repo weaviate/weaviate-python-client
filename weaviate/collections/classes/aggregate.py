@@ -1,16 +1,12 @@
 from dataclasses import dataclass
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Union,
-)
+from typing import Dict, List, Optional, Union, overload
 
 from pydantic import BaseModel, Field
-from typing_extensions import TypeVar
+from typing_extensions import TypeVar, deprecated
 
 from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
 from weaviate.proto.v1 import aggregate_pb2
+from weaviate.warnings import _Warnings
 
 N = TypeVar("N", int, float)
 
@@ -155,10 +151,10 @@ class _MetricsBase(BaseModel):
 class _MetricsText(_MetricsBase):
     top_occurrences_count: bool
     top_occurrences_value: bool
-    min_occurrences: Optional[int]
+    limit: Optional[int]
 
     def to_gql(self) -> str:
-        limit = f"(limit: {self.min_occurrences})" if self.min_occurrences is not None else ""
+        limit = f"(limit: {self.limit})" if self.limit is not None else ""
         body = " ".join(
             [
                 "count" if self.count else "",
@@ -180,7 +176,7 @@ class _MetricsText(_MetricsBase):
             text=aggregate_pb2.AggregateRequest.Aggregation.Text(
                 count=self.count,
                 top_occurences=self.top_occurrences_count,
-                top_occurences_limit=self.min_occurrences,
+                top_occurences_limit=self.limit,
             ),
         )
 
@@ -360,11 +356,32 @@ class Metrics:
     def __init__(self, property_: str) -> None:
         self.__property = property_
 
+    @overload
     def text(
         self,
         count: bool = False,
         top_occurrences_count: bool = False,
         top_occurrences_value: bool = False,
+        limit: Optional[int] = None,
+    ) -> _MetricsText: ...
+
+    @overload
+    @deprecated("The `min_occurrences` argument is deprecated. Use `limit` instead.")
+    def text(
+        self,
+        count: bool = False,
+        top_occurrences_count: bool = False,
+        top_occurrences_value: bool = False,
+        limit: Optional[int] = None,
+        min_occurrences: Optional[int] = None,
+    ) -> _MetricsText: ...
+
+    def text(
+        self,
+        count: bool = False,
+        top_occurrences_count: bool = False,
+        top_occurrences_value: bool = False,
+        limit: Optional[int] = None,
         min_occurrences: Optional[int] = None,
     ) -> _MetricsText:
         """Define the metrics to be returned for a TEXT or TEXT_ARRAY property when aggregating over a collection.
@@ -375,11 +392,22 @@ class Metrics:
             count: Whether to include the number of objects that contain this property.
             top_occurrences_count: Whether to include the number of the top occurrences of a property's value.
             top_occurrences_value: Whether to include the value of the top occurrences of a property's value.
-            min_occurrences: Only include entries with more occurrences than the given limit.
+            min_occurrences: (Deprecated) The maximum number of top occurrences to return. Use `limit` instead.
+            limit: The maximum number of top occurrences to return.
 
         Returns:
             A `_MetricsStr` object that includes the metrics to be returned.
         """
+        if limit is not None and min_occurrences is not None:
+            raise ValueError(
+                "You cannot use both `limit` and `min_occurrences` at the same time. Use `limit` instead."
+            )
+
+        if min_occurrences is not None:
+            _Warnings.min_occurrences_metric_deprecated()
+
+        effective_limit = limit if limit is not None else min_occurrences
+
         if not any([count, top_occurrences_count, top_occurrences_value]):
             count = True
             top_occurrences_count = True
@@ -389,7 +417,7 @@ class Metrics:
             count=count,
             top_occurrences_count=top_occurrences_count,
             top_occurrences_value=top_occurrences_value,
-            min_occurrences=min_occurrences,
+            limit=effective_limit,
         )
 
     def integer(
