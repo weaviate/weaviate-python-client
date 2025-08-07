@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
+from weaviate.proto.v1 import batch_pb2
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _capitalize_first_letter, _get_vector_v4, get_valid_uuid
 from weaviate.warnings import _Warnings
@@ -89,6 +90,19 @@ class BatchObject(BaseModel):
             retry_count=obj.retry_count,
         )
 
+    @classmethod
+    def _from_grpc(cls, obj: batch_pb2.BatchObject) -> "BatchObject":
+        return BatchObject(
+            collection=obj.collection,
+            vector=obj.vectors,
+            uuid=uuid_package.UUID(obj.uuid),
+            properties=obj.properties,
+            tenant=obj.tenant,
+            # references=obj.references,
+            # index=obj.index,
+            # retry_count=obj.retry_count,
+        )
+
     @field_validator("collection")
     def _validate_collection(cls, v: str) -> str:
         return _capitalize_first_letter(v)
@@ -150,20 +164,31 @@ class BatchReference(BaseModel):
 
     @classmethod
     def _from_internal(cls, ref: _BatchReference) -> "BatchReference":
-        from_ = ref.from_.split("weaviate://")[1].split("/")
-        to = ref.to.split("weaviate://")[1].split("/")
+        from_ = ref.from_.split("weaviate://localhost/")[1].split("/")
+        to = ref.to.split("weaviate://localhost/")[1].split("/")
         if len(to) == 2:
-            to_object_collection = to[1]
+            to_object_collection = to[0]
         elif len(to) == 1:
             to_object_collection = None
         else:
             raise ValueError(f"Invalid reference 'to' value in _BatchReference object {ref}")
         return BatchReference(
-            from_object_collection=from_[1],
+            from_object_collection=from_[0],
             from_object_uuid=ref.from_uuid,
-            from_property_name=ref.from_[-1],
+            from_property_name=from_[-1],
             to_object_uuid=(ref.to_uuid if ref.to_uuid is not None else uuid_package.UUID(to[-1])),
             to_object_collection=to_object_collection,
+            tenant=ref.tenant,
+        )
+
+    @classmethod
+    def _from_grpc(cls, ref: batch_pb2.BatchReference) -> "BatchReference":
+        return BatchReference(
+            from_object_collection=ref.from_collection,
+            from_object_uuid=uuid_package.UUID(ref.from_uuid),
+            from_property_name=ref.name,
+            to_object_uuid=uuid_package.UUID(ref.to_uuid),
+            to_object_collection=ref.to_collection if ref.to_collection != "" else None,
             tenant=ref.tenant,
         )
 
@@ -235,6 +260,29 @@ class BatchObjectReturn:
 
         return self
 
+    def add_uuids(self, uuids: Dict[int, uuid_package.UUID]) -> None:
+        """Add a list of uuids to the batch return object."""
+        self.uuids.update(uuids)
+        self._all_responses.extend(uuids.values())
+
+        if len(self.uuids) >= MAX_STORED_RESULTS:
+            old_max = max(self.uuids.keys())
+            old_min = min(self.uuids.keys())
+            for k in range(old_min, old_max - MAX_STORED_RESULTS + 1):
+                del self.uuids[k]
+        if len(self._all_responses) > MAX_STORED_RESULTS:
+            self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
+
+    def add_errors(self, errors: Dict[int, ErrorObject]) -> None:
+        """Add a list of errors to the batch return object."""
+        self.has_errors = True
+        self.errors.update(errors)
+        self._all_responses.extend(errors.values())
+
+        for key in errors.keys():
+            if key in self.uuids:
+                del self.uuids[key]
+
 
 @dataclass
 class BatchReferenceReturn:
@@ -259,6 +307,11 @@ class BatchReferenceReturn:
             self.errors[prev_max + key + 1] = value
         self.has_errors = self.has_errors or other.has_errors
         return self
+
+    def add_errors(self, errors: Dict[int, ErrorReference]) -> None:
+        """Add a list of errors to the batch return object."""
+        self.has_errors = True
+        self.errors.update(errors)
 
 
 class BatchResult:
