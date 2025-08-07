@@ -10,7 +10,6 @@ import weaviate
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
 from weaviate import ClientBatchingContextManager
-from weaviate.collections.batch.client import _BatchClient, _BatchClientNew
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
     Configure,
@@ -387,7 +386,9 @@ def test_add_ten_thousand_data_objects(
     client, name = client_factory()
     if (
         request.node.callspec.id == "test_add_ten_thousand_data_objects_automatic"
-        and client._connection._weaviate_version.is_lower_than(1, 32, 1)
+        and client._connection._weaviate_version.is_lower_than(
+            1, 32, 1
+        )  # TODO: change to 1.33.0 when released
     ):  # change to 1.33.0 when released
         pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
     nr_objects = 10000
@@ -566,7 +567,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
         lambda client: client.batch.rate_limit(1000),
-        lambda client: client.automatic(),
+        lambda client: client.batch.automatic(),
     ],
     ids=[
         "test_add_one_hundred_objects_and_references_between_all_dynamic",
@@ -585,7 +586,9 @@ def test_add_one_object_and_a_self_reference(
     if (
         request.node.callspec.id
         == "test_add_one_hundred_objects_and_references_between_all_automatic"
-        and client._connection._weaviate_version.is_lower_than(1, 33, 0)
+        and client._connection._weaviate_version.is_lower_than(
+            1, 32, 1
+        )  # TODO: change to 1.33.0 when released
     ):
         pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
     with batching_method(client) as batch:
@@ -707,7 +710,9 @@ def test_batching_error_logs(
     client_factory: ClientFactory, caplog: pytest.LogCaptureFixture
 ) -> None:
     client, name = client_factory()
-    if client._connection._weaviate_version.is_at_least(1, 32, 0):  # change to 1.33.0 when released
+    if client._connection._weaviate_version.is_at_least(
+        1, 32, 1
+    ):  # TODO: change to 1.33.0 when released
         pytest.skip(
             "Batching error logs do not get emitted by the new server-side batching functionality."
         )
@@ -756,14 +761,3 @@ def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
 
     assert len(client.batch.failed_references) == 0, client.batch.failed_references
     client.collections.delete(["target", "source"])
-
-
-def test_client_instance_type(client_factory: ClientFactory) -> None:
-    client, _ = client_factory()
-    with client.batch.dynamic() as batch:
-        if client._connection._weaviate_version.is_at_least(
-            1, 32, 0
-        ):  # change to 1.33.0 when released
-            assert isinstance(batch, _BatchClientNew)
-        else:
-            assert isinstance(batch, _BatchClient)

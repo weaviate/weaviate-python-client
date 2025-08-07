@@ -20,7 +20,7 @@ from weaviate.collections.classes.internal import ReferenceInput, ReferenceInput
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
 from weaviate.types import UUID, VECTORS
 
 if TYPE_CHECKING:
@@ -298,4 +298,9 @@ class _BatchClientWrapper(_BatchWrapper):
 
         When you exit the context manager, the final batch will be sent automatically.
         """
+        # TODO: Change to 1.33.0 when it lands
+        if self._connection._weaviate_version.is_lower_than(1, 32, 1):
+            raise WeaviateUnsupportedFeatureError(
+                "Automatic batching", str(self._connection._weaviate_version), "1.32.1"
+            )
         return self.__create_batch_and_reset(_BatchClientNew)
