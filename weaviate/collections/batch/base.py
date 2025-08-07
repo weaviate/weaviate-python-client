@@ -944,32 +944,11 @@ class _BatchBaseNew:
             time.sleep(refresh_time)
 
     def __batch_stream(self) -> None:
-        if isinstance(self.__batch_mode, _DynamicBatching):
-            stream = self.__batch_grpc.dynamic(
-                connection=self.__connection,
-                timeout=DEFAULT_REQUEST_TIMEOUT,
-                max_retries=MAX_RETRIES,
-            )
-        elif isinstance(self.__batch_mode, _FixedSizeBatching):
-            stream = self.__batch_grpc.fixed_size(
-                connection=self.__connection,
-                size=self.__batch_mode.batch_size,
-                timeout=DEFAULT_REQUEST_TIMEOUT,
-                max_retries=MAX_RETRIES,
-            )
-        elif isinstance(self.__batch_mode, _RateLimitedBatching):
-            stream = self.__batch_grpc.rate_limited(
-                connection=self.__connection,
-                rate=math.floor(
-                    self.__batch_mode.requests_per_minute / 60
-                ),  # convert to per second
-                timeout=DEFAULT_REQUEST_TIMEOUT,
-                max_retries=MAX_RETRIES,
-            )
-        else:
-            raise WeaviateBatchValidationError(
-                f"Unknown batch mode: {self.__batch_mode}. Please use one of the predefined batch modes."
-            )
+        stream = self.__batch_grpc.stream(
+            connection=self.__connection,
+            timeout=DEFAULT_REQUEST_TIMEOUT,
+            max_retries=MAX_RETRIES,
+        )
         first = stream.__next__()
         assert first.HasField("start"), "Batch stream did not start correctly"
         self.__stream_id = first.start.stream_id

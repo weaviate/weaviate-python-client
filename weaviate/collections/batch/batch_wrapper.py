@@ -185,6 +185,13 @@ class BatchClientProtocol(Protocol):
         """
         ...
 
+    def flush(self) -> None:
+        """Flush the current batch.
+
+        This will send all the objects and references in the current batch to Weaviate.
+        """
+        ...
+
 
 class BatchCollectionProtocol(Generic[Properties], Protocol[Properties]):
     def add_object(

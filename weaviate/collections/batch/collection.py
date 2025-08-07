@@ -190,6 +190,9 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
     def __create_batch_and_reset(
         self,
+        batch_client: Union[
+            Type[_BatchCollection[Properties]], Type[_BatchCollectionNew[Properties]]
+        ],
     ):
         if self._vectorizer_batching is None:
             try:
@@ -208,12 +211,6 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 if e.status_code != 404:
                     raise e
                 self._vectorizer_batching = False
-
-        batch_client = (
-            _BatchCollectionNew
-            if self._connection._weaviate_version.is_at_least(1, 32, 0)
-            else _BatchCollection
-        )  # todo: change to 1.33.0 when it lands
 
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
@@ -235,7 +232,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         When you exit the context manager, the final batch will be sent automatically.
         """
         self._batch_mode: _BatchMode = _DynamicBatching()
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchCollection)
 
     def fixed_size(
         self, batch_size: int = 100, concurrent_requests: int = 2
@@ -250,7 +247,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 made to Weaviate and not the speed of batch creation within Python.
         """
         self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchCollection)
 
     def rate_limit(self, requests_per_minute: int) -> CollectionBatchingContextManager[Properties]:
         """Configure batches with a rate limited vectorizer.
@@ -261,4 +258,15 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             requests_per_minute: The number of requests that the vectorizer can process per minute.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchCollection)
+
+    def automatic(
+        self,
+    ) -> CollectionBatchingContextManager[Properties]:
+        """Configure the batching context manager using the automatic server-side batching mode.
+
+        This mode will automatically determine the best batching strategy based on the server configuration.
+
+        When you exit the context manager, the final batch will be sent automatically.
+        """
+        return self.__create_batch_and_reset(_BatchCollectionNew)

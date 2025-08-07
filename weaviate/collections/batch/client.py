@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -195,7 +195,9 @@ class _BatchClientWrapper(_BatchWrapper):
         self.__executor = ThreadPoolExecutor()
         # define one executor per client with it shared between all child batch contexts
 
-    def __create_batch_and_reset(self):
+    def __create_batch_and_reset(
+        self, batch_client: Union[Type[_BatchClient], Type[_BatchClientNew]]
+    ):
         if self._vectorizer_batching is None or not self._vectorizer_batching:
             try:
                 configs = self.__config.list_all(simple=True)
@@ -224,12 +226,6 @@ class _BatchClientWrapper(_BatchWrapper):
 
         self._batch_data = _BatchDataWrapper()  # clear old data
 
-        batch_client = (
-            _BatchClientNew
-            if self._connection._weaviate_version.is_at_least(1, 32, 0)
-            else _BatchClient
-        )  # todo: change to 1.33.0 when it lands
-
         return _ContextManagerWrapper(
             batch_client(
                 connection=self._connection,
@@ -253,7 +249,7 @@ class _BatchClientWrapper(_BatchWrapper):
         """
         self._batch_mode: _BatchMode = _DynamicBatching()
         self._consistency_level = consistency_level
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchClient)
 
     def fixed_size(
         self,
@@ -274,7 +270,7 @@ class _BatchClientWrapper(_BatchWrapper):
         """
         self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
         self._consistency_level = consistency_level
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchClient)
 
     def rate_limit(
         self,
@@ -291,4 +287,15 @@ class _BatchClientWrapper(_BatchWrapper):
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)
         self._consistency_level = consistency_level
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchClient)
+
+    def automatic(
+        self,
+    ) -> ClientBatchingContextManager:
+        """Configure the batching context manager using the automatic server-side batching mode.
+
+        This mode will automatically determine the best batching strategy based on the server configuration.
+
+        When you exit the context manager, the final batch will be sent automatically.
+        """
+        return self.__create_batch_and_reset(_BatchClientNew)

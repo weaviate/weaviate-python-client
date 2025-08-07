@@ -9,7 +9,7 @@ from _pytest.fixtures import SubRequest
 import weaviate
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
-from weaviate import BatchClient, ClientBatchingContextManager
+from weaviate import ClientBatchingContextManager
 from weaviate.collections.batch.client import _BatchClient, _BatchClientNew
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
@@ -369,11 +369,13 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
         lambda client: client.batch.rate_limit(9999),
+        lambda client: client.batch.automatic(),
     ],
     ids=[
         "test_add_ten_thousand_data_objects_dynamic",
         "test_add_ten_thousand_data_objects_fixed_size",
         "test_add_ten_thousand_data_objects_rate_limit",
+        "test_add_ten_thousand_data_objects_automatic",
     ],
 )
 def test_add_ten_thousand_data_objects(
@@ -383,7 +385,11 @@ def test_add_ten_thousand_data_objects(
 ) -> None:
     """Test adding ten thousand data objects."""
     client, name = client_factory()
-
+    if (
+        request.node.callspec.id == "test_add_ten_thousand_data_objects_automatic"
+        and client._connection._weaviate_version.is_lower_than(1, 32, 1)
+    ):  # change to 1.33.0 when released
+        pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
     nr_objects = 10000
     with batching_method(client) as batch:
         for i in range(nr_objects):
@@ -560,19 +566,28 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
         lambda client: client.batch.rate_limit(1000),
+        lambda client: client.automatic(),
     ],
     ids=[
         "test_add_one_hundred_objects_and_references_between_all_dynamic",
         "test_add_one_hundred_objects_and_references_between_all_fixed_size",
         "test_add_one_hundred_objects_and_references_between_all_rate_limit",
+        "test_add_one_hundred_objects_and_references_between_all_automatic",
     ],
 )
 def test_add_one_object_and_a_self_reference(
     client_factory: ClientFactory,
     batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+    request: SubRequest,
 ) -> None:
     """Test adding one object and a self reference."""
     client, name = client_factory()
+    if (
+        request.node.callspec.id
+        == "test_add_one_hundred_objects_and_references_between_all_automatic"
+        and client._connection._weaviate_version.is_lower_than(1, 33, 0)
+    ):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
     with batching_method(client) as batch:
         uuid = batch.add_object(collection=name, properties={})
         batch.add_reference(
@@ -595,7 +610,7 @@ def test_multi_threaded_batching(
     nr_objects = 1000
     nr_threads = 10
 
-    def batch_insert(batch: BatchClient) -> None:
+    def batch_insert(batch) -> None:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,

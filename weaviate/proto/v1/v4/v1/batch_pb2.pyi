@@ -57,29 +57,10 @@ class BatchSendReply(_message.Message):
     def __init__(self, next: _Optional[int] = ...) -> None: ...
 
 class BatchStreamRequest(_message.Message):
-    __slots__ = ["consistency_level", "dynamic", "fixed_size", "rate_limited"]
-    class Dynamic(_message.Message):
-        __slots__ = []
-        def __init__(self) -> None: ...
-    class FixedSize(_message.Message):
-        __slots__ = ["size"]
-        SIZE_FIELD_NUMBER: _ClassVar[int]
-        size: int
-        def __init__(self, size: _Optional[int] = ...) -> None: ...
-    class RateLimited(_message.Message):
-        __slots__ = ["rate"]
-        RATE_FIELD_NUMBER: _ClassVar[int]
-        rate: int
-        def __init__(self, rate: _Optional[int] = ...) -> None: ...
+    __slots__ = ["consistency_level"]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
-    DYNAMIC_FIELD_NUMBER: _ClassVar[int]
-    FIXED_SIZE_FIELD_NUMBER: _ClassVar[int]
-    RATE_LIMITED_FIELD_NUMBER: _ClassVar[int]
     consistency_level: _base_pb2.ConsistencyLevel
-    dynamic: BatchStreamRequest.Dynamic
-    fixed_size: BatchStreamRequest.FixedSize
-    rate_limited: BatchStreamRequest.RateLimited
-    def __init__(self, consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., dynamic: _Optional[_Union[BatchStreamRequest.Dynamic, _Mapping]] = ..., fixed_size: _Optional[_Union[BatchStreamRequest.FixedSize, _Mapping]] = ..., rate_limited: _Optional[_Union[BatchStreamRequest.RateLimited, _Mapping]] = ...) -> None: ...
+    def __init__(self, consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
 
 class BatchStart(_message.Message):
     __slots__ = ["stream_id"]
