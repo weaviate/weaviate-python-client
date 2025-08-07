@@ -1032,11 +1032,10 @@ class ConnectionSync(_ConnectionBase):
         self,
         request: batch_pb2.BatchSendRequest,
         timeout: Union[int, float],
-        max_retries: float,
     ) -> batch_pb2.BatchSendReply:
         try:
             assert self.grpc_stub is not None
-            res = _Retry(max_retries).with_exponential_backoff(
+            res = _Retry().with_exponential_backoff(
                 count=0,
                 error="Batch send",
                 f=self.grpc_stub.BatchSend,
@@ -1055,18 +1054,15 @@ class ConnectionSync(_ConnectionBase):
     def grpc_batch_stream(
         self,
         request: batch_pb2.BatchStreamRequest,
-        timeout: Union[int, float],
-        max_retries: float,
     ) -> Generator[batch_pb2.BatchStreamMessage, None, None]:
         try:
             assert self.grpc_stub is not None
-            for msg in _Retry(max_retries).with_exponential_backoff(
+            for msg in _Retry().with_exponential_backoff(
                 count=0,
                 error="Batch stream",
                 f=self.grpc_stub.BatchStream,
                 request=request,
                 metadata=self.grpc_headers(),
-                timeout=timeout,
             ):
                 yield msg
         except RpcError as e:

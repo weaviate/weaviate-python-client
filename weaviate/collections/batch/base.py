@@ -814,8 +814,6 @@ class _BatchBaseNew:
         self.__objs_logs_count = 0
         self.__refs_logs_count = 0
 
-        self.__recommended_num_refs: int = 50
-
         self.__active_requests = 0
 
         # dynamic batching
@@ -870,7 +868,6 @@ class _BatchBaseNew:
             connection=self.__connection,
             stream_id=self.__stream_id,
             timeout=DEFAULT_REQUEST_TIMEOUT,
-            max_retries=MAX_RETRIES,
         )
 
         # we are done, wait for bg threads to finish
@@ -906,9 +903,9 @@ class _BatchBaseNew:
                     self.__active_requests += 1
 
                 start = time.time()
-                while (len_o := len(self.__batch_objects)) < self.__recommended_num_objects and (
+                while (len_o := len(self.__batch_objects)) + (
                     len_r := len(self.__batch_references)
-                ) < self.__recommended_num_refs:
+                ) < self.__recommended_num_objects:
                     # wait for more objects to be added up to the recommended number
                     time.sleep(0.01)
                     if (
@@ -925,7 +922,7 @@ class _BatchBaseNew:
 
                 objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
                 refs = self.__batch_references.pop_items(
-                    self.__recommended_num_refs,
+                    self.__recommended_num_objects - len(objs),
                     uuid_lookup=self.__uuid_lookup,
                 )
 
@@ -950,8 +947,6 @@ class _BatchBaseNew:
     def __batch_stream(self) -> None:
         stream = self.__batch_grpc.stream(
             connection=self.__connection,
-            timeout=DEFAULT_REQUEST_TIMEOUT,
-            max_retries=MAX_RETRIES,
         )
         first = stream.__next__()
         assert first.HasField("start"), "Batch stream did not start correctly"
@@ -1045,17 +1040,22 @@ class _BatchBaseNew:
         objs: List[_BatchObject],
         refs: List[_BatchReference],
     ) -> None:
-        if (_ := len(objs)) > 0:
+        if (_ := len(objs)) > 0 or (_ := len(refs)) > 0:
             _ = time.time()
             try:
                 assert self.__stream_id is not None, "Batch stream was not started"
-                self.__recommended_num_objects = self.__batch_grpc.send_objs(
+                new_rec = self.__batch_grpc.send(
                     connection=self.__connection,
                     objects=objs,
+                    references=refs,
                     stream_id=self.__stream_id,
                     timeout=DEFAULT_REQUEST_TIMEOUT,
-                    max_retries=MAX_RETRIES,
                 )
+                if new_rec < self.__recommended_num_objects:
+                    print(f"Scaling down sending: {self.__recommended_num_objects} -> {new_rec}")
+                if new_rec > self.__recommended_num_objects:
+                    print(f"Scaling up sending: {self.__recommended_num_objects} -> {new_rec}")
+                self.__recommended_num_objects = new_rec
                 self.__results_for_wrapper.results.objs.add_uuids(
                     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
                 )
@@ -1069,31 +1069,6 @@ class _BatchBaseNew:
 
         with self.__uuid_lookup_lock:
             self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
-
-        if (_ := len(refs)) > 0:
-            start = time.time()
-            try:
-                assert self.__stream_id is not None, "Batch stream was not started"
-                self.__recommended_num_objects = self.__batch_grpc.send_refs(
-                    connection=self.__connection,
-                    references=refs,
-                    stream_id=self.__stream_id,
-                    timeout=DEFAULT_REQUEST_TIMEOUT,
-                    max_retries=MAX_RETRIES,
-                )
-
-            except Exception as e:
-                errors_ref = {
-                    idx: ErrorReference(
-                        message=repr(e), reference=BatchReference._from_internal(ref)
-                    )
-                    for idx, ref in enumerate(refs)
-                }
-                _ = BatchReferenceReturn(
-                    elapsed_seconds=time.time() - start,
-                    errors=errors_ref,
-                    has_errors=True,
-                )
 
         with self.__active_requests_lock:
             self.__active_requests -= 1
