@@ -40,7 +40,11 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.exceptions import EmptyResponseException, WeaviateBatchValidationError
+from weaviate.exceptions import (
+    EmptyResponseException,
+    WeaviateBatchValidationError,
+    WeaviateStartUpError,
+)
 from weaviate.logger import logger
 from weaviate.types import UUID, VECTORS
 from weaviate.util import _decode_json_response_dict
@@ -978,13 +982,25 @@ class _BatchBaseNew:
                 return
             elif message.HasField("shutdown"):
                 self.__was_shutdown = True
-                self.__connection.connect(force=True)
+                self.__reconnect()
                 break
 
         # restart the stream if we were shutdown by the node we were connected to
         if self.__was_shutdown:
             self.__was_shutdown = False
             return self.__batch_stream()
+
+    def __reconnect(self, retry: int = 0) -> None:
+        try:
+            self.__connection.connect(force=True)
+        except WeaviateStartUpError as e:
+            if retry < 5:
+                logger.warning(f"Reconnecting after shutdown... {retry + 1}/{5}")
+                time.sleep(2**retry)
+                self.__reconnect(retry + 1)
+            else:
+                logger.error("Failed to reconnect after 5 attempts")
+                self.__bg_thread_exception = e
 
     def __start_bg_threads(self) -> _BgThreads:
         """Create a background thread that periodically checks how congested the batch queue is."""

@@ -192,6 +192,15 @@ class BatchClientProtocol(Protocol):
         """
         ...
 
+    @property
+    def number_errors(self) -> int:
+        """Get the number of errors in the current batch.
+
+        Returns:
+            The number of errors in the current batch.
+        """
+        ...
+
 
 class BatchCollectionProtocol(Generic[Properties], Protocol[Properties]):
     def add_object(
@@ -236,6 +245,15 @@ class BatchCollectionProtocol(Generic[Properties], Protocol[Properties]):
 
         Raises:
             WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
+        """
+        ...
+
+    @property
+    def number_errors(self) -> int:
+        """Get the number of errors in the current batch.
+
+        Returns:
+            The number of errors in the current batch.
         """
         ...
 
