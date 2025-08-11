@@ -73,6 +73,7 @@ from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
     WeaviateInvalidInputError,
     WeaviateQueryError,
+    WeaviateQueryThirdPartyError,
     WeaviateRetryError,
     WeaviateStartUpError,
     WeaviateTenantGetError,
@@ -186,6 +187,38 @@ class _ConnectionBase:
         for integration in integrations_config:
             self._headers.update(integration._to_header())
             self.__additional_headers.update(integration._to_header())
+
+    def _parse_search_errors(self, sr: search_get_pb2.SearchReply) -> None:
+        if sr.third_party_error is not None and sr.third_party_error.provider_name != "":
+            raise WeaviateQueryThirdPartyError(
+                sr.third_party_error.full_error,
+                sr.third_party_error.provider_name,
+                sr.third_party_error.error_from_provider,
+                sr.third_party_error.status_code,
+                sr.third_party_error.request_id,
+                "GRPC search",
+            )
+        if sr.internal_error is not None and sr.internal_error != "":
+            raise WeaviateQueryError(sr.internal_error, "GRPC search")
+
+    def _parse_batch_errors(self, res: batch_pb2.BatchObjectsReply) -> Dict[int, str]:
+        objects: Dict[int, str] = {}
+        for err in res.errors:
+            if err.third_party_error is not None:
+                objects[err.index] = f"""
+                Provider ({err.third_party_error.provider_name}) service error {err.third_party_error.status_code}
+
+                    Error details:
+
+                    'Provider:' {err.third_party_error.provider_name}
+                    'Provider error code:' {err.third_party_error.status_code}
+                    'Provider message:' {err.third_party_error.error_from_provider}
+
+                    Weaviate error message: {err.third_party_error.full_error}
+                    """
+                continue
+            objects[err.index] = err.error
+        return objects
 
     @overload
     def _make_client(self, colour: Literal["async"]) -> AsyncClient: ...
@@ -990,11 +1023,14 @@ class ConnectionSync(_ConnectionBase):
                 metadata=self.grpc_headers(),
                 timeout=self.timeout_config.query,
             )
-            return cast(search_get_pb2.SearchReply, res)
+            sr = cast(search_get_pb2.SearchReply, res)
+            self._parse_search_errors(sr)
+            return sr
         except RpcError as e:
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
+
             raise WeaviateQueryError(str(error.details()), "GRPC search")  # pyright: ignore
         except WeaviateRetryError as e:
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
@@ -1016,11 +1052,7 @@ class ConnectionSync(_ConnectionBase):
                 timeout=timeout,
             )
             res = cast(batch_pb2.BatchObjectsReply, res)
-
-            objects: Dict[int, str] = {}
-            for err in res.errors:
-                objects[err.index] = err.error
-            return objects
+            return self._parse_batch_errors(res)
         except RpcError as e:
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
@@ -1176,7 +1208,9 @@ class ConnectionAsync(_ConnectionBase):
                 metadata=self.grpc_headers(),
                 timeout=self.timeout_config.query,
             )
-            return cast(search_get_pb2.SearchReply, res)
+            sr = cast(search_get_pb2.SearchReply, res)
+            self._parse_search_errors(sr)
+            return sr
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
@@ -1201,11 +1235,8 @@ class ConnectionAsync(_ConnectionBase):
                 timeout=timeout,
             )
             res = cast(batch_pb2.BatchObjectsReply, res)
+            return self._parse_batch_errors(res)
 
-            objects: Dict[int, str] = {}
-            for err in res.errors:
-                objects[err.index] = err.error
-            return objects
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)

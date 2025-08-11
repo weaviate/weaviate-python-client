@@ -83,6 +83,7 @@ class _QueryGRPC(_BaseGRPC):
         validate_arguments: bool,
         uses_125_api: bool,
         uses_127_api: bool,
+        uses_133_api: bool,
     ):
         super().__init__(weaviate_version, consistency_level, validate_arguments)
         self._name: str = name
@@ -90,6 +91,7 @@ class _QueryGRPC(_BaseGRPC):
         self._validate_arguments = validate_arguments
         self.__uses_125_api = uses_125_api
         self.__uses_127_api = uses_127_api
+        self.__uses_133_api = uses_133_api
 
     def __parse_near_options(
         self,
@@ -474,6 +476,7 @@ class _QueryGRPC(_BaseGRPC):
             uses_123_api=True,
             uses_125_api=self.__uses_125_api,
             uses_127_api=self.__uses_127_api,
+            uses_133_api=self.__uses_133_api,
             collection=self._name,
             limit=limit,
             offset=offset,

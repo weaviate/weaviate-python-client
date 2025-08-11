@@ -85,6 +85,7 @@ class _BaseExecutor(Generic[ConnectionType]):
 
         self.__uses_125_api = connection._weaviate_version.is_at_least(1, 25, 0)
         self.__uses_127_api = connection._weaviate_version.is_at_least(1, 27, 0)
+        self.__uses_133_api = connection._weaviate_version.is_at_least(1, 33, 0)
         self._query = _QueryGRPC(
             connection._weaviate_version,
             self._name,
@@ -93,6 +94,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             validate_arguments=self._validate_arguments,
             uses_125_api=self.__uses_125_api,
             uses_127_api=self.__uses_127_api,
+            uses_133_api=self.__uses_133_api,
         )
 
     def __retrieve_timestamp(

@@ -375,3 +375,29 @@ class WeaviateAgentsNotInstalledError(WeaviateBaseError):
         super().__init__(
             'Weaviate Agents (Alpha) functionality requires additional dependencies. Please install them using: "pip install weaviate-client[agents]"'
         )
+
+
+class WeaviateQueryThirdPartyError(WeaviateQueryError):
+    """Is raised if a query (either gRPC or GraphQL) to Weaviate fails in any way."""
+
+    def __init__(
+        self,
+        full_error: str,
+        provider_name: str,
+        provider_error: str,
+        error_code: int,
+        request_id: str,
+        protocol_type: str,
+    ):
+        request_id_str = f"with request_id {request_id} " if request_id else ""
+
+        msg = f"""Query call with protocol GRPC search failed with message Query with request_id {request_id_str}  failed:
+                Provider ({provider_name}) service error {error_code}.
+                Error details:
+        {"Provider:":>32} {provider_name}
+        {"Provider error code:":>32} {error_code}
+        {"Provider message:":>32} {provider_error}
+                Weaviate error message:
+                {full_error}"""
+        super().__init__(msg, protocol_type)
+        self.message = msg
