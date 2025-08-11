@@ -177,7 +177,7 @@ class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-class _Text2VecModel2Vec(_VectorizerConfigCreate):
+class _Text2VecModel2VecConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_MODEL2VEC, frozen=True, exclude=True
     )
@@ -1278,6 +1278,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def text2vec_transformers(
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
+        dimensions: Optional[int] = None,
         vectorize_collection_name: bool = True,
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
@@ -1290,6 +1291,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             pooling_strategy: The pooling strategy to use. Defaults to `masked_mean`.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             inference_url: The inference url to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
             passage_inference_url: The inference url to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
@@ -1300,6 +1302,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         """
         return _Text2VecTransformersConfig(
             poolingStrategy=pooling_strategy,
+            dimensions=dimensions,
             vectorizeClassName=vectorize_collection_name,
             inferenceUrl=inference_url,
             passageInferenceUrl=passage_inference_url,
@@ -1437,4 +1440,24 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             baseURL=base_url,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
+    def text2vec_model2vec(
+        *,
+        inference_url: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecModel2VecConfigCreate` object for use when vectorizing using the `text2vec-model2vec` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/model2vec/embeddings)
+        for detailed usage.
+
+        Args:
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+        """
+        return _Text2VecModel2VecConfig(
+            vectorizeClassName=vectorize_collection_name,
+            inferenceUrl=inference_url,
         )

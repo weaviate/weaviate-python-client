@@ -61,6 +61,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecWeaviateConfig,
     _VectorizerConfigCreate,
     _VectorizerCustomConfig,
+    _Text2VecModel2VecConfig,
 )
 
 from ...warnings import _Warnings
@@ -1072,6 +1073,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def text2vec_transformers(
         name: str,
         *,
+        dimensions: Optional[int] = None,
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
@@ -1087,6 +1089,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             name: The name of the named vector.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
@@ -1099,6 +1102,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecTransformersConfig(
+                dimensions=dimensions,
                 poolingStrategy=pooling_strategy,
                 vectorizeClassName=vectorize_collection_name,
                 inferenceUrl=inference_url,
@@ -1283,6 +1287,37 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 truncate=truncate,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2vec_model2vec(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        inference_url: Optional[str] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2vec-model2vec` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/model2vec/embeddings)
+        for detailed usage.
+
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecModel2VecConfig(
+                vectorizeClassName=vectorize_collection_name,
+                inferenceUrl=inference_url,
             ),
             vector_index_config=vector_index_config,
         )
