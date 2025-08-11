@@ -75,12 +75,14 @@ class BatchObject(_message.Message):
 class BatchObjectsReply(_message.Message):
     __slots__ = ("took", "errors")
     class BatchError(_message.Message):
-        __slots__ = ("index", "error")
+        __slots__ = ("index", "error", "third_party_error")
         INDEX_FIELD_NUMBER: _ClassVar[int]
         ERROR_FIELD_NUMBER: _ClassVar[int]
+        THIRD_PARTY_ERROR_FIELD_NUMBER: _ClassVar[int]
         index: int
         error: str
-        def __init__(self, index: _Optional[int] = ..., error: _Optional[str] = ...) -> None: ...
+        third_party_error: _base_pb2.ThirdPartyError
+        def __init__(self, index: _Optional[int] = ..., error: _Optional[str] = ..., third_party_error: _Optional[_Union[_base_pb2.ThirdPartyError, _Mapping]] = ...) -> None: ...
     TOOK_FIELD_NUMBER: _ClassVar[int]
     ERRORS_FIELD_NUMBER: _ClassVar[int]
     took: float
