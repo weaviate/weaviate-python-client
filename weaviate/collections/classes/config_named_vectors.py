@@ -53,6 +53,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecHuggingFaceConfig,
     _Text2VecJinaConfig,
     _Text2VecMistralConfig,
+    _Text2VecModel2VecConfig,
     _Text2VecNvidiaConfig,
     _Text2VecOllamaConfig,
     _Text2VecOpenAIConfig,
@@ -61,7 +62,6 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecWeaviateConfig,
     _VectorizerConfigCreate,
     _VectorizerCustomConfig,
-    _Text2VecModel2VecConfig,
 )
 
 from ...warnings import _Warnings
