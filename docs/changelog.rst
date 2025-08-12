@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.16.7
+--------------
+This patch version includes:
+    - Fixes compatability issues between the built gRPC stubs and differing protobuf versions depending on the version of ``grpcio`` used to build the stubs
+    - Add ``text2vec-model2vec`` module to ``Configure.NamedVectors``
+    - Deprecated ``min_occurrences`` in ``Metrics.text`` in favour of ``limit``
+
 Version 4.16.6
 --------------
 This patch version includes:
