@@ -59,13 +59,13 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecHuggingFaceConfig,
     _Text2VecJinaConfig,
     _Text2VecMistralConfig,
-    _Text2VecModel2Vec,
     _Text2VecNvidiaConfig,
     _Text2VecOllamaConfig,
     _Text2VecOpenAIConfig,
     _Text2VecTransformersConfig,
     _Text2VecVoyageConfig,
     _Text2VecWeaviateConfig,
+    _Text2VecModel2VecConfig,
     _VectorizerConfigCreate,
     _VectorizerCustomConfig,
 )
@@ -480,7 +480,7 @@ class _Vectors:
         return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecModel2Vec(
+            vectorizer=_Text2VecModel2VecConfig(
                 vectorizeClassName=vectorize_collection_name,
                 inferenceUrl=inference_url,
             ),
