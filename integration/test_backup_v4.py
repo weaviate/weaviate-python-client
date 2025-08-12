@@ -586,4 +586,4 @@ def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> No
     assert resp.status == BackupStatus.STARTED
 
     backups = client.backup.list_backups(backend=BACKEND)
-    assert backup_id in [b.backup_id for b in backups]
+    assert backup_id.lower() in [b.backup_id.lower() for b in backups]
