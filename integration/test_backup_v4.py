@@ -121,8 +121,15 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client.collections.delete("Article")
 
 
+USED_BACKUP_IDS = set()
+
+
 def _create_backup_id() -> str:
-    return str(round(time.time_ns() * 1000))
+    while True:
+        backup_id = str(round(time.time_ns() * 1000))
+        if backup_id not in USED_BACKUP_IDS:
+            USED_BACKUP_IDS.add(backup_id)
+            return backup_id
 
 
 def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient) -> None:
