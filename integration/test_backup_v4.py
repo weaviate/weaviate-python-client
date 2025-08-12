@@ -463,18 +463,17 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-# did not make it into 1.27, will come later
-# def test_list_backup(client: weaviate.WeaviateClient) -> None:
-#     """Create and restore backup without waiting."""
-#     backup_id = _create_backup_id()
-#     if client._connection._weaviate_version.is_lower_than(1, 27, 0):
-#         pytest.skip("List backups is only supported from 1.27.0")
-#
-#     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
-#     assert resp.status == BackupStatus.STARTED
-#
-#     backups = client.backup.list_backups(backend=BACKEND)
-#     assert backup_id in [b.backup_id for b in backups]
+def test_list_backup(client: weaviate.WeaviateClient) -> None:
+    """Create and restore backup without waiting."""
+    backup_id = _create_backup_id()
+    if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+        pytest.skip("List backups is only supported from 1.30.0")
+
+    resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
+    assert resp.status == BackupStatus.STARTED
+
+    backups = client.backup.list_backups(backend=BACKEND)
+    assert backup_id in [b.backup_id for b in backups]
 
 
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])

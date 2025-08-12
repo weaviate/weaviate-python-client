@@ -3,6 +3,7 @@ from typing import List, Literal, Optional, Union
 from weaviate.backup.backup import (
     BackupConfigCreate,
     BackupConfigRestore,
+    BackupListReturn,
     BackupReturn,
     BackupStatusReturn,
     BackupStorage,
@@ -53,3 +54,4 @@ class _BackupAsync(_BackupExecutor[ConnectionAsync]):
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> bool: ...
+    async def list_backups(self, backend: BackupStorage) -> List[BackupListReturn]: ...
