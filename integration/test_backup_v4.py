@@ -482,19 +482,6 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> None:
-    """List all backups."""
-    backup_id = unique_backup_id(request.node.name)
-    if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-        pytest.skip("List backups is only supported from 1.30.0")
-
-    resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
-    assert resp.status == BackupStatus.STARTED
-
-    backups = client.backup.list_backups(backend=BACKEND)
-    assert backup_id in [b.backup_id for b in backups]
-
-
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
 def test_cancel_backup(
     client: weaviate.WeaviateClient,
@@ -587,3 +574,16 @@ def test_backup_and_restore_with_roles_and_users(
 
     assert client.users.db.get(user_id=name) is not None
     assert client.roles.get(role_name=name) is not None
+
+
+def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    """List all backups."""
+    backup_id = unique_backup_id(request.node.name)
+    if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+        pytest.skip("List backups is only supported from 1.30.0")
+
+    resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
+    assert resp.status == BackupStatus.STARTED
+
+    backups = client.backup.list_backups(backend=BACKEND)
+    assert backup_id in [b.backup_id for b in backups]
