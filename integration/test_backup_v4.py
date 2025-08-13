@@ -2,6 +2,7 @@ import datetime
 import pathlib
 import time
 from typing import Generator, List, Optional, Union
+import uuid
 
 import pytest
 
@@ -121,13 +122,18 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client.collections.delete("Article")
 
 
-def _create_backup_id() -> str:
-    return str(round(time.time_ns() * 1000))
+def unique_backup_id(name: str) -> str:
+    """Generate a unique backup ID based on the test name."""
+    name = _sanitize_collection_name(name)
+    random_part = str(uuid.uuid4()).replace("-", "")[:12]
+    return name + random_part
 
 
-def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient) -> None:
+def test_create_and_restore_backup_with_waiting(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
     """Create and restore backup with waiting."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
 
     # create backup
     classes = ["Article", "Paragraph"]
@@ -144,7 +150,7 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     # check create status
     create_status = client.backup.get_create_status(backup_id, BACKEND)
     assert create_status.status == BackupStatus.SUCCESS
-    assert create_status.backup_id == backup_id
+    assert create_status.backup_id.lower() == backup_id.lower()
 
     # remove existing class
     client.collections.delete("Article")
@@ -169,10 +175,10 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
 
 @pytest.mark.parametrize("include", [["Article"], "Article"])
 def test_create_and_restore_backup_without_waiting(
-    client: weaviate.WeaviateClient, include: Union[str, List[str]]
+    client: weaviate.WeaviateClient, include: Union[str, List[str]], request: SubRequest
 ) -> None:
     """Create and restore backup without waiting."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
     include_as_list = sorted(include) if isinstance(include, list) else [include]
 
     resp = client.backup.create(backup_id=backup_id, include_collections=include, backend=BACKEND)
@@ -222,9 +228,11 @@ def test_create_and_restore_backup_without_waiting(
     assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
 
 
-def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> None:
+def test_create_and_restore_1_of_2_classes(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
     """Create and restore 1 of 2 classes."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
 
     # check data exists
     assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
@@ -257,9 +265,9 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
+def test_fail_on_non_existing_class(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     """Fail backup functions on non-existing class."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
     class_name = "NonExistingClass"
     for func in [client.backup.create, client.backup.restore]:
         with pytest.raises(UnexpectedStatusCodeException) as excinfo:
@@ -268,9 +276,11 @@ def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
             assert "422" in str(excinfo.value)
 
 
-def test_fail_restoring_backup_for_existing_class(client: weaviate.WeaviateClient) -> None:
+def test_fail_restoring_backup_for_existing_class(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
     """Fail restoring backup for existing class."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
     class_name = ["Article"]
     create = client.backup.create(
         backup_id=backup_id,
@@ -292,9 +302,11 @@ def test_fail_restoring_backup_for_existing_class(client: weaviate.WeaviateClien
         assert "already exists" in str(excinfo.value)
 
 
-def test_fail_creating_existing_backup(client: weaviate.WeaviateClient) -> None:
+def test_fail_creating_existing_backup(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
     """Fail creating existing backup."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
     class_name = ["Article"]
     create = client.backup.create(
         backup_id=backup_id,
@@ -316,18 +328,22 @@ def test_fail_creating_existing_backup(client: weaviate.WeaviateClient) -> None:
         assert "422" in str(excinfo.value)
 
 
-def test_fail_restoring_non_existing_backup(client: weaviate.WeaviateClient) -> None:
+def test_fail_restoring_non_existing_backup(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
     """Fail restoring non-existing backup."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
     with pytest.raises(UnexpectedStatusCodeException) as excinfo:
         client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
         assert backup_id in str(excinfo.value)
         assert "404" in str(excinfo.value)
 
 
-def test_fail_checking_status_for_non_existing_restore(client: weaviate.WeaviateClient) -> None:
+def test_fail_checking_status_for_non_existing_restore(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
     """Fail checking restore status for non-existing restore."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
     for func in [client.backup.get_restore_status, client.backup.get_create_status]:
         with pytest.raises(UnexpectedStatusCodeException) as excinfo:
             func(
@@ -339,10 +355,10 @@ def test_fail_checking_status_for_non_existing_restore(client: weaviate.Weaviate
 
 
 def test_fail_creating_backup_for_both_include_and_exclude_classes(
-    client: weaviate.WeaviateClient,
+    client: weaviate.WeaviateClient, request: SubRequest
 ) -> None:
     """Fail creating backup for both include and exclude classes."""
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
 
     for func in [client.backup.create, client.backup.restore]:
         with pytest.raises(TypeError) as excinfo:
@@ -362,9 +378,12 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
 
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
 def test_backup_and_restore_with_dynamic_location(
-    client: weaviate.WeaviateClient, dynamic_backup_location: bool, tmp_path: pathlib.Path
+    client: weaviate.WeaviateClient,
+    dynamic_backup_location: bool,
+    tmp_path: pathlib.Path,
+    request: SubRequest,
 ) -> None:
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
 
     conf_create: Optional[wvc.backup.BackupConfigCreate] = None
     conf_restore: Optional[wvc.backup.BackupConfigRestore] = None
@@ -417,12 +436,12 @@ def test_backup_and_restore_with_dynamic_location(
 
 
 def test_backup_and_restore_with_collection_and_config_1_24_x(
-    client: weaviate.WeaviateClient,
+    client: weaviate.WeaviateClient, request: SubRequest
 ) -> None:
     if client._connection._weaviate_version.is_lower_than(1, 25, 0):
         pytest.skip("Backup config is only supported from Weaviate 1.25.0")
 
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
 
     article = client.collections.use("Article")
 
@@ -463,26 +482,15 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-# did not make it into 1.27, will come later
-# def test_list_backup(client: weaviate.WeaviateClient) -> None:
-#     """Create and restore backup without waiting."""
-#     backup_id = _create_backup_id()
-#     if client._connection._weaviate_version.is_lower_than(1, 27, 0):
-#         pytest.skip("List backups is only supported from 1.27.0")
-#
-#     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
-#     assert resp.status == BackupStatus.STARTED
-#
-#     backups = client.backup.list_backups(backend=BACKEND)
-#     assert backup_id in [b.backup_id for b in backups]
-
-
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
 def test_cancel_backup(
-    client: weaviate.WeaviateClient, dynamic_backup_location, tmp_path: pathlib.Path
+    client: weaviate.WeaviateClient,
+    dynamic_backup_location,
+    tmp_path: pathlib.Path,
+    request: SubRequest,
 ) -> None:
-    """Create and restore backup without waiting."""
-    backup_id = _create_backup_id()
+    """Cancel backup without waiting."""
+    backup_id = unique_backup_id(request.node.name)
     if client._connection._weaviate_version.is_lower_than(1, 24, 25):
         pytest.skip("Cancel backups is only supported from 1.24.25")
 
@@ -524,7 +532,7 @@ def test_cancel_backup(
 def test_backup_and_restore_with_roles_and_users(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
-    backup_id = _create_backup_id()
+    backup_id = unique_backup_id(request.node.name)
     client = client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS)
     if client._connection._weaviate_version.is_lower_than(1, 30, 10):
         pytest.skip("User and roles are only supported from Weaviate 1.30.10")
@@ -566,3 +574,16 @@ def test_backup_and_restore_with_roles_and_users(
 
     assert client.users.db.get(user_id=name) is not None
     assert client.roles.get(role_name=name) is not None
+
+
+def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    """List all backups."""
+    backup_id = unique_backup_id(request.node.name)
+    if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+        pytest.skip("List backups is only supported from 1.30.0")
+
+    resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
+    assert resp.status == BackupStatus.STARTED
+
+    backups = client.backup.list_backups(backend=BACKEND)
+    assert backup_id.lower() in [b.backup_id.lower() for b in backups]
