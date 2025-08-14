@@ -19,6 +19,7 @@ coverage.xml
 .pytest_cache
 .mypy_cache
 prof
+weaviate/proto
 
 image.png
 .vscode/
