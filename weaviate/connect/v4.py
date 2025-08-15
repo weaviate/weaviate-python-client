@@ -27,7 +27,6 @@ from grpc import Call, RpcError, StatusCode
 from grpc import Channel as SyncChannel  # type: ignore
 from grpc.aio import AioRpcError
 from grpc.aio import Channel as AsyncChannel  # type: ignore
-from grpc_health.v1 import health_pb2  # type: ignore
 
 # from grpclib.client import Channel
 from httpx import (
@@ -318,6 +317,12 @@ class _ConnectionBase:
     def _ping_grpc(self, colour: executor.Colour) -> Union[None, Awaitable[None]]:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         assert self._grpc_channel is not None
+
+        try:
+            from grpc_health.v1 import health_pb2  # type: ignore
+        except ImportError:
+            return None
+
         try:
             res = self._grpc_channel.unary_unary(
                 "/grpc.health.v1.Health/Check",
@@ -329,24 +334,25 @@ class _ConnectionBase:
                 async def execute() -> None:
                     assert isinstance(res, Awaitable)
                     try:
-                        self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, await res))
+                        resp = cast(health_pb2.HealthCheckResponse, await res)
+                        if await resp.status != health_pb2.HealthCheckResponse.SERVING:
+                            raise WeaviateGRPCUnavailableError(
+                                f"v{self.server_version}", self._connection_params._grpc_address
+                            )
                     except Exception as e:
                         self.__handle_ping_exception(e)
                     return None
 
                 return execute()
             assert not isinstance(res, Awaitable)
-            return self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, res))
+            if res.status != health_pb2.HealthCheckResponse.SERVING:
+                raise WeaviateGRPCUnavailableError(
+                    f"v{self.server_version}", self._connection_params._grpc_address
+                )
+            return None
 
         except Exception as e:
             self.__handle_ping_exception(e)
-        return None
-
-    def __handle_ping_response(self, res: health_pb2.HealthCheckResponse) -> None:
-        if res.status != health_pb2.HealthCheckResponse.SERVING:
-            raise WeaviateGRPCUnavailableError(
-                f"v{self.server_version}", self._connection_params._grpc_address
-            )
         return None
 
     def __handle_ping_exception(self, e: Exception) -> None:
