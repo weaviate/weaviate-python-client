@@ -24,17 +24,17 @@ source "$PROTO_VENV/bin/activate"
 pip install --upgrade pip
 
 compile_protos() {
-
-
-    local pip_version=${1}
+    local pb_version=${1}
+    local gt_version=${2}
     local version=v${1//./}
 
     local output_dir="$PROJECT_ROOT/${version}"
 
-    echo "Installing protobuf $version and grpcio-tools..."
-    pip install "grpcio-tools==$pip_version"
+    echo "Installing protobuf $pb_version and grpcio-tools..."
+    pip install "grpcio-tools==$gt_version"
+    pip install "protobuf==$pb_version"
 
-    echo "Compiling protos for Protobuf $version... in $output_dir"
+    echo "Compiling protos for Protobuf $pb_version... in $output_dir"
 
     mkdir -p "$output_dir"
 
@@ -60,19 +60,9 @@ compile_protos() {
     fi
 }
 
-# v4
-compile_protos "1.59.5"
-compile_protos "1.61.3"   # no earlier versions on pypi
-
-# v5
-compile_protos "1.63.0"
-compile_protos "1.65.1"  # .0 was yanked
-compile_protos "1.67.0"
-compile_protos "1.69.0"
-compile_protos "1.71.0"
-
-#v6
-compile_protos "1.72.1" # .0 was yanked
+compile_protos "4.21.6" "1.59.5"
+compile_protos "5.26.1" "1.63.0"
+compile_protos "6.30.0" "1.72.1" # .0 was yanked
 
 deactivate
 rm -rf "$PROTO_VENV"
