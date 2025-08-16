@@ -318,9 +318,19 @@ class _ConnectionBase:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         assert self._grpc_channel is not None
 
+        # grpc-healthcheck has a dependency on protobuf. However the install dependencies are not
+        # always in line with runtime dependencies. In a fresh install with just the weaviate-client
+        # it should work, but in other environments the runtime dependencies might not be met and it is outside
+        # of our control to fix it.
         try:
             from grpc_health.v1 import health_pb2  # type: ignore
-        except ImportError:
+        except Exception:
+            if colour == "async":
+
+                async def execute() -> None:
+                    return None
+
+                return execute()
             return None
 
         try:
