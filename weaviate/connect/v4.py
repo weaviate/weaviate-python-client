@@ -345,7 +345,7 @@ class _ConnectionBase:
                     assert isinstance(res, Awaitable)
                     try:
                         resp = cast(health_pb2.HealthCheckResponse, await res)
-                        if await resp.status != health_pb2.HealthCheckResponse.SERVING:
+                        if resp.status != health_pb2.HealthCheckResponse.SERVING:
                             raise WeaviateGRPCUnavailableError(
                                 f"v{self.server_version}", self._connection_params._grpc_address
                             )
