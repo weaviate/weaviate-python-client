@@ -325,6 +325,7 @@ class _ConnectionBase:
         try:
             from grpc_health.v1 import health_pb2  # type: ignore
         except Exception:
+            _Warnings.grpc_health_incompatible()
             if colour == "async":
 
                 async def execute() -> None:
