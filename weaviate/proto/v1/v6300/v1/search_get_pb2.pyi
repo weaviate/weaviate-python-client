@@ -206,7 +206,19 @@ class SearchResult(_message.Message):
     def __init__(self, properties: _Optional[_Union[PropertiesResult, _Mapping]] = ..., metadata: _Optional[_Union[MetadataResult, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ...) -> None: ...
 
 class MetadataResult(_message.Message):
-    __slots__ = ("id", "vector", "creation_time_unix", "creation_time_unix_present", "last_update_time_unix", "last_update_time_unix_present", "distance", "distance_present", "certainty", "certainty_present", "score", "score_present", "explain_score", "explain_score_present", "is_consistent", "generative", "generative_present", "is_consistent_present", "vector_bytes", "id_as_bytes", "rerank_score", "rerank_score_present", "vectors")
+    __slots__ = ("id", "vector", "creation_time_unix", "creation_time_unix_present", "last_update_time_unix", "last_update_time_unix_present", "distance", "distance_present", "certainty", "certainty_present", "score", "score_present", "explain_score", "explain_score_present", "is_consistent", "generative", "generative_present", "is_consistent_present", "vector_bytes", "id_as_bytes", "rerank_score", "rerank_score_present", "vectors", "multi_target_distances")
+    class MultiTargetDistance(_message.Message):
+        __slots__ = ("multi_target_distances",)
+        MULTI_TARGET_DISTANCES_FIELD_NUMBER: _ClassVar[int]
+        multi_target_distances: bytes
+        def __init__(self, multi_target_distances: _Optional[bytes] = ...) -> None: ...
+    class MultiTargetDistancesEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: MetadataResult.MultiTargetDistance
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[MetadataResult.MultiTargetDistance, _Mapping]] = ...) -> None: ...
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CREATION_TIME_UNIX_FIELD_NUMBER: _ClassVar[int]
@@ -230,6 +242,7 @@ class MetadataResult(_message.Message):
     RERANK_SCORE_FIELD_NUMBER: _ClassVar[int]
     RERANK_SCORE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     VECTORS_FIELD_NUMBER: _ClassVar[int]
+    MULTI_TARGET_DISTANCES_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -253,7 +266,8 @@ class MetadataResult(_message.Message):
     rerank_score: float
     rerank_score_present: bool
     vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
-    def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ..., is_consistent: bool = ..., generative: _Optional[str] = ..., generative_present: bool = ..., is_consistent_present: bool = ..., vector_bytes: _Optional[bytes] = ..., id_as_bytes: _Optional[bytes] = ..., rerank_score: _Optional[float] = ..., rerank_score_present: bool = ..., vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...) -> None: ...
+    multi_target_distances: _containers.MessageMap[str, MetadataResult.MultiTargetDistance]
+    def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ..., is_consistent: bool = ..., generative: _Optional[str] = ..., generative_present: bool = ..., is_consistent_present: bool = ..., vector_bytes: _Optional[bytes] = ..., id_as_bytes: _Optional[bytes] = ..., rerank_score: _Optional[float] = ..., rerank_score_present: bool = ..., vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ..., multi_target_distances: _Optional[_Mapping[str, MetadataResult.MultiTargetDistance]] = ...) -> None: ...
 
 class PropertiesResult(_message.Message):
     __slots__ = ("non_ref_properties", "ref_props", "target_collection", "metadata", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties", "object_properties", "object_array_properties", "non_ref_props", "ref_props_requested")

@@ -69,6 +69,7 @@ class MetadataReturn:
     creation_time: Optional[datetime.datetime] = None
     last_update_time: Optional[datetime.datetime] = None
     distance: Optional[float] = None
+    multi_target_distances: Optional[Dict[str, List[float]]] = None
     certainty: Optional[float] = None
     score: Optional[float] = None
     explain_score: Optional[str] = None
@@ -86,6 +87,7 @@ class MetadataReturn:
                 self.explain_score is None,
                 self.is_consistent is None,
                 self.rerank_score is None,
+                self.multi_target_distances is None,
             ]
         )
 

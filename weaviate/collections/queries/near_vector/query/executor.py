@@ -359,7 +359,7 @@ class _NearVectorQueryExecutor(
         ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
             return cast(
                 Any,
-                self._result_to_generative_return(
+                self._result_to_query_return(
                     res,
                     _QueryOptions.from_input(
                         return_metadata,
