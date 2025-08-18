@@ -305,7 +305,7 @@ jobs:
       - run: |
           pip install -r requirements-test.txt  # install test dependencies
           pip install weaviate_client-*.whl
-          pip install grpcio==${{ matrix.version.extra }} grpcio-tools==${{ matrix.version.extra }} grpcio-health-checking==${{ matrix.version.extra }}
+          pip install grpcio==${{ matrix.version.extra }}
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.version.server }}
