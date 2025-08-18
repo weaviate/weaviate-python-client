@@ -684,6 +684,44 @@ def test_same_target_vector_multiple_input_combinations(
     assert sorted([obj.uuid for obj in objs]) == sorted([uuid2, uuid1])
 
 
+@pytest.mark.parametrize(
+    "near_vector,target_vector",
+    [
+        ({"first": [0, 0], "second": [[0, 1, 0], [0, 0, 1]]}, ["first", "second"]),
+    ],
+)
+def test_multi_target_vector_return(
+    collection_factory: CollectionFactory,
+    near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]], _ListOfVectorsQuery]],
+    target_vector: List[str],
+) -> None:
+    collection = collection_factory(
+        properties=[],
+        vector_config=[
+            wvc.config.Configure.Vectors.self_provided(name="first"),
+            wvc.config.Configure.Vectors.self_provided(name="second"),
+        ],
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 33, 0):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.33.0")
+
+    uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
+    uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
+    objs = collection.query.near_vector(
+        near_vector,
+        target_vector=wvc.query.TargetVectors.sum(target_vector),
+        return_metadata=wvc.query.MetadataQuery.full(),
+    ).objects
+
+    assert objs[0].uuid == uuid1
+    assert objs[1].uuid == uuid2
+    assert objs[0].metadata.distance == 2.0
+    assert objs[0].metadata.multi_target_distances == {"first": [1.0], "second": [0.0, 1.0]}
+    assert objs[1].metadata.distance == 3.0
+    assert objs[1].metadata.multi_target_distances == {"first": [1.0], "second": [1.0, 1.0]}
+
+
 def test_deprecated_syntax(collection_factory: CollectionFactory):
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_at_least(

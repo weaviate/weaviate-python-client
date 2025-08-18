@@ -112,6 +112,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         meta = MetadataReturn(
             distance=add_props.distance if add_props.distance_present else None,
             certainty=add_props.certainty if add_props.certainty_present else None,
+            multi_target_distances=self.__extract_multi_target_distances(add_props),
             creation_time=(
                 self.__retrieve_timestamp(add_props.creation_time_unix)
                 if add_props.creation_time_unix_present
@@ -128,6 +129,18 @@ class _BaseExecutor(Generic[ConnectionType]):
             rerank_score=(add_props.rerank_score if add_props.rerank_score_present else None),
         )
         return meta
+
+    def __extract_multi_target_distances(
+        self,
+        add_props: "search_get_pb2.MetadataResult",
+    ) -> Optional[Dict[str, List[float]]]:
+        if add_props.multi_target_distances is None or len(add_props.multi_target_distances) == 0:
+            return None
+
+        distances: Dict[str, List[float]] = {}
+        for key, value in add_props.multi_target_distances.items():
+            distances[key] = _ByteOps.decode_float32s(value.multi_target_distances)
+        return distances
 
     def __extract_metadata_for_group_by_object(
         self,
