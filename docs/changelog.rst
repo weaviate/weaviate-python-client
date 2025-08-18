@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.16.8
+--------------
+This patch version includes:
+    - Further attempted fixes for ``protobuf`` compatability issues
+    - Introduction of the ``backups.list()`` method
+
 Version 4.16.7
 --------------
 This patch version includes:

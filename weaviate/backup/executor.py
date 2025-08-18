@@ -10,6 +10,7 @@ from weaviate.backup.backup import (
     STORAGE_NAMES,
     BackupConfigCreate,
     BackupConfigRestore,
+    BackupListReturn,
     BackupReturn,
     BackupStatus,
     BackupStatusReturn,
@@ -33,6 +34,7 @@ from weaviate.exceptions import (
 from weaviate.util import (
     _capitalize_first_letter,
     _decode_json_response_dict,
+    _decode_json_response_list,
 )
 
 
@@ -484,21 +486,26 @@ class _BackupExecutor(Generic[ConnectionType]):
             path=path,
             params=params,
             error_msg="Backup cancel failed due to connection error.",
-            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
+            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="cancel backup"),
         )
 
-    # did not make it into 1.27, will come later
-    # async def list_backups(self, backend: BackupStorage) -> List[BackupReturn]:
-    #     _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
-    #     path = f"/backups/{backend.value}"
+    def list_backups(self, backend: BackupStorage) -> executor.Result[List[BackupListReturn]]:
+        _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
+        path = f"/backups/{backend.value}"
 
-    #     response = await self._connection.get(
-    #         path=path, error_msg="Backup list status failed due to connection error."
-    #     )
-    #     typed_response = _decode_json_response_list(response, "Backup list")
-    #     if typed_response is None:
-    #         raise EmptyResponseException()
-    #     return [BackupReturn(**entry) for entry in typed_response]
+        def resp(res: Response) -> List[BackupListReturn]:
+            typed_response = _decode_json_response_list(res, "Backup list")
+            if typed_response is None:
+                raise EmptyResponseException()
+            return [BackupListReturn(**entry) for entry in typed_response]
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path=path,
+            error_msg="Backup listing failed due to connection error.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="list backup"),
+        )
 
 
 def _get_and_validate_create_restore_arguments(

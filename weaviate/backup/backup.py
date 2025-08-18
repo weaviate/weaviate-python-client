@@ -80,3 +80,11 @@ class BackupReturn(BackupStatusReturn):
     """Return type of the backup creation and restore methods."""
 
     collections: List[str] = Field(default_factory=list, alias="classes")
+
+
+class BackupListReturn(BaseModel):
+    """Return type of the backup list method."""
+
+    collections: List[str] = Field(default_factory=list, alias="classes")
+    status: BackupStatus
+    backup_id: str = Field(alias="id")
