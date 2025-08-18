@@ -114,7 +114,7 @@ jobs:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: |
-          pip install -r requirements-test.txt
+          pip install -r requirements-test.txt -r requirements-devel.txt
           pip install .
       - name: Run integration tests
         if: ${{ !github.event.pull_request.head.repo.fork }}
@@ -208,7 +208,7 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - run: pip install -r requirements-test.txt
+      - run: pip install -r requirements-test.txt -r requirements-devel.txt
       - run: pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate_jt.sh ${{ matrix.versions.weaviate }}

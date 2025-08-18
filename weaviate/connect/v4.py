@@ -27,7 +27,6 @@ from grpc import Call, RpcError, StatusCode
 from grpc import Channel as SyncChannel  # type: ignore
 from grpc.aio import AioRpcError
 from grpc.aio import Channel as AsyncChannel  # type: ignore
-from grpc_health.v1 import health_pb2  # type: ignore
 
 # from grpclib.client import Channel
 from httpx import (
@@ -82,6 +81,7 @@ from weaviate.proto.v1 import (
     aggregate_pb2,
     batch_delete_pb2,
     batch_pb2,
+    health_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,
@@ -318,6 +318,7 @@ class _ConnectionBase:
     def _ping_grpc(self, colour: executor.Colour) -> Union[None, Awaitable[None]]:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         assert self._grpc_channel is not None
+
         try:
             res = self._grpc_channel.unary_unary(
                 "/grpc.health.v1.Health/Check",
@@ -326,13 +327,14 @@ class _ConnectionBase:
             )(health_pb2.HealthCheckRequest(), timeout=self.timeout_config.init)
             if colour == "async":
 
-                async def execute() -> None:
+                async def execute():
                     assert isinstance(res, Awaitable)
                     try:
-                        self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, await res))
+                        return self.__handle_ping_response(
+                            cast(health_pb2.HealthCheckResponse, await res)
+                        )
                     except Exception as e:
                         self.__handle_ping_exception(e)
-                    return None
 
                 return execute()
             assert not isinstance(res, Awaitable)
