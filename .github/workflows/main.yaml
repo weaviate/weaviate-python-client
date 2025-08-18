@@ -281,11 +281,11 @@ jobs:
           { extra: "1.59.5", protobuf: "4.22.4", server: $WEAVIATE_125},
           { extra: "1.66.2", protobuf: "5.26.0", server: $WEAVIATE_126},
           { extra: "1.70.0", protobuf: "5.26.0", server: $WEAVIATE_127},
-          { extra: "1.59.5", protobuf: "5.22.4", server: $WEAVIATE_128},
-          { extra: "1.62.0", protobuf: "5.22.4", server: $WEAVIATE_129},
-          { extra: "1.69.0", protobuf: "5.26.0", server: $WEAVIATE_130},
-          { extra: "1.70.0", protobuf: "5.26.0", server: $WEAVIATE_131},
-          { extra: "1.72.1", protobuf: "6.30.0", server: $WEAVIATE_132}
+          { extra: "1.59.5", protobuf: "5.27.4", server: $WEAVIATE_128},
+          { extra: "1.62.0", protobuf: "5.28.3", server: $WEAVIATE_129},
+          { extra: "1.69.0", protobuf: "5.29.0", server: $WEAVIATE_130},
+          { extra: "1.72.1", protobuf: "6.30.0", server: $WEAVIATE_131},
+          { extra: "1.74.0", protobuf: "6.31.0", server: $WEAVIATE_132}
         ]
     steps:
       - name: Checkout
@@ -305,7 +305,7 @@ jobs:
       - run: |
           pip install -r requirements-test.txt  # install test dependencies
           pip install weaviate_client-*.whl
-          pip install grpcio==${{ matrix.version.extra }}
+          pip install grpcio==${{ matrix.version.extra }} protobuf==${{ matrix.version.protobuf }}
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.version.server }}
