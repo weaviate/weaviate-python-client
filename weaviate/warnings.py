@@ -273,14 +273,6 @@ class _Warnings:
         )
 
     @staticmethod
-    def grpc_health_incompatible() -> None:
-        warnings.warn(
-            message="""Con005: The installed version of grpcio-healthcheck is not compatible with the current protobuf version or not installed.""",
-            category=UserWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def batch_refresh_failed(err: str) -> None:
         warnings.warn(
             message=f"""Bat003: The dynamic batch-size could not be refreshed successfully: error {err}""",
