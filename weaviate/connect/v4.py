@@ -331,7 +331,7 @@ class _ConnectionBase:
                     assert isinstance(res, Awaitable)
                     try:
                         return self.__handle_ping_response(
-                            cast(health_pb2.HealthCheckResponse, res)
+                            cast(health_pb2.HealthCheckResponse, await res)
                         )
                     except Exception as e:
                         self.__handle_ping_exception(e)
