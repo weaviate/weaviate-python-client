@@ -254,7 +254,8 @@ class BatchObjectReturn:
             old_max = max(self.uuids.keys())
             old_min = min(self.uuids.keys())
             for k in range(old_min, old_max - MAX_STORED_RESULTS + 1):
-                del self.uuids[k]
+                if k in self.uuids:
+                    del self.uuids[k]
         if len(self._all_responses) > MAX_STORED_RESULTS:
             self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
 
@@ -269,7 +270,8 @@ class BatchObjectReturn:
             old_max = max(self.uuids.keys())
             old_min = min(self.uuids.keys())
             for k in range(old_min, old_max - MAX_STORED_RESULTS + 1):
-                del self.uuids[k]
+                if k in self.uuids:
+                    del self.uuids[k]
         if len(self._all_responses) > MAX_STORED_RESULTS:
             self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
 
