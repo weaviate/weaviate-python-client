@@ -81,6 +81,7 @@ from weaviate.proto.v1 import (
     aggregate_pb2,
     batch_delete_pb2,
     batch_pb2,
+    health_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,
@@ -318,22 +319,6 @@ class _ConnectionBase:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         assert self._grpc_channel is not None
 
-        # grpc-healthcheck has a dependency on protobuf. However the install dependencies are not
-        # always in line with runtime dependencies. In a fresh install with just the weaviate-client
-        # it should work, but in other environments the runtime dependencies might not be met and it is outside
-        # of our control to fix it.
-        try:
-            from grpc_health.v1 import health_pb2  # type: ignore
-        except Exception:
-            _Warnings.grpc_health_incompatible()
-            if colour == "async":
-
-                async def execute() -> None:
-                    return None
-
-                return execute()
-            return None
-
         try:
             res = self._grpc_channel.unary_unary(
                 "/grpc.health.v1.Health/Check",
@@ -342,28 +327,28 @@ class _ConnectionBase:
             )(health_pb2.HealthCheckRequest(), timeout=self.timeout_config.init)
             if colour == "async":
 
-                async def execute() -> None:
+                async def execute():
                     assert isinstance(res, Awaitable)
                     try:
-                        resp = cast(health_pb2.HealthCheckResponse, await res)
-                        if resp.status != health_pb2.HealthCheckResponse.SERVING:
-                            raise WeaviateGRPCUnavailableError(
-                                f"v{self.server_version}", self._connection_params._grpc_address
-                            )
+                        return self.__handle_ping_response(
+                            cast(health_pb2.HealthCheckResponse, res)
+                        )
                     except Exception as e:
                         self.__handle_ping_exception(e)
-                    return None
 
                 return execute()
             assert not isinstance(res, Awaitable)
-            if res.status != health_pb2.HealthCheckResponse.SERVING:
-                raise WeaviateGRPCUnavailableError(
-                    f"v{self.server_version}", self._connection_params._grpc_address
-                )
-            return None
+            return self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, res))
 
         except Exception as e:
             self.__handle_ping_exception(e)
+        return None
+
+    def __handle_ping_response(self, res: health_pb2.HealthCheckResponse) -> None:
+        if res.status != health_pb2.HealthCheckResponse.SERVING:
+            raise WeaviateGRPCUnavailableError(
+                f"v{self.server_version}", self._connection_params._grpc_address
+            )
         return None
 
     def __handle_ping_exception(self, e: Exception) -> None:
