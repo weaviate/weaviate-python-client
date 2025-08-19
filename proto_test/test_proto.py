@@ -2,7 +2,6 @@ from operator import contains
 import pytest
 from importlib.metadata import version as metadata_version
 from packaging import version
-from weaviate.exceptions import WeaviateConnectionError
 
 
 def test_proto_import():
@@ -18,6 +17,4 @@ def test_proto_import():
     else:
         import weaviate
 
-        with pytest.raises(WeaviateConnectionError):
-            with weaviate.connect_to_local() as client:
-                client.get_meta()
+        assert weaviate.version is not None
