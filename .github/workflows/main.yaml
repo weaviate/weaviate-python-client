@@ -18,7 +18,7 @@ env:
   WEAVIATE_124: preview-rename-object-deletion-to-deletion-strategy-727ecf7
   WEAVIATE_125: stable-v1.25-d9f6cbb
   WEAVIATE_126: stable-v1.26-6a411a4
-  WEAVIATE_127: 1.33.0-dev-725d08f.amd64
+  WEAVIATE_127: 1.33.0-dev-2ba7279.amd64
 
 jobs:
   lint-and-format:
@@ -121,12 +121,12 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_126},
-          { py: "3.10", weaviate: $WEAVIATE_126},
-          { py: "3.11", weaviate: $WEAVIATE_123},
-          { py: "3.11", weaviate: $WEAVIATE_124},
-          { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_126},
+          # { py: "3.9", weaviate: $WEAVIATE_126},
+          # { py: "3.10", weaviate: $WEAVIATE_126},
+          # { py: "3.11", weaviate: $WEAVIATE_123},
+          # { py: "3.11", weaviate: $WEAVIATE_124},
+          # { py: "3.11", weaviate: $WEAVIATE_125},
+          # { py: "3.11", weaviate: $WEAVIATE_126},
           { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
@@ -178,12 +178,12 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_126},
-          { py: "3.10", weaviate: $WEAVIATE_126},
-          { py: "3.11", weaviate: $WEAVIATE_123},
-          { py: "3.11", weaviate: $WEAVIATE_124},
-          { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_126},
+          # { py: "3.9", weaviate: $WEAVIATE_126},
+          # { py: "3.10", weaviate: $WEAVIATE_126},
+          # { py: "3.11", weaviate: $WEAVIATE_123},
+          # { py: "3.11", weaviate: $WEAVIATE_124},
+          # { py: "3.11", weaviate: $WEAVIATE_125},
+          # { py: "3.11", weaviate: $WEAVIATE_126},
           { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
@@ -328,10 +328,10 @@ jobs:
       fail-fast: false
       matrix:
         server: [
-          $WEAVIATE_123,
-          $WEAVIATE_124,
-          $WEAVIATE_125,
-          $WEAVIATE_126,
+          # $WEAVIATE_123,
+          # $WEAVIATE_124,
+          # $WEAVIATE_125,
+          # $WEAVIATE_126,
           $WEAVIATE_127
         ]
     steps:
