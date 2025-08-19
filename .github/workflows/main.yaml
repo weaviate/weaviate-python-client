@@ -186,40 +186,6 @@ jobs:
       - name: Run journey tests
         run: pytest journey_tests
 
-  Codecov:
-    needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
-    runs-on: ubuntu-latest
-    if: github.ref_name != 'main'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download coverage artifacts mock
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report-mock_tests
-      - name: Download coverage artifacts unit
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report-test
-      - name: Download coverage integration
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report-integration
-      - name: Download coverage integration v3
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report-integration-v3
-      - name: Download coverage integration embedded
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report-integration-embedded
-      - name: Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          fail_ci_if_error: true
-          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
-          verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-
 
   build-package:
     name: Build package
@@ -292,47 +258,3 @@ jobs:
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
         run: pytest -v -n auto integration
-
-
-  build-and-publish:
-    name: Build and publish Python 🐍 distributions 📦 to PyPI and  TestPyPI
-    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: 'pip' # caching pip dependencies
-      - name: Install dependencies
-        run: pip install -r requirements-devel.txt
-      - name: Build a binary wheel
-        run: python -m build
-      - name: Publish distribution 📦 to PyPI on new tags
-        if: startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          verbose: true
-          password: ${{ secrets.PYPI_API_TOKEN }}
-
-  gh-release:
-    name: Create a GitHub Release on new tags
-    if: startsWith(github.ref, 'refs/tags')
-    runs-on: ubuntu-latest
-    needs: [build-and-publish]
-    steps:
-      - name: Download build artifact to append to release
-        uses: actions/download-artifact@v4
-        with:
-          name: weaviate-python-client-wheel
-          path: dist
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: true
-          draft: true
-          files: dist/*.whl
