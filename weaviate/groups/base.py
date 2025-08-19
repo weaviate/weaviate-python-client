@@ -1,5 +1,4 @@
 from typing import Dict, Generic, List, Literal, Union, overload
-from urllib.parse import quote
 
 from httpx import Response
 
@@ -13,6 +12,7 @@ from weaviate.users.users import (
     USER_TYPE,
     USER_TYPE_OIDC,
 )
+from weaviate.util import escape_string
 
 
 class _BaseExecutor(Generic[ConnectionType]):
@@ -25,8 +25,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         group_type: USER_TYPE,
         include_permissions: bool,
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
-        escaped_group_id = quote(group_id, safe="")
-        path = f"/authz/groups/{escaped_group_id}/roles/{group_type}"
+        path = f"/authz/groups/{escape_string(group_id)}/roles/{group_type}"
 
         def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
             roles = res.json()
@@ -49,9 +48,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         group_id: str,
         group_type: USER_TYPE,
     ) -> executor.Result[None]:
-        # Escape the group_id to safely include leading slashes and other special characters
-        escaped_group_id = quote(group_id, safe="")
-        path = f"/authz/groups/{escaped_group_id}/assign"
+        path = f"/authz/groups/{escape_string(group_id)}/assign"
 
         def resp(res: Response) -> None:
             pass
@@ -71,8 +68,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         group_id: str,
         group_type: USER_TYPE,
     ) -> executor.Result[None]:
-        escaped_group_id = quote(group_id, safe="")
-        path = f"/authz/groups/{escaped_group_id}/revoke"
+        path = f"/authz/groups/{escape_string(group_id)}/revoke"
 
         def resp(res: Response) -> None:
             pass

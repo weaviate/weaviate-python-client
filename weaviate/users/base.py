@@ -18,7 +18,7 @@ from weaviate.users.users import (
     OwnUser,
     UserDB,
 )
-from weaviate.util import _decode_json_response_dict
+from weaviate.util import _decode_json_response_dict, escape_string
 
 
 class _BaseExecutor(Generic[ConnectionType]):
@@ -31,7 +31,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         user_type: USER_TYPE,
         include_permissions: bool,
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
-        path = f"/authz/users/{user_id}/roles/{user_type}"
+        path = f"/authz/users/{escape_string(user_id)}/roles/{user_type}"
 
         def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
             roles = res.json()
@@ -52,7 +52,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         self,
         user_id: str,
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
-        path = f"/authz/users/{user_id}/roles"
+        path = f"/authz/users/{escape_string(user_id)}/roles"
 
         def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
             return {role["name"]: Role._from_weaviate_role(role) for role in res.json()}
@@ -71,7 +71,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         user_id: str,
         user_type: Optional[USER_TYPE],
     ) -> executor.Result[None]:
-        path = f"/authz/users/{user_id}/assign"
+        path = f"/authz/users/{escape_string(user_id)}/assign"
 
         payload: Dict[str, Any] = {"roles": roles}
         if user_type is not None:
@@ -95,7 +95,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         user_id: str,
         user_type: Optional[USER_TYPE],
     ) -> executor.Result[None]:
-        path = f"/authz/users/{user_id}/revoke"
+        path = f"/authz/users/{escape_string(user_id)}/revoke"
 
         payload: Dict[str, Any] = {"roles": roles}
         if user_type is not None:
