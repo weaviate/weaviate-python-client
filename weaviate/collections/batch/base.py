@@ -43,6 +43,7 @@ from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import (
     EmptyResponseException,
     WeaviateBatchValidationError,
+    WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
 )
 from weaviate.logger import logger
@@ -983,14 +984,16 @@ class _BatchBaseNew:
         # restart the stream if we were shutdown by the node we were connected to
         if self.__was_shutdown:
             self.__was_shutdown = False
+            self.__recommended_num_objects = self.__max_batch_size
             return self.__batch_stream()
 
     def __reconnect(self, retry: int = 0) -> None:
         try:
+            logger.warning(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
+            self.__connection.close("sync")
             self.__connection.connect(force=True)
-        except WeaviateStartUpError as e:
+        except (WeaviateStartUpError, WeaviateGRPCUnavailableError) as e:
             if retry < 5:
-                logger.warning(f"Reconnecting after shutdown... {retry + 1}/{5}")
                 time.sleep(2**retry)
                 self.__reconnect(retry + 1)
             else:
@@ -1052,9 +1055,13 @@ class _BatchBaseNew:
                     timeout=DEFAULT_REQUEST_TIMEOUT,
                 )
                 if new_rec < self.__recommended_num_objects:
-                    print(f"Scaling down sending: {self.__recommended_num_objects} -> {new_rec}")
+                    logger.warning(
+                        f"Scaling down sending: {self.__recommended_num_objects} -> {new_rec}"
+                    )
                 if new_rec > self.__recommended_num_objects:
-                    print(f"Scaling up sending: {self.__recommended_num_objects} -> {new_rec}")
+                    logger.warning(
+                        f"Scaling up sending: {self.__recommended_num_objects} -> {new_rec}"
+                    )
                 self.__recommended_num_objects = new_rec
                 self.__results_for_wrapper.results.objs.add_uuids(
                     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
