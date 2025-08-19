@@ -12,7 +12,7 @@ def test_proto_import():
     ):
         with pytest.raises(Exception) as exc_info:
             import weaviate
-        assert "Incompatible protobuf version" in str(exc_info.value)
+        assert "gRPC incompatibility detected" in str(exc_info.value)
     else:
         import weaviate
 
