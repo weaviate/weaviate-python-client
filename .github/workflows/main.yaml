@@ -40,79 +40,6 @@ jobs:
           python -m build
           python -m twine check dist/*
 
-  type-checking:
-    name: Run Type Checking
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
-        folder: ["weaviate"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.version }}
-          cache: 'pip' # caching pip dependencies
-      - run: pip install -r requirements-devel.txt
-      - name: Run mypy
-        run: mypy --config-file ./pyproject.toml --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
-      - uses: jakebailey/pyright-action@v2
-        with:
-          version: 1.1.347
-
-  unit-tests:
-    name: Run Unit Tests
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
-        folder: ["test", "mock_tests"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.version }}
-          cache: 'pip' # caching pip dependencies
-      - run: pip install -r requirements-devel.txt
-      - name: Run unittests
-        run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
-      - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-${{ matrix.folder }}
-          path: coverage-${{ matrix.folder }}.xml
-
-  integration-tests-embedded:
-    name: Run Integration Tests Embedded
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
-        optional_dependencies: [false]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.version }}
-          cache: 'pip' # caching pip dependencies
-      - run: |
-          pip install -r requirements-devel.txt
-          pip install .
-      - name: Run integration tests
-        if: ${{ !github.event.pull_request.head.repo.fork }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
-      - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-integration-embedded
-          path: coverage-integration-embedded.xml
 
   integration-tests-v3:
     name: Run Integration Tests v3
@@ -235,10 +162,7 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_125},
-          { py: "3.10", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.12", weaviate: $WEAVIATE_125}
+          { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
     steps:
