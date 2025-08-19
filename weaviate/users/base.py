@@ -135,6 +135,7 @@ class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     if parsed["roles"] is not None
                     else {}
                 ),
+                groups=parsed["groups"] if "groups" in parsed else [],
             )
 
         return executor.execute(
