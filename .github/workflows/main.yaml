@@ -25,7 +25,7 @@ env:
   WEAVIATE_129: 1.29.9
   WEAVIATE_130: 1.30.12
   WEAVIATE_131: 1.31.5
-  WEAVIATE_132: 1.32.0-rc.1-098c594
+  WEAVIATE_132: 1.32.4-cdf9a3b
 
 jobs:
   lint-and-format:

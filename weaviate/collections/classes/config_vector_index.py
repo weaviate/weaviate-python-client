@@ -280,6 +280,12 @@ class _RQConfigCreate(_QuantizerConfigCreate):
         return "rq"
 
 
+class _UncompressedConfigCreate(_QuantizerConfigCreate):
+    @staticmethod
+    def quantizer_name() -> str:
+        return "uncompressed"
+
+
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
@@ -448,6 +454,11 @@ class _VectorIndexQuantizer:
             bits=bits,
             rescoreLimit=rescore_limit,
         )
+
+    @staticmethod
+    def none() -> _UncompressedConfigCreate:
+        """Create a a vector index without compression."""
+        return _UncompressedConfigCreate()
 
 
 class _VectorIndex:
