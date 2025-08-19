@@ -62,8 +62,6 @@ compile_protos() {
 
 compile_protos "4.21.6" "1.59.5"
 compile_protos "5.26.1" "1.63.0"
-compile_protos "5.27.4" "1.63.0"
-compile_protos "5.28.3" "1.63.0"
 compile_protos "6.30.0" "1.72.1" # .0 was yanked
 
 deactivate
