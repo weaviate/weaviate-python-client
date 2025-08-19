@@ -1,7 +1,7 @@
 import pytest
 from importlib.metadata import version as metadata_version
 from packaging import version
-from weaviate.exceptions import WeaviateProtobufIncompatibility
+from weaviate.exceptions import WeaviateConnectionError, WeaviateProtobufIncompatibility
 
 
 def test_proto_import():
@@ -14,10 +14,12 @@ def test_proto_import():
         with pytest.raises(WeaviateProtobufIncompatibility):
             import weaviate
 
-            with weaviate.connect_to_local() as client:
-                client.get_meta()
+            with pytest.raises(WeaviateConnectionError):
+                with weaviate.connect_to_local() as client:
+                    client.get_meta()
     else:
         import weaviate
 
-        with weaviate.connect_to_local() as client:
-            client.get_meta()
+        with pytest.raises(WeaviateConnectionError):
+            with weaviate.connect_to_local() as client:
+                client.get_meta()
