@@ -5,10 +5,8 @@ import warnings
 
 from weaviate.proto.v1.v5261.v1 import health_pb2 as v1_dot_health__pb2
 
-GRPC_GENERATED_VERSION = '1.63.0'
+GRPC_GENERATED_VERSION = '1.71.2'
 GRPC_VERSION = grpc.__version__
-EXPECTED_ERROR_RELEASE = '1.65.0'
-SCHEDULED_RELEASE_DATE = 'June 25, 2024'
 _version_not_supported = False
 
 try:
@@ -18,15 +16,12 @@ except ImportError:
     _version_not_supported = True
 
 if _version_not_supported:
-    warnings.warn(
+    raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
         + f' but the generated code in v1/health_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
-        + f' This warning will become an error in {EXPECTED_ERROR_RELEASE},'
-        + f' scheduled for release on {SCHEDULED_RELEASE_DATE}.',
-        RuntimeWarning
     )
 
 
@@ -44,23 +39,12 @@ class HealthStub(object):
                 request_serializer=v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
                 response_deserializer=v1_dot_health__pb2.HealthCheckResponse.FromString,
                 _registered_method=True)
-        self.Watch = channel.unary_stream(
-                '/grpc.health.v1.Health/Watch',
-                request_serializer=v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
-                response_deserializer=v1_dot_health__pb2.HealthCheckResponse.FromString,
-                _registered_method=True)
 
 
 class HealthServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Check(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def Watch(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -74,15 +58,11 @@ def add_HealthServicer_to_server(servicer, server):
                     request_deserializer=v1_dot_health__pb2.HealthCheckRequest.FromString,
                     response_serializer=v1_dot_health__pb2.HealthCheckResponse.SerializeToString,
             ),
-            'Watch': grpc.unary_stream_rpc_method_handler(
-                    servicer.Watch,
-                    request_deserializer=v1_dot_health__pb2.HealthCheckRequest.FromString,
-                    response_serializer=v1_dot_health__pb2.HealthCheckResponse.SerializeToString,
-            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'grpc.health.v1.Health', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('grpc.health.v1.Health', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -104,33 +84,6 @@ class Health(object):
             request,
             target,
             '/grpc.health.v1.Health/Check',
-            v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
-            v1_dot_health__pb2.HealthCheckResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def Watch(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/grpc.health.v1.Health/Watch',
             v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
             v1_dot_health__pb2.HealthCheckResponse.FromString,
             options,
