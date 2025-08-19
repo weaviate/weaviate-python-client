@@ -5,7 +5,6 @@ from packaging import version
 from weaviate.exceptions import WeaviateProtobufIncompatibility
 
 
-@pytest.mark.proto
 def test_proto_import():
     grpc_ver = version.parse(metadata_version("grpcio"))
     pb_ver = version.parse(metadata_version("protobuf"))

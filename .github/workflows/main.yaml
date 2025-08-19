@@ -115,7 +115,7 @@ jobs:
           pip install -r requirements-test.txt  -r requirements-devel.txt
           pip install grpcio==${{ matrix.grpc }} protobuf==${{ matrix.protobuf }}
       - name: Run proto test
-        run: pytest -m proto integration
+        run: pytest proto_test/test_proto.py
 
   integration-tests-embedded:
     name: Run Integration Tests Embedded
@@ -189,10 +189,10 @@ jobs:
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
 #          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
-        run: pytest -n auto --dist loadgroup -m "not proto" -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork || github.triggering_actor == 'dependabot[bot]' }}
-        run: pytest -n auto --dist loadgroup -m "not proto" -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v4
@@ -329,7 +329,7 @@ jobs:
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.version }}
       - name: Run integration tests without auth secrets (auth tests ran in previous job)
-        run: pytest -v -n auto --dist loadgroup -m "not proto" integration
+        run: pytest -v -n auto --dist loadgroup integration
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
