@@ -1,4 +1,3 @@
-from operator import contains
 import pytest
 from importlib.metadata import version as metadata_version
 from packaging import version
@@ -13,7 +12,7 @@ def test_proto_import():
     ):
         with pytest.raises(Exception) as exc_info:
             import weaviate
-        assert contains(str(exc_info.value), "Incompatible protobuf version")
+        assert "Incompatible protobuf version" in str(exc_info.value)
     else:
         import weaviate
 
