@@ -114,8 +114,8 @@ jobs:
       - run: |
           pip install -r requirements-test.txt  -r requirements-devel.txt
           pip install grpcio==${{ matrix.grpc }} protobuf==${{ matrix.protobuf }}
-      - name: Run protos test
-        run: GRPC_VER=${{ matrix.grpc }} PB_VER=${{ matrix.protobuf }} pytest -m "proto" integration
+      - name: Run proto test
+        run: pytest -m proto integration
 
   integration-tests-embedded:
     name: Run Integration Tests Embedded
