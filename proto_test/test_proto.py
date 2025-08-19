@@ -1,5 +1,4 @@
 import pytest
-import weaviate
 from importlib.metadata import version as metadata_version
 from packaging import version
 from weaviate.exceptions import WeaviateProtobufIncompatibility
@@ -13,5 +12,12 @@ def test_proto_import():
         pb_ver >= version.parse("5.26.1") and grpc_ver < version.parse("1.63.0")
     ):
         with pytest.raises(WeaviateProtobufIncompatibility):
+            import weaviate
+
             with weaviate.connect_to_local() as client:
                 client.get_meta()
+    else:
+        import weaviate
+
+        with weaviate.connect_to_local() as client:
+            client.get_meta()
