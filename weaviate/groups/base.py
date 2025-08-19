@@ -1,4 +1,5 @@
 from typing import Dict, Generic, List, Literal, Union, overload
+from urllib.parse import quote
 
 from httpx import Response
 
@@ -24,7 +25,8 @@ class _BaseExecutor(Generic[ConnectionType]):
         group_type: USER_TYPE,
         include_permissions: bool,
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
-        path = f"/authz/groups/{group_id}/roles/{group_type}"
+        escaped_group_id = quote(group_id, safe="")
+        path = f"/authz/groups/{escaped_group_id}/roles/{group_type}"
 
         def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
             roles = res.json()
@@ -47,7 +49,9 @@ class _BaseExecutor(Generic[ConnectionType]):
         group_id: str,
         group_type: USER_TYPE,
     ) -> executor.Result[None]:
-        path = f"/authz/groups/{group_id}/assign"
+        # Escape the group_id to safely include leading slashes and other special characters
+        escaped_group_id = quote(group_id, safe="")
+        path = f"/authz/groups/{escaped_group_id}/assign"
 
         def resp(res: Response) -> None:
             pass
@@ -67,7 +71,8 @@ class _BaseExecutor(Generic[ConnectionType]):
         group_id: str,
         group_type: USER_TYPE,
     ) -> executor.Result[None]:
-        path = f"/authz/groups/{group_id}/revoke"
+        escaped_group_id = quote(group_id, safe="")
+        path = f"/authz/groups/{escaped_group_id}/revoke"
 
         def resp(res: Response) -> None:
             pass
