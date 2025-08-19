@@ -24,7 +24,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         group_type: USER_TYPE,
         include_permissions: bool,
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
-        path = f"/authz/users/{group_id}/roles/{group_type}"
+        path = f"/authz/groups/{group_id}/roles/{group_type}"
 
         def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
             roles = res.json()
