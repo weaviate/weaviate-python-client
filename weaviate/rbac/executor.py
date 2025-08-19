@@ -58,6 +58,9 @@ class _RolesExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles"),
         )
 
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25. Please use `users.get_my_user()` instead."""
+    )
     def get_current_roles(self) -> executor.Result[List[Role]]:
         # TODO: Add documentation here and this method to the stubs plus tests
         path = "/authz/users/own-roles"
