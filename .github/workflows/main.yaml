@@ -112,7 +112,7 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - run: |
-          pip install -r requirements-devel.txt
+          pip install -r requirements-test.txt  -r requirements-devel.txt
           pip install grpcio==${{ matrix.grpc }} protobuf==${{ matrix.protobuf }}
       - name: Run protos test
         run: GRPC_VER=${{ matrix.grpc }} PB_VER=${{ matrix.protobuf }} pytest -m "proto" integration
