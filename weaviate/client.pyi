@@ -11,6 +11,8 @@ from weaviate.collections.classes.internal import _RawGQLReturn
 from weaviate.collections.collections.async_ import _CollectionsAsync
 from weaviate.collections.collections.sync import _Collections
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
+from weaviate.groups.async_ import _GroupsAsync
+from weaviate.groups.sync import _Groups
 from weaviate.users.async_ import _UsersAsync
 from weaviate.users.sync import _Users
 
@@ -30,6 +32,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
     collections: _CollectionsAsync
     cluster: _ClusterAsync
     debug: _DebugAsync
+    groups: _GroupsAsync
     roles: _RolesAsync
     users: _UsersAsync
 
@@ -52,6 +55,7 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
     collections: _Collections
     cluster: _Cluster
     debug: _Debug
+    groups: _Groups
     roles: _Roles
     users: _Users
 

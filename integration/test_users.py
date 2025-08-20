@@ -87,9 +87,10 @@ def test_create_user_and_get(client_factory: ClientFactory) -> None:
         ) as client2:
             user = client2.users.get_my_user()
             assert user.user_id == randomUserName
-        user = client.users.db.get(user_id=randomUserName)
-        assert user.user_id == randomUserName
-        assert user.user_type == UserTypes.DB_DYNAMIC
+        dynamicUser = client.users.db.get(user_id=randomUserName)
+        assert dynamicUser is not None
+        assert dynamicUser.user_id == randomUserName
+        assert dynamicUser.user_type == UserTypes.DB_DYNAMIC
         assert client.users.db.delete(user_id=randomUserName)
 
 

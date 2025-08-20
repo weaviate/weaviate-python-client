@@ -9,6 +9,7 @@ import re
 import uuid as uuid_lib
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
+from urllib.parse import quote
 
 import httpx
 import validators
@@ -739,3 +740,7 @@ class _WeaviateUUIDInt(uuid_lib.UUID):
     def __init__(self, hex_: int) -> None:
         object.__setattr__(self, "int", hex_)
         object.__setattr__(self, "is_safe", uuid_lib.SafeUUID.unknown)
+
+
+def escape_string(value: str) -> str:
+    return quote(value, safe="")
