@@ -832,7 +832,8 @@ class _BatchBaseNew:
         self.__results_lock = threading.Lock()
 
         self.__bg_thread_exception: Optional[Exception] = None
-        self.__was_shutdown = False
+        self.__is_shutting_down = threading.Event()
+        self.__is_shutdown = threading.Event()
         self.__stream_id: str | None = None
 
         self.__objs_cache_lock = threading.Lock()
@@ -927,7 +928,11 @@ class _BatchBaseNew:
                     uuid_lookup=self.__uuid_lookup,
                 )
 
-                while self.__was_shutdown or self.__stream_id is None:
+                while (
+                    self.__is_shutting_down.is_set()
+                    or self.__is_shutdown.is_set()
+                    or self.__stream_id is None
+                ):
                     # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
                     # so that the connection is refreshed to a new node where the objects can be accepted
                     # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
@@ -976,14 +981,17 @@ class _BatchBaseNew:
             elif message.HasField("stop"):
                 self.__shut_background_thread_down.set()
                 return
+            elif message.HasField("shutting_down"):
+                self.__is_shutting_down.set()
             elif message.HasField("shutdown"):
-                self.__was_shutdown = True
+                self.__is_shutting_down.clear()
+                self.__is_shutdown.set()
                 self.__reconnect()
                 break
 
         # restart the stream if we were shutdown by the node we were connected to
-        if self.__was_shutdown:
-            self.__was_shutdown = False
+        if self.__is_shutdown.is_set():
+            self.__is_shutdown.clear()
             self.__recommended_num_objects = self.__max_batch_size
             return self.__batch_stream()
 
@@ -1066,16 +1074,18 @@ class _BatchBaseNew:
                 self.__results_for_wrapper.results.objs.add_uuids(
                     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
                 )
+                with self.__uuid_lookup_lock:
+                    self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
             except Exception as e:
+                if "grpc shutdown in progress" in str(e):
+                    self.__batch_objects.prepend(objs)
+                    self.__batch_references.prepend(refs)
                 logger.error(
                     {
                         "message": f"Failed to send all objects in a batch of {len(objs)}",
                         "error": repr(e),
                     }
                 )
-
-        with self.__uuid_lookup_lock:
-            self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
 
         with self.__active_requests_lock:
             self.__active_requests -= 1

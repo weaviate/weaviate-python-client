@@ -74,8 +74,14 @@ class BatchShutdown(_message.Message):
     stream_id: str
     def __init__(self, stream_id: _Optional[str] = ...) -> None: ...
 
+class BatchShuttingDown(_message.Message):
+    __slots__ = ["stream_id"]
+    STREAM_ID_FIELD_NUMBER: _ClassVar[int]
+    stream_id: str
+    def __init__(self, stream_id: _Optional[str] = ...) -> None: ...
+
 class BatchStreamMessage(_message.Message):
-    __slots__ = ["start", "error", "stop", "shutdown"]
+    __slots__ = ["start", "error", "stop", "shutdown", "shutting_down"]
     class BatchStop(_message.Message):
         __slots__ = ["stream_id"]
         STREAM_ID_FIELD_NUMBER: _ClassVar[int]
@@ -85,11 +91,13 @@ class BatchStreamMessage(_message.Message):
     ERROR_FIELD_NUMBER: _ClassVar[int]
     STOP_FIELD_NUMBER: _ClassVar[int]
     SHUTDOWN_FIELD_NUMBER: _ClassVar[int]
+    SHUTTING_DOWN_FIELD_NUMBER: _ClassVar[int]
     start: BatchStart
     error: BatchError
     stop: BatchStreamMessage.BatchStop
     shutdown: BatchShutdown
-    def __init__(self, start: _Optional[_Union[BatchStart, _Mapping]] = ..., error: _Optional[_Union[BatchError, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamMessage.BatchStop, _Mapping]] = ..., shutdown: _Optional[_Union[BatchShutdown, _Mapping]] = ...) -> None: ...
+    shutting_down: BatchShuttingDown
+    def __init__(self, start: _Optional[_Union[BatchStart, _Mapping]] = ..., error: _Optional[_Union[BatchError, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamMessage.BatchStop, _Mapping]] = ..., shutdown: _Optional[_Union[BatchShutdown, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchShuttingDown, _Mapping]] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ["uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors"]
