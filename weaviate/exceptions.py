@@ -6,6 +6,7 @@ from typing import Optional, Tuple, Union, cast
 import httpx
 from grpc import Call, StatusCode  # type: ignore
 from grpc.aio import AioRpcError  # type: ignore
+from packaging import version
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -374,4 +375,11 @@ class WeaviateAgentsNotInstalledError(WeaviateBaseError):
     def __init__(self) -> None:
         super().__init__(
             'Weaviate Agents (Alpha) functionality requires additional dependencies. Please install them using: "pip install weaviate-client[agents]"'
+        )
+
+
+class WeaviateProtobufIncompatibility(Exception):
+    def __init__(self, pb: version.Version, grpc: version.Version) -> None:
+        super().__init__(
+            f"gRPC incompatibility detected. Protobuf: {pb.base_version}, gRPC: {grpc.base_version}. Ensure that your protobuf and grpcio versions are compatible or runtime errors may occur."
         )

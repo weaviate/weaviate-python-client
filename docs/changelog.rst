@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.16.9
+--------------
+This patch version includes:
+    - Explicitly depend on protobuf package
+
 Version 4.16.8
 --------------
 This patch version includes:
