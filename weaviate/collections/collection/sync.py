@@ -8,6 +8,7 @@ from weaviate.collections.backups import _CollectionBackup
 from weaviate.collections.batch.collection import _BatchCollectionWrapper
 from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -25,6 +26,7 @@ from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
 from weaviate.collections.query import _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect.v4 import ConnectionSync
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import UUID
 
 from .base import _CollectionBase
@@ -221,6 +223,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
@@ -233,6 +236,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
         after: Optional[UUID] = None,
@@ -245,6 +249,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
@@ -257,6 +262,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
@@ -269,6 +275,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         after: Optional[UUID] = None,
@@ -281,6 +288,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
@@ -292,6 +300,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         after: Optional[UUID] = None,
@@ -315,6 +324,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         are returned. Use `wvc.QueryReference` to specify which references to return.
 
         Args:
+            filters:            The filters to apply to the query.
             include_vector:     Whether to include the vector in the metadata of the returned objects.
             return_metadata:     The metadata to return with each object.
             return_properties:     The properties to return with each object.
@@ -325,9 +335,15 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         Raises:
             weaviate.exceptions.WeaviateGRPCQueryError: If the request to the Weaviate server fails.
         """
+        if self.query._connection._weaviate_version.is_lower_than(1, 33, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Iterator with filters", self._connection.server_version, "1.33.0"
+            )
+
         return _ObjectIterator(
             self.query,
             _IteratorInputs(
+                filters=filters,
                 include_vector=include_vector,
                 return_metadata=return_metadata,
                 return_properties=return_properties,

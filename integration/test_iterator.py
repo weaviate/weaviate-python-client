@@ -20,6 +20,7 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.iterator import ITERATOR_CACHE_SIZE
 from weaviate.exceptions import WeaviateInvalidInputError
+import weaviate.classes as wvc
 
 
 @pytest.fixture(scope="module")
@@ -225,3 +226,31 @@ def test_iterator_with_after(collection_factory: CollectionFactory) -> None:
         next(iterator).properties["data"]
         == collection.query.fetch_object_by_id(uuids[6]).properties["data"]
     )
+
+
+def test_iterator_with_filter(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="bool", data_type=DataType.BOOL),
+            Property(name="count", data_type=DataType.INT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+        data_model_properties=Dict[str, int],
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 33, 0):
+        pytest.skip("Iterator with filters requires Weaviate version 1.33 or higher")
+
+    num_objects = 1000
+    res = collection.data.insert_many(
+        [DataObject(properties={"bool": i % 2 == 0, "count": i}) for i in range(num_objects)]
+    )
+    assert not res.has_errors
+
+    count = 0
+    for obj in collection.iterator(
+        filters=wvc.query.Filter.by_property("bool").equal(True), cache_size=1
+    ):
+        assert obj.properties["bool"] is True
+        count += 1
+    assert count == num_objects / 2
