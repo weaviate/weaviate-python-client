@@ -248,9 +248,7 @@ def test_iterator_with_filter(collection_factory: CollectionFactory) -> None:
     assert not res.has_errors
 
     count = 0
-    for obj in collection.iterator(
-        filters=wvc.query.Filter.by_property("bool").equal(True), cache_size=1
-    ):
+    for obj in collection.iterator(filters=wvc.query.Filter.by_property("bool").equal(True)):
         assert obj.properties["bool"] is True
         count += 1
     assert count == num_objects / 2
