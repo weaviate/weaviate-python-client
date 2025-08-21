@@ -221,11 +221,10 @@ def test_iterator_with_after(collection_factory: CollectionFactory) -> None:
     collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
 
     uuids = [obj.uuid for obj in collection.iterator()]
+    obj6 = collection.query.fetch_object_by_id(uuids[6])
     iterator = collection.iterator(after=uuids[5])
-    assert (
-        next(iterator).properties["data"]
-        == collection.query.fetch_object_by_id(uuids[6]).properties["data"]
-    )
+    next_object = next(iterator)
+    assert next_object.properties["data"] == obj6.properties["data"]
 
 
 def test_iterator_with_filter(collection_factory: CollectionFactory) -> None:

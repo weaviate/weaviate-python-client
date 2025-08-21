@@ -40,7 +40,10 @@ class _IteratorInputs(Generic[TProperties, TReferences]):
 
 
 def _parse_after(after: Optional[UUIDorStr]) -> UUIDorStr:
-    return "" if after is None or isinstance(after, UUID) else UUID(after)
+    if after is None:
+        return ""
+
+    return UUID(after) if not isinstance(after, UUID) else after
 
 
 class _ObjectIterator(
