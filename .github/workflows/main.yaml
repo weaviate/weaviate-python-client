@@ -18,14 +18,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WEAVIATE_125: 1.25.34
-  WEAVIATE_126: 1.26.17
   WEAVIATE_127: 1.27.27
   WEAVIATE_128: 1.28.16
   WEAVIATE_129: 1.29.9
   WEAVIATE_130: 1.30.12
   WEAVIATE_131: 1.31.5
   WEAVIATE_132: 1.32.0-rc.1-098c594
+  WEAVIATE_133: preview-remove-support-for-old-clients-a52a482.amd64
 
 jobs:
   lint-and-format:
@@ -278,14 +277,13 @@ jobs:
       fail-fast: false
       matrix:
         version: [
-          { extra: "1.62.0", server: $WEAVIATE_125},
-          { extra: "1.66.2", server: $WEAVIATE_126},
           { extra: "1.70.0", server: $WEAVIATE_127},
           { extra: "1.59.5", server: $WEAVIATE_128},
           { extra: "1.62.0", server: $WEAVIATE_129},
           { extra: "1.69.0", server: $WEAVIATE_130},
           { extra: "1.70.0", server: $WEAVIATE_131},
-          { extra: "1.71.0", server: $WEAVIATE_132}
+          { extra: "1.71.0", server: $WEAVIATE_132},
+          { extra: "1.72.2", server: $WEAVIATE_133}
         ]
     steps:
       - name: Checkout

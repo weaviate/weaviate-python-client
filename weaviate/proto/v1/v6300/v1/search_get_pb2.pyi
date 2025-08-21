@@ -1,4 +1,3 @@
-from google.protobuf import struct_pb2 as _struct_pb2
 from weaviate.proto.v1.v6300.v1 import base_pb2 as _base_pb2
 from weaviate.proto.v1.v6300.v1 import base_search_pb2 as _base_search_pb2
 from weaviate.proto.v1.v6300.v1 import generative_pb2 as _generative_pb2
@@ -256,32 +255,18 @@ class MetadataResult(_message.Message):
     def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ..., is_consistent: bool = ..., generative: _Optional[str] = ..., generative_present: bool = ..., is_consistent_present: bool = ..., vector_bytes: _Optional[bytes] = ..., id_as_bytes: _Optional[bytes] = ..., rerank_score: _Optional[float] = ..., rerank_score_present: bool = ..., vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...) -> None: ...
 
 class PropertiesResult(_message.Message):
-    __slots__ = ("non_ref_properties", "ref_props", "target_collection", "metadata", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties", "object_properties", "object_array_properties", "non_ref_props", "ref_props_requested")
-    NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("ref_props", "target_collection", "metadata", "non_ref_props", "ref_props_requested")
     REF_PROPS_FIELD_NUMBER: _ClassVar[int]
     TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
-    NUMBER_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    INT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    TEXT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     NON_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
     REF_PROPS_REQUESTED_FIELD_NUMBER: _ClassVar[int]
-    non_ref_properties: _struct_pb2.Struct
     ref_props: _containers.RepeatedCompositeFieldContainer[RefPropertiesResult]
     target_collection: str
     metadata: MetadataResult
-    number_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.NumberArrayProperties]
-    int_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.IntArrayProperties]
-    text_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.TextArrayProperties]
-    boolean_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.BooleanArrayProperties]
-    object_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.ObjectProperties]
-    object_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.ObjectArrayProperties]
     non_ref_props: _properties_pb2.Properties
     ref_props_requested: bool
-    def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., ref_props: _Optional[_Iterable[_Union[RefPropertiesResult, _Mapping]]] = ..., target_collection: _Optional[str] = ..., metadata: _Optional[_Union[MetadataResult, _Mapping]] = ..., number_array_properties: _Optional[_Iterable[_Union[_base_pb2.NumberArrayProperties, _Mapping]]] = ..., int_array_properties: _Optional[_Iterable[_Union[_base_pb2.IntArrayProperties, _Mapping]]] = ..., text_array_properties: _Optional[_Iterable[_Union[_base_pb2.TextArrayProperties, _Mapping]]] = ..., boolean_array_properties: _Optional[_Iterable[_Union[_base_pb2.BooleanArrayProperties, _Mapping]]] = ..., object_properties: _Optional[_Iterable[_Union[_base_pb2.ObjectProperties, _Mapping]]] = ..., object_array_properties: _Optional[_Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]] = ..., non_ref_props: _Optional[_Union[_properties_pb2.Properties, _Mapping]] = ..., ref_props_requested: bool = ...) -> None: ...
+    def __init__(self, ref_props: _Optional[_Iterable[_Union[RefPropertiesResult, _Mapping]]] = ..., target_collection: _Optional[str] = ..., metadata: _Optional[_Union[MetadataResult, _Mapping]] = ..., non_ref_props: _Optional[_Union[_properties_pb2.Properties, _Mapping]] = ..., ref_props_requested: bool = ...) -> None: ...
 
 class RefPropertiesResult(_message.Message):
     __slots__ = ("properties", "prop_name")
