@@ -335,7 +335,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         Raises:
             weaviate.exceptions.WeaviateGRPCQueryError: If the request to the Weaviate server fails.
         """
-        if self.query._connection._weaviate_version.is_lower_than(1, 33, 0):
+        if filters is not None and self.query._connection._weaviate_version.is_lower_than(1, 33, 0):
             raise WeaviateUnsupportedFeatureError(
                 "Iterator with filters", self._connection.server_version, "1.33.0"
             )
