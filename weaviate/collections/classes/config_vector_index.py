@@ -80,7 +80,10 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.quantizer is not None:
-            ret_dict[self.quantizer.quantizer_name()] = self.quantizer._to_dict()
+            if isinstance(self.quantizer, _UncompressedConfigCreate):
+                ret_dict[self.quantizer.quantizer_name()] = True
+            else:
+                ret_dict[self.quantizer.quantizer_name()] = self.quantizer._to_dict()
         if self.distance is not None:
             ret_dict["distance"] = str(self.distance.value)
         if self.multivector is not None and self.multivector.encoding is not None:
