@@ -11,6 +11,7 @@ from typing import (
 )
 from uuid import UUID
 
+from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import METADATA
 from weaviate.collections.classes.internal import (
     Object,
@@ -30,6 +31,7 @@ ITERATOR_CACHE_SIZE = 100
 
 @dataclass
 class _IteratorInputs(Generic[TProperties, TReferences]):
+    filters: Optional[_Filters]
     include_vector: bool
     return_metadata: Optional[METADATA]
     return_properties: Optional[ReturnProperties[TProperties]]
@@ -37,8 +39,11 @@ class _IteratorInputs(Generic[TProperties, TReferences]):
     after: Optional[UUIDorStr]
 
 
-def _parse_after(after: Optional[UUIDorStr]) -> Optional[UUID]:
-    return after if after is None or isinstance(after, UUID) else UUID(after)
+def _parse_after(after: Optional[UUIDorStr]) -> UUIDorStr:
+    if after is None:
+        return ""
+
+    return UUID(after) if not isinstance(after, UUID) else after
 
 
 class _ObjectIterator(
@@ -55,7 +60,7 @@ class _ObjectIterator(
         self.__inputs = inputs
 
         self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
-        self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
+        self.__iter_object_last_uuid: Optional[UUIDorStr] = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
 
     def __iter__(
@@ -74,6 +79,7 @@ class _ObjectIterator(
                 return_metadata=self.__inputs.return_metadata,
                 return_properties=self.__inputs.return_properties,
                 return_references=self.__inputs.return_references,
+                filters=self.__inputs.filters,
             )
             self.__iter_object_cache = res.objects  # type: ignore
             if len(self.__iter_object_cache) == 0:
@@ -101,7 +107,7 @@ class _ObjectAIterator(
         self.__inputs = inputs
 
         self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
-        self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
+        self.__iter_object_last_uuid: UUIDorStr = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
 
     def __aiter__(
@@ -122,6 +128,7 @@ class _ObjectAIterator(
                 return_metadata=self.__inputs.return_metadata,
                 return_properties=self.__inputs.return_properties,
                 return_references=self.__inputs.return_references,
+                filters=self.__inputs.filters,
             )
             self.__iter_object_cache = res.objects  # type: ignore
             if len(self.__iter_object_cache) == 0:

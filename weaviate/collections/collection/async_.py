@@ -7,6 +7,7 @@ from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.collections.backups import _CollectionBackupAsync
 from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -24,6 +25,7 @@ from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
 from weaviate.collections.query import _QueryCollectionAsync
 from weaviate.collections.tenants import _TenantsAsync
 from weaviate.connect.v4 import ConnectionAsync
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import UUID
 
 from .base import _CollectionBase
@@ -197,6 +199,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
@@ -209,6 +212,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
         after: Optional[UUID] = None,
@@ -221,6 +225,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
@@ -233,6 +238,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
@@ -245,6 +251,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         after: Optional[UUID] = None,
@@ -257,6 +264,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
@@ -268,6 +276,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
+        filters: Optional[_Filters] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         after: Optional[UUID] = None,
@@ -301,6 +310,11 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         Raises:
             weaviate.exceptions.WeaviateGRPCQueryError: If the request to the Weaviate server fails.
         """
+        if filters is not None and self.query._connection._weaviate_version.is_lower_than(1, 33, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Iterator with filters", self._connection.server_version, "1.33.0"
+            )
+
         return _ObjectAIterator(
             self.query,
             _IteratorInputs(
@@ -309,6 +323,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
                 return_properties=return_properties,
                 return_references=return_references,
                 after=after,
+                filters=filters,
             ),
             cache_size=cache_size,
         )

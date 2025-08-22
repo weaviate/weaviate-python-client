@@ -131,6 +131,7 @@ class Filters(_message.Message):
         OPERATOR_IS_NULL: _ClassVar[Filters.Operator]
         OPERATOR_CONTAINS_ANY: _ClassVar[Filters.Operator]
         OPERATOR_CONTAINS_ALL: _ClassVar[Filters.Operator]
+        OPERATOR_CONTAINS_NONE: _ClassVar[Filters.Operator]
     OPERATOR_UNSPECIFIED: Filters.Operator
     OPERATOR_EQUAL: Filters.Operator
     OPERATOR_NOT_EQUAL: Filters.Operator
@@ -145,6 +146,7 @@ class Filters(_message.Message):
     OPERATOR_IS_NULL: Filters.Operator
     OPERATOR_CONTAINS_ANY: Filters.Operator
     OPERATOR_CONTAINS_ALL: Filters.Operator
+    OPERATOR_CONTAINS_NONE: Filters.Operator
     OPERATOR_FIELD_NUMBER: _ClassVar[int]
     ON_FIELD_NUMBER: _ClassVar[int]
     FILTERS_FIELD_NUMBER: _ClassVar[int]
