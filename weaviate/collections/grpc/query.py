@@ -478,7 +478,6 @@ class _QueryGRPC(_BaseGRPC):
             limit=limit,
             offset=offset,
             after=str(after) if after is not None else "",
-            after_present=after is not None,
             autocut=autocut,
             properties=self._translate_properties_from_python_to_grpc(
                 return_properties_parsed, return_references_parsed
