@@ -283,7 +283,7 @@ class _RQConfigCreate(_QuantizerConfigCreate):
 class _UncompressedConfigCreate(_QuantizerConfigCreate):
     @staticmethod
     def quantizer_name() -> str:
-        return "uncompressed"
+        return "skipDefaultQuantization"
 
 
 class _PQConfigUpdate(_QuantizerConfigUpdate):
