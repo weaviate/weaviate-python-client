@@ -299,8 +299,8 @@ class _BatchClientWrapper(_BatchWrapper):
         When you exit the context manager, the final batch will be sent automatically.
         """
         # TODO: Change to 1.33.0 when it lands
-        if self._connection._weaviate_version.is_lower_than(1, 32, 1):
+        if self._connection._weaviate_version.is_lower_than(1, 32, 4):
             raise WeaviateUnsupportedFeatureError(
-                "Automatic batching", str(self._connection._weaviate_version), "1.32.1"
+                "Automatic batching", str(self._connection._weaviate_version), "1.32.4"
             )
         return self.__create_batch_and_reset(_BatchClientNew)
