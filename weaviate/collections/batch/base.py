@@ -958,42 +958,114 @@ class _BatchBaseNew:
         assert first.HasField("start"), "Batch stream did not start correctly"
         self.__stream_id = first.start.stream_id
         for message in stream:
-            if message.HasField("error"):
+            if message.HasField("partial_error"):
                 with self.__results_lock:
-                    if message.error.HasField("object"):
+                    if message.partial_error.is_object:
                         err = ErrorObject(
-                            message=message.error.error,
-                            object_=self.__objs_cache.get(message.error.index),  # pyright: ignore[reportArgumentType]
+                            message=message.partial_error.error,
+                            object_=self.__objs_cache.get(message.partial_error.index),  # pyright: ignore[reportArgumentType]
                         )
                         self.__results_for_wrapper.results.objs.add_errors(
-                            {message.error.index: err}
+                            {message.partial_error.index: err}
                         )
                         self.__results_for_wrapper.failed_objects.append(err)
                         logger.warning(
                             {
-                                "error": message.error.error,
+                                "partial_error": message.partial_error.error,
                                 "object": o.uuid
-                                if (o := self.__objs_cache.get(message.error.index)) is not None
+                                if (o := self.__objs_cache.get(message.partial_error.index))
+                                is not None
                                 else None,
                                 "action": "use {client,collection}.batch.failed_objects to access this error",
                             }
                         )
-                    if message.error.HasField("reference"):
+                    if message.partial_error.is_reference:
                         err = ErrorReference(
-                            message=message.error.error,
-                            reference=self.__refs_cache.get(message.error.index),  # pyright: ignore[reportArgumentType]
+                            message=message.partial_error.error,
+                            reference=self.__refs_cache.get(message.partial_error.index),  # pyright: ignore[reportArgumentType]
                         )
                         self.__results_for_wrapper.results.refs.add_errors(
-                            {message.error.index: err}
+                            {message.partial_error.index: err}
                         )
                         self.__results_for_wrapper.failed_references.append(err)
                         logger.warning(
                             {
-                                "error": message.error.error,
+                                "partial_error": message.partial_error.error,
                                 "reference": f"{r._to_internal().from_} -> {r._to_internal().to}"
-                                if (r := self.__refs_cache.get(message.error.index)) is not None
+                                if (r := self.__refs_cache.get(message.partial_error.index))
+                                is not None
                                 else None,
                                 "action": "use {client,collection}.batch.failed_references to access this error",
+                            }
+                        )
+            elif message.HasField("full_error"):
+                if message.full_error.retriable:
+                    logger.warning(
+                        {
+                            "retriable_error": message.full_error.error,
+                            "message": f"{len(message.full_error.indices)} objects/references will be retried",
+                        }
+                    )
+                    if message.full_error.is_object:
+                        self.__batch_objects.prepend(
+                            [
+                                o._to_internal()
+                                for idx in message.full_error.indices
+                                if (o := self.__objs_cache.get(idx)) is not None
+                            ]
+                        )
+                    if message.full_error.is_reference:
+                        self.__batch_references.prepend(
+                            [
+                                r._to_internal()
+                                for idx in message.full_error.indices
+                                if (r := self.__refs_cache.get(idx)) is not None
+                            ]
+                        )
+                else:
+                    if message.full_error.is_object:
+                        uuids: list[str] = []
+                        with self.__results_lock:
+                            obj_errs: dict[int, ErrorObject] = {}
+                            for idx in message.full_error.indices:
+                                if (obj := self.__objs_cache.get(idx)) is not None:
+                                    if obj.uuid is not None:
+                                        uuids.append(str(obj.uuid))
+                                    err = ErrorObject(
+                                        message=message.full_error.error,
+                                        object_=obj,
+                                    )
+                                    self.__results_for_wrapper.failed_objects.append(err)
+                                    obj_errs[idx] = err
+                            self.__results_for_wrapper.results.objs.add_errors(obj_errs)
+                        logger.warning(
+                            {
+                                "full_error": message.full_error.error,
+                                "objects": uuids,
+                                "action": "use {client,collection}.batch.failed_objects to access these error",
+                            }
+                        )
+                    if message.full_error.is_reference:
+                        refs: list[str] = []
+                        with self.__results_lock:
+                            ref_errs: dict[int, ErrorReference] = {}
+                            for idx in message.full_error.indices:
+                                if (ref := self.__refs_cache.get(idx)) is not None:
+                                    refs.append(
+                                        f"{ref._to_internal().from_} -> {ref._to_internal().to}"
+                                    )
+                                    err = ErrorReference(
+                                        message=message.full_error.error,
+                                        reference=ref,
+                                    )
+                                    self.__results_for_wrapper.failed_references.append(err)
+                                    ref_errs[idx] = err
+                            self.__results_for_wrapper.results.refs.add_errors(ref_errs)
+                        logger.warning(
+                            {
+                                "full_error": message.full_error.error,
+                                "references": refs,
+                                "action": "use {client,collection}.batch.failed_objects to access these error",
                             }
                         )
             elif message.HasField("stop"):

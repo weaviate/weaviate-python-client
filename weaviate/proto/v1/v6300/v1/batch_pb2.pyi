@@ -82,23 +82,25 @@ class BatchShuttingDown(_message.Message):
     def __init__(self, stream_id: _Optional[str] = ...) -> None: ...
 
 class BatchStreamMessage(_message.Message):
-    __slots__ = ("start", "error", "stop", "shutdown", "shutting_down")
+    __slots__ = ("start", "partial_error", "full_error", "stop", "shutdown", "shutting_down")
     class BatchStop(_message.Message):
         __slots__ = ("stream_id",)
         STREAM_ID_FIELD_NUMBER: _ClassVar[int]
         stream_id: str
         def __init__(self, stream_id: _Optional[str] = ...) -> None: ...
     START_FIELD_NUMBER: _ClassVar[int]
-    ERROR_FIELD_NUMBER: _ClassVar[int]
+    PARTIAL_ERROR_FIELD_NUMBER: _ClassVar[int]
+    FULL_ERROR_FIELD_NUMBER: _ClassVar[int]
     STOP_FIELD_NUMBER: _ClassVar[int]
     SHUTDOWN_FIELD_NUMBER: _ClassVar[int]
     SHUTTING_DOWN_FIELD_NUMBER: _ClassVar[int]
     start: BatchStart
-    error: BatchError
+    partial_error: BatchPartialError
+    full_error: BatchFullError
     stop: BatchStreamMessage.BatchStop
     shutdown: BatchShutdown
     shutting_down: BatchShuttingDown
-    def __init__(self, start: _Optional[_Union[BatchStart, _Mapping]] = ..., error: _Optional[_Union[BatchError, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamMessage.BatchStop, _Mapping]] = ..., shutdown: _Optional[_Union[BatchShutdown, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchShuttingDown, _Mapping]] = ...) -> None: ...
+    def __init__(self, start: _Optional[_Union[BatchStart, _Mapping]] = ..., partial_error: _Optional[_Union[BatchPartialError, _Mapping]] = ..., full_error: _Optional[_Union[BatchFullError, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamMessage.BatchStop, _Mapping]] = ..., shutdown: _Optional[_Union[BatchShutdown, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchShuttingDown, _Mapping]] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")
@@ -173,17 +175,31 @@ class BatchReference(_message.Message):
     tenant: str
     def __init__(self, name: _Optional[str] = ..., from_collection: _Optional[str] = ..., from_uuid: _Optional[str] = ..., to_collection: _Optional[str] = ..., to_uuid: _Optional[str] = ..., tenant: _Optional[str] = ...) -> None: ...
 
-class BatchError(_message.Message):
-    __slots__ = ("error", "index", "object", "reference")
+class BatchPartialError(_message.Message):
+    __slots__ = ("error", "index", "is_object", "is_reference")
     ERROR_FIELD_NUMBER: _ClassVar[int]
     INDEX_FIELD_NUMBER: _ClassVar[int]
-    OBJECT_FIELD_NUMBER: _ClassVar[int]
-    REFERENCE_FIELD_NUMBER: _ClassVar[int]
+    IS_OBJECT_FIELD_NUMBER: _ClassVar[int]
+    IS_REFERENCE_FIELD_NUMBER: _ClassVar[int]
     error: str
     index: int
-    object: BatchObject
-    reference: BatchReference
-    def __init__(self, error: _Optional[str] = ..., index: _Optional[int] = ..., object: _Optional[_Union[BatchObject, _Mapping]] = ..., reference: _Optional[_Union[BatchReference, _Mapping]] = ...) -> None: ...
+    is_object: bool
+    is_reference: bool
+    def __init__(self, error: _Optional[str] = ..., index: _Optional[int] = ..., is_object: bool = ..., is_reference: bool = ...) -> None: ...
+
+class BatchFullError(_message.Message):
+    __slots__ = ("error", "indices", "retriable", "is_object", "is_reference")
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    INDICES_FIELD_NUMBER: _ClassVar[int]
+    RETRIABLE_FIELD_NUMBER: _ClassVar[int]
+    IS_OBJECT_FIELD_NUMBER: _ClassVar[int]
+    IS_REFERENCE_FIELD_NUMBER: _ClassVar[int]
+    error: str
+    indices: _containers.RepeatedScalarFieldContainer[int]
+    retriable: bool
+    is_object: bool
+    is_reference: bool
+    def __init__(self, error: _Optional[str] = ..., indices: _Optional[_Iterable[int]] = ..., retriable: bool = ..., is_object: bool = ..., is_reference: bool = ...) -> None: ...
 
 class BatchObjectsReply(_message.Message):
     __slots__ = ("took", "errors")
