@@ -115,6 +115,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
+    TEXT2VEC_MODEL2VEC = "text2vec-model2vec"
     TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
@@ -174,6 +175,14 @@ class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
         default=Vectorizers.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
     )
     vectorizeClassName: bool
+
+
+class _Text2VecModel2VecConfig(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2VEC_MODEL2VEC, frozen=True, exclude=True
+    )
+    vectorizeClassName: bool
+    inferenceUrl: Optional[str]
 
 
 class _VectorizerCustomConfig(_VectorizerConfigCreate):
@@ -320,6 +329,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     )
     projectId: Optional[str]
     apiEndpoint: Optional[str]
+    dimensions: Optional[int]
     modelId: Optional[str]
     vectorizeClassName: bool
     titleProperty: Optional[str]
@@ -334,6 +344,7 @@ class _Text2VecTransformersConfig(_VectorizerConfigCreate):
     inferenceUrl: Optional[str]
     passageInferenceUrl: Optional[str]
     queryInferenceUrl: Optional[str]
+    dimensions: Optional[int] = None
 
 
 class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
@@ -1103,6 +1114,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Text2VecGoogleConfig(
             projectId=project_id,
             apiEndpoint=api_endpoint,
+            dimensions=None,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
@@ -1130,6 +1142,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Text2VecGoogleConfig(
             projectId=None,
             apiEndpoint="generativelanguage.googleapis.com",
+            dimensions=None,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
@@ -1154,6 +1167,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1161,6 +1175,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Text2VecGoogleConfig(
             projectId=project_id,
             apiEndpoint=api_endpoint,
+            dimensions=None,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
@@ -1227,7 +1242,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        dimensions: Optional[int] = None,
         model_id: Optional[str] = None,
         video_interval_seconds: Optional[int] = None,
         vectorize_collection_name: bool = True,
@@ -1243,7 +1257,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
-            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
@@ -1257,7 +1270,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             videoFields=_map_multi2vec_fields(video_fields),
-            dimensions=dimensions,
+            dimensions=None,
             modelId=model_id,
             videoIntervalSeconds=video_interval_seconds,
         )
@@ -1265,6 +1278,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def text2vec_transformers(
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
+        dimensions: Optional[int] = None,
         vectorize_collection_name: bool = True,
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
@@ -1277,6 +1291,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             pooling_strategy: The pooling strategy to use. Defaults to `masked_mean`.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             inference_url: The inference url to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
             passage_inference_url: The inference url to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
@@ -1287,6 +1302,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         """
         return _Text2VecTransformersConfig(
             poolingStrategy=pooling_strategy,
+            dimensions=dimensions,
             vectorizeClassName=vectorize_collection_name,
             inferenceUrl=inference_url,
             passageInferenceUrl=passage_inference_url,
@@ -1424,4 +1440,24 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             baseURL=base_url,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
+    def text2vec_model2vec(
+        *,
+        inference_url: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecModel2VecConfigCreate` object for use when vectorizing using the `text2vec-model2vec` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/model2vec/embeddings)
+        for detailed usage.
+
+        Args:
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+        """
+        return _Text2VecModel2VecConfig(
+            vectorizeClassName=vectorize_collection_name,
+            inferenceUrl=inference_url,
         )

@@ -85,9 +85,26 @@ def test_aggregation_top_occurence_with_limit(collection_factory: CollectionFact
     collection.data.insert({"text": "one"})
     collection.data.insert({"text": "one"})
     collection.data.insert({"text": "two"})
+
+    # Test deprecated min_occurrences parameter triggers warning
+    with pytest.warns(DeprecationWarning) as recwarn:
+        res_old = collection.aggregate.over_all(
+            return_metrics=[Metrics("text").text(min_occurrences=1)],
+        )
+        assert len(recwarn) == 1
+        assert "Dep028" in str(recwarn[0].message)
+        assert "min_occurrences" in str(recwarn[0].message)
+        assert "limit" in str(recwarn[0].message)
+
+    # Test new limit parameter
     res = collection.aggregate.over_all(
-        return_metrics=[Metrics("text").text(min_occurrences=1)],
+        return_metrics=[Metrics("text").text(limit=1)],
     )
+
+    # Verify both approaches produce the same result
+    assert res.properties["text"] == res_old.properties["text"]
+
+    # Test acutal output
     assert isinstance(res.properties["text"], AggregateText)
     assert len(res.properties["text"].top_occurrences) == 1
     assert res.properties["text"].top_occurrences[0].count == 2

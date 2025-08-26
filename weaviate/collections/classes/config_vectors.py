@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import AnyHttpUrl, Field
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
@@ -58,6 +59,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecHuggingFaceConfig,
     _Text2VecJinaConfig,
     _Text2VecMistralConfig,
+    _Text2VecModel2VecConfig,
     _Text2VecNvidiaConfig,
     _Text2VecOllamaConfig,
     _Text2VecOpenAIConfig,
@@ -420,6 +422,9 @@ class _Vectors:
         )
 
     @staticmethod
+    @typing_deprecated(
+        "The contextionary model is old and not recommended for use. If you are looking for a local, lightweight model try the new text2vec-model2vec module instead."
+    )
     def text2vec_contextionary(
         *,
         name: Optional[str] = None,
@@ -445,6 +450,39 @@ class _Vectors:
             source_properties=source_properties,
             vectorizer=_Text2VecContextionaryConfig(
                 vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
+    def text2vec_model2vec(
+        *,
+        name: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        inference_url: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `text2vec_model2vec` module.
+
+        See the [documentation](https://docs.weaviate.io/weaviate/model-providers/model2vec)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            inference_url: The inferenceUrl to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecModel2VecConfig(
+                vectorizeClassName=vectorize_collection_name,
+                inferenceUrl=inference_url,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -1057,6 +1095,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         api_endpoint: Optional[str] = None,
+        dimensions: Optional[int] = None,
         model: Optional[str] = None,
         project_id: str,
         title_property: Optional[str] = None,
@@ -1072,12 +1111,13 @@ class _Vectors:
         Args:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
-            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             project_id: The project ID to use, REQUIRED.
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
-            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
@@ -1089,6 +1129,7 @@ class _Vectors:
             vectorizer=_Text2VecGoogleConfig(
                 projectId=project_id,
                 apiEndpoint=api_endpoint,
+                dimensions=dimensions,
                 modelId=model,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
@@ -1101,6 +1142,7 @@ class _Vectors:
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
+        dimensions: Optional[int] = None,
         model: Optional[str] = None,
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
@@ -1115,6 +1157,7 @@ class _Vectors:
         Args:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            dimenions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
@@ -1130,6 +1173,7 @@ class _Vectors:
             vectorizer=_Text2VecGoogleConfig(
                 projectId=None,
                 apiEndpoint="generativelanguage.googleapis.com",
+                dimensions=dimensions,
                 modelId=model,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
@@ -1141,6 +1185,7 @@ class _Vectors:
     def text2vec_transformers(
         *,
         name: Optional[str] = None,
+        dimensions: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
@@ -1157,6 +1202,7 @@ class _Vectors:
 
         Args:
             name: The name of the vector.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             inference_url: The inferenceUrl to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
             passage_inference_url: The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
@@ -1171,6 +1217,7 @@ class _Vectors:
             source_properties=source_properties,
             vectorizer=_Text2VecTransformersConfig(
                 poolingStrategy=pooling_strategy,
+                dimensions=dimensions,
                 vectorizeClassName=vectorize_collection_name,
                 inferenceUrl=inference_url,
                 passageInferenceUrl=passage_inference_url,

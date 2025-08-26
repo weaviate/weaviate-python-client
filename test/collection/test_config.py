@@ -2159,6 +2159,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 name="test",
                 project_id="project",
                 source_properties=["prop"],
+                dimensions=768,
             )
         ],
         {
@@ -2168,6 +2169,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
+                        "dimensions": 768,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2179,6 +2181,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             Configure.Vectors.text2vec_google_aistudio(
                 name="test",
                 source_properties=["prop"],
+                dimensions=768,
             )
         ],
         {
@@ -2188,6 +2191,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
+                        "dimensions": 768,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2203,6 +2207,20 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "poolingStrategy": "masked_mean",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.Vectors.text2vec_model2vec(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-model2vec": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2312,6 +2330,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 text_fields=["text"],
                 project_id="project",
                 location="us-central1",
+                dimensions=768,
             )
         ],
         {
@@ -2322,6 +2341,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "textFields": ["text"],
                         "projectId": "project",
                         "location": "us-central1",
+                        "dimensions": 768,
                     }
                 },
                 "vectorIndexType": "hnsw",

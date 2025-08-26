@@ -305,6 +305,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 class _RQConfigUpdate(_QuantizerConfigUpdate):
     enabled: Optional[bool]
     rescoreLimit: Optional[int]
+    bits: Optional[int]
 
     @staticmethod
     def quantizer_name() -> str:

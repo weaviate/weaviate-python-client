@@ -1,6 +1,31 @@
 Changelog
 =========
 
+Version 4.16.8
+--------------
+This patch version includes:
+    - Further attempted fixes for ``protobuf`` compatability issues
+    - Introduction of the ``backups.list()`` method
+
+Version 4.16.7
+--------------
+This patch version includes:
+    - Fixes compatability issues between the built gRPC stubs and differing protobuf versions depending on the version of ``grpcio`` used to build the stubs
+    - Add ``text2vec-model2vec`` module to ``Configure.NamedVectors``
+    - Deprecated ``min_occurrences`` in ``Metrics.text`` in favour of ``limit``
+
+Version 4.16.6
+--------------
+This patch version includes:
+    - Add ``dimensions`` property to ``text2vec-transformers`` vectorizers in ``Configure.Vectors``
+    - Add ``text2vec-model2vec`` vectorizer in ``Configure.Vectors``
+    - Deprecate ``text2vec-contextionary`` vectorizer
+
+Version 4.16.5
+--------------
+This patch version includes:
+    - Add ``dimensions`` property to Google vectorizers in ``Configure.Vectors``
+
 Version 4.16.4
 --------------
 This patch version includes:

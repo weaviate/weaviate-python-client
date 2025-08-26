@@ -6,8 +6,6 @@ from typing import Generator, Mapping
 import grpc
 import pytest
 from grpc import ServicerContext
-from grpc_health.v1.health_pb2 import HealthCheckRequest, HealthCheckResponse
-from grpc_health.v1.health_pb2_grpc import HealthServicer, add_HealthServicer_to_server
 from pytest_httpserver import HeaderValueMatcher, HTTPServer
 from werkzeug.wrappers import Request, Response
 
@@ -17,6 +15,8 @@ from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import (
     batch_delete_pb2,
     batch_pb2,
+    health_pb2,
+    health_pb2_grpc,
     properties_pb2,
     search_get_pb2,
     tenants_pb2,
@@ -55,7 +55,7 @@ def ready_mock(httpserver: HTTPServer):
 
 @pytest.fixture(scope="function")
 def weaviate_mock(ready_mock: HTTPServer):
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.33"})
     ready_mock.expect_request("/v1/nodes").respond_with_json({"nodes": [{"gitHash": "ABC"}]})
 
     yield ready_mock
@@ -63,7 +63,7 @@ def weaviate_mock(ready_mock: HTTPServer):
 
 @pytest.fixture(scope="function")
 def weaviate_no_auth_mock(weaviate_mock: HTTPServer):
-    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
+    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.33"})
     weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
         Response(json.dumps({}), status=404)
     )
@@ -111,14 +111,14 @@ def start_grpc_server() -> Generator[grpc.Server, None, None]:
     server: grpc.Server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
     # Implement the health check service
-    class MockHealthServicer(HealthServicer):
+    class MockHealthServicer(health_pb2_grpc.HealthServicer):
         def Check(
-            self, request: HealthCheckRequest, context: ServicerContext
-        ) -> HealthCheckResponse:
-            return HealthCheckResponse(status=HealthCheckResponse.SERVING)
+            self, request: health_pb2.HealthCheckRequest, context: ServicerContext
+        ) -> health_pb2.HealthCheckResponse:
+            return health_pb2.HealthCheckResponse(status=health_pb2.HealthCheckResponse.SERVING)
 
     # Add the health check service to the server
-    add_HealthServicer_to_server(MockHealthServicer(), server)
+    health_pb2_grpc.add_HealthServicer_to_server(MockHealthServicer(), server)
 
     # Listen on a specific port
     server.add_insecure_port(f"[::]:{MOCK_PORT_GRPC}")

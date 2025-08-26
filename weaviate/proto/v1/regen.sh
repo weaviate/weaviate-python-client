@@ -2,7 +2,7 @@
 
 set -e  # Exit on any error
 
-echo "This script compiles protos for Protobuf 4, 5.1, 5.2, and 6 versions."
+echo "This script compiles protos for Protobuf 4, 5, and 6 versions."
 
 # Get script directory and navigate to project root
 SCRIPT_DIR="${0%/*}"
@@ -24,24 +24,17 @@ source "$PROTO_VENV/bin/activate"
 pip install --upgrade pip
 
 compile_protos() {
-    local version=$1
-    local output_dir="$PROJECT_ROOT/$version"
+    local pb_version=${1}
+    local gt_version=${2}
+    local version=v${1//./}
 
-    echo "Installing protobuf $version and grpcio-tools..."
-    if [ "$version" = "v4" ]; then
-        pip install "grpcio-tools==1.59.5"
-    elif [ "$version" = "v51" ]; then
-        pip install "grpcio-tools==1.60.0"
-    elif [ "$version" = "v52" ]; then
-        pip install "grpcio-tools==1.66.2"
-    elif [ "$version" = "v6" ]; then
-        pip install "grpcio-tools==1.70.0"
-    else
-        echo "Unsupported version: $version"
-        exit 1
-    fi
+    local output_dir="$PROJECT_ROOT/${version}"
 
-    echo "Compiling protos for Protobuf $version... in $output_dir"
+    echo "Installing protobuf $pb_version and grpcio-tools..."
+    pip install "grpcio-tools==$gt_version"
+    pip install "protobuf==$pb_version"
+
+    echo "Compiling protos for Protobuf $pb_version... in $output_dir"
 
     mkdir -p "$output_dir"
 
@@ -67,10 +60,9 @@ compile_protos() {
     fi
 }
 
-
-for version in "v4" "v51" "v52" "v6"; do
-   compile_protos "$version"
-done
+compile_protos "4.21.6" "1.59.5"
+compile_protos "5.26.1" "1.63.0"
+compile_protos "6.30.0" "1.72.1" # .0 was yanked
 
 deactivate
 rm -rf "$PROTO_VENV"
