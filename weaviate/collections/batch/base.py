@@ -770,7 +770,7 @@ class _BgThreads:
 
     def is_alive(self) -> bool:
         """Check if the background threads are still alive."""
-        return self.send.is_alive() or self.stream.is_alive()
+        return self.send.is_alive() and self.stream.is_alive()
 
 
 class _BatchBaseNew:
@@ -789,13 +789,12 @@ class _BatchBaseNew:
         self.__batch_references = references or ReferencesBatchRequest()
 
         self.__connection = connection
-        self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
+        self.__consistency_level: ConsistencyLevel = ConsistencyLevel.QUORUM
         self.__recommended_num_objects = 1000
 
         self.__batch_grpc = _BatchGRPC(
             connection._weaviate_version, self.__consistency_level, connection._grpc_max_msg_size
         )
-        self.__batch_rest = _BatchREST(self.__consistency_level)
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
         self.__uuid_lookup: Set[str] = set()
@@ -876,7 +875,8 @@ class _BatchBaseNew:
         # self.__batch_stream will set the shutdown event when it receives
         # the stop message from the server
         while self.__bg_thread.is_alive():
-            time.sleep(0.01)
+            logger.warning("Waiting for background thread to finish...")
+            time.sleep(1)
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -969,6 +969,15 @@ class _BatchBaseNew:
                             {message.error.index: err}
                         )
                         self.__results_for_wrapper.failed_objects.append(err)
+                        logger.warning(
+                            {
+                                "error": message.error.error,
+                                "object": o.uuid
+                                if (o := self.__objs_cache.get(message.error.index)) is not None
+                                else None,
+                                "action": "use {client,collection}.batch.failed_objects to access this error",
+                            }
+                        )
                     if message.error.HasField("reference"):
                         err = ErrorReference(
                             message=message.error.error,
@@ -978,21 +987,31 @@ class _BatchBaseNew:
                             {message.error.index: err}
                         )
                         self.__results_for_wrapper.failed_references.append(err)
+                        logger.warning(
+                            {
+                                "error": message.error.error,
+                                "reference": f"{r._to_internal().from_} -> {r._to_internal().to}"
+                                if (r := self.__refs_cache.get(message.error.index)) is not None
+                                else None,
+                                "action": "use {client,collection}.batch.failed_references to access this error",
+                            }
+                        )
             elif message.HasField("stop"):
                 self.__shut_background_thread_down.set()
                 return
             elif message.HasField("shutting_down"):
                 self.__is_shutting_down.set()
+                self.__stream_id = None
             elif message.HasField("shutdown"):
-                self.__is_shutting_down.clear()
                 self.__is_shutdown.set()
+                self.__is_shutting_down.clear()
                 self.__reconnect()
                 break
 
         # restart the stream if we were shutdown by the node we were connected to
         if self.__is_shutdown.is_set():
-            self.__is_shutdown.clear()
             self.__recommended_num_objects = self.__max_batch_size
+            self.__is_shutdown.clear()
             return self.__batch_stream()
 
     def __reconnect(self, retry: int = 0) -> None:
@@ -1000,6 +1019,9 @@ class _BatchBaseNew:
             logger.warning(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
             self.__connection.close("sync")
             self.__connection.connect(force=True)
+            # give time for the server to settle-down after the reconnection due to scale-up
+            logger.warning("Sleeping for 60s to give server time to settle down")
+            time.sleep(60)
         except (WeaviateStartUpError, WeaviateGRPCUnavailableError) as e:
             if retry < 5:
                 time.sleep(2**retry)
@@ -1023,7 +1045,6 @@ class _BatchBaseNew:
             try:
                 self.__batch_stream()
             except Exception as e:
-                print(e)
                 logger.error(e)
                 self.__bg_thread_exception = e
 
@@ -1077,15 +1098,22 @@ class _BatchBaseNew:
                 with self.__uuid_lookup_lock:
                     self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
             except Exception as e:
-                if "grpc shutdown in progress" in str(e):
+                if (
+                    ("grpc shutdown in progress" in str(e))
+                    or (f"write queue for stream {self.__stream_id} not found" in str(e))
+                    or self.__is_shutting_down.is_set()
+                    or self.__is_shutdown.is_set()
+                ):
+                    logger.warning("Connected node was shutdown, re-adding objects to the queue")
                     self.__batch_objects.prepend(objs)
                     self.__batch_references.prepend(refs)
-                logger.error(
-                    {
-                        "message": f"Failed to send all objects in a batch of {len(objs)}",
-                        "error": repr(e),
-                    }
-                )
+                else:
+                    logger.error(
+                        {
+                            "message": f"Failed to send all objects in a batch of {len(objs)}",
+                            "error": repr(e),
+                        }
+                    )
 
         with self.__active_requests_lock:
             self.__active_requests -= 1
