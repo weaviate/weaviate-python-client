@@ -270,7 +270,7 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
 
     assert export.generative_config is not None
     assert export.generative_config.generative == GenerativeSearches.COHERE
-    assert export.generative_config.model["model"] == "something"
+    assert export.generative_config.model["model"] == "command-r-plus"
     assert export.generative_config.model["kProperty"] == 10
 
     client.collections.delete([name1, name2])
@@ -368,7 +368,10 @@ def test_client_cluster_without_lazy_shard_loading(
         assert nodes[0].shards[0].collection == collection.name
         assert nodes[0].shards[0].object_count == 0
         if collection._connection._weaviate_version.is_lower_than(1, 33, 0):
-            assert nodes[0].shards[0].vector_indexing_status == ("READY" or "LOADING")
+            assert (
+                nodes[0].shards[0].vector_indexing_status == "READY"
+                or nodes[0].shards[0].vector_indexing_status == "LOADING"
+            )
         else:
             assert nodes[0].shards[0].vector_indexing_status == "LAZY_LOADING"
         assert nodes[0].shards[0].vector_queue_length == 0
