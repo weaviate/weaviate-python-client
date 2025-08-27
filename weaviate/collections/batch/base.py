@@ -114,6 +114,17 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
         self._lock.release()
         return ret
 
+    def head(self) -> Optional[_BatchReference]:
+        """Get the first item from the BatchRequest queue without removing it.
+
+        Returns:
+            The first item from the BatchRequest or None if the queue is empty.
+        """
+        self._lock.acquire()
+        item = self._items[0] if len(self._items) > 0 else None
+        self._lock.release()
+        return item
+
 
 class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
     """Collect objects for one batch request to weaviate."""
@@ -134,6 +145,17 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
 
         self._lock.release()
         return ret
+
+    def head(self) -> Optional[_BatchObject]:
+        """Get the first item from the BatchRequest queue without removing it.
+
+        Returns:
+            The first item from the BatchRequest or None if the queue is empty.
+        """
+        self._lock.acquire()
+        item = self._items[0] if len(self._items) > 0 else None
+        self._lock.release()
+        return item
 
 
 @dataclass
@@ -201,6 +223,7 @@ class _BatchBase:
 
         self.__executor = executor
         self.__objs_count = 0
+        self.__refs_count = 0
         self.__objs_logs_count = 0
         self.__refs_logs_count = 0
 
@@ -746,7 +769,9 @@ class _BatchBase:
                     ),
                     to_object_uuid=uid,
                     tenant=tenant,
+                    index=self.__refs_count,
                 )
+                self.__refs_count += 1
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))
             self.__batch_references.add(batch_reference._to_internal())
@@ -791,6 +816,7 @@ class _BatchBaseNew:
         self.__connection = connection
         self.__consistency_level: ConsistencyLevel = ConsistencyLevel.QUORUM
         self.__recommended_num_objects = 1000
+        self.__recommended_backoff = 0
 
         self.__batch_grpc = _BatchGRPC(
             connection._weaviate_version, self.__consistency_level, connection._grpc_max_msg_size
@@ -938,6 +964,12 @@ class _BatchBaseNew:
                     # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
                     time.sleep(refresh_time)
 
+                # if the server has told us to backoff then sleep for that amount of time and reset the backoff value
+                # the next return from the server will update the backoff value if necessary, e.g. if the internal queue is overloaded
+                if self.__recommended_backoff > 0:
+                    time.sleep(self.__recommended_backoff)
+                    self.__recommended_backoff = 0
+
                 # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                 ctx = contextvars.copy_context()
                 self.__executor.submit(
@@ -953,119 +985,61 @@ class _BatchBaseNew:
     def __batch_stream(self) -> None:
         stream = self.__batch_grpc.stream(
             connection=self.__connection,
+            object_index=h.index if (h := self.__batch_objects.head()) is not None else 0,
+            reference_index=h.index if (h := self.__batch_references.head()) is not None else 0,
         )
         first = stream.__next__()
         assert first.HasField("start"), "Batch stream did not start correctly"
         self.__stream_id = first.start.stream_id
         for message in stream:
-            if message.HasField("partial_error"):
+            if message.HasField("error"):
                 with self.__results_lock:
-                    if message.partial_error.is_object:
+                    if message.error.is_object:
+                        obj = self.__objs_cache.get(message.error.index)
+                        if obj is None:
+                            logger.error(f"Object not found in cache: {message.error.index}")
+                            continue
+                        if message.error.is_retriable:
+                            self.__batch_objects.add(obj._to_internal())
+                            continue
                         err = ErrorObject(
-                            message=message.partial_error.error,
-                            object_=self.__objs_cache.get(message.partial_error.index),  # pyright: ignore[reportArgumentType]
+                            message=message.error.error,
+                            object_=obj,
                         )
                         self.__results_for_wrapper.results.objs.add_errors(
-                            {message.partial_error.index: err}
+                            {message.error.index: err}
                         )
                         self.__results_for_wrapper.failed_objects.append(err)
                         logger.warning(
                             {
-                                "partial_error": message.partial_error.error,
-                                "object": o.uuid
-                                if (o := self.__objs_cache.get(message.partial_error.index))
-                                is not None
-                                else None,
+                                "error": message.error.error,
+                                "object": obj.uuid,
                                 "action": "use {client,collection}.batch.failed_objects to access this error",
                             }
                         )
-                    if message.partial_error.is_reference:
+                    if message.error.is_reference:
+                        ref = self.__refs_cache.get(message.error.index)
+                        if ref is None:
+                            logger.error(f"Reference not found in cache: {message.error.index}")
+                            continue
+                        if message.error.is_retriable:
+                            self.__batch_references.add(ref._to_internal())
+                            continue
                         err = ErrorReference(
-                            message=message.partial_error.error,
-                            reference=self.__refs_cache.get(message.partial_error.index),  # pyright: ignore[reportArgumentType]
+                            message=message.error.error,
+                            reference=ref,
                         )
                         self.__results_for_wrapper.results.refs.add_errors(
-                            {message.partial_error.index: err}
+                            {message.error.index: err}
                         )
                         self.__results_for_wrapper.failed_references.append(err)
                         logger.warning(
                             {
-                                "partial_error": message.partial_error.error,
+                                "error": message.error.error,
                                 "reference": f"{r._to_internal().from_} -> {r._to_internal().to}"
-                                if (r := self.__refs_cache.get(message.partial_error.index))
-                                is not None
+                                if (r := self.__refs_cache.get(message.error.index)) is not None
                                 else None,
                                 "action": "use {client,collection}.batch.failed_references to access this error",
-                            }
-                        )
-            elif message.HasField("full_error"):
-                if message.full_error.retriable:
-                    logger.warning(
-                        {
-                            "retriable_error": message.full_error.error,
-                            "message": f"{len(message.full_error.indices)} objects/references will be retried",
-                        }
-                    )
-                    if message.full_error.is_object:
-                        self.__batch_objects.prepend(
-                            [
-                                o._to_internal()
-                                for idx in message.full_error.indices
-                                if (o := self.__objs_cache.get(idx)) is not None
-                            ]
-                        )
-                    if message.full_error.is_reference:
-                        self.__batch_references.prepend(
-                            [
-                                r._to_internal()
-                                for idx in message.full_error.indices
-                                if (r := self.__refs_cache.get(idx)) is not None
-                            ]
-                        )
-                else:
-                    if message.full_error.is_object:
-                        uuids: list[str] = []
-                        with self.__results_lock:
-                            obj_errs: dict[int, ErrorObject] = {}
-                            for idx in message.full_error.indices:
-                                if (obj := self.__objs_cache.get(idx)) is not None:
-                                    if obj.uuid is not None:
-                                        uuids.append(str(obj.uuid))
-                                    err = ErrorObject(
-                                        message=message.full_error.error,
-                                        object_=obj,
-                                    )
-                                    self.__results_for_wrapper.failed_objects.append(err)
-                                    obj_errs[idx] = err
-                            self.__results_for_wrapper.results.objs.add_errors(obj_errs)
-                        logger.warning(
-                            {
-                                "full_error": message.full_error.error,
-                                "objects": uuids,
-                                "action": "use {client,collection}.batch.failed_objects to access these error",
-                            }
-                        )
-                    if message.full_error.is_reference:
-                        refs: list[str] = []
-                        with self.__results_lock:
-                            ref_errs: dict[int, ErrorReference] = {}
-                            for idx in message.full_error.indices:
-                                if (ref := self.__refs_cache.get(idx)) is not None:
-                                    refs.append(
-                                        f"{ref._to_internal().from_} -> {ref._to_internal().to}"
-                                    )
-                                    err = ErrorReference(
-                                        message=message.full_error.error,
-                                        reference=ref,
-                                    )
-                                    self.__results_for_wrapper.failed_references.append(err)
-                                    ref_errs[idx] = err
-                            self.__results_for_wrapper.results.refs.add_errors(ref_errs)
-                        logger.warning(
-                            {
-                                "full_error": message.full_error.error,
-                                "references": refs,
-                                "action": "use {client,collection}.batch.failed_objects to access these error",
                             }
                         )
             elif message.HasField("stop"):
@@ -1091,9 +1065,6 @@ class _BatchBaseNew:
             logger.warning(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
             self.__connection.close("sync")
             self.__connection.connect(force=True)
-            # give time for the server to settle-down after the reconnection due to scale-up
-            logger.warning("Sleeping for 60s to give server time to settle down")
-            time.sleep(60)
         except (WeaviateStartUpError, WeaviateGRPCUnavailableError) as e:
             if retry < 5:
                 time.sleep(2**retry)
@@ -1148,22 +1119,27 @@ class _BatchBaseNew:
             _ = time.time()
             try:
                 assert self.__stream_id is not None, "Batch stream was not started"
-                new_rec = self.__batch_grpc.send(
+                res = self.__batch_grpc.send(
                     connection=self.__connection,
                     objects=objs,
                     references=refs,
                     stream_id=self.__stream_id,
                     timeout=DEFAULT_REQUEST_TIMEOUT,
                 )
-                if new_rec < self.__recommended_num_objects:
+                if res.next < self.__recommended_num_objects:
                     logger.warning(
-                        f"Scaling down sending: {self.__recommended_num_objects} -> {new_rec}"
+                        f"Scaling down sending: {self.__recommended_num_objects} -> {res.next}"
                     )
-                if new_rec > self.__recommended_num_objects:
+                if res.next > self.__recommended_num_objects:
                     logger.warning(
-                        f"Scaling up sending: {self.__recommended_num_objects} -> {new_rec}"
+                        f"Scaling up sending: {self.__recommended_num_objects} -> {res.next}"
                     )
-                self.__recommended_num_objects = new_rec
+                if res.backoff > 0:
+                    logger.warning(
+                        f"Backing off from sending the next request by {res.backoff} seconds"
+                    )
+                self.__recommended_num_objects = res.next
+                self.__recommended_backoff = res.backoff
                 self.__results_for_wrapper.results.objs.add_uuids(
                     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
                 )
@@ -1272,6 +1248,7 @@ class _BatchBaseNew:
                     ),
                     to_object_uuid=uid,
                     tenant=tenant,
+                    index=self.__refs_count,
                 )
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))

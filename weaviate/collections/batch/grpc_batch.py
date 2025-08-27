@@ -216,7 +216,7 @@ class _BatchGRPC(_BaseGRPC):
         references: List[_BatchReference],
         stream_id: str,
         timeout: Union[int, float],
-    ) -> int:
+    ) -> batch_pb2.BatchSendReply:
         """Send multiple objects to Weaviate through the gRPC API.
 
         Args:
@@ -227,28 +227,35 @@ class _BatchGRPC(_BaseGRPC):
             timeout: The timeout in seconds for the request.
             max_retries: The maximum number of retries in case of a failure.
         """
-        how_many = len(objects)
+        res = batch_pb2.BatchSendReply()
         for request in self.__generate_send_requests(objects, references, stream_id):
-            new = connection.grpc_batch_send(
+            res = connection.grpc_batch_send(
                 request=request,
                 timeout=timeout,
-            ).next
-            # On errors, server sends the default value for int which is 0
-            if new > 0:
-                how_many = new
-        return how_many
+            )
+            time.sleep(res.backoff)
+        return res
 
     def stream(
         self,
         connection: ConnectionSync,
+        *,
+        object_index: int,
+        reference_index: int,
     ) -> Generator[batch_pb2.BatchStreamMessage, None, None]:
         """Start a new stream for receiving messages about the ongoing server-side batching from Weaviate.
 
         Args:
             connection: The connection to the Weaviate instance.
+            object_index: The starting index for the object stream. Useful only when a shutdown event occurs requiring the stream to be re-initialised on a new node.
+            reference_index: The starting index for the reference stream. Useful only when a shutdown event occurs requiring the stream to be re-initialised on a new node.
         """
         return connection.grpc_batch_stream(
-            request=batch_pb2.BatchStreamRequest(consistency_level=self._consistency_level),
+            request=batch_pb2.BatchStreamRequest(
+                consistency_level=self._consistency_level,
+                object_index=object_index,
+                reference_index=reference_index,
+            ),
         )
 
     def stop(

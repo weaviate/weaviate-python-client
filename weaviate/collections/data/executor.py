@@ -447,8 +447,9 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
                 tenant=self._tenant,
                 from_uuid=str(ref.from_uuid),
                 to_uuid=None,  # not relevant here, this entry is only needed for the batch module
+                index=idx,
             )
-            for ref in refs
+            for idx, ref in enumerate(refs)
             for beacon in ref._to_beacons()
         ]
         return self.__batch_rest.references(self._connection, references=list(batch))

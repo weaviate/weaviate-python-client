@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field, field_validator
 
 from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
-from weaviate.proto.v1 import batch_pb2
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _capitalize_first_letter, _get_vector_v4, get_valid_uuid
 from weaviate.warnings import _Warnings
@@ -33,6 +32,7 @@ class _BatchReference:
     tenant: Optional[str]
     from_uuid: str
     to_uuid: Union[str, None]
+    index: int
 
 
 class BatchObject(BaseModel):
@@ -90,19 +90,6 @@ class BatchObject(BaseModel):
             retry_count=obj.retry_count,
         )
 
-    @classmethod
-    def _from_grpc(cls, obj: batch_pb2.BatchObject) -> "BatchObject":
-        return BatchObject(
-            collection=obj.collection,
-            vector=obj.vectors,
-            uuid=uuid_package.UUID(obj.uuid),
-            properties=obj.properties,
-            tenant=obj.tenant,
-            # references=obj.references,
-            # index=obj.index,
-            # retry_count=obj.retry_count,
-        )
-
     @field_validator("collection")
     def _validate_collection(cls, v: str) -> str:
         return _capitalize_first_letter(v)
@@ -132,6 +119,7 @@ class BatchReference(BaseModel):
     to_object_uuid: UUID
     to_object_collection: Optional[str] = None
     tenant: Optional[str] = None
+    index: int
 
     @field_validator("from_object_collection")
     def _validate_from_object_collection(cls, v: str) -> str:
@@ -160,6 +148,7 @@ class BatchReference(BaseModel):
             to=f"{BEACON}{self.to_object_collection}{str(self.to_object_uuid)}",
             to_uuid=str(self.to_object_uuid),
             tenant=self.tenant,
+            index=self.index,
         )
 
     @classmethod
@@ -179,17 +168,7 @@ class BatchReference(BaseModel):
             to_object_uuid=(ref.to_uuid if ref.to_uuid is not None else uuid_package.UUID(to[-1])),
             to_object_collection=to_object_collection,
             tenant=ref.tenant,
-        )
-
-    @classmethod
-    def _from_grpc(cls, ref: batch_pb2.BatchReference) -> "BatchReference":
-        return BatchReference(
-            from_object_collection=ref.from_collection,
-            from_object_uuid=uuid_package.UUID(ref.from_uuid),
-            from_property_name=ref.name,
-            to_object_uuid=uuid_package.UUID(ref.to_uuid),
-            to_object_collection=ref.to_collection if ref.to_collection != "" else None,
-            tenant=ref.tenant,
+            index=ref.index,
         )
 
 
