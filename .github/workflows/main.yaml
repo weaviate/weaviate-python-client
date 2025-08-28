@@ -20,11 +20,11 @@ concurrency:
 env:
   WEAVIATE_127: 1.27.27
   WEAVIATE_128: 1.28.16
-  WEAVIATE_129: 1.29.9
-  WEAVIATE_130: 1.30.12
-  WEAVIATE_131: 1.31.5
-  WEAVIATE_132: 1.32.0-rc.1-098c594
-  WEAVIATE_133: preview-remove-support-for-old-clients-a52a482.amd64
+  WEAVIATE_129: 1.29.11
+  WEAVIATE_130: 1.30.13
+  WEAVIATE_131: 1.31.9
+  WEAVIATE_132: 1.32.3
+  WEAVIATE_133: 1.33.0-rc.0-50e40f8.arm64
 
 jobs:
   lint-and-format:
