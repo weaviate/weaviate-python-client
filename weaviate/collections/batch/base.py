@@ -990,7 +990,7 @@ class _BatchBaseNew:
         )
         first = stream.__next__()
         assert first.HasField("start"), "Batch stream did not start correctly"
-        self.__stream_id = first.start.stream_id
+        self.__stream_id = first.stream_id
         for message in stream:
             if message.HasField("error"):
                 with self.__results_lock:
@@ -1126,20 +1126,20 @@ class _BatchBaseNew:
                     stream_id=self.__stream_id,
                     timeout=DEFAULT_REQUEST_TIMEOUT,
                 )
-                if res.next < self.__recommended_num_objects:
+                if res.next_batch_size < self.__recommended_num_objects:
                     logger.warning(
-                        f"Scaling down sending: {self.__recommended_num_objects} -> {res.next}"
+                        f"Scaling down sending: {self.__recommended_num_objects} -> {res.next_batch_size}"
                     )
-                if res.next > self.__recommended_num_objects:
+                if res.next_batch_size > self.__recommended_num_objects:
                     logger.warning(
-                        f"Scaling up sending: {self.__recommended_num_objects} -> {res.next}"
+                        f"Scaling up sending: {self.__recommended_num_objects} -> {res.next_batch_size}"
                     )
-                if res.backoff > 0:
+                if res.backoff_seconds > 0:
                     logger.warning(
-                        f"Backing off from sending the next request by {res.backoff} seconds"
+                        f"Backing off from sending the next request by {res.backoff_seconds} seconds"
                     )
-                self.__recommended_num_objects = res.next
-                self.__recommended_backoff = res.backoff
+                self.__recommended_num_objects = res.next_batch_size
+                self.__recommended_backoff = res.backoff_seconds
                 self.__results_for_wrapper.results.objs.add_uuids(
                     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
                 )

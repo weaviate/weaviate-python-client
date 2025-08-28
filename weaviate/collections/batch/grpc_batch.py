@@ -175,7 +175,7 @@ class _BatchGRPC(_BaseGRPC):
         def request_maker():
             return batch_pb2.BatchSendRequest(
                 stream_id=stream_id,
-                objects=batch_pb2.BatchObjects(
+                objects=batch_pb2.BatchSendRequest.Objects(
                     values=[],
                 ),
             )
@@ -233,7 +233,7 @@ class _BatchGRPC(_BaseGRPC):
                 request=request,
                 timeout=timeout,
             )
-            time.sleep(res.backoff)
+            time.sleep(res.backoff_seconds)
         return res
 
     def stream(
@@ -273,7 +273,7 @@ class _BatchGRPC(_BaseGRPC):
             timeout: The timeout in seconds for the request.
         """
         request = batch_pb2.BatchSendRequest(
-            stream_id=stream_id, stop=batch_pb2.BatchSendRequest.BatchStop()
+            stream_id=stream_id, stop=batch_pb2.BatchSendRequest.Stop()
         )
         connection.grpc_batch_send(
             request=request,
