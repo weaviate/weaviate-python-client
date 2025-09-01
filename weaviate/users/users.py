@@ -15,6 +15,7 @@ USER_TYPE = Literal["db", "oidc"]
 class OwnUser:
     user_id: str
     roles: Dict[str, Role]
+    groups: List[str]
 
 
 @dataclass

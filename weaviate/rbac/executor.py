@@ -8,6 +8,8 @@ from typing_extensions import deprecated
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.rbac.models import (
+    GroupAssignment,
+    GroupTypes,
     PermissionsInputType,
     PermissionsOutputType,
     Role,
@@ -181,6 +183,34 @@ class _RolesExecutor(Generic[ConnectionType]):
             path=path,
             error_msg=f"Could not get users of role {role_name}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get users of role"),
+        )
+
+    def get_group_assignments(self, role_name: str) -> executor.Result[List[GroupAssignment]]:
+        """Get the ids and group type of groups that have been assigned this role.
+
+        Args:
+            role_name: The role to get the users for.
+
+        Returns:
+            A list of Assignments.
+        """
+        path = f"/authz/roles/{role_name}/group-assignments"
+
+        def resp(res: Response) -> List[GroupAssignment]:
+            return [
+                GroupAssignment(
+                    group_id=assignment["groupId"],
+                    group_type=GroupTypes(assignment["groupType"]),
+                )
+                for assignment in res.json()
+            ]
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path=path,
+            error_msg=f"Could not get groups of role {role_name}",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get groups of role"),
         )
 
     @deprecated(
