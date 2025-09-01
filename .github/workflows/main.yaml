@@ -24,7 +24,7 @@ env:
   WEAVIATE_130: 1.30.12
   WEAVIATE_131: 1.31.5
   WEAVIATE_132: 1.32.5
-  WEAVIATE_133: preview-remove-support-for-old-clients-a52a482.amd64
+  WEAVIATE_133: 1.33.0-rc.1
 
 jobs:
   lint-and-format:
