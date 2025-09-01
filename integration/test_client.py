@@ -226,7 +226,7 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
-        generative_config=Configure.Generative.cohere(model="something", k=10),
+        generative_config=Configure.Generative.cohere(model="command-r-plus", k=10),
         properties=[
             Property(
                 name="name",
