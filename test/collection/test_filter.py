@@ -4,7 +4,7 @@ import pytest
 
 import weaviate
 import weaviate.classes as wvc
-from weaviate.collections.classes.filters import Filter, _FilterAnd, _FilterOr
+from weaviate.collections.classes.filters import Filter, _FilterAnd, _FilterNot, _FilterOr
 
 
 def test_empty_input_contains_any() -> None:
@@ -86,6 +86,18 @@ def test_filter_bitwise_or_assignment() -> None:
     assert isinstance(or_direct.filters[0], _FilterOr)
     assert f4.filters[0].filters == or_direct.filters[0].filters
     assert f4.filters[1] == f3
+
+
+def test_filter_bitwise_invert_assignment() -> None:
+    f1 = wvc.query.Filter.by_property("test").equal("test")
+    not_f1 = wvc.query.Filter.not_(f1)
+
+    invert_f1 = ~f1
+
+    assert isinstance(invert_f1, _FilterNot)
+    assert isinstance(not_f1, _FilterNot)
+    assert len(invert_f1.filters) == 1
+    assert invert_f1.filters == not_f1.filters
 
 
 def test_auto_capitalize_first_letter_by_ref_multi_target() -> None:
