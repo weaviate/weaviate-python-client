@@ -297,8 +297,6 @@ jobs:
       fail-fast: false
       matrix:
         version: [
-          $WEAVIATE_125,
-          $WEAVIATE_126,
           $WEAVIATE_127,
           $WEAVIATE_128,
           $WEAVIATE_129,
