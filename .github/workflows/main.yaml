@@ -18,14 +18,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WEAVIATE_125: 1.25.34
-  WEAVIATE_126: 1.26.17
   WEAVIATE_127: 1.27.27
   WEAVIATE_128: 1.28.16
   WEAVIATE_129: 1.29.9
   WEAVIATE_130: 1.30.12
   WEAVIATE_131: 1.31.5
   WEAVIATE_132: 1.32.5
+  WEAVIATE_133: preview-remove-support-for-old-clients-a52a482.amd64
 
 jobs:
   lint-and-format:
@@ -305,7 +304,8 @@ jobs:
           $WEAVIATE_129,
           $WEAVIATE_130,
           $WEAVIATE_131,
-          $WEAVIATE_132
+          $WEAVIATE_132,
+          $WEAVIATE_133
         ]
     steps:
       - name: Checkout
