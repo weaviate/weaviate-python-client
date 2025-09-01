@@ -350,10 +350,13 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         )
 
     def create(self, *, user_id: str) -> executor.Result[str]:
-        """Create a new db user.
+        """Create a new db user and return its API key.
 
         Args:
             user_id: The id of the new user.
+
+        Returns:
+            The API key of the newly created user. This key can not be retrieved later.
         """
 
         def resp(res: Response) -> str:

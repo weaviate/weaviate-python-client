@@ -97,6 +97,26 @@ jobs:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
 
+  proto-test:
+    name: Run importing protos test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        grpc: ["1.59.5", "1.63.0", "1.65.0", "1.66.0", "1.68.0", "1.72.1", "1.73.0", "1.74.0"]
+        protobuf: ["4.25.8", "5.26.0", "5.27.4", "5.28.3", "5.29.0", "6.30.0", "6.31.1", "6.32.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip' # caching pip dependencies
+      - run: |
+          pip install -r requirements-test.txt  -r requirements-devel.txt
+          pip install grpcio==${{ matrix.grpc }} protobuf==${{ matrix.protobuf }}
+      - name: Run proto test
+        run: pytest proto_test/test_proto.py
+
   integration-tests-embedded:
     name: Run Integration Tests Embedded
     runs-on: ubuntu-latest
@@ -133,11 +153,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_131, grpc-version: "1.59.0"},
-          { py: "3.10", weaviate: $WEAVIATE_131, grpc-version: "1.66.0"},
-          { py: "3.11", weaviate: $WEAVIATE_131, grpc-version: "1.70.0"},
-          { py: "3.12", weaviate: $WEAVIATE_131, grpc-version: "1.70.0"},
-          { py: "3.13", weaviate: $WEAVIATE_131, grpc-version: "1.70.0"}
+          { py: "3.9", weaviate: $WEAVIATE_131, grpc: "1.59.0"},
+          { py: "3.10", weaviate: $WEAVIATE_131, grpc: "1.66.0"},
+          { py: "3.11", weaviate: $WEAVIATE_131, grpc: "1.70.0"},
+          { py: "3.12", weaviate: $WEAVIATE_131, grpc: "1.72.1"},
+          { py: "3.13", weaviate: $WEAVIATE_131, grpc: "1.74.0"}
         ]
         optional_dependencies: [false]
     steps:
@@ -157,7 +177,7 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
           pip install -r requirements-test.txt
-          pip install grpcio==${{ matrix.versions.grpc-version }} grpcio-tools==${{ matrix.versions.grpc-version }} grpcio-health-checking==${{ matrix.versions.grpc-version }}
+          pip install grpcio==${{ matrix.versions.grpc }} grpcio-tools==${{ matrix.versions.grpc }} grpcio-health-checking==${{ matrix.versions.grpc }}
           pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
@@ -278,14 +298,14 @@ jobs:
       fail-fast: false
       matrix:
         version: [
-          { extra: "1.62.0", server: $WEAVIATE_125},
-          { extra: "1.66.2", server: $WEAVIATE_126},
-          { extra: "1.70.0", server: $WEAVIATE_127},
-          { extra: "1.59.5", server: $WEAVIATE_128},
-          { extra: "1.62.0", server: $WEAVIATE_129},
-          { extra: "1.69.0", server: $WEAVIATE_130},
-          { extra: "1.70.0", server: $WEAVIATE_131},
-          { extra: "1.71.0", server: $WEAVIATE_132}
+          $WEAVIATE_125,
+          $WEAVIATE_126,
+          $WEAVIATE_127,
+          $WEAVIATE_128,
+          $WEAVIATE_129,
+          $WEAVIATE_130,
+          $WEAVIATE_131,
+          $WEAVIATE_132
         ]
     steps:
       - name: Checkout
@@ -305,16 +325,15 @@ jobs:
       - run: |
           pip install -r requirements-test.txt  # install test dependencies
           pip install weaviate_client-*.whl
-          pip install grpcio==${{ matrix.version.extra }} grpcio-tools==${{ matrix.version.extra }} grpcio-health-checking==${{ matrix.version.extra }}
       - run: rm -r weaviate
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh ${{ matrix.version.server }}
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.version }}
       - name: Run integration tests without auth secrets (auth tests ran in previous job)
         run: pytest -v -n auto --dist loadgroup integration
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package]
+    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package, proto-test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

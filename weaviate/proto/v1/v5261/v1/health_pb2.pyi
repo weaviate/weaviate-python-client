@@ -18,11 +18,9 @@ class HealthCheckResponse(_message.Message):
         UNKNOWN: _ClassVar[HealthCheckResponse.ServingStatus]
         SERVING: _ClassVar[HealthCheckResponse.ServingStatus]
         NOT_SERVING: _ClassVar[HealthCheckResponse.ServingStatus]
-        SERVICE_UNKNOWN: _ClassVar[HealthCheckResponse.ServingStatus]
     UNKNOWN: HealthCheckResponse.ServingStatus
     SERVING: HealthCheckResponse.ServingStatus
     NOT_SERVING: HealthCheckResponse.ServingStatus
-    SERVICE_UNKNOWN: HealthCheckResponse.ServingStatus
     STATUS_FIELD_NUMBER: _ClassVar[int]
     status: HealthCheckResponse.ServingStatus
     def __init__(self, status: _Optional[_Union[HealthCheckResponse.ServingStatus, str]] = ...) -> None: ...

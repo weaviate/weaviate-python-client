@@ -80,7 +80,10 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.quantizer is not None:
-            ret_dict[self.quantizer.quantizer_name()] = self.quantizer._to_dict()
+            if isinstance(self.quantizer, _UncompressedConfigCreate):
+                ret_dict[self.quantizer.quantizer_name()] = True
+            else:
+                ret_dict[self.quantizer.quantizer_name()] = self.quantizer._to_dict()
         if self.distance is not None:
             ret_dict["distance"] = str(self.distance.value)
         if self.multivector is not None and self.multivector.encoding is not None:
@@ -280,6 +283,12 @@ class _RQConfigCreate(_QuantizerConfigCreate):
         return "rq"
 
 
+class _UncompressedConfigCreate(_QuantizerConfigCreate):
+    @staticmethod
+    def quantizer_name() -> str:
+        return "skipDefaultQuantization"
+
+
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
@@ -448,6 +457,11 @@ class _VectorIndexQuantizer:
             bits=bits,
             rescoreLimit=rescore_limit,
         )
+
+    @staticmethod
+    def none() -> _UncompressedConfigCreate:
+        """Create a a vector index without compression."""
+        return _UncompressedConfigCreate()
 
 
 class _VectorIndex:
