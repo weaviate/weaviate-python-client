@@ -619,6 +619,9 @@ def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> No
 
 @pytest.fixture
 def artist_alias(client: weaviate.WeaviateClient) -> Generator[str, None, None]:
+    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("overwriteAlias is only supported from 1.33.0 onwards")
+
     client.alias.create(target_collection="Article", alias_name="Literature")
     yield "Literature"
     client.alias.delete(alias_name="Literature")
@@ -629,9 +632,6 @@ def test_overwrite_alias_true(
 ) -> None:
     """Restore backups with overwrite=true."""
     backup_id = unique_backup_id(request.node.name)
-    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
-        pytest.skip("overwriteAlias is only supported from 1.33.0 onwards")
-
     client.backup.create(
         backup_id=backup_id,
         backend=BACKEND,
@@ -660,8 +660,6 @@ def test_overwrite_alias_false(
 ) -> None:
     """Restore backups with overwrite=false (conflict)."""
     backup_id = unique_backup_id(request.node.name)
-    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
-        pytest.skip("overwriteAlias is only supported from 1.33.0 onwards")
 
     client.backup.create(
         backup_id=backup_id,
