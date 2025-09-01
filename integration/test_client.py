@@ -367,7 +367,7 @@ def test_client_cluster_without_lazy_shard_loading(
         assert len(nodes[0].shards) == 1
         assert nodes[0].shards[0].collection == collection.name
         assert nodes[0].shards[0].object_count == 0
-        if collection._connection._weaviate_version.is_lower_than(1, 33, 0):
+        if collection._connection._weaviate_version.is_lower_than(1, 32, 0):
             assert nodes[0].shards[0].vector_indexing_status == "READY"
         else:
             assert nodes[0].shards[0].vector_indexing_status == "LAZY_LOADING"
