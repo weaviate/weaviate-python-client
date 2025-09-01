@@ -289,7 +289,7 @@ class _FilterByTime(_FilterBase):
         )
 
     def contains_none(self, dates: List[datetime]) -> _Filters:
-        """Filter for objects with the given time.
+        """Filter for objects that contain none of the dates.
 
         Args:
             dates: List of dates to filter on.
@@ -403,7 +403,7 @@ class _FilterById(_FilterBase):
         self._property = "_id"
 
     def contains_any(self, uuids: Sequence[UUID]) -> _Filters:
-        """Filter for objects that has one of the given ID."""
+        """Filter for objects that has one of the given IDs."""
         if len(uuids) == 0:
             raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
         return _FilterValue(
@@ -413,7 +413,7 @@ class _FilterById(_FilterBase):
         )
 
     def contains_none(self, uuids: Sequence[UUID]) -> _Filters:
-        """Filter for objects that has one of the given ID."""
+        """Filter for objects that has none of the given IDs."""
         if len(uuids) == 0:
             raise WeaviateInvalidInputError("Filter contains_none must have at least one value")
         return _FilterValue(
