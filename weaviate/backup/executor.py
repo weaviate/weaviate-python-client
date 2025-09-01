@@ -426,9 +426,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             params.update(backup_location._to_dict())
 
         def resp(res: Response) -> BackupStatusReturn:
-            typed_response = _decode_json_response_dict(
-                res, "Backup restore status check"
-            )
+            typed_response = _decode_json_response_dict(res, "Backup restore status check")
             if typed_response is None:
                 raise EmptyResponseException()
             typed_response["id"] = backup_id
@@ -494,9 +492,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="cancel backup"),
         )
 
-    def list_backups(
-        self, backend: BackupStorage
-    ) -> executor.Result[List[BackupListReturn]]:
+    def list_backups(self, backend: BackupStorage) -> executor.Result[List[BackupListReturn]]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
         path = f"/backups/{backend.value}"
 
@@ -541,9 +537,7 @@ def _get_and_validate_create_restore_arguments(
         ValueError: If 'backend' does not have an accepted value.
     """
     if not isinstance(backup_id, str):
-        raise TypeError(
-            f"'backup_id' must be of type str. Given type: {type(backup_id)}."
-        )
+        raise TypeError(f"'backup_id' must be of type str. Given type: {type(backup_id)}.")
     if isinstance(backend, str):
         try:
             backend = BackupStorage(backend.lower())
@@ -580,9 +574,7 @@ def _get_and_validate_create_restore_arguments(
         exclude_classes = []
 
     if include_classes and exclude_classes:
-        raise TypeError(
-            "Either 'include_classes' OR 'exclude_classes' can be set, not both."
-        )
+        raise TypeError("Either 'include_classes' OR 'exclude_classes' can be set, not both.")
 
     include_classes = [_capitalize_first_letter(cls) for cls in include_classes]
     exclude_classes = [_capitalize_first_letter(cls) for cls in exclude_classes]
@@ -607,9 +599,7 @@ def _get_and_validate_get_status(
         TypeError: One of the arguments is of a wrong type.
     """
     if not isinstance(backup_id, str):
-        raise TypeError(
-            f"'backup_id' must be of type str. Given type: {type(backup_id)}."
-        )
+        raise TypeError(f"'backup_id' must be of type str. Given type: {type(backup_id)}.")
     if isinstance(backend, str):
         try:
             backend = BackupStorage(backend.lower())

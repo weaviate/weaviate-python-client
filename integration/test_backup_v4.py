@@ -188,9 +188,7 @@ def test_create_and_restore_backup_without_waiting(
     backup_id = unique_backup_id(request.node.name)
     include_as_list = sorted(include) if isinstance(include, list) else [include]
 
-    resp = client.backup.create(
-        backup_id=backup_id, include_collections=include, backend=BACKEND
-    )
+    resp = client.backup.create(backup_id=backup_id, include_collections=include, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED
     assert sorted(resp.collections) == include_as_list
 
@@ -280,9 +278,7 @@ def test_create_and_restore_1_of_2_classes(
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-def test_fail_on_non_existing_class(
-    client: weaviate.WeaviateClient, request: SubRequest
-) -> None:
+def test_fail_on_non_existing_class(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     """Fail backup functions on non-existing class."""
     backup_id = unique_backup_id(request.node.name)
     class_name = "NonExistingClass"
@@ -351,9 +347,7 @@ def test_fail_restoring_non_existing_backup(
     """Fail restoring non-existing backup."""
     backup_id = unique_backup_id(request.node.name)
     with pytest.raises(UnexpectedStatusCodeException) as excinfo:
-        client.backup.restore(
-            backup_id=backup_id, backend=BACKEND, wait_for_completion=True
-        )
+        client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
         assert backup_id in str(excinfo.value)
         assert "404" in str(excinfo.value)
 
@@ -390,9 +384,8 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
                 backend=BACKEND,
                 wait_for_completion=True,
             )
-            assert (
-                "Either 'include_classes' OR 'exclude_classes' can be set, not both"
-                in str(excinfo.value)
+            assert "Either 'include_classes' OR 'exclude_classes' can be set, not both" in str(
+                excinfo.value
             )
 
 
@@ -451,9 +444,7 @@ def test_backup_and_restore_with_dynamic_location(
     assert len(article) == len(ARTICLES_IDS)
 
     # check restore status
-    restore_status = article.backup.get_restore_status(
-        backup_id, BACKEND, backup_location
-    )
+    restore_status = article.backup.get_restore_status(backup_id, BACKEND, backup_location)
     assert restore_status.status == BackupStatus.SUCCESS
 
 
@@ -550,10 +541,7 @@ def test_cancel_backup(
         backup_id=backup_id, backend=BACKEND, backup_location=backup_location
     )
     # there can be a race between the cancel and the backup completion
-    assert (
-        status_resp.status == BackupStatus.CANCELED
-        or status_resp.status == BackupStatus.SUCCESS
-    )
+    assert status_resp.status == BackupStatus.CANCELED or status_resp.status == BackupStatus.SUCCESS
 
 
 def test_backup_and_restore_with_roles_and_users(
@@ -564,9 +552,7 @@ def test_backup_and_restore_with_roles_and_users(
     if client._connection._weaviate_version.is_lower_than(1, 30, 10):
         pytest.skip("User and roles are only supported from Weaviate 1.30.10")
 
-    name = _sanitize_collection_name(
-        request.node.fspath.basename + "_" + request.node.name
-    )
+    name = _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name)
     client.collections.delete(name)
     client.collections.create(name=name)
 
@@ -576,9 +562,7 @@ def test_backup_and_restore_with_roles_and_users(
     client.roles.delete(role_name=name)
     client.roles.create(
         role_name=name,
-        permissions=wvc.rbac.Permissions.collections(
-            collection="*", create_collection=True
-        ),
+        permissions=wvc.rbac.Permissions.collections(collection="*", create_collection=True),
     )
 
     resp = client.backup.create(
@@ -668,9 +652,7 @@ def test_overwrite_alias_true(
 
     literature = client.alias.get(alias_name="Literature")
     assert literature is not None, "expect alias exists"
-    assert (
-        literature.collection == "Article"
-    ), "alias must point to the original collection"
+    assert literature.collection == "Article", "alias must point to the original collection"
 
 
 def test_overwrite_alias_false(
