@@ -41,6 +41,7 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
+        overwrite_alias: bool = False,
     ) -> BackupReturn: ...
     def get_restore_status(
         self,
