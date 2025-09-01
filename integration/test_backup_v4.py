@@ -1,13 +1,15 @@
 import datetime
 import pathlib
 import time
-from typing import Generator, List, Optional, Union
 import uuid
+from typing import Generator, List, Optional, Union
 
 import pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
+from weaviate.auth import Auth
 from weaviate.backup.backup import (
     BackupCompressionLevel,
     BackupConfigCreate,
@@ -17,13 +19,12 @@ from weaviate.backup.backup import (
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
 from weaviate.exceptions import (
+    BackupFailedError,
     BackupFailedException,
     UnexpectedStatusCodeException,
 )
 
-from weaviate.auth import Auth
 from .conftest import ClientFactory, _sanitize_collection_name
-from _pytest.fixtures import SubRequest
 
 RBAC_PORTS = (8093, 50065)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
@@ -138,7 +139,10 @@ def test_create_and_restore_backup_with_waiting(
     # create backup
     classes = ["Article", "Paragraph"]
     resp = client.backup.create(
-        backup_id=backup_id, backend=BACKEND, wait_for_completion=True, include_collections=CLASSES
+        backup_id=backup_id,
+        backend=BACKEND,
+        wait_for_completion=True,
+        include_collections=CLASSES,
     )
     assert resp.status == BackupStatus.SUCCESS
     for cls in classes:
@@ -158,7 +162,10 @@ def test_create_and_restore_backup_with_waiting(
 
     # restore backup
     restore = client.backup.restore(
-        backup_id=backup_id, backend=BACKEND, wait_for_completion=True, include_collections=CLASSES
+        backup_id=backup_id,
+        backend=BACKEND,
+        wait_for_completion=True,
+        include_collections=CLASSES,
     )
     assert restore.status == BackupStatus.SUCCESS
     for cls in classes:
@@ -181,7 +188,9 @@ def test_create_and_restore_backup_without_waiting(
     backup_id = unique_backup_id(request.node.name)
     include_as_list = sorted(include) if isinstance(include, list) else [include]
 
-    resp = client.backup.create(backup_id=backup_id, include_collections=include, backend=BACKEND)
+    resp = client.backup.create(
+        backup_id=backup_id, include_collections=include, backend=BACKEND
+    )
     assert resp.status == BackupStatus.STARTED
     assert sorted(resp.collections) == include_as_list
 
@@ -240,7 +249,10 @@ def test_create_and_restore_1_of_2_classes(
     # create backup
     include = ["Article"]
     create = client.backup.create(
-        backup_id=backup_id, include_collections=include, backend=BACKEND, wait_for_completion=True
+        backup_id=backup_id,
+        include_collections=include,
+        backend=BACKEND,
+        wait_for_completion=True,
     )
     assert create.status == BackupStatus.SUCCESS
 
@@ -253,7 +265,10 @@ def test_create_and_restore_1_of_2_classes(
 
     # restore backup
     restore = client.backup.restore(
-        backup_id=backup_id, include_collections=include, backend=BACKEND, wait_for_completion=True
+        backup_id=backup_id,
+        include_collections=include,
+        backend=BACKEND,
+        wait_for_completion=True,
     )
     assert restore.status == BackupStatus.SUCCESS
 
@@ -265,7 +280,9 @@ def test_create_and_restore_1_of_2_classes(
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-def test_fail_on_non_existing_class(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+def test_fail_on_non_existing_class(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
     """Fail backup functions on non-existing class."""
     backup_id = unique_backup_id(request.node.name)
     class_name = "NonExistingClass"
@@ -334,7 +351,9 @@ def test_fail_restoring_non_existing_backup(
     """Fail restoring non-existing backup."""
     backup_id = unique_backup_id(request.node.name)
     with pytest.raises(UnexpectedStatusCodeException) as excinfo:
-        client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
+        client.backup.restore(
+            backup_id=backup_id, backend=BACKEND, wait_for_completion=True
+        )
         assert backup_id in str(excinfo.value)
         assert "404" in str(excinfo.value)
 
@@ -371,8 +390,9 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
                 backend=BACKEND,
                 wait_for_completion=True,
             )
-            assert "Either 'include_classes' OR 'exclude_classes' can be set, not both" in str(
-                excinfo.value
+            assert (
+                "Either 'include_classes' OR 'exclude_classes' can be set, not both"
+                in str(excinfo.value)
             )
 
 
@@ -431,7 +451,9 @@ def test_backup_and_restore_with_dynamic_location(
     assert len(article) == len(ARTICLES_IDS)
 
     # check restore status
-    restore_status = article.backup.get_restore_status(backup_id, BACKEND, backup_location)
+    restore_status = article.backup.get_restore_status(
+        backup_id, BACKEND, backup_location
+    )
     assert restore_status.status == BackupStatus.SUCCESS
 
 
@@ -451,7 +473,9 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
         backend=BACKEND,
         wait_for_completion=True,
         config=BackupConfigCreate(
-            cpu_percentage=60, chunk_size=256, compression_level=BackupCompressionLevel.BEST_SPEED
+            cpu_percentage=60,
+            chunk_size=256,
+            compression_level=BackupCompressionLevel.BEST_SPEED,
         ),
     )
     assert create.status == BackupStatus.SUCCESS
@@ -526,7 +550,10 @@ def test_cancel_backup(
         backup_id=backup_id, backend=BACKEND, backup_location=backup_location
     )
     # there can be a race between the cancel and the backup completion
-    assert status_resp.status == BackupStatus.CANCELED or status_resp.status == BackupStatus.SUCCESS
+    assert (
+        status_resp.status == BackupStatus.CANCELED
+        or status_resp.status == BackupStatus.SUCCESS
+    )
 
 
 def test_backup_and_restore_with_roles_and_users(
@@ -537,7 +564,9 @@ def test_backup_and_restore_with_roles_and_users(
     if client._connection._weaviate_version.is_lower_than(1, 30, 10):
         pytest.skip("User and roles are only supported from Weaviate 1.30.10")
 
-    name = _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name)
+    name = _sanitize_collection_name(
+        request.node.fspath.basename + "_" + request.node.name
+    )
     client.collections.delete(name)
     client.collections.create(name=name)
 
@@ -547,7 +576,9 @@ def test_backup_and_restore_with_roles_and_users(
     client.roles.delete(role_name=name)
     client.roles.create(
         role_name=name,
-        permissions=wvc.rbac.Permissions.collections(collection="*", create_collection=True),
+        permissions=wvc.rbac.Permissions.collections(
+            collection="*", create_collection=True
+        ),
     )
 
     resp = client.backup.create(
@@ -587,3 +618,85 @@ def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> No
 
     backups = client.backup.list_backups(backend=BACKEND)
     assert backup_id.lower() in [b.backup_id.lower() for b in backups]
+
+    # wait until created
+    while True:
+        create_status = client.backup.get_create_status(backup_id, BACKEND)
+        assert create_status.status in [
+            BackupStatus.SUCCESS,
+            BackupStatus.TRANSFERRED,
+            BackupStatus.TRANSFERRING,
+            BackupStatus.STARTED,
+        ]
+        if create_status.status == BackupStatus.SUCCESS:
+            break
+        time.sleep(0.1)
+
+
+@pytest.fixture
+def artist_alias(client: weaviate.WeaviateClient) -> Generator[str, None, None]:
+    client.alias.create(target_collection="Article", alias_name="Literature")
+    yield "Literature"
+    client.alias.delete(alias_name="Literature")
+
+
+def test_overwrite_alias_true(
+    client: weaviate.WeaviateClient, request: SubRequest, artist_alias: str
+) -> None:
+    """Restore backups with overwrite=true"""
+    backup_id = unique_backup_id(request.node.name)
+    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("overwriteAlias is only supported from 1.33.0 onwards")
+
+    client.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+    )
+
+    client.collections.delete("Article")
+    client.alias.update(alias_name=artist_alias, new_target_collection="Paragraph")
+
+    client.backup.restore(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+        overwrite_alias=True,
+    )
+
+    literature = client.alias.get(alias_name="Literature")
+    assert literature is not None, "expect alias exists"
+    assert (
+        literature.collection == "Article"
+    ), "alias must point to the original collection"
+
+
+def test_overwrite_alias_false(
+    client: weaviate.WeaviateClient, request: SubRequest, artist_alias: str
+) -> None:
+    """Restore backups with overwrite=false (conflict)"""
+    backup_id = unique_backup_id(request.node.name)
+    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("overwriteAlias is only supported from 1.33.0 onwards")
+
+    client.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+    )
+
+    client.collections.delete("Article")
+    client.alias.update(alias_name=artist_alias, new_target_collection="Paragraph")
+
+    with pytest.raises(BackupFailedError) as err:
+        client.backup.restore(
+            backup_id=backup_id,
+            backend=BACKEND,
+            include_collections=["Article"],
+            wait_for_completion=True,
+            overwrite_alias=False,
+        )
+    assert "alias already exists" in str(err)
