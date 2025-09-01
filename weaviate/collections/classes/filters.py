@@ -98,8 +98,8 @@ class _FilterOr(_Filters):
 
 
 class _FilterNot(_Filters):
-    def __init__(self, filter: _Filters):
-        self.filters: List[_Filters] = [filter]
+    def __init__(self, filter_: _Filters):
+        self.filters: List[_Filters] = [filter_]
 
     @property
     def operator(self) -> _Operator:
@@ -626,9 +626,9 @@ class Filter:
         return _FilterOr(filters)
 
     @staticmethod
-    def not_(filter: _Filters) -> _Filters:
+    def not_(filter_: _Filters) -> _Filters:
         """Negate the filter with a NOT operator."""
-        return _FilterNot(filter)
+        return _FilterNot(filter_)
 
 
 # type aliases for return classes
