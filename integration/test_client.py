@@ -226,7 +226,7 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
-        generative_config=Configure.Generative.cohere(model="something", k=10),
+        generative_config=Configure.Generative.cohere(model="command-r-plus", k=10),
         properties=[
             Property(
                 name="name",
@@ -270,7 +270,7 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
 
     assert export.generative_config is not None
     assert export.generative_config.generative == GenerativeSearches.COHERE
-    assert export.generative_config.model["model"] == "something"
+    assert export.generative_config.model["model"] == "command-r-plus"
     assert export.generative_config.model["kProperty"] == 10
 
     client.collections.delete([name1, name2])
@@ -367,7 +367,7 @@ def test_client_cluster_without_lazy_shard_loading(
         assert len(nodes[0].shards) == 1
         assert nodes[0].shards[0].collection == collection.name
         assert nodes[0].shards[0].object_count == 0
-        if collection._connection._weaviate_version.is_lower_than(1, 33, 0):
+        if collection._connection._weaviate_version.is_lower_than(1, 32, 0):
             assert nodes[0].shards[0].vector_indexing_status == "READY"
         else:
             assert nodes[0].shards[0].vector_indexing_status == "LAZY_LOADING"
