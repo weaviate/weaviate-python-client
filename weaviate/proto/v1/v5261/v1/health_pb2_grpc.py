@@ -44,11 +44,6 @@ class HealthStub(object):
                 request_serializer=v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
                 response_deserializer=v1_dot_health__pb2.HealthCheckResponse.FromString,
                 _registered_method=True)
-        self.Watch = channel.unary_stream(
-                '/grpc.health.v1.Health/Watch',
-                request_serializer=v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
-                response_deserializer=v1_dot_health__pb2.HealthCheckResponse.FromString,
-                _registered_method=True)
 
 
 class HealthServicer(object):
@@ -60,22 +55,11 @@ class HealthServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Watch(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_HealthServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Check': grpc.unary_unary_rpc_method_handler(
                     servicer.Check,
-                    request_deserializer=v1_dot_health__pb2.HealthCheckRequest.FromString,
-                    response_serializer=v1_dot_health__pb2.HealthCheckResponse.SerializeToString,
-            ),
-            'Watch': grpc.unary_stream_rpc_method_handler(
-                    servicer.Watch,
                     request_deserializer=v1_dot_health__pb2.HealthCheckRequest.FromString,
                     response_serializer=v1_dot_health__pb2.HealthCheckResponse.SerializeToString,
             ),
@@ -104,33 +88,6 @@ class Health(object):
             request,
             target,
             '/grpc.health.v1.Health/Check',
-            v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
-            v1_dot_health__pb2.HealthCheckResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def Watch(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/grpc.health.v1.Health/Watch',
             v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
             v1_dot_health__pb2.HealthCheckResponse.FromString,
             options,
