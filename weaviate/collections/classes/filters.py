@@ -23,9 +23,11 @@ class _Operator(str, Enum):
     IS_NULL = "IsNull"
     CONTAINS_ANY = "ContainsAny"
     CONTAINS_ALL = "ContainsAll"
+    CONTAINS_NONE = "ContainsNone"
     WITHIN_GEO_RANGE = "WithinGeoRange"
     AND = "And"
     OR = "Or"
+    NOT = "Not"
 
     def _to_grpc(self) -> base_pb2.Filters.Operator:
         if self == _Operator.EQUAL:
@@ -52,6 +54,8 @@ class _Operator(str, Enum):
             return base_pb2.Filters.OPERATOR_WITHIN_GEO_RANGE
         elif self == _Operator.AND:
             return base_pb2.Filters.OPERATOR_AND
+        elif self == _Operator.NOT:
+            return base_pb2.Filters.OPERATOR_NOT
         else:
             assert self == _Operator.OR
             return base_pb2.Filters.OPERATOR_OR
@@ -59,10 +63,16 @@ class _Operator(str, Enum):
 
 class _Filters:
     def __and__(self, other: "_Filters") -> "_Filters":
+        """Overload the bitwise & operator."""
         return _FilterAnd([self, other])
 
     def __or__(self, other: "_Filters") -> "_Filters":
+        """Overload the bitwise | operator."""
         return _FilterOr([self, other])
+
+    def __invert__(self) -> "_Filters":
+        """Overload the bitwise ~ operator."""
+        return _FilterNot(self)
 
 
 class _FilterAnd(_Filters):
@@ -85,6 +95,15 @@ class _FilterOr(_Filters):
     @property
     def operator(self) -> _Operator:
         return _Operator.OR
+
+
+class _FilterNot(_Filters):
+    def __init__(self, filter: _Filters):
+        self.filters: List[_Filters] = [filter]
+
+    @property
+    def operator(self) -> _Operator:
+        return _Operator.NOT
 
 
 class _GeoCoordinateFilter(GeoCoordinate):
@@ -186,6 +205,17 @@ class _FilterByProperty(_FilterBase):
             operator=_Operator.CONTAINS_ALL,
         )
 
+    def contains_none(self, val: FilterValuesList) -> _Filters:
+        """Filter on whether the property contains none of the given values."""
+        if len(val) == 0:
+            raise WeaviateInvalidInputError("Filter contains_none must have at least one value")
+
+        return _FilterValue(
+            target=self._target_path(),
+            value=val,
+            operator=_Operator.CONTAINS_NONE,
+        )
+
     def equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is equal to the given value."""
         return _FilterValue(target=self._target_path(), value=val, operator=_Operator.EQUAL)
@@ -251,13 +281,23 @@ class _FilterByTime(_FilterBase):
 
         Args:
             dates: List of dates to filter on.
-            on_reference_path: If the filter is on a cross-ref property, the path to the property to be filtered on,
-                example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
             target=self._target_path(),
             value=dates,
             operator=_Operator.CONTAINS_ANY,
+        )
+
+    def contains_none(self, dates: List[datetime]) -> _Filters:
+        """Filter for objects with the given time.
+
+        Args:
+            dates: List of dates to filter on.
+        """
+        return _FilterValue(
+            target=self._target_path(),
+            value=dates,
+            operator=_Operator.CONTAINS_NONE,
         )
 
     def equal(self, date: datetime) -> _Filters:
@@ -370,6 +410,16 @@ class _FilterById(_FilterBase):
             target=self._target_path(),
             value=[get_valid_uuid(val) for val in uuids],
             operator=_Operator.CONTAINS_ANY,
+        )
+
+    def contains_none(self, uuids: Sequence[UUID]) -> _Filters:
+        """Filter for objects that has one of the given ID."""
+        if len(uuids) == 0:
+            raise WeaviateInvalidInputError("Filter contains_none must have at least one value")
+        return _FilterValue(
+            target=self._target_path(),
+            value=[get_valid_uuid(val) for val in uuids],
+            operator=_Operator.CONTAINS_NONE,
         )
 
     def equal(self, uuid: UUID) -> _Filters:
@@ -574,6 +624,11 @@ class Filter:
         elif len(filters) == 0:
             raise WeaviateInvalidInputError("Filter.any_of must have at least one filter")
         return _FilterOr(filters)
+
+    @staticmethod
+    def not_(filter: _Filters) -> _Filters:
+        """Negate the filter with a NOT operator."""
+        return _FilterNot(filter)
 
 
 # type aliases for return classes
