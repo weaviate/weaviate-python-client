@@ -18,14 +18,16 @@ class GenerativeSearch(_message.Message):
         queries: _containers.RepeatedCompositeFieldContainer[GenerativeProvider]
         def __init__(self, prompt: _Optional[str] = ..., debug: bool = ..., queries: _Optional[_Iterable[_Union[GenerativeProvider, _Mapping]]] = ...) -> None: ...
     class Grouped(_message.Message):
-        __slots__ = ("task", "properties", "queries")
+        __slots__ = ("task", "properties", "queries", "debug")
         TASK_FIELD_NUMBER: _ClassVar[int]
         PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         QUERIES_FIELD_NUMBER: _ClassVar[int]
+        DEBUG_FIELD_NUMBER: _ClassVar[int]
         task: str
         properties: _base_pb2.TextArray
         queries: _containers.RepeatedCompositeFieldContainer[GenerativeProvider]
-        def __init__(self, task: _Optional[str] = ..., properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., queries: _Optional[_Iterable[_Union[GenerativeProvider, _Mapping]]] = ...) -> None: ...
+        debug: bool
+        def __init__(self, task: _Optional[str] = ..., properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., queries: _Optional[_Iterable[_Union[GenerativeProvider, _Mapping]]] = ..., debug: bool = ...) -> None: ...
     SINGLE_RESPONSE_PROMPT_FIELD_NUMBER: _ClassVar[int]
     GROUPED_RESPONSE_TASK_FIELD_NUMBER: _ClassVar[int]
     GROUPED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]

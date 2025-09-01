@@ -18,7 +18,7 @@ from weaviate.proto.v1.v4216.v1 import search_get_pb2 as v1_dot_search__get__pb2
 from weaviate.proto.v1.v4216.v1 import tenants_pb2 as v1_dot_tenants__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11v1/weaviate.proto\x12\x0bweaviate.v1\x1a\x12v1/aggregate.proto\x1a\x0ev1/batch.proto\x1a\x15v1/batch_delete.proto\x1a\x13v1/search_get.proto\x1a\x10v1/tenants.proto2\x87\x05\n\x08Weaviate\x12@\n\x06Search\x12\x1a.weaviate.v1.SearchRequest\x1a\x18.weaviate.v1.SearchReply\"\x00\x12R\n\x0c\x42\x61tchObjects\x12 .weaviate.v1.BatchObjectsRequest\x1a\x1e.weaviate.v1.BatchObjectsReply\"\x00\x12[\n\x0f\x42\x61tchReferences\x12#.weaviate.v1.BatchReferencesRequest\x1a!.weaviate.v1.BatchReferencesReply\"\x00\x12O\n\x0b\x42\x61tchDelete\x12\x1f.weaviate.v1.BatchDeleteRequest\x1a\x1d.weaviate.v1.BatchDeleteReply\"\x00\x12L\n\nTenantsGet\x12\x1e.weaviate.v1.TenantsGetRequest\x1a\x1c.weaviate.v1.TenantsGetReply\"\x00\x12I\n\tAggregate\x12\x1d.weaviate.v1.AggregateRequest\x1a\x1b.weaviate.v1.AggregateReply\"\x00\x12I\n\tBatchSend\x12\x1d.weaviate.v1.BatchSendRequest\x1a\x1b.weaviate.v1.BatchSendReply\"\x00\x12S\n\x0b\x42\x61tchStream\x12\x1f.weaviate.v1.BatchStreamRequest\x1a\x1f.weaviate.v1.BatchStreamMessage\"\x00\x30\x01\x42j\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11v1/weaviate.proto\x12\x0bweaviate.v1\x1a\x12v1/aggregate.proto\x1a\x0ev1/batch.proto\x1a\x15v1/batch_delete.proto\x1a\x13v1/search_get.proto\x1a\x10v1/tenants.proto2\x8a\x03\n\x08Weaviate\x12@\n\x06Search\x12\x1a.weaviate.v1.SearchRequest\x1a\x18.weaviate.v1.SearchReply\"\x00\x12R\n\x0c\x42\x61tchObjects\x12 .weaviate.v1.BatchObjectsRequest\x1a\x1e.weaviate.v1.BatchObjectsReply\"\x00\x12O\n\x0b\x42\x61tchDelete\x12\x1f.weaviate.v1.BatchDeleteRequest\x1a\x1d.weaviate.v1.BatchDeleteReply\"\x00\x12L\n\nTenantsGet\x12\x1e.weaviate.v1.TenantsGetRequest\x1a\x1c.weaviate.v1.TenantsGetReply\"\x00\x12I\n\tAggregate\x12\x1d.weaviate.v1.AggregateRequest\x1a\x1b.weaviate.v1.AggregateReply\"\x00\x42j\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -27,5 +27,5 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocol'
   _globals['_WEAVIATE']._serialized_start=133
-  _globals['_WEAVIATE']._serialized_end=780
+  _globals['_WEAVIATE']._serialized_end=527
 # @@protoc_insertion_point(module_scope)
