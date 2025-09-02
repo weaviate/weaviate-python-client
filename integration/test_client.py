@@ -357,6 +357,18 @@ def test_client_cluster_without_lazy_shard_loading(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     client = client_factory(8090, 50061)
+
+    # Lazy-loading behaviour was changed in 1.32.4:
+    # https://github.com/weaviate/weaviate/pull/8829
+    #
+    # We also accept LOADING/READY because it may vary
+    # based on the machine running the tests.
+    expect_status = (
+        ["LAZY_LOADING"]
+        if client._connection._weaviate_version.is_at_least(1, 32, 4)
+        else ["LOADING", "READY"]
+    )
+
     try:
         collection = client.collections.create(
             name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
@@ -367,7 +379,7 @@ def test_client_cluster_without_lazy_shard_loading(
         assert len(nodes[0].shards) == 1
         assert nodes[0].shards[0].collection == collection.name
         assert nodes[0].shards[0].object_count == 0
-        assert nodes[0].shards[0].vector_indexing_status == "READY"
+        assert nodes[0].shards[0].vector_indexing_status in expect_status
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
         if collection._connection._weaviate_version.is_lower_than(1, 25, 0):

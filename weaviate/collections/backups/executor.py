@@ -69,6 +69,7 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
+        overwrite_alias: bool = False,
     ) -> executor.Result[BackupStatusReturn]:
         """Restore a backup of all/per class Weaviate objects.
 
@@ -77,7 +78,8 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
             backend: The backend storage from where to restore the backup.
             wait_for_completion: Whether to wait until the backup restore is done. By default False.
             config: The configuration for the backup restoration. By default None.
-            backup_location`: The dynamic location of a backup. By default None.
+            backup_location: The dynamic location of a backup. By default None.
+            overwrite_alias: Allows ovewriting the collection alias if there is a conflict.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup restore response.
@@ -103,6 +105,7 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
             wait_for_completion=wait_for_completion,
             config=config,
             backup_location=backup_location,
+            overwrite_alias=overwrite_alias,
         )
 
     def get_create_status(
