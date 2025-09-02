@@ -78,8 +78,10 @@ def test_alias_creation_and_deletion(client: weaviate.WeaviateClient, request: S
         assert all_alias[alias2].collection == name2
 
         # Delete existing aliases
-        assert client.alias.delete(alias_name=alias1)
-        assert client.alias.delete(alias_name=alias2)
+        if client.alias.exists(alias_name=alias1):
+            assert client.alias.delete(alias_name=alias1)
+        if client.alias.exists(alias_name=alias2):
+            assert client.alias.delete(alias_name=alias2)
         all_alias = client.alias.list_all(collection=name2)
         all_alias = {
             alias[0]: alias[1]
@@ -157,3 +159,25 @@ def test_alias_get(client: weaviate.WeaviateClient, request: SubRequest) -> None
     finally:
         client.collections.delete(name)
         client.alias.delete(alias_name=alias1)
+
+
+def test_alias_exists(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("Aliases are not supported in Weaviate versions < 1.32.0")
+
+    name = _sanitize_collection_name(request.node.name)
+    alias1: str = "Alias" + _sanitize_collection_name(request.node.name)
+
+    client.collections.delete(name)
+    client.alias.delete(alias_name=alias1)
+    try:
+        client.collections.create(
+            name=name, vectorizer_config=wvc.config.Configure.Vectorizer.none()
+        )
+
+        client.alias.create(alias_name=alias1, target_collection=name)
+        assert client.alias.exists(alias_name=alias1)
+    finally:
+        client.collections.delete(name)
+        client.alias.delete(alias_name=alias1)
+        assert not client.alias.exists(alias_name=alias1)
