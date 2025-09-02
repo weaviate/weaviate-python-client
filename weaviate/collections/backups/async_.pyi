@@ -27,6 +27,7 @@ class _CollectionBackupAsync(_CollectionBackupExecutor[ConnectionAsync]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
+        overwrite_alias: bool = False,
     ) -> BackupStatusReturn: ...
     async def get_create_status(
         self,
