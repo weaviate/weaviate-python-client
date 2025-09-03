@@ -325,6 +325,27 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             32,
         ),
         (
+            Permissions.alias(alias="", read=True, delete=True),
+            Role(
+                name="AlliasRole",
+                alias_permissions=[
+                    AliasPermissionOutput(
+                        alias="", actions={Actions.Alias.READ, Actions.Alias.DELETE}
+                    )
+                ],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+            ),
+            32,  # Minimum version for alias permissions
+        ),
+        (
             Permissions.alias(alias="*", read=True, delete=True),
             Role(
                 name="AlliasRole",
