@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x18v1/health_weaviate.proto\x12\x0egrpc.health.v1\"-\n\x1aWeaviateHealthCheckRequest\x12\x0f\n\x07service\x18\x01 \x01(\t\"\xa4\x01\n\x1bWeaviateHealthCheckResponse\x12I\n\x06status\x18\x01 \x01(\x0e\x32\x39.grpc.health.v1.WeaviateHealthCheckResponse.ServingStatus\":\n\rServingStatus\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07SERVING\x10\x01\x12\x0f\n\x0bNOT_SERVING\x10\x02\x32j\n\x06Health\x12`\n\x05\x43heck\x12*.grpc.health.v1.WeaviateHealthCheckRequest\x1a+.grpc.health.v1.WeaviateHealthCheckResponseB\x11\xaa\x02\x0eGrpc.Health.V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x18v1/health_weaviate.proto\x12\x12weaviate.health.v1\"-\n\x1aWeaviateHealthCheckRequest\x12\x0f\n\x07service\x18\x01 \x01(\t\"\xa8\x01\n\x1bWeaviateHealthCheckResponse\x12M\n\x06status\x18\x01 \x01(\x0e\x32=.weaviate.health.v1.WeaviateHealthCheckResponse.ServingStatus\":\n\rServingStatus\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07SERVING\x10\x01\x12\x0f\n\x0bNOT_SERVING\x10\x02\x32r\n\x06Health\x12h\n\x05\x43heck\x12..weaviate.health.v1.WeaviateHealthCheckRequest\x1a/.weaviate.health.v1.WeaviateHealthCheckResponseB\x11\xaa\x02\x0eGrpc.Health.V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -22,12 +22,12 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'v1.health_weaviate_pb2', _g
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\252\002\016Grpc.Health.V1'
-  _globals['_WEAVIATEHEALTHCHECKREQUEST']._serialized_start=44
-  _globals['_WEAVIATEHEALTHCHECKREQUEST']._serialized_end=89
-  _globals['_WEAVIATEHEALTHCHECKRESPONSE']._serialized_start=92
-  _globals['_WEAVIATEHEALTHCHECKRESPONSE']._serialized_end=256
-  _globals['_WEAVIATEHEALTHCHECKRESPONSE_SERVINGSTATUS']._serialized_start=198
-  _globals['_WEAVIATEHEALTHCHECKRESPONSE_SERVINGSTATUS']._serialized_end=256
-  _globals['_HEALTH']._serialized_start=258
-  _globals['_HEALTH']._serialized_end=364
+  _globals['_WEAVIATEHEALTHCHECKREQUEST']._serialized_start=48
+  _globals['_WEAVIATEHEALTHCHECKREQUEST']._serialized_end=93
+  _globals['_WEAVIATEHEALTHCHECKRESPONSE']._serialized_start=96
+  _globals['_WEAVIATEHEALTHCHECKRESPONSE']._serialized_end=264
+  _globals['_WEAVIATEHEALTHCHECKRESPONSE_SERVINGSTATUS']._serialized_start=206
+  _globals['_WEAVIATEHEALTHCHECKRESPONSE_SERVINGSTATUS']._serialized_end=264
+  _globals['_HEALTH']._serialized_start=266
+  _globals['_HEALTH']._serialized_end=380
 # @@protoc_insertion_point(module_scope)

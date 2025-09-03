@@ -15,7 +15,7 @@ class HealthStub(object):
             channel: A grpc.Channel.
         """
         self.Check = channel.unary_unary(
-                '/grpc.health.v1.Health/Check',
+                '/weaviate.health.v1.Health/Check',
                 request_serializer=v1_dot_health__weaviate__pb2.WeaviateHealthCheckRequest.SerializeToString,
                 response_deserializer=v1_dot_health__weaviate__pb2.WeaviateHealthCheckResponse.FromString,
                 )
@@ -40,7 +40,7 @@ def add_HealthServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'grpc.health.v1.Health', rpc_method_handlers)
+            'weaviate.health.v1.Health', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -59,7 +59,7 @@ class Health(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/grpc.health.v1.Health/Check',
+        return grpc.experimental.unary_unary(request, target, '/weaviate.health.v1.Health/Check',
             v1_dot_health__weaviate__pb2.WeaviateHealthCheckRequest.SerializeToString,
             v1_dot_health__weaviate__pb2.WeaviateHealthCheckResponse.FromString,
             options, channel_credentials,
