@@ -16,8 +16,8 @@ class HealthStub(object):
         """
         self.Check = channel.unary_unary(
                 '/grpc.health.v1.Health/Check',
-                request_serializer=v1_dot_health__weaviate__pb2.HealthCheckRequest.SerializeToString,
-                response_deserializer=v1_dot_health__weaviate__pb2.HealthCheckResponse.FromString,
+                request_serializer=v1_dot_health__weaviate__pb2.WeaviateHealthCheckRequest.SerializeToString,
+                response_deserializer=v1_dot_health__weaviate__pb2.WeaviateHealthCheckResponse.FromString,
                 )
 
 
@@ -35,8 +35,8 @@ def add_HealthServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Check': grpc.unary_unary_rpc_method_handler(
                     servicer.Check,
-                    request_deserializer=v1_dot_health__weaviate__pb2.HealthCheckRequest.FromString,
-                    response_serializer=v1_dot_health__weaviate__pb2.HealthCheckResponse.SerializeToString,
+                    request_deserializer=v1_dot_health__weaviate__pb2.WeaviateHealthCheckRequest.FromString,
+                    response_serializer=v1_dot_health__weaviate__pb2.WeaviateHealthCheckResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -60,7 +60,7 @@ class Health(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/grpc.health.v1.Health/Check',
-            v1_dot_health__weaviate__pb2.HealthCheckRequest.SerializeToString,
-            v1_dot_health__weaviate__pb2.HealthCheckResponse.FromString,
+            v1_dot_health__weaviate__pb2.WeaviateHealthCheckRequest.SerializeToString,
+            v1_dot_health__weaviate__pb2.WeaviateHealthCheckResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
