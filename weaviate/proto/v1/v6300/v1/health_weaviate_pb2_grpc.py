@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from weaviate.proto.v1.v6300.v1 import health_pb2 as v1_dot_health__pb2
+from weaviate.proto.v1.v6300.v1 import health_weaviate_pb2 as v1_dot_health__weaviate__pb2
 
 GRPC_GENERATED_VERSION = '1.72.1'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in v1/health_pb2_grpc.py depends on'
+        + f' but the generated code in v1/health_weaviate_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,8 +36,8 @@ class HealthStub(object):
         """
         self.Check = channel.unary_unary(
                 '/grpc.health.v1.Health/Check',
-                request_serializer=v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
-                response_deserializer=v1_dot_health__pb2.HealthCheckResponse.FromString,
+                request_serializer=v1_dot_health__weaviate__pb2.HealthCheckRequest.SerializeToString,
+                response_deserializer=v1_dot_health__weaviate__pb2.HealthCheckResponse.FromString,
                 _registered_method=True)
 
 
@@ -55,8 +55,8 @@ def add_HealthServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Check': grpc.unary_unary_rpc_method_handler(
                     servicer.Check,
-                    request_deserializer=v1_dot_health__pb2.HealthCheckRequest.FromString,
-                    response_serializer=v1_dot_health__pb2.HealthCheckResponse.SerializeToString,
+                    request_deserializer=v1_dot_health__weaviate__pb2.HealthCheckRequest.FromString,
+                    response_serializer=v1_dot_health__weaviate__pb2.HealthCheckResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -84,8 +84,8 @@ class Health(object):
             request,
             target,
             '/grpc.health.v1.Health/Check',
-            v1_dot_health__pb2.HealthCheckRequest.SerializeToString,
-            v1_dot_health__pb2.HealthCheckResponse.FromString,
+            v1_dot_health__weaviate__pb2.HealthCheckRequest.SerializeToString,
+            v1_dot_health__weaviate__pb2.HealthCheckResponse.FromString,
             options,
             channel_credentials,
             insecure,
