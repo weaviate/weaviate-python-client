@@ -1644,11 +1644,9 @@ def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None
         pytest.skip("uncompressed is not supported in Weaviate versions lower than 1.32.4")
 
     collection = collection_factory(
-        vector_config=Configure.Vectors.self_provided(
-            name="vec",
-            vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
-                quantizer=Configure.VectorIndex.Quantizer.none()
-            ),
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.none(),
         ),
     )
 
