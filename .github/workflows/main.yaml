@@ -183,7 +183,6 @@ jobs:
       - name: Run integration tests with auth secrets
         if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         env:
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
