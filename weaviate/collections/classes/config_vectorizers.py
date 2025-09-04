@@ -115,6 +115,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
+    TEXT2VEC_MORPH = "text2vec-morph"
     TEXT2VEC_MODEL2VEC = "text2vec-model2vec"
     TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
@@ -125,6 +126,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
     TEXT2VEC_WEAVIATE = "text2vec-weaviate"
     IMG2VEC_NEURAL = "img2vec-neural"
+    MULTI2VEC_AWS = "multi2vec-aws"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_COHERE = "multi2vec-cohere"
     MULTI2VEC_JINAAI = "multi2vec-jinaai"
@@ -262,6 +264,21 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
 class _Text2VecMistralConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_MISTRAL, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    vectorizeClassName: bool
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Text2VecMorphConfig(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2VEC_MORPH, frozen=True, exclude=True
     )
     model: Optional[str]
     vectorizeClassName: bool
@@ -465,6 +482,15 @@ class _Multi2VecJinaConfig(_Multi2VecBase):
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
         return ret_dict
+
+
+class _Multi2VecAWSConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_AWS, frozen=True, exclude=True
+    )
+    region: Optional[str]
+    model: Optional[str]
+    dimensions: Optional[int]
 
 
 class _Multi2MultiVecJinaConfig(_Multi2VecBase):
