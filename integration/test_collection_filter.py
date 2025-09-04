@@ -7,18 +7,9 @@ import pytest as pytest
 
 import weaviate
 from integration.conftest import CollectionFactory
-from weaviate.collections.classes.config import (
-    Configure,
-    DataType,
-    Property,
-    ReferenceProperty,
-)
+from weaviate.collections.classes.config import Configure, DataType, Property, ReferenceProperty
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.filters import (
-    Filter,
-    _Filters,
-    _FilterValue,
-)
+from weaviate.collections.classes.filters import Filter, _Filters, _FilterValue
 from weaviate.collections.classes.grpc import MetadataQuery, QueryReference, Sort
 from weaviate.collections.classes.internal import ReferenceToMulti
 from weaviate.types import UUID
@@ -282,6 +273,7 @@ def test_filters_comparison(
         (Filter.by_property("uuid").contains_any([UUID3]), []),
         (Filter.by_property("uuid").contains_any([UUID1]), [0]),
         (Filter.by_property("_id").contains_any([UUID1, UUID3]), [0, 2]),
+        (Filter.by_property("_id").contains_none([UUID1, UUID2, UUID3]), []),
     ],
 )
 def test_filters_contains(
