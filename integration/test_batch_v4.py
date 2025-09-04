@@ -368,13 +368,13 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
         lambda client: client.batch.rate_limit(9999),
-        lambda client: client.batch.automatic(),
+        lambda client: client.batch.experimental(),
     ],
     ids=[
         "test_add_ten_thousand_data_objects_dynamic",
         "test_add_ten_thousand_data_objects_fixed_size",
         "test_add_ten_thousand_data_objects_rate_limit",
-        "test_add_ten_thousand_data_objects_automatic",
+        "test_add_ten_thousand_data_objects_experimental",
     ],
 )
 def test_add_ten_thousand_data_objects(
@@ -385,10 +385,8 @@ def test_add_ten_thousand_data_objects(
     """Test adding ten thousand data objects."""
     client, name = client_factory()
     if (
-        request.node.callspec.id == "test_add_ten_thousand_data_objects_automatic"
-        and client._connection._weaviate_version.is_lower_than(
-            1, 32, 1
-        )  # TODO: change to 1.33.0 when released
+        request.node.callspec.id == "test_add_ten_thousand_data_objects_experimental"
+        and client._connection._weaviate_version.is_lower_than(1, 33, 0)
     ):  # change to 1.33.0 when released
         pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
     nr_objects = 10000
@@ -567,13 +565,13 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
         lambda client: client.batch.rate_limit(1000),
-        lambda client: client.batch.automatic(),
+        lambda client: client.batch.experimental(),
     ],
     ids=[
         "test_add_one_hundred_objects_and_references_between_all_dynamic",
         "test_add_one_hundred_objects_and_references_between_all_fixed_size",
         "test_add_one_hundred_objects_and_references_between_all_rate_limit",
-        "test_add_one_hundred_objects_and_references_between_all_automatic",
+        "test_add_one_hundred_objects_and_references_between_all_experimental",
     ],
 )
 def test_add_one_object_and_a_self_reference(
@@ -585,10 +583,8 @@ def test_add_one_object_and_a_self_reference(
     client, name = client_factory()
     if (
         request.node.callspec.id
-        == "test_add_one_hundred_objects_and_references_between_all_automatic"
-        and client._connection._weaviate_version.is_lower_than(
-            1, 32, 1
-        )  # TODO: change to 1.33.0 when released
+        == "test_add_one_hundred_objects_and_references_between_all_experimental"
+        and client._connection._weaviate_version.is_lower_than(1, 33, 0)
     ):
         pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
     with batching_method(client) as batch:

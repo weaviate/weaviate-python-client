@@ -289,12 +289,10 @@ class _BatchClientWrapper(_BatchWrapper):
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset(_BatchClient)
 
-    def automatic(
+    def experimental(
         self,
     ) -> ClientBatchingContextManager:
-        """Configure the batching context manager using the automatic server-side batching mode.
-
-        This mode will automatically determine the best batching strategy based on the server configuration.
+        """Configure the batching context manager using the experimental server-side batching mode.
 
         When you exit the context manager, the final batch will be sent automatically.
         """

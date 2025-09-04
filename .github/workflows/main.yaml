@@ -24,7 +24,7 @@ env:
   WEAVIATE_130: 1.30.13
   WEAVIATE_131: 1.31.9
   WEAVIATE_132: 1.32.3
-  WEAVIATE_133: 1.33.0-rc.0-50e40f8.arm64
+  WEAVIATE_133: 1.33.0-rc.1
 
 jobs:
   lint-and-format:
