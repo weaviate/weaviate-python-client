@@ -4,9 +4,13 @@ import pytest
 
 import weaviate
 import weaviate.classes as wvc
-from weaviate.collections.classes.filters import (Filter, _FilterAnd,
-                                                  _FilterNot, _FilterOr,
-                                                  _Operator)
+from weaviate.collections.classes.filters import (
+    Filter,
+    _FilterAnd,
+    _FilterNot,
+    _FilterOr,
+    _Operator,
+)
 from weaviate.proto.v1 import base_pb2
 
 
