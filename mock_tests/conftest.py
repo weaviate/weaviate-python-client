@@ -15,13 +15,13 @@ from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import (
     batch_delete_pb2,
     batch_pb2,
-    health_pb2,
-    health_pb2_grpc,
     properties_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,
 )
+
+from grpc_health.v1 import health_pb2, health_pb2_grpc
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
