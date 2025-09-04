@@ -1945,6 +1945,30 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.multi2vec_aws(
+                name="test",
+                dimensions=512,
+                model="model",
+                text_fields=["prop"],
+                image_fields=["img"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-aws": {
+                        "textFields": ["prop"],
+                        "imageFields": ["img"],
+                        "model": "model",
+                        "dimensions": 512,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.text2vec_cohere(name="test", source_properties=["prop"])],
         {
             "test": {
