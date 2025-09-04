@@ -7,10 +7,12 @@ import pytest as pytest
 
 import weaviate
 from integration.conftest import CollectionFactory
-from weaviate.collections.classes.config import Configure, DataType, Property, ReferenceProperty
+from weaviate.collections.classes.config import (Configure, DataType, Property,
+                                                 ReferenceProperty)
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import Filter, _Filters, _FilterValue
-from weaviate.collections.classes.grpc import MetadataQuery, QueryReference, Sort
+from weaviate.collections.classes.grpc import (MetadataQuery, QueryReference,
+                                               Sort)
 from weaviate.collections.classes.internal import ReferenceToMulti
 from weaviate.types import UUID
 
@@ -237,7 +239,7 @@ def test_filters_comparison(
 
 
 @pytest.mark.parametrize(
-    "weaviate_filter,results",
+    "weaviate_filter,results,require_version",
     [
         (Filter.by_property("ints").contains_any([1, 4]), [0, 3]),
         (Filter.by_property("ints").contains_any([1.0, 4]), [0, 3]),
@@ -273,13 +275,14 @@ def test_filters_comparison(
         (Filter.by_property("uuid").contains_any([UUID3]), []),
         (Filter.by_property("uuid").contains_any([UUID1]), [0]),
         (Filter.by_property("_id").contains_any([UUID1, UUID3]), [0, 2]),
-        (Filter.by_property("_id").contains_none([UUID1, UUID2, UUID3]), []),
+        (Filter.by_property("_id").contains_none([UUID1, UUID2, UUID3]), [], (1, 33, 0)),
     ],
 )
 def test_filters_contains(
     collection_factory: CollectionFactory,
     weaviate_filter: _FilterValue,
     results: List[int],
+    require_version: Optional[tuple[int, int, int]] = None,
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -298,6 +301,9 @@ def test_filters_contains(
             Property(name="uuid", data_type=DataType.UUID),
         ],
     )
+
+    if require_version and collection._connection._weaviate_version.is_lower_than(*require_version) :
+        pytest.skip(f"{weaviate_filter} is not supported in v{".".join(str(_) for _ in require_version)}")
 
     uuids = [
         collection.data.insert(
