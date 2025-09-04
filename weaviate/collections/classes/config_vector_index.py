@@ -95,8 +95,6 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
 
 
 class _VectorIndexConfigUpdate(_ConfigUpdateModel):
-    quantizer: Optional[_QuantizerConfigUpdate] = Field(exclude=True)
-
     @staticmethod
     @abstractmethod
     def vector_index_type() -> VectorIndexType: ...
@@ -136,13 +134,14 @@ class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
 
 
 class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
-    dynamicEfMin: Optional[int]
-    dynamicEfMax: Optional[int]
-    dynamicEfFactor: Optional[int]
-    ef: Optional[int]
-    filterStrategy: Optional[VectorFilterStrategy]
-    flatSearchCutoff: Optional[int]
-    vectorCacheMaxObjects: Optional[int]
+    quantizer: Optional[_QuantizerConfigUpdate] = Field(exclude=True)
+    dynamicEfMin: Optional[int] = None
+    dynamicEfMax: Optional[int] = None
+    dynamicEfFactor: Optional[int] = None
+    ef: Optional[int] = None
+    filterStrategy: Optional[VectorFilterStrategy] = None
+    flatSearchCutoff: Optional[int] = None
+    vectorCacheMaxObjects: Optional[int] = None
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -150,7 +149,8 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
 
 
 class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
-    vectorCacheMaxObjects: Optional[int]
+    vectorCacheMaxObjects: Optional[int] = None
+    quantizer: Optional[_QuantizerConfigUpdate] = Field(exclude=True)
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -179,9 +179,9 @@ class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
 
 
 class _VectorIndexConfigDynamicUpdate(_VectorIndexConfigUpdate):
-    threshold: Optional[int]
-    hnsw: Optional[_VectorIndexConfigHNSWUpdate]
-    flat: Optional[_VectorIndexConfigFlatUpdate]
+    threshold: Optional[int] = None
+    hnsw: Optional[_VectorIndexConfigHNSWUpdate] = None
+    flat: Optional[_VectorIndexConfigFlatUpdate] = None
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -319,6 +319,12 @@ class _RQConfigUpdate(_QuantizerConfigUpdate):
     @staticmethod
     def quantizer_name() -> str:
         return "rq"
+
+
+class _UncompressedConfigUpdate(_QuantizerConfigUpdate):
+    @staticmethod
+    def quantizer_name() -> str:
+        return "uncompressed"
 
 
 class _SQConfigUpdate(_QuantizerConfigUpdate):

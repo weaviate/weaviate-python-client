@@ -36,15 +36,20 @@ from weaviate.collections.classes.config import (
     _ShardStatus,
     _VectorConfigCreate,
     _VectorConfigUpdate,
+    _VectorIndexConfigDynamic,
+    _VectorIndexConfigFlat,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSW,
     _VectorIndexConfigHNSWUpdate,
 )
+from weaviate.collections.classes.config_base import _QuantizerConfigUpdate
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
+    _VectorIndexConfigUpdate,
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
@@ -565,6 +570,98 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 error_msg="Collection configuration may not have been updated.",
                 status_codes=_ExpectedStatusCodes(
                     ok_in=200, error="Update collection configuration"
+                ),
+            )
+
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> None:
+                schema = await executor.aresult(self.__get())
+                return await executor.aresult(resp(schema))
+
+            return _execute()
+        schema = executor.result(self.__get())
+        return executor.result(resp(schema))
+
+    def update_quantizer(
+        self,
+        *,
+        name: str,
+        hnsw_quantizer: Optional[_QuantizerConfigUpdate] = None,
+        # flat_quantizer: Optional[_QuantizerConfigUpdate] = None,  not yet supported by Weaviate
+    ) -> executor.Result[None]:
+        """Update the quantizer configurations.
+
+        Args:
+            name: Name of the vector to update quantizer settings
+            hnsw_quantizer: The HNSW quantizer configuration to update.
+            flat_quantizer: The flat quantizer configuration to update.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the vector already exists in the collection.
+        """
+        flat_quantizer = None
+        if hnsw_quantizer is None and flat_quantizer is None:
+            raise WeaviateInvalidInputError("At least one quantizer must be provided.")
+
+        def resp(schema: Dict[str, Any]) -> executor.Result[None]:
+            config = _collection_config_from_json(schema)
+            if config.vector_config is None:
+                raise WeaviateInvalidInputError(
+                    "Cannot update quantizer for legacy configurations."
+                )
+
+            if name not in config.vector_config:
+                raise WeaviateInvalidInputError(f"Vector {name} not found in collection.")
+
+            vector_index_config: _VectorIndexConfigUpdate
+            if isinstance(config.vector_config[name].vector_index_config, _VectorIndexConfigHNSW):
+                if hnsw_quantizer is None:
+                    raise WeaviateInvalidInputError(
+                        "HNSW quantizer must be provided for updating HNSW vector index."
+                    )
+                vector_index_config = _VectorIndexConfigHNSWUpdate(quantizer=hnsw_quantizer)
+            elif isinstance(config.vector_config[name].vector_index_config, _VectorIndexConfigFlat):
+                if flat_quantizer is None:
+                    raise WeaviateInvalidInputError(
+                        "Flat quantizer must be provided for updating flat vector index."
+                    )
+
+                vector_index_config = _VectorIndexConfigFlatUpdate(quantizer=flat_quantizer)
+            else:
+                assert isinstance(
+                    config.vector_config[name].vector_index_config, _VectorIndexConfigDynamic
+                )
+                hnsw_update = (
+                    _VectorIndexConfigHNSWUpdate(quantizer=hnsw_quantizer)
+                    if hnsw_quantizer
+                    else None
+                )
+                flat_update = (
+                    _VectorIndexConfigFlatUpdate(quantizer=flat_quantizer)
+                    if flat_quantizer
+                    else None
+                )
+                vector_index_config = _VectorIndexConfigDynamicUpdate(
+                    hnsw=hnsw_update, flat=flat_update
+                )
+
+            updated_config = _CollectionConfigUpdate(
+                vector_config=_VectorConfigUpdate(
+                    name=name, vector_index_config=vector_index_config
+                ),
+            )
+
+            return executor.execute(
+                response_callback=lambda _: None,
+                method=self._connection.put,
+                path=f"/schema/{self._name}",
+                weaviate_object=updated_config.merge_with_existing(schema),
+                error_msg="Quantizer configuration may not have been updated.",
+                status_codes=_ExpectedStatusCodes(
+                    ok_in=200, error="Update quantizer configuration"
                 ),
             )
 

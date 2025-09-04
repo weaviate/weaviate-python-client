@@ -1644,9 +1644,11 @@ def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None
         pytest.skip("uncompressed is not supported in Weaviate versions lower than 1.32.4")
 
     collection = collection_factory(
-        vector_index_config=Configure.VectorIndex.hnsw(
-            vector_cache_max_objects=5,
-            quantizer=Configure.VectorIndex.Quantizer.none(),
+        vector_config=Configure.Vectors.self_provided(
+            name="vec",
+            vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
+                quantizer=Configure.VectorIndex.Quantizer.none()
+            ),
         ),
     )
 
@@ -1655,3 +1657,97 @@ def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config is not None
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.quantizer is None
+
+
+def test_quantitizer_update(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy", ports=(8090, 50061))
+    if dummy._connection._weaviate_version.is_lower_than(1, 33, 0):
+        pytest.skip("uncompressed is not supported in Weaviate versions lower than 1.33.0")
+
+    collection = collection_factory(
+        vector_config=[
+            Configure.Vectors.self_provided(
+                name="hnsw",
+                vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
+                    quantizer=Configure.VectorIndex.Quantizer.none()
+                ),
+            ),
+            Configure.Vectors.self_provided(
+                name="flat",
+                vector_index_config=wvc.config.Configure.VectorIndex.flat(
+                    quantizer=Configure.VectorIndex.Quantizer.none()
+                ),
+            ),
+            Configure.Vectors.self_provided(
+                name="dynamic",
+                vector_index_config=wvc.config.Configure.VectorIndex.dynamic(
+                    flat=Configure.VectorIndex.flat(
+                        quantizer=Configure.VectorIndex.Quantizer.none()
+                    ),
+                    hnsw=Configure.VectorIndex.hnsw(
+                        quantizer=Configure.VectorIndex.Quantizer.none()
+                    ),
+                ),
+            ),
+        ],
+        ports=(8090, 50061),  # async
+    )
+
+    collection.config.update_quantizer(
+        name="hnsw", hnsw_quantizer=Reconfigure.VectorIndex.Quantizer.pq()
+    )
+
+    config = collection.config.get()
+    assert config.vector_config is not None
+    hnsw_config = config.vector_config["hnsw"].vector_index_config
+    assert hnsw_config is not None
+    assert isinstance(hnsw_config, _VectorIndexConfigHNSW)
+    assert hnsw_config.quantizer is not None
+    assert isinstance(hnsw_config.quantizer, _PQConfig)
+
+    # other indices are not changed
+    flat_config = config.vector_config["flat"].vector_index_config
+    assert flat_config is not None
+    assert isinstance(flat_config, _VectorIndexConfigFlat)
+    assert flat_config.quantizer is None
+
+    dynamic_config = config.vector_config["dynamic"].vector_index_config
+    assert dynamic_config is not None
+    assert isinstance(dynamic_config, _VectorIndexConfigDynamic)
+    assert dynamic_config.hnsw.quantizer is None
+    assert dynamic_config.flat.quantizer is None
+
+    # collection.config.update_quantizer(
+    #     name="flat",
+    #     flat_quantizer=Reconfigure.VectorIndex.Quantizer.bq()
+    # )
+
+    # collection.config.update(
+    #     vector_config=wvc.config.Reconfigure.Vectors.update(
+    #         name="flat",
+    #         vector_index_config=Reconfigure.VectorIndex.flat(quantizer=Reconfigure.VectorIndex.Quantizer.bq())
+    #     )
+    # )
+
+    # config = collection.config.get()
+    # assert config.vector_config is not None
+    # flat_config = config.vector_config["flat"].vector_index_config
+    # assert flat_config is not None
+    # assert isinstance(flat_config, _VectorIndexConfigFlat)
+    # assert flat_config.quantizer is not None
+    # assert isinstance(flat_config.quantizer, _BQConfig)
+
+    collection.config.update_quantizer(
+        name="dynamic",
+        hnsw_quantizer=Reconfigure.VectorIndex.Quantizer.sq(),
+        # flat_quantizer=Reconfigure.VectorIndex.Quantizer.pq()
+    )
+
+    config = collection.config.get()
+    assert config.vector_config is not None
+    dynamic_config = config.vector_config["dynamic"].vector_index_config
+    assert dynamic_config is not None
+    assert isinstance(dynamic_config, _VectorIndexConfigDynamic)
+    assert dynamic_config.hnsw.quantizer is not None
+    assert isinstance(dynamic_config.hnsw.quantizer, _SQConfig)
+    assert dynamic_config.flat.quantizer is None
