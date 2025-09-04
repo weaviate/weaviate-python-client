@@ -321,12 +321,6 @@ class _RQConfigUpdate(_QuantizerConfigUpdate):
         return "rq"
 
 
-class _UncompressedConfigUpdate(_QuantizerConfigUpdate):
-    @staticmethod
-    def quantizer_name() -> str:
-        return "uncompressed"
-
-
 class _SQConfigUpdate(_QuantizerConfigUpdate):
     enabled: Optional[bool]
     rescoreLimit: Optional[int]

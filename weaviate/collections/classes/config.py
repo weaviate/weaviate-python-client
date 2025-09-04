@@ -40,7 +40,6 @@ from weaviate.collections.classes.config_vector_index import (
     _PQEncoderConfigUpdate,
     _RQConfigUpdate,
     _SQConfigUpdate,
-    _UncompressedConfigUpdate,
     _VectorIndex,
     _VectorIndexConfigCreate,
     _VectorIndexConfigDynamicUpdate,
@@ -2258,11 +2257,6 @@ class _VectorIndexQuantizerUpdate:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _RQConfigUpdate(enabled=enabled, rescoreLimit=rescore_limit, bits=bits)
-
-    @staticmethod
-    def none() -> _UncompressedConfigUpdate:
-        """Update quantizer to uncompressed."""
-        return _UncompressedConfigUpdate()
 
 
 class _VectorIndexUpdate:
