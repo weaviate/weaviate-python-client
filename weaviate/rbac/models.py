@@ -28,10 +28,20 @@ class UserTypes(str, Enum):
     OIDC = "oidc"
 
 
+class GroupTypes(str, Enum):
+    OIDC = "oidc"
+
+
 @dataclass
 class UserAssignment:
     user_id: str
     user_type: UserTypes
+
+
+@dataclass
+class GroupAssignment:
+    group_id: str
+    group_type: GroupTypes
 
 
 class WeaviateUserAssignment(TypedDict):
@@ -83,6 +93,11 @@ class PermissionsUsers(TypedDict):
     users: str
 
 
+class PermissionsGroups(TypedDict):
+    group: str
+    groupType: str
+
+
 class PermissionsAlias(TypedDict):
     alias: str
     collection: str
@@ -105,6 +120,7 @@ class WeaviatePermission(
     tenants: Optional[PermissionsTenants]
     users: Optional[PermissionsUsers]
     aliases: Optional[PermissionsAlias]
+    groups: Optional[PermissionsGroups]
 
 
 class WeaviateRole(TypedDict):
@@ -186,6 +202,15 @@ class RolesAction(str, _Action, Enum):
     @staticmethod
     def values() -> List[str]:
         return [action.value for action in RolesAction]
+
+
+class GroupAction(str, _Action, Enum):
+    READ = "read_groups"
+    ASSIGN_AND_REVOKE = "assign_and_revoke_groups"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in GroupAction]
 
 
 class UsersAction(str, _Action, Enum):
@@ -353,6 +378,17 @@ class _AliasPermission(_Permission[AliasAction]):
         ]
 
 
+class _GroupsPermission(_Permission[GroupAction]):
+    group: str
+    group_type: str
+
+    def _to_weaviate(self) -> List[WeaviatePermission]:
+        return [
+            {"action": action, "groups": {"group": self.group, "groupType": self.group_type}}
+            for action in self.actions
+        ]
+
+
 class _BackupsPermission(_Permission[BackupsAction]):
     collection: str
 
@@ -415,6 +451,10 @@ class UsersPermissionOutput(_UsersPermission):
     pass
 
 
+class GroupsPermissionOutput(_GroupsPermission):
+    pass
+
+
 class AliasPermissionOutput(_AliasPermission):
     pass
 
@@ -446,6 +486,7 @@ PermissionsOutputType = Union[
     NodesPermissionOutput,
     TenantsPermissionOutput,
     ReplicatePermissionOutput,
+    GroupsPermissionOutput,
 ]
 
 
@@ -466,6 +507,7 @@ class Role(RoleBase):
     nodes_permissions: List[NodesPermissionOutput]
     tenants_permissions: List[TenantsPermissionOutput]
     replicate_permissions: List[ReplicatePermissionOutput]
+    groups_permissions: List[GroupsPermissionOutput]
 
     @property
     def permissions(self) -> List[PermissionsOutputType]:
@@ -480,6 +522,7 @@ class Role(RoleBase):
         permissions.extend(self.nodes_permissions)
         permissions.extend(self.tenants_permissions)
         permissions.extend(self.replicate_permissions)
+        permissions.extend(self.groups_permissions)
         return permissions
 
     @classmethod
@@ -494,6 +537,7 @@ class Role(RoleBase):
         nodes_permissions: List[NodesPermissionOutput] = []
         tenants_permissions: List[TenantsPermissionOutput] = []
         replicate_permissions: List[ReplicatePermissionOutput] = []
+        groups_permissions: List[GroupsPermissionOutput] = []
 
         for permission in role["permissions"]:
             if permission["action"] in ClusterAction.values():
@@ -588,6 +632,16 @@ class Role(RoleBase):
                             actions={AliasAction(permission["action"])},
                         )
                     )
+            elif permission["action"] in GroupAction.values():
+                groups = permission.get("groups")
+                if groups is not None:
+                    groups_permissions.append(
+                        GroupsPermissionOutput(
+                            group=groups["group"],
+                            group_type=groups["groupType"],
+                            actions={GroupAction(permission["action"])},
+                        )
+                    )
             else:
                 _Warnings.unknown_permission_encountered(permission)
 
@@ -598,6 +652,7 @@ class Role(RoleBase):
             users_permissions=_join_permissions(users_permissions),
             collections_permissions=_join_permissions(collections_permissions),
             roles_permissions=_join_permissions(roles_permissions),
+            groups_permissions=_join_permissions(groups_permissions),
             data_permissions=_join_permissions(data_permissions),
             backups_permissions=_join_permissions(backups_permissions),
             nodes_permissions=_join_permissions(nodes_permissions),
@@ -655,6 +710,32 @@ class Actions:
     Tenants = TenantsAction
     Users = UsersAction
     Replicate = ReplicateAction
+    Groups = GroupAction
+
+
+class GroupsPermissions:
+    @staticmethod
+    def oidc(
+        *,
+        group: Union[str, Sequence[str]],
+        read: bool = False,
+        assign_and_revoke: bool = False,
+    ) -> PermissionsCreateType:
+        permissions: List[_Permission] = []
+        if isinstance(group, str):
+            group = [group]
+        for g in group:
+            permission = _GroupsPermission(group=g, group_type="oidc", actions=set())
+
+            if read:
+                permission.actions.add(GroupAction.READ)
+            if assign_and_revoke:
+                permission.actions.add(GroupAction.ASSIGN_AND_REVOKE)
+
+            if len(permission.actions) > 0:
+                permissions.append(permission)
+
+        return permissions
 
 
 class NodesPermissions:
@@ -692,6 +773,7 @@ class NodesPermissions:
 
 class Permissions:
     Nodes = NodesPermissions
+    Groups = GroupsPermissions
 
     @staticmethod
     def alias(

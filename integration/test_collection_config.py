@@ -1636,3 +1636,22 @@ def test_collection_config_create_with_deprecated_syntax(
     assert config.vectorizer_config is None
     assert config.vector_config is None
     assert config.vectorizer == Vectorizers.NONE
+
+
+def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 32, 4):
+        pytest.skip("uncompressed is not supported in Weaviate versions lower than 1.32.4")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.none(),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.quantizer is None

@@ -246,6 +246,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
+        overwrite_alias: bool = False,
     ) -> executor.Result[BackupReturn]:
         """Restore a backup of all/per collection Weaviate objects.
 
@@ -260,6 +261,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             wait_for_completion: Whether to wait until the backup restore is done.
             config: The configuration of the backup restoration. By default None.
             backup_location: The dynamic location of a backup. By default None.
+            overwrite_alias: Allows ovewriting the collection alias if there is a conflict.
 
         Returns:
             A `BackupReturn` object that contains the backup restore response.
@@ -284,6 +286,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         payload: dict = {
             "include": include_collections,
             "exclude": exclude_collections,
+            "overwriteAlias": overwrite_alias,
         }
         configPayload = {}
         if config is not None:
