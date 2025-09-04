@@ -50,6 +50,8 @@ class _Operator(str, Enum):
             return base_pb2.Filters.OPERATOR_CONTAINS_ANY
         elif self == _Operator.CONTAINS_ALL:
             return base_pb2.Filters.OPERATOR_CONTAINS_ALL
+        elif self == _Operator.CONTAINS_NONE:
+            return base_pb2.Filters.OPERATOR_CONTAINS_NONE
         elif self == _Operator.WITHIN_GEO_RANGE:
             return base_pb2.Filters.OPERATOR_WITHIN_GEO_RANGE
         elif self == _Operator.AND:
