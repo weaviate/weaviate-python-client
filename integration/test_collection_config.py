@@ -1751,3 +1751,25 @@ def test_quantitizer_update(collection_factory: CollectionFactory) -> None:
     assert dynamic_config.hnsw.quantizer is not None
     assert isinstance(dynamic_config.hnsw.quantizer, _SQConfig)
     assert dynamic_config.flat.quantizer is None
+
+
+def test_quantitizer_update_legacy(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy", ports=(8090, 50061))
+    if dummy._connection._weaviate_version.is_lower_than(1, 33, 0):
+        pytest.skip("uncompressed is not supported in Weaviate versions lower than 1.33.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        vector_index_config=wvc.config.Configure.VectorIndex.dynamic(
+            flat=Configure.VectorIndex.flat(quantizer=Configure.VectorIndex.Quantizer.none()),
+            hnsw=Configure.VectorIndex.hnsw(quantizer=Configure.VectorIndex.Quantizer.none()),
+        ),
+        ports=(8090, 50061),  # async
+    )
+
+    collection.config.update_quantizer(hnsw_quantizer=Reconfigure.VectorIndex.Quantizer.pq())
+    config = collection.config.get()
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
+    assert config.vector_index_config.hnsw.quantizer is not None
+    assert isinstance(config.vector_index_config.hnsw.quantizer, _PQConfig)

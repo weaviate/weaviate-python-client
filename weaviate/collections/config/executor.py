@@ -49,7 +49,6 @@ from weaviate.collections.classes.config_methods import (
 )
 from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
-    _VectorIndexConfigUpdate,
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
@@ -586,7 +585,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def update_quantizer(
         self,
         *,
-        name: str,
+        name: Optional[str] = None,
         hnsw_quantizer: Optional[_QuantizerConfigUpdate] = None,
         # flat_quantizer: Optional[_QuantizerConfigUpdate] = None,  not yet supported by Weaviate
     ) -> executor.Result[None]:
@@ -608,51 +607,86 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         def resp(schema: Dict[str, Any]) -> executor.Result[None]:
             config = _collection_config_from_json(schema)
-            if config.vector_config is None:
+            if config.vector_config is None and config.vector_index_config is None:
                 raise WeaviateInvalidInputError(
-                    "Cannot update quantizer for legacy configurations."
+                    "Collection must contain either a vector config or a vector index config."
                 )
 
-            if name not in config.vector_config:
-                raise WeaviateInvalidInputError(f"Vector {name} not found in collection.")
+            if config.vector_config is None:
+                if isinstance(config.vector_index_config, _VectorIndexConfigHNSW):
+                    if hnsw_quantizer is None:
+                        raise WeaviateInvalidInputError(
+                            "HNSW quantizer must be provided for updating HNSW vector index."
+                        )
+                    vector_index_config = _VectorIndexConfigHNSWUpdate(quantizer=hnsw_quantizer)
+                elif isinstance(config.vector_index_config, _VectorIndexConfigFlat):
+                    if flat_quantizer is None:
+                        raise WeaviateInvalidInputError(
+                            "Flat quantizer must be provided for updating flat vector index."
+                        )
 
-            vector_index_config: _VectorIndexConfigUpdate
-            if isinstance(config.vector_config[name].vector_index_config, _VectorIndexConfigHNSW):
-                if hnsw_quantizer is None:
-                    raise WeaviateInvalidInputError(
-                        "HNSW quantizer must be provided for updating HNSW vector index."
+                    vector_index_config = _VectorIndexConfigFlatUpdate(quantizer=flat_quantizer)
+                else:
+                    assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
+                    hnsw_update = (
+                        _VectorIndexConfigHNSWUpdate(quantizer=hnsw_quantizer)
+                        if hnsw_quantizer
+                        else None
                     )
-                vector_index_config = _VectorIndexConfigHNSWUpdate(quantizer=hnsw_quantizer)
-            elif isinstance(config.vector_config[name].vector_index_config, _VectorIndexConfigFlat):
-                if flat_quantizer is None:
-                    raise WeaviateInvalidInputError(
-                        "Flat quantizer must be provided for updating flat vector index."
+                    flat_update = (
+                        _VectorIndexConfigFlatUpdate(quantizer=flat_quantizer)
+                        if flat_quantizer
+                        else None
+                    )
+                    vector_index_config = _VectorIndexConfigDynamicUpdate(
+                        hnsw=hnsw_update, flat=flat_update
                     )
 
-                vector_index_config = _VectorIndexConfigFlatUpdate(quantizer=flat_quantizer)
+                updated_config = _CollectionConfigUpdate(
+                    vector_index_config=vector_index_config,
+                )
             else:
-                assert isinstance(
-                    config.vector_config[name].vector_index_config, _VectorIndexConfigDynamic
-                )
-                hnsw_update = (
-                    _VectorIndexConfigHNSWUpdate(quantizer=hnsw_quantizer)
-                    if hnsw_quantizer
-                    else None
-                )
-                flat_update = (
-                    _VectorIndexConfigFlatUpdate(quantizer=flat_quantizer)
-                    if flat_quantizer
-                    else None
-                )
-                vector_index_config = _VectorIndexConfigDynamicUpdate(
-                    hnsw=hnsw_update, flat=flat_update
-                )
+                if name not in config.vector_config:
+                    raise WeaviateInvalidInputError(f"Vector {name} not found in collection.")
 
-            updated_config = _CollectionConfigUpdate(
-                vector_config=_VectorConfigUpdate(
-                    name=name, vector_index_config=vector_index_config
-                ),
-            )
+                if isinstance(
+                    config.vector_config[name].vector_index_config, _VectorIndexConfigHNSW
+                ):
+                    if hnsw_quantizer is None:
+                        raise WeaviateInvalidInputError(
+                            "HNSW quantizer must be provided for updating HNSW vector index."
+                        )
+                    vector_config = _VectorIndexConfigHNSWUpdate(quantizer=hnsw_quantizer)
+                elif isinstance(
+                    config.vector_config[name].vector_index_config, _VectorIndexConfigFlat
+                ):
+                    if flat_quantizer is None:
+                        raise WeaviateInvalidInputError(
+                            "Flat quantizer must be provided for updating flat vector index."
+                        )
+
+                    vector_config = _VectorIndexConfigFlatUpdate(quantizer=flat_quantizer)
+                else:
+                    assert isinstance(
+                        config.vector_config[name].vector_index_config, _VectorIndexConfigDynamic
+                    )
+                    hnsw_update = (
+                        _VectorIndexConfigHNSWUpdate(quantizer=hnsw_quantizer)
+                        if hnsw_quantizer
+                        else None
+                    )
+                    flat_update = (
+                        _VectorIndexConfigFlatUpdate(quantizer=flat_quantizer)
+                        if flat_quantizer
+                        else None
+                    )
+                    vector_config = _VectorIndexConfigDynamicUpdate(
+                        hnsw=hnsw_update, flat=flat_update
+                    )
+
+                updated_config = _CollectionConfigUpdate(
+                    vector_config=_VectorConfigUpdate(name=name, vector_index_config=vector_config),
+                )
 
             return executor.execute(
                 response_callback=lambda _: None,

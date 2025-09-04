@@ -82,5 +82,5 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...
     async def update_quantizer(
-        self, *, name: str, hnsw_quantizer: Optional[_QuantizerConfigUpdate] = None
+        self, *, name: Optional[str] = None, hnsw_quantizer: Optional[_QuantizerConfigUpdate] = None
     ) -> None: ...
