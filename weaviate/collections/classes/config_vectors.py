@@ -61,6 +61,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecJinaConfig,
     _Text2VecMistralConfig,
     _Text2VecModel2VecConfig,
+    _Text2VecMorphConfig,
     _Text2VecNvidiaConfig,
     _Text2VecOllamaConfig,
     _Text2VecOpenAIConfig,
@@ -553,6 +554,42 @@ class _Vectors:
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecMistralConfig(
+                baseURL=base_url,
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
+    def text2vec_morph(
+        *,
+        name: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+        model: Optional[str] = None,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `text2vec-morph` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/morph/embeddings)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecMorphConfig(
                 baseURL=base_url,
                 model=model,
                 vectorizeClassName=vectorize_collection_name,

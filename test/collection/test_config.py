@@ -2178,6 +2178,20 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [Configure.Vectors.text2vec_morph(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-morph": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [
             Configure.Vectors.text2vec_google(
                 name="test",
