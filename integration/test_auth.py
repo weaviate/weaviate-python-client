@@ -15,7 +15,6 @@ from weaviate.collections.classes.filters import Filter
 from weaviate.exceptions import AuthenticationFailedError, UnexpectedStatusCodeError
 
 ANON_PORT = 8080
-AZURE_PORT = 8081
 OKTA_PORT_CC = 8082
 OKTA_PORT_USERS = 8083
 WCS_PORT = 8085
@@ -29,21 +28,14 @@ def is_auth_enabled(url: str) -> bool:
 
 def test_no_auth_provided() -> None:
     """Test exception when trying to access a weaviate that requires authentication."""
-    assert is_auth_enabled(f"localhost:{AZURE_PORT}")
+    assert is_auth_enabled(f"localhost:{OKTA_PORT_CC}")
     with pytest.raises(AuthenticationFailedError):
-        weaviate.connect_to_local(port=AZURE_PORT)
+        weaviate.connect_to_local(port=OKTA_PORT_CC)
 
 
 @pytest.mark.parametrize(
     "name,env_variable_name,port,scope",
     [
-        # ("azure", "AZURE_CLIENT_SECRET", AZURE_PORT, None),
-        # (
-        #     "azure",
-        #     "AZURE_CLIENT_SECRET",
-        #     AZURE_PORT,
-        #     "4706508f-30c2-469b-8b12-ad272b3de864/.default",
-        # ),  expired
         ("okta", "OKTA_CLIENT_SECRET", OKTA_PORT_CC, "some_scope"),
     ],
 )

@@ -306,7 +306,7 @@ class _Generative:
     def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
         if server_version.is_lower_than(1, 27, 14):
             if self.generative_provider is not None:
-                raise WeaviateUnsupportedFeatureError("Dynamic RAG", str(server_version), "1.30.0")
+                raise WeaviateUnsupportedFeatureError("Dynamic RAG", str(server_version), "1.27.14")
 
             if isinstance(self.single, _SinglePrompt):
                 single_prompt: Optional[str] = self.single.prompt

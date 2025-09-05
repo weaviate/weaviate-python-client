@@ -21,7 +21,7 @@ function compose_down_all {
 }
 
 function all_weaviate_ports {
-  echo "8090 8081 8093 8087 8088 8089 8086 8082 8083 8075 8092 8085 8080" # in alphabetic order of appearance in docker-compose files
+  echo "8090 8093 8087 8088 8089 8086 8082 8083 8075 8092 8085 8080" # in alphabetic order of appearance in docker-compose files
 }
 
 function wait(){

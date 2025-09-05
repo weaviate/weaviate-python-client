@@ -40,6 +40,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Img2VecNeuralConfig,
     _map_multi2vec_fields,
     _Multi2MultiVecJinaConfig,
+    _Multi2VecAWSConfig,
     _Multi2VecBindConfig,
     _Multi2VecClipConfig,
     _Multi2VecCohereConfig,
@@ -60,6 +61,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecJinaConfig,
     _Text2VecMistralConfig,
     _Text2VecModel2VecConfig,
+    _Text2VecMorphConfig,
     _Text2VecNvidiaConfig,
     _Text2VecOllamaConfig,
     _Text2VecOpenAIConfig,
@@ -560,6 +562,42 @@ class _Vectors:
         )
 
     @staticmethod
+    def text2vec_morph(
+        *,
+        name: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+        model: Optional[str] = None,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `text2vec-morph` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/morph/embeddings)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecMorphConfig(
+                baseURL=base_url,
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
     def text2vec_ollama(
         *,
         name: Optional[str] = None,
@@ -652,7 +690,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         endpoint: Optional[str] = None,
-        model: Optional[Union[AWSModel, str]] = None,
+        model: Optional[Union[AWSModel, str]],
         region: str,
         service: Union[AWSService, str] = "bedrock",
         source_properties: Optional[List[str]] = None,
@@ -668,7 +706,7 @@ class _Vectors:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default.
-            model: The model to use.
+            model: The model to use, REQUIRED.
             region: The AWS region to run the model from, REQUIRED.
             service: The AWS service to use. Defaults to `bedrock`.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
@@ -684,6 +722,48 @@ class _Vectors:
                 region=region,
                 service=service,
                 vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
+    def multi2vec_aws(
+        *,
+        name: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        dimensions: Optional[int] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        model: Optional[str] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        region: Optional[str] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `multi2vec-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            text_fields: The text fields to use in vectorization.
+            region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined defau
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+
+        Raises:
+            pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecAWSConfig(
+                region=region,
+                model=model,
+                dimensions=dimensions,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
