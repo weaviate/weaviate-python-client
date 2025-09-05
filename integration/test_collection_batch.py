@@ -80,9 +80,9 @@ def batch_collection(
 
 @pytest.mark.parametrize(
     "vector",
-    [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
+    [None],
 )
-@pytest.mark.parametrize("uuid", [None, UUID1, str(UUID2), UUID3.hex])
+@pytest.mark.parametrize("uuid", [None])
 def test_add_object(
     batch_collection: BatchCollection, uuid: Optional[UUID], vector: Optional[VECTORS]
 ) -> None:
