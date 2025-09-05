@@ -32,7 +32,12 @@ class _ConfigUpdateModel(BaseModel):
                 schema[cls_field] = val
             elif isinstance(val, _QuantizerConfigUpdate):
                 quantizers = ["pq", "bq", "sq"]
-                schema[val.quantizer_name()] = val.merge_with_existing(schema[val.quantizer_name()])
+                if val.quantizer_name() in schema:
+                    schema[val.quantizer_name()] = val.merge_with_existing(
+                        schema[val.quantizer_name()]
+                    )
+                else:
+                    schema[val.quantizer_name()] = val.merge_with_existing({})
                 for quantizer in quantizers:
                     if quantizer == val.quantizer_name() or quantizer not in schema:
                         continue
