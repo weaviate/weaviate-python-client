@@ -2084,7 +2084,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     (
         [
             Configure.Vectors.text2vec_aws(
-                name="test", region="us-east-1", source_properties=["prop"]
+                name="test", region="us-east-1", source_properties=["prop"], model="model"
             )
         ],
         {
@@ -2095,6 +2095,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "vectorizeClassName": True,
                         "region": "us-east-1",
                         "service": "bedrock",
+                        "model": "model",
                     }
                 },
                 "vectorIndexType": "hnsw",

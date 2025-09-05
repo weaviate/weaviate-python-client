@@ -408,6 +408,8 @@ def _capitalize_first_letter(string: str) -> str:
     Returns:
         The capitalized string.
     """
+    if len(string) == 0:
+        return ""
     if len(string) == 1:
         return string.capitalize()
     return string[0].capitalize() + string[1:]

@@ -263,16 +263,12 @@ class _BaseExecutor(Generic[ConnectionType]):
         _Warnings.unknown_type_encountered(value.WhichOneof("value"))
         return None
 
-    def __deserialize_list_value_prop_123(self, value: properties_pb2.ListValue) -> List[Any]:
-        return [self.__deserialize_non_ref_prop(val) for val in value.values]
-
     def __deserialize_non_ref_prop(self, value: properties_pb2.Value) -> Any:
         if value.HasField("uuid_value"):
             return uuid_lib.UUID(value.uuid_value)
         if value.HasField("date_value"):
             return _datetime_from_weaviate_str(value.date_value)
-        if value.HasField("string_value"):
-            return str(value.string_value)
+
         if value.HasField("text_value"):
             return str(value.text_value)
         if value.HasField("int_value"):
@@ -282,11 +278,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         if value.HasField("bool_value"):
             return bool(value.bool_value)
         if value.HasField("list_value"):
-            return (
-                self.__deserialize_list_value_prop_125(value.list_value)
-                if self._connection._weaviate_version.is_at_least(1, 25, 0)
-                else self.__deserialize_list_value_prop_123(value.list_value)
-            )
+            return self.__deserialize_list_value_prop_125(value.list_value)
         if value.HasField("object_value"):
             return self.__parse_nonref_properties_result(value.object_value)
         if value.HasField("geo_value"):
