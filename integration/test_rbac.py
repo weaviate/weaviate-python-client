@@ -340,7 +340,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
         (
             Permissions.alias(alias="", collection="*", read=True, delete=True),
             Role(
-                name="AlliasRole",
+                name="AlliasRole2",
                 alias_permissions=[
                     AliasPermissionOutput(
                         alias="*",
