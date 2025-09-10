@@ -1084,6 +1084,9 @@ class _Vectors:
         )
 
     @staticmethod
+    @typing_deprecated(
+        "The `text2vec-gpt4all` vectorizer is deprecated and will be removed in a future release. See the docs (https://docs.weaviate.io/weaviate/model-providers) for alternatives."
+    )
     def text2vec_gpt4all(
         *,
         name: Optional[str] = None,
