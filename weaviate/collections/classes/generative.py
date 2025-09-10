@@ -103,6 +103,7 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
+    max_tokens: Optional[int]
     model: Optional[str]
     region: Optional[str]
     endpoint: Optional[AnyHttpUrl]
@@ -122,6 +123,7 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
                 target_model=self.target_model,
                 target_variant=self.target_variant,
                 temperature=self.temperature,
+                max_tokens=self.max_tokens,
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
             ),
@@ -474,6 +476,7 @@ class GenerativeConfig:
     def aws(
         *,
         endpoint: Optional[str] = None,
+        max_tokens: Optional[int] = None,
         model: Optional[str] = None,
         region: Optional[str] = None,
         service: Optional[Union[AWSService, str]] = None,
@@ -488,6 +491,7 @@ class GenerativeConfig:
 
         Args:
             endpoint: The endpoint to use when requesting the generation. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
             region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined default
             service: The AWS service to use. Defaults to `None`, which uses the server-defined default
@@ -497,6 +501,7 @@ class GenerativeConfig:
         """
         return _GenerativeAWS(
             model=model,
+            max_tokens=max_tokens,
             region=region,
             service=service,
             endpoint=AnyUrl(endpoint) if endpoint is not None else None,

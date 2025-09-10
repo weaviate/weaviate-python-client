@@ -20,9 +20,8 @@ class Properties(_message.Message):
     def __init__(self, fields: _Optional[_Mapping[str, Value]] = ...) -> None: ...
 
 class Value(_message.Message):
-    __slots__ = ["number_value", "string_value", "bool_value", "object_value", "list_value", "date_value", "uuid_value", "int_value", "geo_value", "blob_value", "phone_value", "null_value", "text_value"]
+    __slots__ = ["number_value", "bool_value", "object_value", "list_value", "date_value", "uuid_value", "int_value", "geo_value", "blob_value", "phone_value", "null_value", "text_value"]
     NUMBER_VALUE_FIELD_NUMBER: _ClassVar[int]
-    STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
     BOOL_VALUE_FIELD_NUMBER: _ClassVar[int]
     OBJECT_VALUE_FIELD_NUMBER: _ClassVar[int]
     LIST_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -35,7 +34,6 @@ class Value(_message.Message):
     NULL_VALUE_FIELD_NUMBER: _ClassVar[int]
     TEXT_VALUE_FIELD_NUMBER: _ClassVar[int]
     number_value: float
-    string_value: str
     bool_value: bool
     object_value: Properties
     list_value: ListValue
@@ -47,11 +45,10 @@ class Value(_message.Message):
     phone_value: PhoneNumber
     null_value: _struct_pb2.NullValue
     text_value: str
-    def __init__(self, number_value: _Optional[float] = ..., string_value: _Optional[str] = ..., bool_value: bool = ..., object_value: _Optional[_Union[Properties, _Mapping]] = ..., list_value: _Optional[_Union[ListValue, _Mapping]] = ..., date_value: _Optional[str] = ..., uuid_value: _Optional[str] = ..., int_value: _Optional[int] = ..., geo_value: _Optional[_Union[GeoCoordinate, _Mapping]] = ..., blob_value: _Optional[str] = ..., phone_value: _Optional[_Union[PhoneNumber, _Mapping]] = ..., null_value: _Optional[_Union[_struct_pb2.NullValue, str]] = ..., text_value: _Optional[str] = ...) -> None: ...
+    def __init__(self, number_value: _Optional[float] = ..., bool_value: bool = ..., object_value: _Optional[_Union[Properties, _Mapping]] = ..., list_value: _Optional[_Union[ListValue, _Mapping]] = ..., date_value: _Optional[str] = ..., uuid_value: _Optional[str] = ..., int_value: _Optional[int] = ..., geo_value: _Optional[_Union[GeoCoordinate, _Mapping]] = ..., blob_value: _Optional[str] = ..., phone_value: _Optional[_Union[PhoneNumber, _Mapping]] = ..., null_value: _Optional[_Union[_struct_pb2.NullValue, str]] = ..., text_value: _Optional[str] = ...) -> None: ...
 
 class ListValue(_message.Message):
-    __slots__ = ["values", "number_values", "bool_values", "object_values", "date_values", "uuid_values", "int_values", "text_values"]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ["number_values", "bool_values", "object_values", "date_values", "uuid_values", "int_values", "text_values"]
     NUMBER_VALUES_FIELD_NUMBER: _ClassVar[int]
     BOOL_VALUES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_VALUES_FIELD_NUMBER: _ClassVar[int]
@@ -59,7 +56,6 @@ class ListValue(_message.Message):
     UUID_VALUES_FIELD_NUMBER: _ClassVar[int]
     INT_VALUES_FIELD_NUMBER: _ClassVar[int]
     TEXT_VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedCompositeFieldContainer[Value]
     number_values: NumberValues
     bool_values: BoolValues
     object_values: ObjectValues
@@ -67,7 +63,7 @@ class ListValue(_message.Message):
     uuid_values: UuidValues
     int_values: IntValues
     text_values: TextValues
-    def __init__(self, values: _Optional[_Iterable[_Union[Value, _Mapping]]] = ..., number_values: _Optional[_Union[NumberValues, _Mapping]] = ..., bool_values: _Optional[_Union[BoolValues, _Mapping]] = ..., object_values: _Optional[_Union[ObjectValues, _Mapping]] = ..., date_values: _Optional[_Union[DateValues, _Mapping]] = ..., uuid_values: _Optional[_Union[UuidValues, _Mapping]] = ..., int_values: _Optional[_Union[IntValues, _Mapping]] = ..., text_values: _Optional[_Union[TextValues, _Mapping]] = ...) -> None: ...
+    def __init__(self, number_values: _Optional[_Union[NumberValues, _Mapping]] = ..., bool_values: _Optional[_Union[BoolValues, _Mapping]] = ..., object_values: _Optional[_Union[ObjectValues, _Mapping]] = ..., date_values: _Optional[_Union[DateValues, _Mapping]] = ..., uuid_values: _Optional[_Union[UuidValues, _Mapping]] = ..., int_values: _Optional[_Union[IntValues, _Mapping]] = ..., text_values: _Optional[_Union[TextValues, _Mapping]] = ...) -> None: ...
 
 class NumberValues(_message.Message):
     __slots__ = ["values"]
