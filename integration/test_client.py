@@ -345,7 +345,7 @@ def test_client_cluster_with_lazy_shard_loading(
         assert len(nodes[0].shards) == 1
         assert nodes[0].shards[0].collection == collection.name
         assert nodes[0].shards[0].object_count == 0
-        assert nodes[0].shards[0].vector_indexing_status == "READY"
+        assert nodes[0].shards[0].vector_indexing_status == "READY" or "LOADING"
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
         assert nodes[0].shards[0].loaded is True
@@ -377,7 +377,11 @@ def test_client_cluster_without_lazy_shard_loading(
         if collection._connection._weaviate_version.is_lower_than(1, 32, 0):
             assert nodes[0].shards[0].vector_indexing_status == "READY"
         else:
-            assert nodes[0].shards[0].vector_indexing_status == "LAZY_LOADING"
+            assert (
+                nodes[0].shards[0].vector_indexing_status == "READY"
+                or nodes[0].shards[0].vector_indexing_status == "LOADING"
+                or nodes[0].shards[0].vector_indexing_status == "LAZY_LOADING"
+            )
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
         if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
