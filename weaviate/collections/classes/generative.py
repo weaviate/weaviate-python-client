@@ -9,6 +9,8 @@ from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
 from weaviate.collections.classes.config import (
     AWSService,
     GenerativeSearches,
+    OpenAiReasoning,
+    OpenAiVerbosity,
     _EnumLikeStr,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -319,6 +321,8 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
     stop: Optional[List[str]]
     temperature: Optional[float]
     top_p: Optional[float]
+    verbosity: Optional[Union[OpenAiVerbosity, str]]
+    reasoning_effort: Optional[Union[OpenAiReasoning, str]]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         return generative_pb2.GenerativeProvider(
@@ -338,6 +342,14 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
                 is_azure=self.is_azure,
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
+                verbosity=generative_pb2.GenerativeOpenAI.Verbosity(self.verbosity)
+                if self.verbosity is not None
+                else None,
+                reasoning_effort=generative_pb2.GenerativeOpenAI.ReasoningEffort(
+                    self.reasoning_effort
+                )
+                if self.reasoning_effort is not None
+                else None,
             ),
         )
 
@@ -763,10 +775,12 @@ class GenerativeConfig:
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
         presence_penalty: Optional[float] = None,
+        reasoning_effort: Optional[Union[OpenAiReasoning, str]] = None,
         resource_name: Optional[str] = None,
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        verbosity: Optional[Union[OpenAiVerbosity, str]] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the OpenAI-backed `generative-openai` module.
 
@@ -781,10 +795,12 @@ class GenerativeConfig:
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
             presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            reasoning_effort: The reasoning effort to use. Defaults to `None`, which uses the server-defined default
             resource_name: The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
             stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            verbosity: The verbosity to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeOpenAI(
             api_version=api_version,
@@ -799,6 +815,8 @@ class GenerativeConfig:
             temperature=temperature,
             top_p=top_p,
             is_azure=False,
+            verbosity=verbosity,
+            reasoning_effort=reasoning_effort,
         )
 
     @staticmethod
@@ -847,6 +865,8 @@ class GenerativeConfig:
             temperature=temperature,
             top_p=top_p,
             is_azure=True,
+            verbosity=None,
+            reasoning_effort=None,
         )
 
     @staticmethod

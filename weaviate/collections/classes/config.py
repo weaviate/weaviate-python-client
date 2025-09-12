@@ -83,6 +83,19 @@ AWSService: TypeAlias = Literal[
     "sagemaker",
 ]
 
+OpenAiVerbosity: TypeAlias = Literal[
+    "low",
+    "medium",
+    "high",
+]
+
+OpenAiReasoning: TypeAlias = Literal[
+    "minimal",
+    "low",
+    "medium",
+    "high",
+]
+
 
 class ConsistencyLevel(str, BaseEnum):
     """The consistency levels when writing to Weaviate with replication enabled.
@@ -417,6 +430,8 @@ class _GenerativeOpenAIConfigBase(_GenerativeProvider):
 
 class _GenerativeOpenAIConfig(_GenerativeOpenAIConfigBase):
     model: Optional[str]
+    verbosity: Optional[str]
+    reasoningEffort: Optional[str]
 
 
 class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
@@ -712,6 +727,9 @@ class _Generative:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
+        *,
+        verbosity: Optional[Union[OpenAiVerbosity, str]] = None,
+        reasoning_effort: Optional[Union[OpenAiReasoning, str]] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
@@ -726,6 +744,8 @@ class _Generative:
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            verbosity: The verbosity level to use. One of 'low', 'medium', 'high'. Defaults to `None`, which uses the server-defined default
+            reasoning_effort: The reasoning effort level to use. One of 'minimal', 'low
         """
         return _GenerativeOpenAIConfig(
             baseURL=base_url,
@@ -735,6 +755,8 @@ class _Generative:
             presencePenaltyProperty=presence_penalty,
             temperatureProperty=temperature,
             topPProperty=top_p,
+            verbosity=verbosity,
+            reasoningEffort=reasoning_effort,
         )
 
     @staticmethod
