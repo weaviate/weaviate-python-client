@@ -9,7 +9,7 @@ from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
 from weaviate.collections.classes.config import (
     AWSService,
     GenerativeSearches,
-    OpenAiReasoning,
+    OpenAiReasoningEffort,
     OpenAiVerbosity,
     _EnumLikeStr,
 )
@@ -322,7 +322,7 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
     temperature: Optional[float]
     top_p: Optional[float]
     verbosity: Optional[Union[OpenAiVerbosity, str]]
-    reasoning_effort: Optional[Union[OpenAiReasoning, str]]
+    reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         return generative_pb2.GenerativeProvider(
@@ -775,7 +775,7 @@ class GenerativeConfig:
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
         presence_penalty: Optional[float] = None,
-        reasoning_effort: Optional[Union[OpenAiReasoning, str]] = None,
+        reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]] = None,
         resource_name: Optional[str] = None,
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,

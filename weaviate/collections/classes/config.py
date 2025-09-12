@@ -89,7 +89,7 @@ OpenAiVerbosity: TypeAlias = Literal[
     "high",
 ]
 
-OpenAiReasoning: TypeAlias = Literal[
+OpenAiReasoningEffort: TypeAlias = Literal[
     "minimal",
     "low",
     "medium",
@@ -729,7 +729,7 @@ class _Generative:
         base_url: Optional[AnyHttpUrl] = None,
         *,
         verbosity: Optional[Union[OpenAiVerbosity, str]] = None,
-        reasoning_effort: Optional[Union[OpenAiReasoning, str]] = None,
+        reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
