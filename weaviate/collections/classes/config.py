@@ -1128,6 +1128,29 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         return v
 
+    def __check_vectorizer_quantizer(
+        self, vectorIndexConfig: _VectorIndexConfigUpdate, vector_index_config: dict
+    ) -> None:
+        if isinstance(vectorIndexConfig, _VectorIndexConfigHNSWUpdate) or isinstance(
+            vectorIndexConfig, _VectorIndexConfigFlatUpdate
+        ):
+            self.__check_quantizers(
+                vectorIndexConfig.quantizer,
+                vector_index_config,
+            )
+        else:
+            assert isinstance(vectorIndexConfig, _VectorIndexConfigDynamicUpdate)
+            if vectorIndexConfig.hnsw is not None:
+                self.__check_quantizers(
+                    vectorIndexConfig.hnsw.quantizer,
+                    vector_index_config,
+                )
+            if vectorIndexConfig.flat is not None:
+                self.__check_quantizers(
+                    vectorIndexConfig.flat.quantizer,
+                    vector_index_config,
+                )
+
     def __check_quantizers(
         self,
         quantizer: Optional[_QuantizerConfigUpdate],
@@ -1145,7 +1168,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _BQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                     or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
@@ -1153,7 +1176,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _SQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
@@ -1161,7 +1184,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _RQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                 )
@@ -1200,7 +1223,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 schema["multiTenancyConfig"]
             )
         if self.vectorIndexConfig is not None:
-            self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
+            self.__check_vectorizer_quantizer(self.vectorIndexConfig, schema["vectorIndexConfig"])
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
                 schema["vectorIndexConfig"]
             )
@@ -1228,9 +1251,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
-                self.__check_quantizers(
-                    self.vectorizerConfig.quantizer, schema["vectorIndexConfig"]
+                self.__check_vectorizer_quantizer(
+                    self.vectorizerConfig, schema["vectorIndexConfig"]
                 )
+
                 schema["vectorIndexConfig"] = self.vectorizerConfig.merge_with_existing(
                     schema["vectorIndexConfig"]
                 )
@@ -1240,10 +1264,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                         raise WeaviateInvalidInputError(
                             f"Vector config with name {vc.name} does not exist in the existing vector config"
                         )
-                    self.__check_quantizers(
-                        vc.vectorIndexConfig.quantizer,
-                        schema["vectorConfig"][vc.name]["vectorIndexConfig"],
+                    self.__check_vectorizer_quantizer(
+                        vc.vectorIndexConfig, schema["vectorConfig"][vc.name]["vectorIndexConfig"]
                     )
+
                     schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
                         vc.vectorIndexConfig.merge_with_existing(
                             schema["vectorConfig"][vc.name]["vectorIndexConfig"]
@@ -1263,10 +1287,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                     raise WeaviateInvalidInputError(
                         f"Vector config with name {vc.name} does not exist in the existing vector config"
                     )
-                self.__check_quantizers(
-                    vc.vectorIndexConfig.quantizer,
-                    schema["vectorConfig"][vc.name]["vectorIndexConfig"],
+                self.__check_vectorizer_quantizer(
+                    vc.vectorIndexConfig, schema["vectorConfig"][vc.name]["vectorIndexConfig"]
                 )
+
                 schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
                     vc.vectorIndexConfig.merge_with_existing(
                         schema["vectorConfig"][vc.name]["vectorIndexConfig"]
@@ -1586,8 +1610,8 @@ VectorIndexConfigFlat = _VectorIndexConfigFlat
 @dataclass
 class _VectorIndexConfigDynamic(_ConfigBase):
     distance_metric: VectorDistances
-    hnsw: Optional[VectorIndexConfigHNSW]
-    flat: Optional[VectorIndexConfigFlat]
+    hnsw: VectorIndexConfigHNSW
+    flat: VectorIndexConfigFlat
     threshold: Optional[int]
 
     @staticmethod
@@ -2292,7 +2316,6 @@ class _VectorIndexUpdate:
         threshold: Optional[int] = None,
         hnsw: Optional[_VectorIndexConfigHNSWUpdate] = None,
         flat: Optional[_VectorIndexConfigFlatUpdate] = None,
-        quantizer: Optional[_BQConfigUpdate] = None,
     ) -> _VectorIndexConfigDynamicUpdate:
         """Create an `_VectorIndexConfigDynamicUpdate` object to update the configuration of the Dynamic vector index.
 
@@ -2305,7 +2328,6 @@ class _VectorIndexUpdate:
             threshold=threshold,
             hnsw=hnsw,
             flat=flat,
-            quantizer=quantizer,
         )
 
 

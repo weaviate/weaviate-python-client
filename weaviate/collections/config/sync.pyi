@@ -22,6 +22,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
 )
+from weaviate.collections.classes.config_base import _QuantizerConfigUpdate
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.connect.v4 import ConnectionSync
 
@@ -77,4 +78,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     @overload
     def add_vector(
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
+    ) -> None: ...
+    def update_quantizer(
+        self, *, name: Optional[str] = None, hnsw_quantizer: Optional[_QuantizerConfigUpdate] = None
     ) -> None: ...
