@@ -5,6 +5,7 @@ from weaviate.collections.classes.filters import (
     FilterValues,
     _CountRef,
     _FilterAnd,
+    _FilterNot,
     _FilterOr,
     _Filters,
     _FilterTargets,
@@ -35,7 +36,7 @@ class _FilterToGRPC:
         elif isinstance(weav_filter, _FilterValue):
             return _FilterToGRPC.__value_filter(weav_filter)
         else:
-            return _FilterToGRPC.__and_or_filter(weav_filter)
+            return _FilterToGRPC.__and_or_not_filter(weav_filter)
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> base_pb2.Filters:
@@ -142,8 +143,12 @@ class _FilterToGRPC:
         return base_pb2.IntArray(values=cast(List[int], value))
 
     @staticmethod
-    def __and_or_filter(weav_filter: _Filters) -> Optional[base_pb2.Filters]:
-        assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
+    def __and_or_not_filter(weav_filter: _Filters) -> Optional[base_pb2.Filters]:
+        assert (
+            isinstance(weav_filter, _FilterAnd)
+            or isinstance(weav_filter, _FilterOr)
+            or isinstance(weav_filter, _FilterNot)
+        )
         return base_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
             filters=[
@@ -160,7 +165,7 @@ class _FilterToREST:
         if isinstance(weav_filter, _FilterValue):
             return _FilterToREST.__value_filter(weav_filter)
         else:
-            return _FilterToREST.__and_or_filter(weav_filter)
+            return _FilterToREST.__and_or_not_filter(weav_filter)
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> Dict[str, Any]:
@@ -217,8 +222,12 @@ class _FilterToREST:
         raise ValueError(f"Unknown filter value type: {type(value)}")
 
     @staticmethod
-    def __and_or_filter(weav_filter: _Filters) -> Dict[str, Any]:
-        assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
+    def __and_or_not_filter(weav_filter: _Filters) -> Dict[str, Any]:
+        assert (
+            isinstance(weav_filter, _FilterAnd)
+            or isinstance(weav_filter, _FilterOr)
+            or isinstance(weav_filter, _FilterNot)
+        )
         return {
             "operator": weav_filter.operator.value,
             "operands": [

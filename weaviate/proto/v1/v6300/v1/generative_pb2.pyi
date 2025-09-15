@@ -19,14 +19,16 @@ class GenerativeSearch(_message.Message):
         queries: _containers.RepeatedCompositeFieldContainer[GenerativeProvider]
         def __init__(self, prompt: _Optional[str] = ..., debug: bool = ..., queries: _Optional[_Iterable[_Union[GenerativeProvider, _Mapping]]] = ...) -> None: ...
     class Grouped(_message.Message):
-        __slots__ = ("task", "properties", "queries")
+        __slots__ = ("task", "properties", "queries", "debug")
         TASK_FIELD_NUMBER: _ClassVar[int]
         PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         QUERIES_FIELD_NUMBER: _ClassVar[int]
+        DEBUG_FIELD_NUMBER: _ClassVar[int]
         task: str
         properties: _base_pb2.TextArray
         queries: _containers.RepeatedCompositeFieldContainer[GenerativeProvider]
-        def __init__(self, task: _Optional[str] = ..., properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., queries: _Optional[_Iterable[_Union[GenerativeProvider, _Mapping]]] = ...) -> None: ...
+        debug: bool
+        def __init__(self, task: _Optional[str] = ..., properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., queries: _Optional[_Iterable[_Union[GenerativeProvider, _Mapping]]] = ..., debug: bool = ...) -> None: ...
     SINGLE_RESPONSE_PROMPT_FIELD_NUMBER: _ClassVar[int]
     GROUPED_RESPONSE_TASK_FIELD_NUMBER: _ClassVar[int]
     GROUPED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -104,7 +106,7 @@ class GenerativeAnyscale(_message.Message):
     def __init__(self, base_url: _Optional[str] = ..., model: _Optional[str] = ..., temperature: _Optional[float] = ...) -> None: ...
 
 class GenerativeAWS(_message.Message):
-    __slots__ = ("model", "temperature", "service", "region", "endpoint", "target_model", "target_variant", "images", "image_properties")
+    __slots__ = ("model", "temperature", "service", "region", "endpoint", "target_model", "target_variant", "images", "image_properties", "max_tokens")
     MODEL_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
     SERVICE_FIELD_NUMBER: _ClassVar[int]
@@ -114,6 +116,7 @@ class GenerativeAWS(_message.Message):
     TARGET_VARIANT_FIELD_NUMBER: _ClassVar[int]
     IMAGES_FIELD_NUMBER: _ClassVar[int]
     IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
     model: str
     temperature: float
     service: str
@@ -123,7 +126,8 @@ class GenerativeAWS(_message.Message):
     target_variant: str
     images: _base_pb2.TextArray
     image_properties: _base_pb2.TextArray
-    def __init__(self, model: _Optional[str] = ..., temperature: _Optional[float] = ..., service: _Optional[str] = ..., region: _Optional[str] = ..., endpoint: _Optional[str] = ..., target_model: _Optional[str] = ..., target_variant: _Optional[str] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
+    max_tokens: int
+    def __init__(self, model: _Optional[str] = ..., temperature: _Optional[float] = ..., service: _Optional[str] = ..., region: _Optional[str] = ..., endpoint: _Optional[str] = ..., target_model: _Optional[str] = ..., target_variant: _Optional[str] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., max_tokens: _Optional[int] = ...) -> None: ...
 
 class GenerativeCohere(_message.Message):
     __slots__ = ("base_url", "frequency_penalty", "max_tokens", "model", "k", "p", "presence_penalty", "stop_sequences", "temperature")

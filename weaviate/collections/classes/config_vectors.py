@@ -690,7 +690,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         endpoint: Optional[str] = None,
-        model: Optional[Union[AWSModel, str]] = None,
+        model: Optional[Union[AWSModel, str]],
         region: str,
         service: Union[AWSService, str] = "bedrock",
         source_properties: Optional[List[str]] = None,
@@ -706,7 +706,7 @@ class _Vectors:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default.
-            model: The model to use.
+            model: The model to use, REQUIRED.
             region: The AWS region to run the model from, REQUIRED.
             service: The AWS service to use. Defaults to `bedrock`.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.

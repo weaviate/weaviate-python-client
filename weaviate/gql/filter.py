@@ -45,6 +45,7 @@ WHERE_OPERATORS = [
     "And",
     "ContainsAll",
     "ContainsAny",
+    "ContainsNone",
     "Equal",
     "GreaterThan",
     "GreaterThanEqual",
@@ -55,6 +56,7 @@ WHERE_OPERATORS = [
     "NotEqual",
     "Or",
     "WithinGeoRange",
+    "Not",
 ]
 
 
