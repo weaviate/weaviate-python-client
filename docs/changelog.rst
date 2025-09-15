@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 4.16.10
+--------------
+This patch version includes:
+    - Addition of helper to create an uncompressed quantizer for use when not using default compression
+    - Support for ``overwrite_alias`` option to backup create/restore
+    - Support for OIDC groups
+    - Addition of ``multi2vec-aws`` and ``text2vec-morph`` modules
+    - Support for ``alias.exists`` method
+    - Update to ``weaviate-agents-client`` dependency for GA release of agents
+
 Version 4.16.9
 --------------
 This patch version includes:
