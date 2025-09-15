@@ -63,7 +63,7 @@ class _BatchGRPC(_BaseGRPC):
             if (packing := _Pack.parse_single_or_multi_vec(vec_or_vecs))
         ]
 
-    def __grpc_object(self, obj: _BatchObject) -> batch_pb2.BatchObject:
+    def grpc_object(self, obj: _BatchObject) -> batch_pb2.BatchObject:
         return batch_pb2.BatchObject(
             collection=obj.collection,
             uuid=(str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4())),
@@ -80,10 +80,10 @@ class _BatchGRPC(_BaseGRPC):
             vectors=self.__multi_vec(obj.vector),
         )
 
-    def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
-        return [self.__grpc_object(obj) for obj in objects]
+    def grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
+        return [self.grpc_object(obj) for obj in objects]
 
-    def __grpc_reference(self, reference: _BatchReference) -> batch_pb2.BatchReference:
+    def grpc_reference(self, reference: _BatchReference) -> batch_pb2.BatchReference:
         ref = BatchReference._from_internal(reference)
         return batch_pb2.BatchReference(
             name=ref.from_property_name,
@@ -93,6 +93,9 @@ class _BatchGRPC(_BaseGRPC):
             to_uuid=str(ref.to_object_uuid),
             tenant=ref.tenant,
         )
+
+    def grpc_references(self, references: List[_BatchReference]) -> List[batch_pb2.BatchReference]:
+        return [self.grpc_reference(ref) for ref in references]
 
     def objects(
         self,
@@ -113,7 +116,7 @@ class _BatchGRPC(_BaseGRPC):
             timeout: The timeout in seconds for the request.
             max_retries: The maximum number of retries in case of a failure.
         """
-        weaviate_objs = self.__grpc_objects(objects)
+        weaviate_objs = self.grpc_objects(objects)
         start = time.time()
 
         def resp(errors: Dict[int, str]) -> BatchObjectReturn:
@@ -168,7 +171,10 @@ class _BatchGRPC(_BaseGRPC):
         )
 
     def __generate_send_requests(
-        self, objects: List[_BatchObject], references: List[_BatchReference], stream_id: str
+        self,
+        objects: List[batch_pb2.BatchObject],
+        references: List[batch_pb2.BatchReference],
+        stream_id: str,
     ) -> Generator[batch_pb2.BatchSendRequest, None, None]:
         per_object_overhead = 4  # extra overhead bytes per object in the request
 
@@ -184,25 +190,23 @@ class _BatchGRPC(_BaseGRPC):
         total_size = request.ByteSize()
 
         for object_ in objects:
-            obj = self.__grpc_object(object_)
-            obj_size = obj.ByteSize() + per_object_overhead
+            obj_size = object_.ByteSize() + per_object_overhead
 
             if total_size + obj_size >= self.__grpc_max_msg_size:
                 yield request
                 request = request_maker()
 
-            request.objects.values.append(obj)
+            request.objects.values.append(object_)
             total_size += obj_size
 
         for reference in references:
-            ref = self.__grpc_reference(reference)
-            ref_size = ref.ByteSize() + per_object_overhead
+            ref_size = reference.ByteSize() + per_object_overhead
 
             if total_size + ref_size >= self.__grpc_max_msg_size:
                 yield request
                 request = request_maker()
 
-            request.references.values.append(ref)
+            request.references.values.append(reference)
             total_size += ref_size
 
         if len(request.objects.values) > 0 or len(request.references.values) > 0:
@@ -212,8 +216,8 @@ class _BatchGRPC(_BaseGRPC):
         self,
         connection: ConnectionSync,
         *,
-        objects: List[_BatchObject],
-        references: List[_BatchReference],
+        objects: List[batch_pb2.BatchObject],
+        references: List[batch_pb2.BatchReference],
         stream_id: str,
         timeout: Union[int, float],
     ) -> batch_pb2.BatchSendReply:
@@ -239,9 +243,6 @@ class _BatchGRPC(_BaseGRPC):
     def stream(
         self,
         connection: ConnectionSync,
-        *,
-        object_index: int,
-        reference_index: int,
     ) -> Generator[batch_pb2.BatchStreamMessage, None, None]:
         """Start a new stream for receiving messages about the ongoing server-side batching from Weaviate.
 
@@ -253,8 +254,6 @@ class _BatchGRPC(_BaseGRPC):
         return connection.grpc_batch_stream(
             request=batch_pb2.BatchStreamRequest(
                 consistency_level=self._consistency_level,
-                object_index=object_index,
-                reference_index=reference_index,
             ),
         )
 

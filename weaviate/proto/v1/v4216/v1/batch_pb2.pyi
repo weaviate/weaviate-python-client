@@ -57,14 +57,10 @@ class BatchSendReply(_message.Message):
     def __init__(self, next_batch_size: _Optional[int] = ..., backoff_seconds: _Optional[float] = ...) -> None: ...
 
 class BatchStreamRequest(_message.Message):
-    __slots__ = ["consistency_level", "object_index", "reference_index"]
+    __slots__ = ["consistency_level"]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
-    OBJECT_INDEX_FIELD_NUMBER: _ClassVar[int]
-    REFERENCE_INDEX_FIELD_NUMBER: _ClassVar[int]
     consistency_level: _base_pb2.ConsistencyLevel
-    object_index: int
-    reference_index: int
-    def __init__(self, consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., object_index: _Optional[int] = ..., reference_index: _Optional[int] = ...) -> None: ...
+    def __init__(self, consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
 
 class BatchStreamMessage(_message.Message):
     __slots__ = ["stream_id", "error", "start", "stop", "shutdown", "shutting_down"]
@@ -81,18 +77,16 @@ class BatchStreamMessage(_message.Message):
         __slots__ = []
         def __init__(self) -> None: ...
     class Error(_message.Message):
-        __slots__ = ["error", "index", "is_retriable", "is_object", "is_reference"]
+        __slots__ = ["error", "is_retriable", "object", "reference"]
         ERROR_FIELD_NUMBER: _ClassVar[int]
-        INDEX_FIELD_NUMBER: _ClassVar[int]
         IS_RETRIABLE_FIELD_NUMBER: _ClassVar[int]
-        IS_OBJECT_FIELD_NUMBER: _ClassVar[int]
-        IS_REFERENCE_FIELD_NUMBER: _ClassVar[int]
+        OBJECT_FIELD_NUMBER: _ClassVar[int]
+        REFERENCE_FIELD_NUMBER: _ClassVar[int]
         error: str
-        index: int
         is_retriable: bool
-        is_object: bool
-        is_reference: bool
-        def __init__(self, error: _Optional[str] = ..., index: _Optional[int] = ..., is_retriable: bool = ..., is_object: bool = ..., is_reference: bool = ...) -> None: ...
+        object: BatchObject
+        reference: BatchReference
+        def __init__(self, error: _Optional[str] = ..., is_retriable: bool = ..., object: _Optional[_Union[BatchObject, _Mapping]] = ..., reference: _Optional[_Union[BatchReference, _Mapping]] = ...) -> None: ...
     STREAM_ID_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     START_FIELD_NUMBER: _ClassVar[int]

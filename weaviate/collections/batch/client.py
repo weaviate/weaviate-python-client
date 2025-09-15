@@ -291,14 +291,16 @@ class _BatchClientWrapper(_BatchWrapper):
 
     def experimental(
         self,
+        *,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> ClientBatchingContextManager:
         """Configure the batching context manager using the experimental server-side batching mode.
 
         When you exit the context manager, the final batch will be sent automatically.
         """
-        # TODO: Change to 1.33.0 when it lands
-        if self._connection._weaviate_version.is_lower_than(1, 32, 4):
+        if self._connection._weaviate_version.is_lower_than(1, 33, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Automatic batching", str(self._connection._weaviate_version), "1.32.4"
+                "Server-side batching", str(self._connection._weaviate_version), "1.33.0"
             )
+        self._consistency_level = consistency_level
         return self.__create_batch_and_reset(_BatchClientNew)

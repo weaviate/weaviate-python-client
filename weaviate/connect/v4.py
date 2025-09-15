@@ -67,6 +67,8 @@ from weaviate.exceptions import (
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
     WeaviateBatchError,
+    WeaviateBatchSendError,
+    WeaviateBatchStreamError,
     WeaviateClosedClientError,
     WeaviateConnectionError,
     WeaviateDeleteManyError,
@@ -1051,7 +1053,7 @@ class ConnectionSync(_ConnectionBase):
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
-            raise WeaviateBatchError(str(error.details()))
+            raise WeaviateBatchSendError(str(error.details()))
 
     def grpc_batch_stream(
         self,
@@ -1071,7 +1073,7 @@ class ConnectionSync(_ConnectionBase):
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
-            raise WeaviateBatchError(str(error.details()))
+            raise WeaviateBatchStreamError(str(error.details()))
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest

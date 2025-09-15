@@ -42,11 +42,13 @@ from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import (
     EmptyResponseException,
+    WeaviateBatchStreamError,
     WeaviateBatchValidationError,
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
 )
 from weaviate.logger import logger
+from weaviate.proto.v1 import batch_pb2
 from weaviate.types import UUID, VECTORS
 from weaviate.util import _decode_json_response_dict
 from weaviate.warnings import _Warnings
@@ -92,16 +94,19 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
         self._lock.release()
 
 
-class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]):
+Ref = TypeVar("Ref", bound=Union[_BatchReference, batch_pb2.BatchReference])
+
+
+class ReferencesBatchRequest(BatchRequest[Ref, BatchReferenceReturn]):
     """Collect Weaviate-object references to add them in one request to Weaviate."""
 
-    def pop_items(self, pop_amount: int, uuid_lookup: Set[str]) -> List[_BatchReference]:
+    def pop_items(self, pop_amount: int, uuid_lookup: Set[str]) -> List[Ref]:
         """Pop the given number of items from the BatchRequest queue.
 
         Returns:
             A list of items from the BatchRequest.
         """
-        ret: List[_BatchReference] = []
+        ret: List[Ref] = []
         i = 0
         self._lock.acquire()
         while len(ret) < pop_amount and len(self._items) > 0 and i < len(self._items):
@@ -114,7 +119,7 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
         self._lock.release()
         return ret
 
-    def head(self) -> Optional[_BatchReference]:
+    def head(self) -> Optional[Ref]:
         """Get the first item from the BatchRequest queue without removing it.
 
         Returns:
@@ -126,10 +131,13 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
         return item
 
 
-class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
+Obj = TypeVar("Obj", bound=Union[_BatchObject, batch_pb2.BatchObject])
+
+
+class ObjectsBatchRequest(Generic[Obj], BatchRequest[Obj, BatchObjectReturn]):
     """Collect objects for one batch request to weaviate."""
 
-    def pop_items(self, pop_amount: int) -> List[_BatchObject]:
+    def pop_items(self, pop_amount: int) -> List[Obj]:
         """Pop the given number of items from the BatchRequest queue.
 
         Returns:
@@ -146,7 +154,7 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
         self._lock.release()
         return ret
 
-    def head(self) -> Optional[_BatchObject]:
+    def head(self) -> Optional[Obj]:
         """Get the first item from the BatchRequest queue without removing it.
 
         Returns:
@@ -797,6 +805,14 @@ class _BgThreads:
         """Check if the background threads are still alive."""
         return self.send.is_alive() and self.stream.is_alive()
 
+    def send_alive(self) -> bool:
+        """Check if the send background thread is still alive."""
+        return self.send.is_alive()
+
+    def stream_alive(self) -> bool:
+        """Check if the stream background thread is still alive."""
+        return self.stream.is_alive()
+
 
 class _BatchBaseNew:
     def __init__(
@@ -807,14 +823,14 @@ class _BatchBaseNew:
         batch_mode: _BatchMode,
         executor: ThreadPoolExecutor,
         vectorizer_batching: bool,
-        objects: Optional[ObjectsBatchRequest] = None,
+        objects: Optional[ObjectsBatchRequest[batch_pb2.BatchObject]] = None,
         references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
-        self.__batch_objects = objects or ObjectsBatchRequest()
-        self.__batch_references = references or ReferencesBatchRequest()
+        self.__batch_objects = objects or ObjectsBatchRequest[batch_pb2.BatchObject]()
+        self.__batch_references = references or ReferencesBatchRequest[batch_pb2.BatchReference]()
 
         self.__connection = connection
-        self.__consistency_level: ConsistencyLevel = ConsistencyLevel.QUORUM
+        self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
         self.__recommended_num_objects = 1000
         self.__recommended_backoff = 0
 
@@ -829,28 +845,14 @@ class _BatchBaseNew:
         self.__results_for_wrapper_backup = results
         self.__results_for_wrapper = _BatchDataWrapper()
 
-        self.__cluster = _ClusterBatch(self.__connection)
-
         self.__concurrent_requests = 2
         self.__max_batch_size: int = 1000
 
         self.__executor = executor
         self.__objs_count = 0
         self.__refs_count = 0
-        self.__objs_logs_count = 0
-        self.__refs_logs_count = 0
 
         self.__active_requests = 0
-
-        # dynamic batching
-        self.__time_last_scale_up: float = 0
-        self.__rate_queue: deque = deque(maxlen=50)  # 5s with 0.1s refresh rate
-        self.__took_queue: deque = deque(maxlen=CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER)
-
-        # fixed rate batching
-        self.__time_stamp_last_request: float = 0
-        # do 62 secs to give us some buffer to the "per-minute" calculation
-        self.__fix_rate_batching_base_time = 62
 
         self.__active_requests_lock = threading.Lock()
         self.__uuid_lookup_lock = threading.Lock()
@@ -860,12 +862,12 @@ class _BatchBaseNew:
         self.__is_shutting_down = threading.Event()
         self.__is_shutdown = threading.Event()
         self.__stream_id: str | None = None
+        self.__shutdown_errors: dict[int, str] = {}
 
         self.__objs_cache_lock = threading.Lock()
         self.__refs_cache_lock = threading.Lock()
-        self.__objs_cache: dict[int, BatchObject] = {}
+        self.__objs_cache: dict[str, BatchObject] = {}
         self.__refs_cache: dict[int, BatchReference] = {}
-        self.__batch_mode = batch_mode
 
     @property
     def number_errors(self) -> int:
@@ -901,8 +903,15 @@ class _BatchBaseNew:
         # self.__batch_stream will set the shutdown event when it receives
         # the stop message from the server
         while self.__bg_thread.is_alive():
-            logger.warning("Waiting for background thread to finish...")
+            logger.warning(
+                f"Waiting for background threads (send? {self.__bg_thread.send_alive()} / stream? {self.__bg_thread.stream_alive()}) to finish..."
+            )
             time.sleep(1)
+
+        with open("shutdown_errors.json", "w") as f:
+            import json
+
+            json.dump(self.__shutdown_errors, f)
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -985,30 +994,27 @@ class _BatchBaseNew:
     def __batch_stream(self) -> None:
         stream = self.__batch_grpc.stream(
             connection=self.__connection,
-            object_index=h.index if (h := self.__batch_objects.head()) is not None else 0,
-            reference_index=h.index if (h := self.__batch_references.head()) is not None else 0,
         )
         first = stream.__next__()
         assert first.HasField("start"), "Batch stream did not start correctly"
         self.__stream_id = first.stream_id
+        shutdown_message: Optional[batch_pb2.BatchStreamMessage.Shutdown] = None
         for message in stream:
             if message.HasField("error"):
                 with self.__results_lock:
-                    if message.error.is_object:
-                        obj = self.__objs_cache.get(message.error.index)
-                        if obj is None:
-                            logger.error(f"Object not found in cache: {message.error.index}")
-                            continue
+                    if message.error.HasField("object"):
                         if message.error.is_retriable:
-                            self.__batch_objects.add(obj._to_internal())
+                            self.__batch_objects.add(message.error.object)
+                            continue
+                        obj = self.__objs_cache.get(message.error.object.uuid)
+                        if obj is None:
+                            logger.error(f"Object not found in cache: {message.error.object.uuid}")
                             continue
                         err = ErrorObject(
                             message=message.error.error,
-                            object_=obj,
+                            object_=obj,  # pyright: ignore
                         )
-                        self.__results_for_wrapper.results.objs.add_errors(
-                            {message.error.index: err}
-                        )
+                        self.__results_for_wrapper.results.objs.add_errors({obj.index: err})
                         self.__results_for_wrapper.failed_objects.append(err)
                         logger.warning(
                             {
@@ -1017,31 +1023,31 @@ class _BatchBaseNew:
                                 "action": "use {client,collection}.batch.failed_objects to access this error",
                             }
                         )
-                    if message.error.is_reference:
-                        ref = self.__refs_cache.get(message.error.index)
-                        if ref is None:
-                            logger.error(f"Reference not found in cache: {message.error.index}")
-                            continue
-                        if message.error.is_retriable:
-                            self.__batch_references.add(ref._to_internal())
-                            continue
+                    if message.error.HasField("reference"):
+                        # if message.error.is_retriable:
+                        #     self.__batch_references.add(ref._to_internal())
+                        #     continue
+                        # ref = self.__refs_cache.get(message.error.index)
+                        # if ref is None:
+                        #     logger.error(f"Reference not found in cache: {message.error.index}")
+                        #     continue
                         err = ErrorReference(
                             message=message.error.error,
-                            reference=ref,
+                            reference=None,  # pyright: ignore
                         )
-                        self.__results_for_wrapper.results.refs.add_errors(
-                            {message.error.index: err}
-                        )
+                        # self.__results_for_wrapper.results.refs.add_errors(
+                        #     {message.error.index: err}
+                        # )
                         self.__results_for_wrapper.failed_references.append(err)
-                        logger.warning(
-                            {
-                                "error": message.error.error,
-                                "reference": f"{r._to_internal().from_} -> {r._to_internal().to}"
-                                if (r := self.__refs_cache.get(message.error.index)) is not None
-                                else None,
-                                "action": "use {client,collection}.batch.failed_references to access this error",
-                            }
-                        )
+                        # logger.warning(
+                        #     {
+                        #         "error": message.error.error,
+                        #         "reference": f"{r._to_internal().from_} -> {r._to_internal().to}"
+                        #         if (r := self.__refs_cache.get(message.error.index)) is not None
+                        #         else None,
+                        #         "action": "use {client,collection}.batch.failed_references to access this error",
+                        #     }
+                        # )
             elif message.HasField("stop"):
                 self.__shut_background_thread_down.set()
                 return
@@ -1049,13 +1055,16 @@ class _BatchBaseNew:
                 self.__is_shutting_down.set()
                 self.__stream_id = None
             elif message.HasField("shutdown"):
+                shutdown_message = message.shutdown
                 self.__is_shutdown.set()
                 self.__is_shutting_down.clear()
                 self.__reconnect()
                 break
 
-        # restart the stream if we were shutdown by the node we were connected to
+        # restart the stream if we were shutdown by the node we were connected to ensuring that the index is
+        # propagated properly from it to the new one
         if self.__is_shutdown.is_set():
+            assert shutdown_message is not None, "Shutdown message is missing"
             self.__recommended_num_objects = self.__max_batch_size
             self.__is_shutdown.clear()
             return self.__batch_stream()
@@ -1085,11 +1094,37 @@ class _BatchBaseNew:
                 self.__bg_thread_exception = e
 
         def batch_stream_wrapper() -> None:
+            socket_hung_up = False
             try:
                 self.__batch_stream()
             except Exception as e:
-                logger.error(e)
-                self.__bg_thread_exception = e
+                if isinstance(e, WeaviateBatchStreamError) and "Socket closed" in e.message:
+                    socket_hung_up = True
+                else:
+                    logger.error(e)
+                    logger.error(type(e))
+                    self.__bg_thread_exception = e
+            if socket_hung_up:
+                # this happens during ungraceful shutdown of the coordinator
+                # lets restart the stream and add the cached objects again
+                logger.warning("Stream closed unexpectedly, restarting...")
+                self.__reconnect()
+                # server sets this whenever it restarts, gracefully or unexpectedly, so need to clear it now
+                self.__is_shutting_down.clear()
+                self.__batch_objects.prepend(
+                    [
+                        self.__batch_grpc.grpc_object(o._to_internal())
+                        for o in self.__objs_cache.values()
+                    ]
+                )
+                self.__batch_references.prepend(
+                    [
+                        self.__batch_grpc.grpc_reference(o._to_internal())
+                        for o in self.__refs_cache.values()
+                    ]
+                )
+                # start a new stream with a newly reconnected channel
+                return batch_stream_wrapper()
 
         demonBatchSend = threading.Thread(
             target=batch_send_wrapper,
@@ -1112,8 +1147,8 @@ class _BatchBaseNew:
 
     def __send_batch(
         self,
-        objs: List[_BatchObject],
-        refs: List[_BatchReference],
+        objs: List[batch_pb2.BatchObject],
+        refs: List[batch_pb2.BatchReference],
     ) -> None:
         if (_ := len(objs)) > 0 or (_ := len(refs)) > 0:
             _ = time.time()
@@ -1140,9 +1175,9 @@ class _BatchBaseNew:
                     )
                 self.__recommended_num_objects = res.next_batch_size
                 self.__recommended_backoff = res.backoff_seconds
-                self.__results_for_wrapper.results.objs.add_uuids(
-                    {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
-                )
+                # self.__results_for_wrapper.results.objs.add_uuids(
+                #     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
+                # )
                 with self.__uuid_lookup_lock:
                     self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
             except Exception as e:
@@ -1155,6 +1190,8 @@ class _BatchBaseNew:
                     logger.warning("Connected node was shutdown, re-adding objects to the queue")
                     self.__batch_objects.prepend(objs)
                     self.__batch_references.prepend(refs)
+                    # for obj in objs:
+                    #     self.__shutdown_errors[obj.index] = str(obj.uuid)
                 else:
                     logger.error(
                         {
@@ -1203,10 +1240,10 @@ class _BatchBaseNew:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__uuid_lookup.add(str(batch_object.uuid))
-        self.__batch_objects.add(batch_object._to_internal())
+        self.__batch_objects.add(self.__batch_grpc.grpc_object(batch_object._to_internal()))
 
         with self.__objs_cache_lock:
-            self.__objs_cache[self.__objs_count] = batch_object
+            self.__objs_cache[str(batch_object.uuid)] = batch_object
         self.__objs_count += 1
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
@@ -1252,7 +1289,9 @@ class _BatchBaseNew:
                 )
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))
-            self.__batch_references.add(batch_reference._to_internal())
+            self.__batch_references.add(
+                self.__batch_grpc.grpc_reference(batch_reference._to_internal())
+            )
             with self.__refs_cache_lock:
                 self.__refs_cache[self.__refs_count] = batch_reference
                 self.__refs_count += 1
