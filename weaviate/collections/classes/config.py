@@ -51,15 +51,14 @@ from weaviate.collections.classes.config_vector_index import (
     VectorIndexType as VectorIndexTypeAlias,
 )
 from weaviate.collections.classes.config_vectorizers import (
-    CohereModel,
-    _Vectorizer,
-    _VectorizerConfigCreate,
-)
-from weaviate.collections.classes.config_vectorizers import (
     VectorDistances as VectorDistancesAlias,
 )
 from weaviate.collections.classes.config_vectorizers import (
     Vectorizers as VectorizersAlias,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    _Vectorizer,
+    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_vectors import (
     _MultiVectors,
@@ -775,7 +774,7 @@ class _Generative:
 
     @staticmethod
     def cohere(
-        model: Optional[Union[CohereModel, str]] = None,
+        model: Optional[str] = None,
         k: Optional[int] = None,
         max_tokens: Optional[int] = None,
         return_likelihoods: Optional[str] = None,
