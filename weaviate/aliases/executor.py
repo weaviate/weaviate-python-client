@@ -122,3 +122,25 @@ class _AliasExecutor(Generic[ConnectionType]):
                 error="update aliases",
             ),
         )
+
+    def exists(self, *, alias_name: str) -> executor.Result[bool]:
+        """Use this method to check if an alias exists in the Weaviate instance.
+
+        Args:
+            name: The name of the alias to check.
+
+        Returns:
+            `True` if the alias exists, `False` otherwise.
+        """
+        self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
+
+        def resp(res: Response) -> bool:
+            return res.status_code == 200
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path=f"/aliases/{alias_name}",
+            error_msg="Alias may not exist.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="alias exists"),
+        )
