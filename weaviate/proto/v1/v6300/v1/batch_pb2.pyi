@@ -24,8 +24,13 @@ class BatchReferencesRequest(_message.Message):
     consistency_level: _base_pb2.ConsistencyLevel
     def __init__(self, references: _Optional[_Iterable[_Union[BatchReference, _Mapping]]] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
 
-class BatchSendRequest(_message.Message):
-    __slots__ = ("stream_id", "objects", "references", "stop")
+class BatchStreamRequest(_message.Message):
+    __slots__ = ("objects", "references", "start", "stop")
+    class Start(_message.Message):
+        __slots__ = ("consistency_level",)
+        CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
+        consistency_level: _base_pb2.ConsistencyLevel
+        def __init__(self, consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
     class Stop(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
@@ -39,35 +44,18 @@ class BatchSendRequest(_message.Message):
         VALUES_FIELD_NUMBER: _ClassVar[int]
         values: _containers.RepeatedCompositeFieldContainer[BatchReference]
         def __init__(self, values: _Optional[_Iterable[_Union[BatchReference, _Mapping]]] = ...) -> None: ...
-    STREAM_ID_FIELD_NUMBER: _ClassVar[int]
     OBJECTS_FIELD_NUMBER: _ClassVar[int]
     REFERENCES_FIELD_NUMBER: _ClassVar[int]
+    START_FIELD_NUMBER: _ClassVar[int]
     STOP_FIELD_NUMBER: _ClassVar[int]
-    stream_id: str
-    objects: BatchSendRequest.Objects
-    references: BatchSendRequest.References
-    stop: BatchSendRequest.Stop
-    def __init__(self, stream_id: _Optional[str] = ..., objects: _Optional[_Union[BatchSendRequest.Objects, _Mapping]] = ..., references: _Optional[_Union[BatchSendRequest.References, _Mapping]] = ..., stop: _Optional[_Union[BatchSendRequest.Stop, _Mapping]] = ...) -> None: ...
+    objects: BatchStreamRequest.Objects
+    references: BatchStreamRequest.References
+    start: BatchStreamRequest.Start
+    stop: BatchStreamRequest.Stop
+    def __init__(self, objects: _Optional[_Union[BatchStreamRequest.Objects, _Mapping]] = ..., references: _Optional[_Union[BatchStreamRequest.References, _Mapping]] = ..., start: _Optional[_Union[BatchStreamRequest.Start, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamRequest.Stop, _Mapping]] = ...) -> None: ...
 
-class BatchSendReply(_message.Message):
-    __slots__ = ("next_batch_size", "backoff_seconds")
-    NEXT_BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
-    BACKOFF_SECONDS_FIELD_NUMBER: _ClassVar[int]
-    next_batch_size: int
-    backoff_seconds: float
-    def __init__(self, next_batch_size: _Optional[int] = ..., backoff_seconds: _Optional[float] = ...) -> None: ...
-
-class BatchStreamRequest(_message.Message):
-    __slots__ = ("consistency_level",)
-    CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
-    consistency_level: _base_pb2.ConsistencyLevel
-    def __init__(self, consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
-
-class BatchStreamMessage(_message.Message):
-    __slots__ = ("stream_id", "error", "start", "stop", "shutdown", "shutting_down")
-    class Start(_message.Message):
-        __slots__ = ()
-        def __init__(self) -> None: ...
+class BatchStreamReply(_message.Message):
+    __slots__ = ("error", "stop", "shutdown", "shutting_down", "backoff")
     class Stop(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
@@ -78,29 +66,32 @@ class BatchStreamMessage(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
     class Error(_message.Message):
-        __slots__ = ("error", "is_retriable", "object", "reference")
+        __slots__ = ("error", "object", "reference")
         ERROR_FIELD_NUMBER: _ClassVar[int]
-        IS_RETRIABLE_FIELD_NUMBER: _ClassVar[int]
         OBJECT_FIELD_NUMBER: _ClassVar[int]
         REFERENCE_FIELD_NUMBER: _ClassVar[int]
         error: str
-        is_retriable: bool
         object: BatchObject
         reference: BatchReference
-        def __init__(self, error: _Optional[str] = ..., is_retriable: bool = ..., object: _Optional[_Union[BatchObject, _Mapping]] = ..., reference: _Optional[_Union[BatchReference, _Mapping]] = ...) -> None: ...
-    STREAM_ID_FIELD_NUMBER: _ClassVar[int]
+        def __init__(self, error: _Optional[str] = ..., object: _Optional[_Union[BatchObject, _Mapping]] = ..., reference: _Optional[_Union[BatchReference, _Mapping]] = ...) -> None: ...
+    class Backoff(_message.Message):
+        __slots__ = ("next_batch_size", "backoff_seconds")
+        NEXT_BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
+        BACKOFF_SECONDS_FIELD_NUMBER: _ClassVar[int]
+        next_batch_size: int
+        backoff_seconds: float
+        def __init__(self, next_batch_size: _Optional[int] = ..., backoff_seconds: _Optional[float] = ...) -> None: ...
     ERROR_FIELD_NUMBER: _ClassVar[int]
-    START_FIELD_NUMBER: _ClassVar[int]
     STOP_FIELD_NUMBER: _ClassVar[int]
     SHUTDOWN_FIELD_NUMBER: _ClassVar[int]
     SHUTTING_DOWN_FIELD_NUMBER: _ClassVar[int]
-    stream_id: str
-    error: BatchStreamMessage.Error
-    start: BatchStreamMessage.Start
-    stop: BatchStreamMessage.Stop
-    shutdown: BatchStreamMessage.Shutdown
-    shutting_down: BatchStreamMessage.ShuttingDown
-    def __init__(self, stream_id: _Optional[str] = ..., error: _Optional[_Union[BatchStreamMessage.Error, _Mapping]] = ..., start: _Optional[_Union[BatchStreamMessage.Start, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamMessage.Stop, _Mapping]] = ..., shutdown: _Optional[_Union[BatchStreamMessage.Shutdown, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamMessage.ShuttingDown, _Mapping]] = ...) -> None: ...
+    BACKOFF_FIELD_NUMBER: _ClassVar[int]
+    error: BatchStreamReply.Error
+    stop: BatchStreamReply.Stop
+    shutdown: BatchStreamReply.Shutdown
+    shutting_down: BatchStreamReply.ShuttingDown
+    backoff: BatchStreamReply.Backoff
+    def __init__(self, error: _Optional[_Union[BatchStreamReply.Error, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamReply.Stop, _Mapping]] = ..., shutdown: _Optional[_Union[BatchStreamReply.Shutdown, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamReply.ShuttingDown, _Mapping]] = ..., backoff: _Optional[_Union[BatchStreamReply.Backoff, _Mapping]] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")

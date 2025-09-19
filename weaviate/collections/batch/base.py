@@ -10,7 +10,8 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, Union, cast
+from queue import SimpleQueue
+from typing import Any, Dict, Generator, Generic, List, Optional, Set, TypeVar, Union, cast
 
 from httpx import ConnectError
 from pydantic import ValidationError
@@ -797,21 +798,21 @@ class _BatchBase:
 
 
 class _BgThreads:
-    def __init__(self, send: threading.Thread, stream: threading.Thread):
+    def __init__(self, send: threading.Thread, recv: threading.Thread):
         self.send = send
-        self.stream = stream
+        self.recv = recv
 
     def is_alive(self) -> bool:
         """Check if the background threads are still alive."""
-        return self.send.is_alive() and self.stream.is_alive()
+        return self.send.is_alive() and self.recv.is_alive()
 
     def send_alive(self) -> bool:
         """Check if the send background thread is still alive."""
         return self.send.is_alive()
 
-    def stream_alive(self) -> bool:
-        """Check if the stream background thread is still alive."""
-        return self.stream.is_alive()
+    def recv_alive(self) -> bool:
+        """Check if the recv background thread is still alive."""
+        return self.recv.is_alive()
 
 
 class _BatchBaseNew:
@@ -845,29 +846,28 @@ class _BatchBaseNew:
         self.__results_for_wrapper_backup = results
         self.__results_for_wrapper = _BatchDataWrapper()
 
-        self.__concurrent_requests = 2
         self.__max_batch_size: int = 1000
 
-        self.__executor = executor
         self.__objs_count = 0
         self.__refs_count = 0
 
-        self.__active_requests = 0
-
-        self.__active_requests_lock = threading.Lock()
         self.__uuid_lookup_lock = threading.Lock()
         self.__results_lock = threading.Lock()
 
         self.__bg_thread_exception: Optional[Exception] = None
         self.__is_shutting_down = threading.Event()
         self.__is_shutdown = threading.Event()
-        self.__stream_id: str | None = None
         self.__shutdown_errors: dict[int, str] = {}
 
         self.__objs_cache_lock = threading.Lock()
         self.__refs_cache_lock = threading.Lock()
         self.__objs_cache: dict[str, BatchObject] = {}
         self.__refs_cache: dict[int, BatchReference] = {}
+
+        self.__reqs: SimpleQueue[batch_pb2.BatchStreamRequest] = SimpleQueue()
+
+        self.__stop = False
+        self.__stopped = False
 
     @property
     def number_errors(self) -> int:
@@ -879,7 +879,7 @@ class _BatchBaseNew:
     def _start(self) -> None:
         self.__bg_thread = self.__start_bg_threads()
         now = time.time()
-        while self.__stream_id is None:
+        while not self.__bg_thread.is_alive():
             # wait for the stream to be started by __batch_stream
             time.sleep(0.01)
             if time.time() - now > 10:
@@ -890,23 +890,30 @@ class _BatchBaseNew:
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished
         self.flush()
+        self.__stop = True
 
-        assert self.__stream_id is not None, "Batch stream was not started"
+        # assert self.__stream_id is not None, "Batch stream was not started"
         # Send stop message to the server to stop the batch stream
-        self.__batch_grpc.stop(
-            connection=self.__connection,
-            stream_id=self.__stream_id,
-            timeout=DEFAULT_REQUEST_TIMEOUT,
-        )
+        # self.__batch_grpc.stop(
+        #     connection=self.__connection,
+        #     stream_id=self.__stream_id,
+        #     timeout=DEFAULT_REQUEST_TIMEOUT,
+        # )
 
         # we are done, wait for bg threads to finish
         # self.__batch_stream will set the shutdown event when it receives
         # the stop message from the server
+        count = 0
         while self.__bg_thread.is_alive():
-            logger.warning(
-                f"Waiting for background threads (send? {self.__bg_thread.send_alive()} / stream? {self.__bg_thread.stream_alive()}) to finish..."
-            )
-            time.sleep(1)
+            logger.warning("Waiting for background threads to finish...")
+            if count > 120:
+                time.sleep(30)
+            elif count > 30:
+                time.sleep(10)
+            else:
+                time.sleep(1)
+            count += 1
+        logger.warning("Background threads finished.")
 
         with open("shutdown_errors.json", "w") as f:
             import json
@@ -929,16 +936,8 @@ class _BatchBaseNew:
             self.__shut_background_thread_down is not None
             and not self.__shut_background_thread_down.is_set()
         ):
-            if (
-                self.__active_requests < self.__concurrent_requests
-                and len(self.__batch_objects) + len(self.__batch_references) > 0
-            ):
-                self.__time_stamp_last_request = time.time()
-
+            if len(self.__batch_objects) + len(self.__batch_references) > 0:
                 self._batch_send = True
-                with self.__active_requests_lock:
-                    self.__active_requests += 1
-
                 start = time.time()
                 while (len_o := len(self.__batch_objects)) + (
                     len_r := len(self.__batch_references)
@@ -949,8 +948,8 @@ class _BatchBaseNew:
                         self.__shut_background_thread_down is not None
                         and self.__shut_background_thread_down.is_set()
                     ):
-                        # shutdown was requested, exit the loop
-                        break
+                        # shutdown was requested, exit early
+                        return
                     if time.time() - start >= 1 and (
                         len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
                     ):
@@ -962,16 +961,8 @@ class _BatchBaseNew:
                     self.__recommended_num_objects - len(objs),
                     uuid_lookup=self.__uuid_lookup,
                 )
-
-                while (
-                    self.__is_shutting_down.is_set()
-                    or self.__is_shutdown.is_set()
-                    or self.__stream_id is None
-                ):
-                    # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
-                    # so that the connection is refreshed to a new node where the objects can be accepted
-                    # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
-                    time.sleep(refresh_time)
+                with self.__uuid_lookup_lock:
+                    self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
 
                 # if the server has told us to backoff then sleep for that amount of time and reset the backoff value
                 # the next return from the server will update the backoff value if necessary, e.g. if the internal queue is overloaded
@@ -979,33 +970,87 @@ class _BatchBaseNew:
                     time.sleep(self.__recommended_backoff)
                     self.__recommended_backoff = 0
 
-                # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
-                ctx = contextvars.copy_context()
-                self.__executor.submit(
-                    ctx.run,
-                    functools.partial(
-                        self.__send_batch,
-                        objs,
-                        refs,
-                    ),
-                )
+                while self.__is_shutting_down.is_set() or self.__is_shutdown.is_set():
+                    # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
+                    # so that the connection is refreshed to a new node where the objects can be accepted
+                    # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
+                    time.sleep(refresh_time)
+
+                for req in self.__generate_stream_requests_for_deque(objs, refs):
+                    self.__reqs.put(req)
             time.sleep(refresh_time)
 
-    def __batch_stream(self) -> None:
-        stream = self.__batch_grpc.stream(
-            connection=self.__connection,
+    def __generate_stream_requests_for_deque(
+        self,
+        objs: List[batch_pb2.BatchObject],
+        refs: List[batch_pb2.BatchReference],
+    ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
+        per_object_overhead = 4  # extra overhead bytes per object in the request
+
+        def request_maker():
+            return batch_pb2.BatchStreamRequest(
+                objects=batch_pb2.BatchStreamRequest.Objects(
+                    values=[],
+                ),
+            )
+
+        request = request_maker()
+        total_size = request.ByteSize()
+
+        for obj in objs:
+            obj_size = obj.ByteSize() + per_object_overhead
+
+            if total_size + obj_size >= self.__batch_grpc.grpc_max_msg_size:
+                yield request
+                request = request_maker()
+                total_size = request.ByteSize()
+
+            request.objects.values.append(obj)
+            total_size += obj_size
+
+        for ref in refs:
+            ref_size = ref.ByteSize() + per_object_overhead
+
+            if total_size + ref_size >= self.__batch_grpc.grpc_max_msg_size:
+                yield request
+                request = request_maker()
+                total_size = request.ByteSize()
+
+            request.references.values.append(ref)
+            total_size += ref_size
+
+        if len(request.objects.values) > 0 or len(request.references.values) > 0:
+            yield request
+
+    def __generate_stream_requests_for_grpc(
+        self,
+    ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
+        yield batch_pb2.BatchStreamRequest(
+            start=batch_pb2.BatchStreamRequest.Start(
+                consistency_level=self.__batch_grpc._consistency_level,
+            ),
         )
-        first = stream.__next__()
-        assert first.HasField("start"), "Batch stream did not start correctly"
-        self.__stream_id = first.stream_id
-        shutdown_message: Optional[batch_pb2.BatchStreamMessage.Shutdown] = None
-        for message in stream:
+        while (
+            self.__shut_background_thread_down is not None
+            and not self.__shut_background_thread_down.is_set()
+        ):
+            yield self.__reqs.get()
+            if self.__stop and self.__reqs.qsize() == 0:
+                logger.warning("Sending stop message to server")
+                yield batch_pb2.BatchStreamRequest(
+                    stop=batch_pb2.BatchStreamRequest.Stop(),
+                )
+                return
+
+    def __batch_recv(self) -> None:
+        shutdown_message: Optional[batch_pb2.BatchStreamReply.Shutdown] = None
+        for message in self.__batch_grpc.stream(
+            connection=self.__connection,
+            requests=self.__generate_stream_requests_for_grpc(),
+        ):
             if message.HasField("error"):
                 with self.__results_lock:
                     if message.error.HasField("object"):
-                        if message.error.is_retriable:
-                            self.__batch_objects.add(message.error.object)
-                            continue
                         obj = self.__objs_cache.get(message.error.object.uuid)
                         if obj is None:
                             logger.error(f"Object not found in cache: {message.error.object.uuid}")
@@ -1048,12 +1093,27 @@ class _BatchBaseNew:
                         #         "action": "use {client,collection}.batch.failed_references to access this error",
                         #     }
                         # )
+            elif message.HasField("backoff"):
+                if message.backoff.next_batch_size < self.__recommended_num_objects:
+                    logger.warning(
+                        f"Scaling down sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
+                    )
+                if message.backoff.next_batch_size > self.__recommended_num_objects:
+                    logger.warning(
+                        f"Scaling up sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
+                    )
+                if message.backoff.backoff_seconds > 0:
+                    logger.warning(
+                        f"Backing off from sending the next request by {message.backoff.backoff_seconds} seconds"
+                    )
+                self.__recommended_backoff = message.backoff.backoff_seconds
+                self.__recommended_num_objects = message.backoff.next_batch_size
             elif message.HasField("stop"):
+                logger.warning("Received stop message from server, shutting down batch")
                 self.__shut_background_thread_down.set()
                 return
             elif message.HasField("shutting_down"):
                 self.__is_shutting_down.set()
-                self.__stream_id = None
             elif message.HasField("shutdown"):
                 shutdown_message = message.shutdown
                 self.__is_shutdown.set()
@@ -1067,7 +1127,7 @@ class _BatchBaseNew:
             assert shutdown_message is not None, "Shutdown message is missing"
             self.__recommended_num_objects = self.__max_batch_size
             self.__is_shutdown.clear()
-            return self.__batch_stream()
+            return self.__batch_recv()
 
     def __reconnect(self, retry: int = 0) -> None:
         try:
@@ -1089,14 +1149,15 @@ class _BatchBaseNew:
         def batch_send_wrapper() -> None:
             try:
                 self.__batch_send()
+                logger.warning("exited batch send thread")
             except Exception as e:
                 logger.error(e)
                 self.__bg_thread_exception = e
 
-        def batch_stream_wrapper() -> None:
+        def batch_recv_wrapper() -> None:
             socket_hung_up = False
             try:
-                self.__batch_stream()
+                self.__batch_recv()
             except Exception as e:
                 if isinstance(e, WeaviateBatchStreamError) and "Socket closed" in e.message:
                     socket_hung_up = True
@@ -1111,20 +1172,22 @@ class _BatchBaseNew:
                 self.__reconnect()
                 # server sets this whenever it restarts, gracefully or unexpectedly, so need to clear it now
                 self.__is_shutting_down.clear()
-                self.__batch_objects.prepend(
-                    [
-                        self.__batch_grpc.grpc_object(o._to_internal())
-                        for o in self.__objs_cache.values()
-                    ]
-                )
-                self.__batch_references.prepend(
-                    [
-                        self.__batch_grpc.grpc_reference(o._to_internal())
-                        for o in self.__refs_cache.values()
-                    ]
-                )
+                with self.__objs_cache_lock:
+                    self.__batch_objects.prepend(
+                        [
+                            self.__batch_grpc.grpc_object(o._to_internal())
+                            for o in self.__objs_cache.values()
+                        ]
+                    )
+                with self.__refs_cache_lock:
+                    self.__batch_references.prepend(
+                        [
+                            self.__batch_grpc.grpc_reference(o._to_internal())
+                            for o in self.__refs_cache.values()
+                        ]
+                    )
                 # start a new stream with a newly reconnected channel
-                return batch_stream_wrapper()
+                return batch_recv_wrapper()
 
         demonBatchSend = threading.Thread(
             target=batch_send_wrapper,
@@ -1133,84 +1196,80 @@ class _BatchBaseNew:
         )
         demonBatchSend.start()
 
-        demonBatchStream = threading.Thread(
-            target=batch_stream_wrapper,
+        demonBatchRecv = threading.Thread(
+            target=batch_recv_wrapper,
             daemon=True,
-            name="BgBatchStream",
+            name="BgBatchRecv",
         )
-        demonBatchStream.start()
+        demonBatchRecv.start()
 
         return _BgThreads(
             send=demonBatchSend,
-            stream=demonBatchStream,
+            recv=demonBatchRecv,
         )
 
-    def __send_batch(
-        self,
-        objs: List[batch_pb2.BatchObject],
-        refs: List[batch_pb2.BatchReference],
-    ) -> None:
-        if (_ := len(objs)) > 0 or (_ := len(refs)) > 0:
-            _ = time.time()
-            try:
-                assert self.__stream_id is not None, "Batch stream was not started"
-                res = self.__batch_grpc.send(
-                    connection=self.__connection,
-                    objects=objs,
-                    references=refs,
-                    stream_id=self.__stream_id,
-                    timeout=DEFAULT_REQUEST_TIMEOUT,
-                )
-                if res.next_batch_size < self.__recommended_num_objects:
-                    logger.warning(
-                        f"Scaling down sending: {self.__recommended_num_objects} -> {res.next_batch_size}"
-                    )
-                if res.next_batch_size > self.__recommended_num_objects:
-                    logger.warning(
-                        f"Scaling up sending: {self.__recommended_num_objects} -> {res.next_batch_size}"
-                    )
-                if res.backoff_seconds > 0:
-                    logger.warning(
-                        f"Backing off from sending the next request by {res.backoff_seconds} seconds"
-                    )
-                self.__recommended_num_objects = res.next_batch_size
-                self.__recommended_backoff = res.backoff_seconds
-                # self.__results_for_wrapper.results.objs.add_uuids(
-                #     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
-                # )
-                with self.__uuid_lookup_lock:
-                    self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
-            except Exception as e:
-                if (
-                    ("grpc shutdown in progress" in str(e))
-                    or (f"write queue for stream {self.__stream_id} not found" in str(e))
-                    or self.__is_shutting_down.is_set()
-                    or self.__is_shutdown.is_set()
-                ):
-                    logger.warning("Connected node was shutdown, re-adding objects to the queue")
-                    self.__batch_objects.prepend(objs)
-                    self.__batch_references.prepend(refs)
-                    # for obj in objs:
-                    #     self.__shutdown_errors[obj.index] = str(obj.uuid)
-                else:
-                    logger.error(
-                        {
-                            "message": f"Failed to send all objects in a batch of {len(objs)}",
-                            "error": repr(e),
-                        }
-                    )
+    # def __send_batch(
+    #     self,
+    #     objs: List[batch_pb2.BatchObject],
+    #     refs: List[batch_pb2.BatchReference],
+    # ) -> None:
+    #     if (_ := len(objs)) > 0 or (_ := len(refs)) > 0:
+    #         _ = time.time()
+    #         try:
+    #             assert self.__stream_id is not None, "Batch stream was not started"
+    #             res = self.__batch_grpc.send(
+    #                 connection=self.__connection,
+    #                 objects=objs,
+    #                 references=refs,
+    #                 stream_id=self.__stream_id,
+    #                 timeout=DEFAULT_REQUEST_TIMEOUT,
+    #             )
+    #             if res.next_batch_size < self.__recommended_num_objects:
+    #                 logger.warning(
+    #                     f"Scaling down sending: {self.__recommended_num_objects} -> {res.next_batch_size}"
+    #                 )
+    #             if res.next_batch_size > self.__recommended_num_objects:
+    #                 logger.warning(
+    #                     f"Scaling up sending: {self.__recommended_num_objects} -> {res.next_batch_size}"
+    #                 )
+    #             if res.backoff_seconds > 0:
+    #                 logger.warning(
+    #                     f"Backing off from sending the next request by {res.backoff_seconds} seconds"
+    #                 )
+    #             self.__recommended_num_objects = res.next_batch_size
+    #             self.__recommended_backoff = res.backoff_seconds
+    #             # self.__results_for_wrapper.results.objs.add_uuids(
+    #             #     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
+    #             # )
+    #             with self.__uuid_lookup_lock:
+    #                 self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
+    #         except Exception as e:
+    #             if (
+    #                 ("grpc shutdown in progress" in str(e))
+    #                 or (f"write queue for stream {self.__stream_id} not found" in str(e))
+    #                 or self.__is_shutting_down.is_set()
+    #                 or self.__is_shutdown.is_set()
+    #             ):
+    #                 logger.warning("Connected node was shutdown, re-adding objects to the queue")
+    #                 self.__batch_objects.prepend(objs)
+    #                 self.__batch_references.prepend(refs)
+    #                 # for obj in objs:
+    #                 #     self.__shutdown_errors[obj.index] = str(obj.uuid)
+    #             else:
+    #                 logger.error(
+    #                     {
+    #                         "message": f"Failed to send all objects in a batch of {len(objs)}",
+    #                         "error": repr(e),
+    #                     }
+    #                 )
 
-        with self.__active_requests_lock:
-            self.__active_requests -= 1
+    #     with self.__active_requests_lock:
+    #         self.__active_requests -= 1
 
     def flush(self) -> None:
         """Flush the batch queue and wait for all requests to be finished."""
         # bg thread is sending objs+refs automatically, so simply wait for everything to be done
-        while (
-            self.__active_requests > 0
-            or len(self.__batch_objects) > 0
-            or len(self.__batch_references) > 0
-        ):
+        while len(self.__batch_objects) > 0 or len(self.__batch_references) > 0:
             time.sleep(0.01)
             self.__check_bg_thread_alive()
 

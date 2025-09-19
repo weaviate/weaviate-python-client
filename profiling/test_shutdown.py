@@ -27,7 +27,7 @@ def setup(client: weaviate.WeaviateClient, collection: str) -> weaviate.collecti
 
 def import_(client: weaviate.WeaviateClient, collection: str, how_many: int = 1_000_000) -> None:
     uuids: dict[str, int] = {}
-    with client.batch.fixed_size(batch_size=1000, concurrent_requests=8) as batch:
+    with client.batch.experimental() as batch:
         for i in range(how_many):
             uuid = batch.add_object(
                 collection=collection,
@@ -69,7 +69,7 @@ def random_vector() -> list[float]:
 
 def test_main() -> None:
     collection = "BatchImportShutdownJourney"
-    how_many = 300000
+    how_many = 500000
     with weaviate.connect_to_local() as client:
         collection = setup(client, collection)
         import_(client, collection.name, how_many)

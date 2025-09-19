@@ -8,7 +8,6 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
-from integration.conftest import _sanitize_collection_name
 from weaviate import ClientBatchingContextManager
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
@@ -89,7 +88,8 @@ def client_factory(
         name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
         nonlocal client_fixture, name_fixtures  # noqa: F824
-        name_fixture = _sanitize_collection_name(request.node.name) + name
+        # name_fixture = _sanitize_collection_name(request.node.name) + name
+        name_fixture = "Ting"
         name_fixtures.append(name_fixture)
         if client_fixture is None:
             client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
@@ -105,7 +105,7 @@ def client_factory(
             ],
             references=[ReferenceProperty(name="test", target_collection=name_fixture)],
             multi_tenancy_config=Configure.multi_tenancy(multi_tenant),
-            vectorizer_config=Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
         )
         return client_fixture, name_fixture
 
@@ -390,13 +390,18 @@ def test_add_ten_thousand_data_objects(
     ):  # change to 1.33.0 when released
         pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
     nr_objects = 10000
+    import time
+
+    start = time.time()
     with batching_method(client) as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
                 properties={"name": "test" + str(i)},
             )
-    objs = client.collections.use(name).query.fetch_objects(limit=nr_objects).objects
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    objs = list(client.collections.use(name).iterator(cache_size=10000))
     assert len(objs) == nr_objects
     client.collections.delete(name)
 
@@ -562,15 +567,15 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
 @pytest.mark.parametrize(
     "batching_method",
     [
-        # lambda client: client.batch.dynamic(),
-        # lambda client: client.batch.fixed_size(),
-        # lambda client: client.batch.rate_limit(1000),
+        lambda client: client.batch.dynamic(),
+        lambda client: client.batch.fixed_size(),
+        lambda client: client.batch.rate_limit(1000),
         lambda client: client.batch.experimental(),
     ],
     ids=[
-        # "test_add_one_hundred_objects_and_references_between_all_dynamic",
-        # "test_add_one_hundred_objects_and_references_between_all_fixed_size",
-        # "test_add_one_hundred_objects_and_references_between_all_rate_limit",
+        "test_add_one_hundred_objects_and_references_between_all_dynamic",
+        "test_add_one_hundred_objects_and_references_between_all_fixed_size",
+        "test_add_one_hundred_objects_and_references_between_all_rate_limit",
         "test_add_one_hundred_objects_and_references_between_all_experimental",
     ],
 )

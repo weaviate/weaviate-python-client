@@ -26,7 +26,7 @@ from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 from weaviate.proto.v1.v6300.v1 import base_pb2 as v1_dot_base__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ev1/batch.proto\x12\x0bweaviate.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\rv1/base.proto\"\x95\x01\n\x13\x42\x61tchObjectsRequest\x12)\n\x07objects\x18\x01 \x03(\x0b\x32\x18.weaviate.v1.BatchObject\x12=\n\x11\x63onsistency_level\x18\x02 \x01(\x0e\x32\x1d.weaviate.v1.ConsistencyLevelH\x00\x88\x01\x01\x42\x14\n\x12_consistency_level\"\x9e\x01\n\x16\x42\x61tchReferencesRequest\x12/\n\nreferences\x18\x01 \x03(\x0b\x32\x1b.weaviate.v1.BatchReference\x12=\n\x11\x63onsistency_level\x18\x02 \x01(\x0e\x32\x1d.weaviate.v1.ConsistencyLevelH\x00\x88\x01\x01\x42\x14\n\x12_consistency_level\"\xd6\x02\n\x10\x42\x61tchSendRequest\x12\x11\n\tstream_id\x18\x01 \x01(\t\x12\x38\n\x07objects\x18\x02 \x01(\x0b\x32%.weaviate.v1.BatchSendRequest.ObjectsH\x00\x12>\n\nreferences\x18\x03 \x01(\x0b\x32(.weaviate.v1.BatchSendRequest.ReferencesH\x00\x12\x32\n\x04stop\x18\x04 \x01(\x0b\x32\".weaviate.v1.BatchSendRequest.StopH\x00\x1a\x06\n\x04Stop\x1a\x33\n\x07Objects\x12(\n\x06values\x18\x01 \x03(\x0b\x32\x18.weaviate.v1.BatchObject\x1a\x39\n\nReferences\x12+\n\x06values\x18\x01 \x03(\x0b\x32\x1b.weaviate.v1.BatchReferenceB\t\n\x07message\"B\n\x0e\x42\x61tchSendReply\x12\x17\n\x0fnext_batch_size\x18\x01 \x01(\x05\x12\x17\n\x0f\x62\x61\x63koff_seconds\x18\x02 \x01(\x02\"i\n\x12\x42\x61tchStreamRequest\x12=\n\x11\x63onsistency_level\x18\x01 \x01(\x0e\x32\x1d.weaviate.v1.ConsistencyLevelH\x00\x88\x01\x01\x42\x14\n\x12_consistency_level\"\xa1\x04\n\x12\x42\x61tchStreamMessage\x12\x11\n\tstream_id\x18\x01 \x01(\t\x12\x36\n\x05\x65rror\x18\x02 \x01(\x0b\x32%.weaviate.v1.BatchStreamMessage.ErrorH\x00\x12\x36\n\x05start\x18\x03 \x01(\x0b\x32%.weaviate.v1.BatchStreamMessage.StartH\x00\x12\x34\n\x04stop\x18\x04 \x01(\x0b\x32$.weaviate.v1.BatchStreamMessage.StopH\x00\x12<\n\x08shutdown\x18\x05 \x01(\x0b\x32(.weaviate.v1.BatchStreamMessage.ShutdownH\x00\x12\x45\n\rshutting_down\x18\x06 \x01(\x0b\x32,.weaviate.v1.BatchStreamMessage.ShuttingDownH\x00\x1a\x07\n\x05Start\x1a\x06\n\x04Stop\x1a\n\n\x08Shutdown\x1a\x0e\n\x0cShuttingDown\x1a\x94\x01\n\x05\x45rror\x12\r\n\x05\x65rror\x18\x01 \x01(\t\x12\x14\n\x0cis_retriable\x18\x02 \x01(\x08\x12*\n\x06object\x18\x03 \x01(\x0b\x32\x18.weaviate.v1.BatchObjectH\x00\x12\x30\n\treference\x18\x04 \x01(\x0b\x32\x1b.weaviate.v1.BatchReferenceH\x00\x42\x08\n\x06\x64\x65tailB\t\n\x07message\"\xde\x07\n\x0b\x42\x61tchObject\x12\x0c\n\x04uuid\x18\x01 \x01(\t\x12\x12\n\x06vector\x18\x02 \x03(\x02\x42\x02\x18\x01\x12\x37\n\nproperties\x18\x03 \x01(\x0b\x32#.weaviate.v1.BatchObject.Properties\x12\x12\n\ncollection\x18\x04 \x01(\t\x12\x0e\n\x06tenant\x18\x05 \x01(\t\x12\x14\n\x0cvector_bytes\x18\x06 \x01(\x0c\x12%\n\x07vectors\x18\x17 \x03(\x0b\x32\x14.weaviate.v1.Vectors\x1a\x84\x05\n\nProperties\x12\x33\n\x12non_ref_properties\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12N\n\x17single_target_ref_props\x18\x02 \x03(\x0b\x32-.weaviate.v1.BatchObject.SingleTargetRefProps\x12L\n\x16multi_target_ref_props\x18\x03 \x03(\x0b\x32,.weaviate.v1.BatchObject.MultiTargetRefProps\x12\x43\n\x17number_array_properties\x18\x04 \x03(\x0b\x32\".weaviate.v1.NumberArrayProperties\x12=\n\x14int_array_properties\x18\x05 \x03(\x0b\x32\x1f.weaviate.v1.IntArrayProperties\x12?\n\x15text_array_properties\x18\x06 \x03(\x0b\x32 .weaviate.v1.TextArrayProperties\x12\x45\n\x18\x62oolean_array_properties\x18\x07 \x03(\x0b\x32#.weaviate.v1.BooleanArrayProperties\x12\x38\n\x11object_properties\x18\x08 \x03(\x0b\x32\x1d.weaviate.v1.ObjectProperties\x12\x43\n\x17object_array_properties\x18\t \x03(\x0b\x32\".weaviate.v1.ObjectArrayProperties\x12\x18\n\x10\x65mpty_list_props\x18\n \x03(\t\x1a\x38\n\x14SingleTargetRefProps\x12\r\n\x05uuids\x18\x01 \x03(\t\x12\x11\n\tprop_name\x18\x02 \x01(\t\x1aR\n\x13MultiTargetRefProps\x12\r\n\x05uuids\x18\x01 \x03(\t\x12\x11\n\tprop_name\x18\x02 \x01(\t\x12\x19\n\x11target_collection\x18\x03 \x01(\t\"\x99\x01\n\x0e\x42\x61tchReference\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x17\n\x0f\x66rom_collection\x18\x02 \x01(\t\x12\x11\n\tfrom_uuid\x18\x03 \x01(\t\x12\x1a\n\rto_collection\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\x0f\n\x07to_uuid\x18\x05 \x01(\t\x12\x0e\n\x06tenant\x18\x06 \x01(\tB\x10\n\x0e_to_collection\"\x88\x01\n\x11\x42\x61tchObjectsReply\x12\x0c\n\x04took\x18\x01 \x01(\x02\x12\x39\n\x06\x65rrors\x18\x02 \x03(\x0b\x32).weaviate.v1.BatchObjectsReply.BatchError\x1a*\n\nBatchError\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\x8e\x01\n\x14\x42\x61tchReferencesReply\x12\x0c\n\x04took\x18\x01 \x01(\x02\x12<\n\x06\x65rrors\x18\x02 \x03(\x0b\x32,.weaviate.v1.BatchReferencesReply.BatchError\x1a*\n\nBatchError\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05\x65rror\x18\x02 \x01(\tBo\n#io.weaviate.client.grpc.protocol.v1B\x12WeaviateProtoBatchZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ev1/batch.proto\x12\x0bweaviate.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\rv1/base.proto\"\x95\x01\n\x13\x42\x61tchObjectsRequest\x12)\n\x07objects\x18\x01 \x03(\x0b\x32\x18.weaviate.v1.BatchObject\x12=\n\x11\x63onsistency_level\x18\x02 \x01(\x0e\x32\x1d.weaviate.v1.ConsistencyLevelH\x00\x88\x01\x01\x42\x14\n\x12_consistency_level\"\x9e\x01\n\x16\x42\x61tchReferencesRequest\x12/\n\nreferences\x18\x01 \x03(\x0b\x32\x1b.weaviate.v1.BatchReference\x12=\n\x11\x63onsistency_level\x18\x02 \x01(\x0e\x32\x1d.weaviate.v1.ConsistencyLevelH\x00\x88\x01\x01\x42\x14\n\x12_consistency_level\"\xe1\x03\n\x12\x42\x61tchStreamRequest\x12:\n\x07objects\x18\x01 \x01(\x0b\x32\'.weaviate.v1.BatchStreamRequest.ObjectsH\x00\x12@\n\nreferences\x18\x02 \x01(\x0b\x32*.weaviate.v1.BatchStreamRequest.ReferencesH\x00\x12\x36\n\x05start\x18\x03 \x01(\x0b\x32%.weaviate.v1.BatchStreamRequest.StartH\x00\x12\x34\n\x04stop\x18\x04 \x01(\x0b\x32$.weaviate.v1.BatchStreamRequest.StopH\x00\x1a\\\n\x05Start\x12=\n\x11\x63onsistency_level\x18\x01 \x01(\x0e\x32\x1d.weaviate.v1.ConsistencyLevelH\x00\x88\x01\x01\x42\x14\n\x12_consistency_level\x1a\x06\n\x04Stop\x1a\x33\n\x07Objects\x12(\n\x06values\x18\x01 \x03(\x0b\x32\x18.weaviate.v1.BatchObject\x1a\x39\n\nReferences\x12+\n\x06values\x18\x01 \x03(\x0b\x32\x1b.weaviate.v1.BatchReferenceB\t\n\x07message\"\xa3\x04\n\x10\x42\x61tchStreamReply\x12\x34\n\x05\x65rror\x18\x01 \x01(\x0b\x32#.weaviate.v1.BatchStreamReply.ErrorH\x00\x12\x32\n\x04stop\x18\x02 \x01(\x0b\x32\".weaviate.v1.BatchStreamReply.StopH\x00\x12:\n\x08shutdown\x18\x03 \x01(\x0b\x32&.weaviate.v1.BatchStreamReply.ShutdownH\x00\x12\x43\n\rshutting_down\x18\x04 \x01(\x0b\x32*.weaviate.v1.BatchStreamReply.ShuttingDownH\x00\x12\x38\n\x07\x62\x61\x63koff\x18\x05 \x01(\x0b\x32%.weaviate.v1.BatchStreamReply.BackoffH\x00\x1a\x06\n\x04Stop\x1a\n\n\x08Shutdown\x1a\x0e\n\x0cShuttingDown\x1a~\n\x05\x45rror\x12\r\n\x05\x65rror\x18\x01 \x01(\t\x12*\n\x06object\x18\x02 \x01(\x0b\x32\x18.weaviate.v1.BatchObjectH\x00\x12\x30\n\treference\x18\x03 \x01(\x0b\x32\x1b.weaviate.v1.BatchReferenceH\x00\x42\x08\n\x06\x64\x65tail\x1a;\n\x07\x42\x61\x63koff\x12\x17\n\x0fnext_batch_size\x18\x01 \x01(\x05\x12\x17\n\x0f\x62\x61\x63koff_seconds\x18\x02 \x01(\x02\x42\t\n\x07message\"\xde\x07\n\x0b\x42\x61tchObject\x12\x0c\n\x04uuid\x18\x01 \x01(\t\x12\x12\n\x06vector\x18\x02 \x03(\x02\x42\x02\x18\x01\x12\x37\n\nproperties\x18\x03 \x01(\x0b\x32#.weaviate.v1.BatchObject.Properties\x12\x12\n\ncollection\x18\x04 \x01(\t\x12\x0e\n\x06tenant\x18\x05 \x01(\t\x12\x14\n\x0cvector_bytes\x18\x06 \x01(\x0c\x12%\n\x07vectors\x18\x17 \x03(\x0b\x32\x14.weaviate.v1.Vectors\x1a\x84\x05\n\nProperties\x12\x33\n\x12non_ref_properties\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12N\n\x17single_target_ref_props\x18\x02 \x03(\x0b\x32-.weaviate.v1.BatchObject.SingleTargetRefProps\x12L\n\x16multi_target_ref_props\x18\x03 \x03(\x0b\x32,.weaviate.v1.BatchObject.MultiTargetRefProps\x12\x43\n\x17number_array_properties\x18\x04 \x03(\x0b\x32\".weaviate.v1.NumberArrayProperties\x12=\n\x14int_array_properties\x18\x05 \x03(\x0b\x32\x1f.weaviate.v1.IntArrayProperties\x12?\n\x15text_array_properties\x18\x06 \x03(\x0b\x32 .weaviate.v1.TextArrayProperties\x12\x45\n\x18\x62oolean_array_properties\x18\x07 \x03(\x0b\x32#.weaviate.v1.BooleanArrayProperties\x12\x38\n\x11object_properties\x18\x08 \x03(\x0b\x32\x1d.weaviate.v1.ObjectProperties\x12\x43\n\x17object_array_properties\x18\t \x03(\x0b\x32\".weaviate.v1.ObjectArrayProperties\x12\x18\n\x10\x65mpty_list_props\x18\n \x03(\t\x1a\x38\n\x14SingleTargetRefProps\x12\r\n\x05uuids\x18\x01 \x03(\t\x12\x11\n\tprop_name\x18\x02 \x01(\t\x1aR\n\x13MultiTargetRefProps\x12\r\n\x05uuids\x18\x01 \x03(\t\x12\x11\n\tprop_name\x18\x02 \x01(\t\x12\x19\n\x11target_collection\x18\x03 \x01(\t\"\x99\x01\n\x0e\x42\x61tchReference\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x17\n\x0f\x66rom_collection\x18\x02 \x01(\t\x12\x11\n\tfrom_uuid\x18\x03 \x01(\t\x12\x1a\n\rto_collection\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\x0f\n\x07to_uuid\x18\x05 \x01(\t\x12\x0e\n\x06tenant\x18\x06 \x01(\tB\x10\n\x0e_to_collection\"\x88\x01\n\x11\x42\x61tchObjectsReply\x12\x0c\n\x04took\x18\x01 \x01(\x02\x12\x39\n\x06\x65rrors\x18\x02 \x03(\x0b\x32).weaviate.v1.BatchObjectsReply.BatchError\x1a*\n\nBatchError\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\x8e\x01\n\x14\x42\x61tchReferencesReply\x12\x0c\n\x04took\x18\x01 \x01(\x02\x12<\n\x06\x65rrors\x18\x02 \x03(\x0b\x32,.weaviate.v1.BatchReferencesReply.BatchError\x1a*\n\nBatchError\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05\x65rror\x18\x02 \x01(\tBo\n#io.weaviate.client.grpc.protocol.v1B\x12WeaviateProtoBatchZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,46 +40,44 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_BATCHOBJECTSREQUEST']._serialized_end=226
   _globals['_BATCHREFERENCESREQUEST']._serialized_start=229
   _globals['_BATCHREFERENCESREQUEST']._serialized_end=387
-  _globals['_BATCHSENDREQUEST']._serialized_start=390
-  _globals['_BATCHSENDREQUEST']._serialized_end=732
-  _globals['_BATCHSENDREQUEST_STOP']._serialized_start=603
-  _globals['_BATCHSENDREQUEST_STOP']._serialized_end=609
-  _globals['_BATCHSENDREQUEST_OBJECTS']._serialized_start=611
-  _globals['_BATCHSENDREQUEST_OBJECTS']._serialized_end=662
-  _globals['_BATCHSENDREQUEST_REFERENCES']._serialized_start=664
-  _globals['_BATCHSENDREQUEST_REFERENCES']._serialized_end=721
-  _globals['_BATCHSENDREPLY']._serialized_start=734
-  _globals['_BATCHSENDREPLY']._serialized_end=800
-  _globals['_BATCHSTREAMREQUEST']._serialized_start=802
-  _globals['_BATCHSTREAMREQUEST']._serialized_end=907
-  _globals['_BATCHSTREAMMESSAGE']._serialized_start=910
-  _globals['_BATCHSTREAMMESSAGE']._serialized_end=1455
-  _globals['_BATCHSTREAMMESSAGE_START']._serialized_start=1250
-  _globals['_BATCHSTREAMMESSAGE_START']._serialized_end=1257
-  _globals['_BATCHSTREAMMESSAGE_STOP']._serialized_start=603
-  _globals['_BATCHSTREAMMESSAGE_STOP']._serialized_end=609
-  _globals['_BATCHSTREAMMESSAGE_SHUTDOWN']._serialized_start=1267
-  _globals['_BATCHSTREAMMESSAGE_SHUTDOWN']._serialized_end=1277
-  _globals['_BATCHSTREAMMESSAGE_SHUTTINGDOWN']._serialized_start=1279
-  _globals['_BATCHSTREAMMESSAGE_SHUTTINGDOWN']._serialized_end=1293
-  _globals['_BATCHSTREAMMESSAGE_ERROR']._serialized_start=1296
-  _globals['_BATCHSTREAMMESSAGE_ERROR']._serialized_end=1444
-  _globals['_BATCHOBJECT']._serialized_start=1458
-  _globals['_BATCHOBJECT']._serialized_end=2448
-  _globals['_BATCHOBJECT_PROPERTIES']._serialized_start=1662
-  _globals['_BATCHOBJECT_PROPERTIES']._serialized_end=2306
-  _globals['_BATCHOBJECT_SINGLETARGETREFPROPS']._serialized_start=2308
-  _globals['_BATCHOBJECT_SINGLETARGETREFPROPS']._serialized_end=2364
-  _globals['_BATCHOBJECT_MULTITARGETREFPROPS']._serialized_start=2366
-  _globals['_BATCHOBJECT_MULTITARGETREFPROPS']._serialized_end=2448
-  _globals['_BATCHREFERENCE']._serialized_start=2451
-  _globals['_BATCHREFERENCE']._serialized_end=2604
-  _globals['_BATCHOBJECTSREPLY']._serialized_start=2607
-  _globals['_BATCHOBJECTSREPLY']._serialized_end=2743
-  _globals['_BATCHOBJECTSREPLY_BATCHERROR']._serialized_start=2701
-  _globals['_BATCHOBJECTSREPLY_BATCHERROR']._serialized_end=2743
-  _globals['_BATCHREFERENCESREPLY']._serialized_start=2746
-  _globals['_BATCHREFERENCESREPLY']._serialized_end=2888
-  _globals['_BATCHREFERENCESREPLY_BATCHERROR']._serialized_start=2701
-  _globals['_BATCHREFERENCESREPLY_BATCHERROR']._serialized_end=2743
+  _globals['_BATCHSTREAMREQUEST']._serialized_start=390
+  _globals['_BATCHSTREAMREQUEST']._serialized_end=871
+  _globals['_BATCHSTREAMREQUEST_START']._serialized_start=648
+  _globals['_BATCHSTREAMREQUEST_START']._serialized_end=740
+  _globals['_BATCHSTREAMREQUEST_STOP']._serialized_start=742
+  _globals['_BATCHSTREAMREQUEST_STOP']._serialized_end=748
+  _globals['_BATCHSTREAMREQUEST_OBJECTS']._serialized_start=750
+  _globals['_BATCHSTREAMREQUEST_OBJECTS']._serialized_end=801
+  _globals['_BATCHSTREAMREQUEST_REFERENCES']._serialized_start=803
+  _globals['_BATCHSTREAMREQUEST_REFERENCES']._serialized_end=860
+  _globals['_BATCHSTREAMREPLY']._serialized_start=874
+  _globals['_BATCHSTREAMREPLY']._serialized_end=1421
+  _globals['_BATCHSTREAMREPLY_STOP']._serialized_start=742
+  _globals['_BATCHSTREAMREPLY_STOP']._serialized_end=748
+  _globals['_BATCHSTREAMREPLY_SHUTDOWN']._serialized_start=1195
+  _globals['_BATCHSTREAMREPLY_SHUTDOWN']._serialized_end=1205
+  _globals['_BATCHSTREAMREPLY_SHUTTINGDOWN']._serialized_start=1207
+  _globals['_BATCHSTREAMREPLY_SHUTTINGDOWN']._serialized_end=1221
+  _globals['_BATCHSTREAMREPLY_ERROR']._serialized_start=1223
+  _globals['_BATCHSTREAMREPLY_ERROR']._serialized_end=1349
+  _globals['_BATCHSTREAMREPLY_BACKOFF']._serialized_start=1351
+  _globals['_BATCHSTREAMREPLY_BACKOFF']._serialized_end=1410
+  _globals['_BATCHOBJECT']._serialized_start=1424
+  _globals['_BATCHOBJECT']._serialized_end=2414
+  _globals['_BATCHOBJECT_PROPERTIES']._serialized_start=1628
+  _globals['_BATCHOBJECT_PROPERTIES']._serialized_end=2272
+  _globals['_BATCHOBJECT_SINGLETARGETREFPROPS']._serialized_start=2274
+  _globals['_BATCHOBJECT_SINGLETARGETREFPROPS']._serialized_end=2330
+  _globals['_BATCHOBJECT_MULTITARGETREFPROPS']._serialized_start=2332
+  _globals['_BATCHOBJECT_MULTITARGETREFPROPS']._serialized_end=2414
+  _globals['_BATCHREFERENCE']._serialized_start=2417
+  _globals['_BATCHREFERENCE']._serialized_end=2570
+  _globals['_BATCHOBJECTSREPLY']._serialized_start=2573
+  _globals['_BATCHOBJECTSREPLY']._serialized_end=2709
+  _globals['_BATCHOBJECTSREPLY_BATCHERROR']._serialized_start=2667
+  _globals['_BATCHOBJECTSREPLY_BATCHERROR']._serialized_end=2709
+  _globals['_BATCHREFERENCESREPLY']._serialized_start=2712
+  _globals['_BATCHREFERENCESREPLY']._serialized_end=2854
+  _globals['_BATCHREFERENCESREPLY_BATCHERROR']._serialized_start=2667
+  _globals['_BATCHREFERENCESREPLY_BATCHERROR']._serialized_end=2709
 # @@protoc_insertion_point(module_scope)

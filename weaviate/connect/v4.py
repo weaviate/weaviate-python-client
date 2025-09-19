@@ -67,7 +67,6 @@ from weaviate.exceptions import (
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
     WeaviateBatchError,
-    WeaviateBatchSendError,
     WeaviateBatchStreamError,
     WeaviateClosedClientError,
     WeaviateConnectionError,
@@ -1032,41 +1031,14 @@ class ConnectionSync(_ConnectionBase):
                 raise InsufficientPermissionsError(error)
             raise WeaviateBatchError(str(error.details()))
 
-    def grpc_batch_send(
-        self,
-        request: batch_pb2.BatchSendRequest,
-        timeout: Union[int, float],
-    ) -> batch_pb2.BatchSendReply:
-        try:
-            assert self.grpc_stub is not None
-            res = _Retry().with_exponential_backoff(
-                count=0,
-                error="Batch send",
-                f=self.grpc_stub.BatchSend,
-                request=request,
-                metadata=self.grpc_headers(),
-                timeout=timeout,
-            )
-            res = cast(batch_pb2.BatchSendReply, res)
-            return res
-        except RpcError as e:
-            error = cast(Call, e)
-            if error.code() == StatusCode.PERMISSION_DENIED:
-                raise InsufficientPermissionsError(error)
-            raise WeaviateBatchSendError(str(error.details()))
-
     def grpc_batch_stream(
         self,
-        request: batch_pb2.BatchStreamRequest,
-    ) -> Generator[batch_pb2.BatchStreamMessage, None, None]:
+        requests: Generator[batch_pb2.BatchStreamRequest, None, None],
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
         try:
             assert self.grpc_stub is not None
-            for msg in _Retry().with_exponential_backoff(
-                count=0,
-                error="Batch stream",
-                f=self.grpc_stub.BatchStream,
-                request=request,
-                metadata=self.grpc_headers(),
+            for msg in self.grpc_stub.BatchStream(
+                request_iterator=requests, metadata=self.grpc_headers()
             ):
                 yield msg
         except RpcError as e:
