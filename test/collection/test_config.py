@@ -408,13 +408,13 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_jinaai(
-            model="jina-embeddings-v3",
+            model="jina-embeddings-v4",
             vectorize_collection_name=False,
             dimensions=512,
         ),
         {
             "text2vec-jinaai": {
-                "model": "jina-embeddings-v3",
+                "model": "jina-embeddings-v4",
                 "vectorizeClassName": False,
                 "dimensions": 512,
             }
@@ -422,13 +422,13 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.multi2vec_jinaai(
-            model="jina-clip-v2",
+            model="jina-embeddings-v4",
             dimensions=512,
             vectorize_collection_name=False,
         ),
         {
             "multi2vec-jinaai": {
-                "model": "jina-clip-v2",
+                "model": "jina-embeddings-v4",
                 "dimensions": 512,
             }
         },
