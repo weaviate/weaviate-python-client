@@ -80,7 +80,9 @@ WeaviateField: TypeAlias = Union[
 
 WeaviateProperties: TypeAlias = Mapping[str, WeaviateField]
 
-Properties = TypeVar("Properties", bound=Mapping[str, Any], default=WeaviateProperties)
+Properties = TypeVar(
+    "Properties", bound=Mapping[str, Any], default=WeaviateProperties, contravariant=True
+)
 """`Properties` is used wherever a single generic type is needed for properties"""
 
 TProperties = TypeVar("TProperties", bound=Mapping[str, Any], default=WeaviateProperties)

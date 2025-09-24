@@ -241,6 +241,22 @@ class WeaviateBatchError(WeaviateQueryError):
         self.message = message
 
 
+class WeaviateBatchSendError(WeaviateQueryError):
+    """Is raised if a gRPC batch send request to Weaviate fails in any way."""
+
+    def __init__(self, message: str):
+        super().__init__(message, "GRPC batch send")
+        self.message = message
+
+
+class WeaviateBatchStreamError(WeaviateQueryError):
+    """Is raised if a gRPC batch stream request to Weaviate fails in any way."""
+
+    def __init__(self, message: str):
+        super().__init__(message, "GRPC batch stream")
+        self.message = message
+
+
 class WeaviateDeleteManyError(WeaviateQueryError):
     """Is raised if a gRPC delete many request to Weaviate fails in any way."""
 
