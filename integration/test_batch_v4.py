@@ -8,6 +8,7 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
+from integration.conftest import _sanitize_collection_name
 from weaviate import ClientBatchingContextManager
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
@@ -88,8 +89,7 @@ def client_factory(
         name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
         nonlocal client_fixture, name_fixtures  # noqa: F824
-        # name_fixture = _sanitize_collection_name(request.node.name) + name
-        name_fixture = "Ting"
+        name_fixture = _sanitize_collection_name(request.node.name) + name
         name_fixtures.append(name_fixture)
         if client_fixture is None:
             client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
@@ -105,7 +105,7 @@ def client_factory(
             ],
             references=[ReferenceProperty(name="test", target_collection=name_fixture)],
             multi_tenancy_config=Configure.multi_tenancy(multi_tenant),
-            vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
+            vectorizer_config=Configure.Vectorizer.none(),
         )
         return client_fixture, name_fixture
 
