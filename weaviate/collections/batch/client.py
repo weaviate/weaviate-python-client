@@ -8,6 +8,7 @@ from weaviate.collections.batch.base import (
     _DynamicBatching,
     _FixedSizeBatching,
     _RateLimitedBatching,
+    _ServerSideBatching,
 )
 from weaviate.collections.batch.batch_wrapper import (
     BatchClientProtocol,
@@ -292,6 +293,7 @@ class _BatchClientWrapper(_BatchWrapper):
     def experimental(
         self,
         *,
+        concurrency: Optional[int] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> ClientBatchingContextManager:
         """Configure the batching context manager using the experimental server-side batching mode.
@@ -302,5 +304,10 @@ class _BatchClientWrapper(_BatchWrapper):
             raise WeaviateUnsupportedFeatureError(
                 "Server-side batching", str(self._connection._weaviate_version), "1.33.0"
             )
+        self._batch_mode = _ServerSideBatching(
+            concurrency=concurrency
+            if concurrency is not None
+            else len(self.__cluster.get_nodes_status())
+        )
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset(_BatchClientNew)

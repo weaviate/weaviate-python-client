@@ -54,14 +54,14 @@ class BatchStreamRequest(_message.Message):
     def __init__(self, objects: _Optional[_Union[BatchStreamRequest.Objects, _Mapping]] = ..., references: _Optional[_Union[BatchStreamRequest.References, _Mapping]] = ..., start: _Optional[_Union[BatchStreamRequest.Start, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamRequest.Stop, _Mapping]] = ...) -> None: ...
 
 class BatchStreamReply(_message.Message):
-    __slots__ = ("error", "stop", "shutdown", "shutting_down", "backoff")
+    __slots__ = ("error", "stop", "shutdown_finished", "shutdown_triggered", "backoff")
     class Stop(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
-    class Shutdown(_message.Message):
+    class ShutdownFinished(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
-    class ShuttingDown(_message.Message):
+    class ShutdownTriggered(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
     class Error(_message.Message):
@@ -82,15 +82,15 @@ class BatchStreamReply(_message.Message):
         def __init__(self, next_batch_size: _Optional[int] = ..., backoff_seconds: _Optional[float] = ...) -> None: ...
     ERROR_FIELD_NUMBER: _ClassVar[int]
     STOP_FIELD_NUMBER: _ClassVar[int]
-    SHUTDOWN_FIELD_NUMBER: _ClassVar[int]
-    SHUTTING_DOWN_FIELD_NUMBER: _ClassVar[int]
+    SHUTDOWN_FINISHED_FIELD_NUMBER: _ClassVar[int]
+    SHUTDOWN_TRIGGERED_FIELD_NUMBER: _ClassVar[int]
     BACKOFF_FIELD_NUMBER: _ClassVar[int]
     error: BatchStreamReply.Error
     stop: BatchStreamReply.Stop
-    shutdown: BatchStreamReply.Shutdown
-    shutting_down: BatchStreamReply.ShuttingDown
+    shutdown_finished: BatchStreamReply.ShutdownFinished
+    shutdown_triggered: BatchStreamReply.ShutdownTriggered
     backoff: BatchStreamReply.Backoff
-    def __init__(self, error: _Optional[_Union[BatchStreamReply.Error, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamReply.Stop, _Mapping]] = ..., shutdown: _Optional[_Union[BatchStreamReply.Shutdown, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamReply.ShuttingDown, _Mapping]] = ..., backoff: _Optional[_Union[BatchStreamReply.Backoff, _Mapping]] = ...) -> None: ...
+    def __init__(self, error: _Optional[_Union[BatchStreamReply.Error, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamReply.Stop, _Mapping]] = ..., shutdown_finished: _Optional[_Union[BatchStreamReply.ShutdownFinished, _Mapping]] = ..., shutdown_triggered: _Optional[_Union[BatchStreamReply.ShutdownTriggered, _Mapping]] = ..., backoff: _Optional[_Union[BatchStreamReply.Backoff, _Mapping]] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")

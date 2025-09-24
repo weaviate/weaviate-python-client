@@ -27,7 +27,7 @@ def setup(client: weaviate.WeaviateClient, collection: str) -> weaviate.collecti
 
 def import_(client: weaviate.WeaviateClient, collection: str, how_many: int = 1_000_000) -> None:
     uuids: dict[str, int] = {}
-    with client.batch.experimental() as batch:
+    with client.batch.experimental(concurrency=1) as batch:
         for i in range(how_many):
             uuid = batch.add_object(
                 collection=collection,
