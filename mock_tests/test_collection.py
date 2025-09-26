@@ -295,7 +295,7 @@ def test_node_with_timeout(
     httpserver: HTTPServer, start_grpc_server: grpc.Server, output: Literal["minimal", "verbose"]
 ) -> None:
     httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
-    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.33"})
 
     httpserver.expect_request("/v1/nodes").respond_with_json(
         status=200,

@@ -13,7 +13,7 @@ class Shard:
     name: str
     node: str
     object_count: int
-    vector_indexing_status: Literal["READONLY", "INDEXING", "READY"]
+    vector_indexing_status: Literal["READONLY", "INDEXING", "READY", "LAZY_LOADING"]
     vector_queue_length: int
     compressed: bool
     loaded: Optional[bool]  # not present in <1.24.x

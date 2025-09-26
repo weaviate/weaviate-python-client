@@ -463,6 +463,7 @@ class _GenerativeAWSConfig(_GenerativeProvider):
     service: str
     model: Optional[str]
     endpoint: Optional[str]
+    maxTokens: Optional[int]
 
 
 class _GenerativeAnthropicConfig(_GenerativeProvider):
@@ -890,6 +891,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
+        max_tokens: Optional[int] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
@@ -898,15 +900,13 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             model: The model to use, REQUIRED for service "bedrock".
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default.
             region: The AWS region to run the model from, REQUIRED.
             endpoint: The model to use, REQUIRED for service "sagemaker".
             service: The AWS service to use, options are "bedrock" and "sagemaker".
         """
         return _GenerativeAWSConfig(
-            model=model,
-            region=region,
-            service=service,
-            endpoint=endpoint,
+            model=model, region=region, service=service, endpoint=endpoint, maxTokens=max_tokens
         )
 
     @staticmethod

@@ -31,23 +31,14 @@ class WeightsForTarget(_message.Message):
     def __init__(self, target: _Optional[str] = ..., weight: _Optional[float] = ...) -> None: ...
 
 class Targets(_message.Message):
-    __slots__ = ["target_vectors", "combination", "weights", "weights_for_targets"]
-    class WeightsEntry(_message.Message):
-        __slots__ = ["key", "value"]
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: float
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
+    __slots__ = ["target_vectors", "combination", "weights_for_targets"]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     COMBINATION_FIELD_NUMBER: _ClassVar[int]
-    WEIGHTS_FIELD_NUMBER: _ClassVar[int]
     WEIGHTS_FOR_TARGETS_FIELD_NUMBER: _ClassVar[int]
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
     combination: CombinationMethod
-    weights: _containers.ScalarMap[str, float]
     weights_for_targets: _containers.RepeatedCompositeFieldContainer[WeightsForTarget]
-    def __init__(self, target_vectors: _Optional[_Iterable[str]] = ..., combination: _Optional[_Union[CombinationMethod, str]] = ..., weights: _Optional[_Mapping[str, float]] = ..., weights_for_targets: _Optional[_Iterable[_Union[WeightsForTarget, _Mapping]]] = ...) -> None: ...
+    def __init__(self, target_vectors: _Optional[_Iterable[str]] = ..., combination: _Optional[_Union[CombinationMethod, str]] = ..., weights_for_targets: _Optional[_Iterable[_Union[WeightsForTarget, _Mapping]]] = ...) -> None: ...
 
 class VectorForTarget(_message.Message):
     __slots__ = ["name", "vector_bytes", "vectors"]
