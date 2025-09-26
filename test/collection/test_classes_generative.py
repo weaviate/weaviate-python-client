@@ -322,6 +322,8 @@ def test_generative_parameters_images_parsing(
                 stop=["\n"],
                 temperature=0.5,
                 top_p=50,
+                reasoning_effort="high",
+                verbosity="low",
             )._to_grpc(
                 _GenerativeConfigRuntimeOptions(
                     return_metadata=True, images=[LOGO_ENCODED], image_properties=["image"]
@@ -344,6 +346,8 @@ def test_generative_parameters_images_parsing(
                     images=base_pb2.TextArray(values=[LOGO_ENCODED]),
                     image_properties=base_pb2.TextArray(values=["image"]),
                     is_azure=False,
+                    reasoning_effort=generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_HIGH,
+                    verbosity=generative_pb2.GenerativeOpenAI.Verbosity.VERBOSITY_LOW,
                 ),
             ),
         ),
