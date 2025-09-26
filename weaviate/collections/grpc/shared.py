@@ -34,7 +34,6 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
-    WeaviateUnsupportedFeatureError,
 )
 from weaviate.proto.v1 import base_pb2, base_search_pb2
 from weaviate.types import NUMBER, UUID
@@ -97,18 +96,6 @@ class _BaseGRPC:
     ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
         if target_vector is None:
             return None, None
-
-        if self._weaviate_version.is_lower_than(1, 26, 0):
-            if isinstance(target_vector, str):
-                return None, [target_vector]
-            elif isinstance(target_vector, list) and len(target_vector) == 1:
-                return None, target_vector
-            else:
-                raise WeaviateUnsupportedFeatureError(
-                    "Multiple target vectors in search",
-                    str(self._weaviate_version),
-                    "1.26.0",
-                )
 
         if isinstance(target_vector, str):
             return base_search_pb2.Targets(target_vectors=[target_vector]), None
@@ -586,14 +573,6 @@ class _BaseGRPC:
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
     ) -> Union[base_search_pb2.Hybrid, None]:
-        if self._weaviate_version.is_lower_than(1, 25, 0) and (
-            isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
-        ):
-            raise WeaviateUnsupportedFeatureError(
-                "Hybrid search with NearText or NearVector",
-                str(self._weaviate_version),
-                "1.25.0",
-            )
         if self._validate_arguments:
             _validate_input(
                 [

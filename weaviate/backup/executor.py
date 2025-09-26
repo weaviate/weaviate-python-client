@@ -28,7 +28,6 @@ from weaviate.exceptions import (
     BackupCanceledError,
     BackupFailedException,
     EmptyResponseException,
-    WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import (
@@ -93,16 +92,6 @@ class _BackupExecutor(Generic[ConnectionType]):
         }
 
         if config is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCreate",
-                    str(self._connection._weaviate_version),
-                    "1.25.0",
-                )
-            if not isinstance(config, BackupConfigCreate):
-                raise WeaviateInvalidInputError(
-                    f"Expected 'config' to be of type 'BackupConfigCreate', but got {type(config)}."
-                )
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
@@ -290,13 +279,6 @@ class _BackupExecutor(Generic[ConnectionType]):
         }
         configPayload = {}
         if config is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigRestore",
-                    str(self._connection._weaviate_version),
-                    "1.25.0",
-                )
-
             configPayload = config._to_dict()
 
         if backup_location is not None:
