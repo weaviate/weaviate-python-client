@@ -56,23 +56,14 @@ def test_search_hybrid_group_by(collection_factory: CollectionFactory) -> None:
     )
     collection.data.insert({"Name": "some name"}, uuid=uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid=uuid.uuid4())
-    if collection._connection.supports_groupby_in_bm25_and_hybrid():
-        objs = collection.query.hybrid(
-            alpha=0,
-            query="name",
-            include_vector=True,
-            group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
-        ).objects
-        assert len(objs) == 1
-        assert objs[0].belongs_to_group == "some name"
-    else:
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            collection.query.hybrid(
-                alpha=0,
-                query="name",
-                include_vector=True,
-                group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
-            )
+    objs = collection.query.hybrid(
+        alpha=0,
+        query="name",
+        include_vector=True,
+        group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
+    ).objects
+    assert len(objs) == 1
+    assert objs[0].belongs_to_group == "some name"
 
 
 @pytest.mark.parametrize("query", [None, ""])
