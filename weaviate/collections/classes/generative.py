@@ -342,16 +342,36 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
                 is_azure=self.is_azure,
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
-                verbosity=generative_pb2.GenerativeOpenAI.Verbosity(self.verbosity)
-                if self.verbosity is not None
-                else None,
-                reasoning_effort=generative_pb2.GenerativeOpenAI.ReasoningEffort(
-                    self.reasoning_effort
-                )
-                if self.reasoning_effort is not None
-                else None,
+                verbosity=self.__verbosity(),
+                reasoning_effort=self.__reasoning_effort(),
             ),
         )
+
+    def __verbosity(self):
+        if self.verbosity is None:
+            return None
+
+        if self.verbosity == "low":
+            return generative_pb2.GenerativeOpenAI.Verbosity.VERBOSITY_LOW
+        if self.verbosity == "medium":
+            return generative_pb2.GenerativeOpenAI.Verbosity.VERBOSITY_MEDIUM
+        if self.verbosity == "high":
+            return generative_pb2.GenerativeOpenAI.Verbosity.VERBOSITY_HIGH
+        raise WeaviateInvalidInputError(f"Invalid verbosity value: {self.verbosity}")
+
+    def __reasoning_effort(self):
+        if self.reasoning_effort is None:
+            return None
+
+        if self.reasoning_effort == "minimal":
+            return generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_MINIMAL
+        if self.reasoning_effort == "low":
+            return generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_LOW
+        if self.reasoning_effort == "medium":
+            return generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_MEDIUM
+        if self.reasoning_effort == "high":
+            return generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_HIGH
+        raise WeaviateInvalidInputError(f"Invalid reasoning_effort value: {self.reasoning_effort}")
 
 
 class _GenerativeGoogle(_GenerativeConfigRuntime):
