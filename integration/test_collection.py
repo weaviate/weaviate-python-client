@@ -42,7 +42,6 @@ from weaviate.exceptions import (
     WeaviateInsertManyAllFailedError,
     WeaviateInvalidInputError,
     WeaviateQueryError,
-    WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS
 
@@ -569,17 +568,11 @@ def test_bm25_group_by(collection_factory: CollectionFactory) -> None:
         ]
     )
     assert res.has_errors is False
-    if collection._connection.supports_groupby_in_bm25_and_hybrid():
-        objs = collection.query.bm25(
-            query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
-        ).objects
-        assert len(objs) == 1
-        assert objs[0].belongs_to_group == "test"
-    else:
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            collection.query.bm25(
-                query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
-            )
+    objs = collection.query.bm25(
+        query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
+    ).objects
+    assert len(objs) == 1
+    assert objs[0].belongs_to_group == "test"
 
 
 @pytest.mark.parametrize("limit", [1, 2])
