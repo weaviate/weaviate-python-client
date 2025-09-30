@@ -1043,6 +1043,34 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.contextualai(),
+        {
+            "generative-contextualai": {},
+        },
+    ),
+    (
+        Configure.Generative.contextualai(
+            model="v2",
+            max_tokens=512,
+            temperature=0.7,
+            top_p=0.9,
+            system_prompt="You are a helpful AI assistant",
+            avoid_commentary=True,
+            base_url="https://api.contextual.ai",
+        ),
+        {
+            "generative-contextualai": {
+                "model": "v2",
+                "maxTokensProperty": 512,
+                "temperatureProperty": 0.7,
+                "topPProperty": 0.9,
+                "systemPromptProperty": "You are a helpful AI assistant",
+                "avoidCommentaryProperty": True,
+                "baseURL": "https://api.contextual.ai",
+            }
+        },
+    ),
 ]
 
 
@@ -1123,6 +1151,28 @@ TEST_CONFIG_WITH_RERANKER = [
         Configure.Reranker.transformers(),
         {
             "reranker-transformers": {},
+        },
+    ),
+    (
+        Configure.Reranker.contextualai(),
+        {
+            "reranker-contextualai": {},
+        },
+    ),
+    (
+        Configure.Reranker.contextualai(
+            model="ctxl-rerank-v2-instruct-multilingual",
+            instruction="Prioritize recent documents",
+            top_n=5,
+            base_url="https://api.contextual.ai",
+        ),
+        {
+            "reranker-contextualai": {
+                "model": "ctxl-rerank-v2-instruct-multilingual",
+                "instruction": "Prioritize recent documents",
+                "topN": 5,
+                "baseURL": "https://api.contextual.ai",
+            }
         },
     ),
 ]

@@ -445,6 +445,34 @@ class _GenerativeXAI(_GenerativeConfigRuntime):
         )
 
 
+class _GenerativeContextualAI(_GenerativeConfigRuntime):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
+    )
+    base_url: Optional[AnyHttpUrl]
+    model: Optional[str]
+    max_tokens: Optional[int]
+    temperature: Optional[float]
+    top_p: Optional[float]
+    system_prompt: Optional[str]
+    avoid_commentary: Optional[bool]
+
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        self._validate_multi_modal(opts)
+        return generative_pb2.GenerativeProvider(
+            return_metadata=opts.return_metadata,
+            contextualai=generative_pb2.GenerativeContextualAI(
+                base_url=_parse_anyhttpurl(self.base_url),
+                model=self.model,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                system_prompt=self.system_prompt,
+                avoid_commentary=self.avoid_commentary or False,
+            ),
+        )
+
+
 class GenerativeConfig:
     """Use this factory class to create the correct object for the `generative_provider` argument in the search methods of the `.generate` namespace.
 
@@ -578,6 +606,38 @@ class GenerativeConfig:
             presence_penalty=presence_penalty,
             stop_sequences=stop_sequences,
             temperature=temperature,
+        )
+
+    @staticmethod
+    def contextualai(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        system_prompt: Optional[str] = None,
+        avoid_commentary: Optional[bool] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeContextualAI` object for use with the `generative-contextualai` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            system_prompt: The system prompt to prepend to the conversation
+            avoid_commentary: Whether to avoid model commentary in responses
+        """
+        return _GenerativeContextualAI(
+            base_url=AnyUrl(base_url) if base_url is not None else None,
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            system_prompt=system_prompt,
+            avoid_commentary=avoid_commentary,
         )
 
     @staticmethod
