@@ -10,7 +10,7 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
 from dataclasses import dataclass, field
-from queue import Empty, SimpleQueue
+from queue import Empty, Queue
 from typing import Any, Dict, Generator, Generic, List, Optional, Set, TypeVar, Union, cast
 
 from httpx import ConnectError
@@ -871,7 +871,9 @@ class _BatchBaseNew:
         self.__objs_cache: dict[int, BatchObject] = {}
         self.__refs_cache: dict[int, BatchReference] = {}
 
-        self.__reqs: SimpleQueue[batch_pb2.BatchStreamRequest] = SimpleQueue()
+        # maxsize=1 so that __batch_send does not run faster than generator for __batch_recv
+        # thereby using too much buffer in case of server-side shutdown
+        self.__reqs: Queue[batch_pb2.BatchStreamRequest] = Queue(maxsize=1)
 
         self.__stop = False
         self.__stopped = False
@@ -922,17 +924,9 @@ class _BatchBaseNew:
         # we are done, wait for bg threads to finish
         # self.__batch_stream will set the shutdown event when it receives
         # the stop message from the server
-        count = 0
         while self.__any_threads_alive():
-            logger.warning("Waiting for background threads to finish...")
-            if count > 300:
-                time.sleep(60)
-            elif count > 30:
-                time.sleep(30)
-            else:
-                time.sleep(10)
-            count += 1
-        logger.warning("Background threads finished.")
+            time.sleep(1)
+        logger.warning("Send & receive threads finished.")
 
         with open("shutdown_errors.json", "w") as f:
             import json
@@ -989,13 +983,13 @@ class _BatchBaseNew:
                     time.sleep(self.__recommended_backoff)
                     self.__recommended_backoff = 0
 
-                while self.__is_shutting_down.is_set() or self.__is_shutdown.is_set():
-                    # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
-                    # so that the connection is refreshed to a new node where the objects can be accepted
-                    # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
-                    time.sleep(refresh_time)
-
                 for req in self.__generate_stream_requests(objs, refs):
+                    while self.__is_shutting_down.is_set() or self.__is_shutdown.is_set():
+                        # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
+                        # so that the connection is refreshed to a new node where the objects can be accepted
+                        # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
+                        logger.warning("Waiting for stream to be re-established...")
+                        time.sleep(1)
                     self.__reqs.put(req)
             time.sleep(refresh_time)
 
@@ -1116,7 +1110,9 @@ class _BatchBaseNew:
                 self.__shut_background_thread_down.set()
                 return
             elif message.HasField("shutdown_triggered"):
-                logger.warning("Received shutdown triggered message from server")
+                logger.warning(
+                    f"Received shutdown triggered message from server with {len(self.__batch_objects)} remaining to be sent"
+                )
                 self.__is_shutting_down.set()
             elif message.HasField("shutdown_finished"):
                 logger.warning("Received shutdown finished message from server")
