@@ -307,7 +307,7 @@ class _BatchClientWrapper(_BatchWrapper):
         self._batch_mode = _ServerSideBatching(
             concurrency=concurrency
             if concurrency is not None
-            else len(self.__cluster.get_nodes_status())
+            else len(self._cluster.get_nodes_status())
         )
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset(_BatchClientNew)

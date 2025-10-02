@@ -368,7 +368,7 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
         lambda client: client.batch.rate_limit(9999),
-        lambda client: client.batch.experimental(),
+        lambda client: client.batch.experimental(concurrency=1),
     ],
     ids=[
         "test_add_ten_thousand_data_objects_dynamic",

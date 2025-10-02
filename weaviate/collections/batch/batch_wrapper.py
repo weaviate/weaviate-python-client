@@ -39,7 +39,7 @@ class _BatchWrapper:
         self._batch_mode: _BatchMode = _DynamicBatching()
 
         self._batch_data = _BatchDataWrapper()
-        self.__cluster = _ClusterBatch(connection)
+        self._cluster = _ClusterBatch(connection)
 
     def __is_ready(
         self, max_count: int, shards: Optional[List[Shard]], backoff_count: int = 0

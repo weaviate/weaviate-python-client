@@ -868,7 +868,7 @@ class _BatchBaseNew:
 
         self.__objs_cache_lock = threading.Lock()
         self.__refs_cache_lock = threading.Lock()
-        self.__objs_cache: dict[str, BatchObject] = {}
+        self.__objs_cache: dict[int, BatchObject] = {}
         self.__refs_cache: dict[int, BatchReference] = {}
 
         self.__reqs: SimpleQueue[batch_pb2.BatchStreamRequest] = SimpleQueue()
@@ -918,14 +918,6 @@ class _BatchBaseNew:
         # Shutdown the current batch and wait for all requests to be finished
         self.flush()
         self.__stop = True
-
-        # assert self.__stream_id is not None, "Batch stream was not started"
-        # Send stop message to the server to stop the batch stream
-        # self.__batch_grpc.stop(
-        #     connection=self.__connection,
-        #     stream_id=self.__stream_id,
-        #     timeout=DEFAULT_REQUEST_TIMEOUT,
-        # )
 
         # we are done, wait for bg threads to finish
         # self.__batch_stream will set the shutdown event when it receives
@@ -1015,11 +1007,7 @@ class _BatchBaseNew:
         per_object_overhead = 4  # extra overhead bytes per object in the request
 
         def request_maker():
-            return batch_pb2.BatchStreamRequest(
-                objects=batch_pb2.BatchStreamRequest.Objects(
-                    values=[],
-                ),
-            )
+            return batch_pb2.BatchStreamRequest()
 
         request = request_maker()
         total_size = request.ByteSize()
@@ -1080,13 +1068,10 @@ class _BatchBaseNew:
             if message.HasField("error"):
                 with self.__results_lock:
                     if message.error.HasField("object"):
-                        obj = self.__objs_cache.get(message.error.object.uuid)
-                        if obj is None:
-                            logger.error(f"Object not found in cache: {message.error.object.uuid}")
-                            continue
+                        # TODO: translate gRPC object back to BatchObject
                         err = ErrorObject(
                             message=message.error.error,
-                            object_=obj,  # pyright: ignore
+                            object_=message.error.object,  # pyright: ignore
                         )
                         self.__results_for_wrapper.failed_objects.append(err)
                         logger.warning(
@@ -1097,21 +1082,19 @@ class _BatchBaseNew:
                             }
                         )
                     if message.error.HasField("reference"):
-                        # ref = self.__refs_cache.get(message.error.index)
+                        # TODO: translate gRPC reference back to BatchReference
                         err = ErrorReference(
                             message=message.error.error,
-                            reference=None,  # pyright: ignore
+                            reference=message.error.reference,  # pyright: ignore
                         )
                         self.__results_for_wrapper.failed_references.append(err)
-                        # logger.warning(
-                        #     {
-                        #         "error": message.error.error,
-                        #         "reference": f"{r._to_internal().from_} -> {r._to_internal().to}"
-                        #         if (r := self.__refs_cache.get(message.error.index)) is not None
-                        #         else None,
-                        #         "action": "use {client,collection}.batch.failed_references to access this error",
-                        #     }
-                        # )
+                        logger.warning(
+                            {
+                                "error": message.error.error,
+                                "reference": message.error.reference.SerializeToString(),
+                                "action": "use {client,collection}.batch.failed_references to access this error",
+                            }
+                        )
             elif message.HasField("backoff"):
                 if message.backoff.next_batch_size < self.__recommended_num_objects:
                     logger.warning(
@@ -1178,6 +1161,7 @@ class _BatchBaseNew:
             socket_hung_up = False
             try:
                 self.__batch_recv()
+                logger.warning("exited batch receive thread")
             except Exception as e:
                 if isinstance(e, WeaviateBatchStreamError) and "Socket closed" in e.message:
                     socket_hung_up = True
@@ -1320,9 +1304,8 @@ class _BatchBaseNew:
             raise WeaviateBatchValidationError(repr(e))
         self.__uuid_lookup.add(str(batch_object.uuid))
         self.__batch_objects.add(self.__batch_grpc.grpc_object(batch_object._to_internal()))
-
         with self.__objs_cache_lock:
-            self.__objs_cache[str(batch_object.uuid)] = batch_object
+            self.__objs_cache[self.__objs_count] = batch_object
         self.__objs_count += 1
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
