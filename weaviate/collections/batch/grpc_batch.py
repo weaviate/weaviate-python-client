@@ -2,22 +2,25 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Union, cast
 
 from google.protobuf.struct_pb2 import Struct
 
 from weaviate.collections.classes.batch import (
     BatchObject,
     BatchObjectReturn,
+    BatchReference,
     ErrorObject,
     _BatchObject,
+    _BatchReference,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceToMulti
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
 from weaviate.collections.grpc.shared import _BaseGRPC, _is_1d_vector, _Pack
 from weaviate.connect import executor
-from weaviate.connect.v4 import Connection
+from weaviate.connect.base import MAX_GRPC_MESSAGE_LENGTH
+from weaviate.connect.v4 import Connection, ConnectionSync
 from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
@@ -39,8 +42,10 @@ class _BatchGRPC(_BaseGRPC):
         self,
         weaviate_version: _ServerVersion,
         consistency_level: Optional[ConsistencyLevel],
+        grpc_max_msg_size: Optional[int],
     ):
         super().__init__(weaviate_version, consistency_level, False)
+        self.grpc_max_msg_size = grpc_max_msg_size or MAX_GRPC_MESSAGE_LENGTH
 
     def __single_vec(self, vectors: Optional[VECTORS]) -> Optional[bytes]:
         if not _is_1d_vector(vectors):
@@ -58,25 +63,39 @@ class _BatchGRPC(_BaseGRPC):
             if (packing := _Pack.parse_single_or_multi_vec(vec_or_vecs))
         ]
 
-    def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
-        return [
-            batch_pb2.BatchObject(
-                collection=obj.collection,
-                uuid=(str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4())),
-                properties=(
-                    self.__translate_properties_from_python_to_grpc(
-                        obj.properties,
-                        obj.references if obj.references is not None else {},
-                    )
-                    if obj.properties is not None
-                    else None
-                ),
-                tenant=obj.tenant,
-                vector_bytes=self.__single_vec(obj.vector),
-                vectors=self.__multi_vec(obj.vector),
-            )
-            for obj in objects
-        ]
+    def grpc_object(self, obj: _BatchObject) -> batch_pb2.BatchObject:
+        return batch_pb2.BatchObject(
+            collection=obj.collection,
+            uuid=(str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4())),
+            properties=(
+                self.__translate_properties_from_python_to_grpc(
+                    obj.properties,
+                    obj.references if obj.references is not None else {},
+                )
+                if obj.properties is not None
+                else None
+            ),
+            tenant=obj.tenant,
+            vector_bytes=self.__single_vec(obj.vector),
+            vectors=self.__multi_vec(obj.vector),
+        )
+
+    def grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
+        return [self.grpc_object(obj) for obj in objects]
+
+    def grpc_reference(self, reference: _BatchReference) -> batch_pb2.BatchReference:
+        ref = BatchReference._from_internal(reference)
+        return batch_pb2.BatchReference(
+            name=ref.from_property_name,
+            from_collection=ref.from_object_collection,
+            from_uuid=str(ref.from_object_uuid),
+            to_collection=ref.to_object_collection,
+            to_uuid=str(ref.to_object_uuid),
+            tenant=ref.tenant,
+        )
+
+    def grpc_references(self, references: List[_BatchReference]) -> List[batch_pb2.BatchReference]:
+        return [self.grpc_reference(ref) for ref in references]
 
     def objects(
         self,
@@ -97,7 +116,7 @@ class _BatchGRPC(_BaseGRPC):
             timeout: The timeout in seconds for the request.
             max_retries: The maximum number of retries in case of a failure.
         """
-        weaviate_objs = self.__grpc_objects(objects)
+        weaviate_objs = self.grpc_objects(objects)
         start = time.time()
 
         def resp(errors: Dict[int, str]) -> BatchObjectReturn:
@@ -150,6 +169,48 @@ class _BatchGRPC(_BaseGRPC):
             timeout=timeout,
             max_retries=max_retries,
         )
+
+    # def send(
+    #     self,
+    #     connection: ConnectionSync,
+    #     *,
+    #     objects: List[batch_pb2.BatchObject],
+    #     references: List[batch_pb2.BatchReference],
+    #     stream_id: str,
+    #     timeout: Union[int, float],
+    # ) -> batch_pb2.BatchSendReply:
+    #     """Send multiple objects to Weaviate through the gRPC API.
+
+    #     Args:
+    #         connection: The connection to the Weaviate instance.
+    #         objects: A list of `_BatchObject` containing the data of the objects to be inserted.
+    #         references: A list of `_BatchReference` containing the references to be inserted.
+    #         stream_id: The ID of the stream to send the objects in relation to.
+    #         timeout: The timeout in seconds for the request.
+    #         max_retries: The maximum number of retries in case of a failure.
+    #     """
+    #     res = batch_pb2.BatchSendReply()
+    #     for request in self.__generate_send_requests(objects, references, stream_id):
+    #         res = connection.grpc_batch_send(
+    #             request=request,
+    #             timeout=timeout,
+    #         )
+    #         time.sleep(res.backoff_seconds)
+    #     return res
+
+    def stream(
+        self,
+        connection: ConnectionSync,
+        *,
+        requests: Generator[batch_pb2.BatchStreamRequest, None, None],
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        """Start a new stream for receiving messages about the ongoing server-side batching from Weaviate.
+
+        Args:
+            connection: The connection to the Weaviate instance.
+            requests: A generator that yields `BatchStreamRequest` messages to be sent to the server.
+        """
+        return connection.grpc_batch_stream(requests=requests)
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], refs: ReferenceInputs

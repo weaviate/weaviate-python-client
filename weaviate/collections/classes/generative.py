@@ -123,7 +123,7 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
                 target_model=self.target_model,
                 target_variant=self.target_variant,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                # max_tokens=self.max_tokens,
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
             ),

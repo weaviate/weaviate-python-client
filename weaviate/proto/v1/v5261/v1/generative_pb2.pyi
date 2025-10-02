@@ -1,5 +1,6 @@
 from weaviate.proto.v1.v5261.v1 import base_pb2 as _base_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
@@ -129,7 +130,7 @@ class GenerativeAWS(_message.Message):
     def __init__(self, model: _Optional[str] = ..., temperature: _Optional[float] = ..., service: _Optional[str] = ..., region: _Optional[str] = ..., endpoint: _Optional[str] = ..., target_model: _Optional[str] = ..., target_variant: _Optional[str] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., max_tokens: _Optional[int] = ...) -> None: ...
 
 class GenerativeCohere(_message.Message):
-    __slots__ = ("base_url", "frequency_penalty", "max_tokens", "model", "k", "p", "presence_penalty", "stop_sequences", "temperature")
+    __slots__ = ("base_url", "frequency_penalty", "max_tokens", "model", "k", "p", "presence_penalty", "stop_sequences", "temperature", "images", "image_properties")
     BASE_URL_FIELD_NUMBER: _ClassVar[int]
     FREQUENCY_PENALTY_FIELD_NUMBER: _ClassVar[int]
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -139,6 +140,8 @@ class GenerativeCohere(_message.Message):
     PRESENCE_PENALTY_FIELD_NUMBER: _ClassVar[int]
     STOP_SEQUENCES_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     base_url: str
     frequency_penalty: float
     max_tokens: int
@@ -148,7 +151,9 @@ class GenerativeCohere(_message.Message):
     presence_penalty: float
     stop_sequences: _base_pb2.TextArray
     temperature: float
-    def __init__(self, base_url: _Optional[str] = ..., frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., k: _Optional[int] = ..., p: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., stop_sequences: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., temperature: _Optional[float] = ...) -> None: ...
+    images: _base_pb2.TextArray
+    image_properties: _base_pb2.TextArray
+    def __init__(self, base_url: _Optional[str] = ..., frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., k: _Optional[int] = ..., p: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., stop_sequences: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., temperature: _Optional[float] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
 
 class GenerativeDummy(_message.Message):
     __slots__ = ()
@@ -183,7 +188,29 @@ class GenerativeOllama(_message.Message):
     def __init__(self, api_endpoint: _Optional[str] = ..., model: _Optional[str] = ..., temperature: _Optional[float] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
 
 class GenerativeOpenAI(_message.Message):
-    __slots__ = ("frequency_penalty", "max_tokens", "model", "n", "presence_penalty", "stop", "temperature", "top_p", "base_url", "api_version", "resource_name", "deployment_id", "is_azure", "images", "image_properties")
+    __slots__ = ("frequency_penalty", "max_tokens", "model", "n", "presence_penalty", "stop", "temperature", "top_p", "base_url", "api_version", "resource_name", "deployment_id", "is_azure", "images", "image_properties", "reasoning_effort", "verbosity")
+    class ReasoningEffort(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        REASONING_EFFORT_UNSPECIFIED: _ClassVar[GenerativeOpenAI.ReasoningEffort]
+        REASONING_EFFORT_MINIMAL: _ClassVar[GenerativeOpenAI.ReasoningEffort]
+        REASONING_EFFORT_LOW: _ClassVar[GenerativeOpenAI.ReasoningEffort]
+        REASONING_EFFORT_MEDIUM: _ClassVar[GenerativeOpenAI.ReasoningEffort]
+        REASONING_EFFORT_HIGH: _ClassVar[GenerativeOpenAI.ReasoningEffort]
+    REASONING_EFFORT_UNSPECIFIED: GenerativeOpenAI.ReasoningEffort
+    REASONING_EFFORT_MINIMAL: GenerativeOpenAI.ReasoningEffort
+    REASONING_EFFORT_LOW: GenerativeOpenAI.ReasoningEffort
+    REASONING_EFFORT_MEDIUM: GenerativeOpenAI.ReasoningEffort
+    REASONING_EFFORT_HIGH: GenerativeOpenAI.ReasoningEffort
+    class Verbosity(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        VERBOSITY_UNSPECIFIED: _ClassVar[GenerativeOpenAI.Verbosity]
+        VERBOSITY_LOW: _ClassVar[GenerativeOpenAI.Verbosity]
+        VERBOSITY_MEDIUM: _ClassVar[GenerativeOpenAI.Verbosity]
+        VERBOSITY_HIGH: _ClassVar[GenerativeOpenAI.Verbosity]
+    VERBOSITY_UNSPECIFIED: GenerativeOpenAI.Verbosity
+    VERBOSITY_LOW: GenerativeOpenAI.Verbosity
+    VERBOSITY_MEDIUM: GenerativeOpenAI.Verbosity
+    VERBOSITY_HIGH: GenerativeOpenAI.Verbosity
     FREQUENCY_PENALTY_FIELD_NUMBER: _ClassVar[int]
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
@@ -199,6 +226,8 @@ class GenerativeOpenAI(_message.Message):
     IS_AZURE_FIELD_NUMBER: _ClassVar[int]
     IMAGES_FIELD_NUMBER: _ClassVar[int]
     IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    REASONING_EFFORT_FIELD_NUMBER: _ClassVar[int]
+    VERBOSITY_FIELD_NUMBER: _ClassVar[int]
     frequency_penalty: float
     max_tokens: int
     model: str
@@ -214,7 +243,9 @@ class GenerativeOpenAI(_message.Message):
     is_azure: bool
     images: _base_pb2.TextArray
     image_properties: _base_pb2.TextArray
-    def __init__(self, frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., presence_penalty: _Optional[float] = ..., stop: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., base_url: _Optional[str] = ..., api_version: _Optional[str] = ..., resource_name: _Optional[str] = ..., deployment_id: _Optional[str] = ..., is_azure: bool = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
+    reasoning_effort: GenerativeOpenAI.ReasoningEffort
+    verbosity: GenerativeOpenAI.Verbosity
+    def __init__(self, frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., presence_penalty: _Optional[float] = ..., stop: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., base_url: _Optional[str] = ..., api_version: _Optional[str] = ..., resource_name: _Optional[str] = ..., deployment_id: _Optional[str] = ..., is_azure: bool = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., reasoning_effort: _Optional[_Union[GenerativeOpenAI.ReasoningEffort, str]] = ..., verbosity: _Optional[_Union[GenerativeOpenAI.Verbosity, str]] = ...) -> None: ...
 
 class GenerativeGoogle(_message.Message):
     __slots__ = ("frequency_penalty", "max_tokens", "model", "presence_penalty", "temperature", "top_k", "top_p", "stop_sequences", "api_endpoint", "project_id", "endpoint_id", "region", "images", "image_properties")
