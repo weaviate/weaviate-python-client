@@ -399,3 +399,9 @@ class WeaviateProtobufIncompatibility(Exception):
         super().__init__(
             f"gRPC incompatibility detected. Protobuf: {pb.base_version}, gRPC: {grpc.base_version}. Ensure that your protobuf and grpcio versions are compatible or runtime errors may occur."
         )
+
+
+class _BatchStreamShutdownError(Exception):
+    """Internal exception to signal that the batch stream was shutdown."""
+
+    pass

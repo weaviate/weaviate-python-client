@@ -78,6 +78,7 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     WeaviateTenantGetError,
     WeaviateTimeoutError,
+    _BatchStreamShutdownError,
 )
 from weaviate.proto.v1 import (
     aggregate_pb2,
@@ -1045,6 +1046,8 @@ class ConnectionSync(_ConnectionBase):
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
             raise WeaviateBatchStreamError(str(error.details()))
 
     def grpc_batch_delete(

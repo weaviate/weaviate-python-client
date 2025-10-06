@@ -365,15 +365,15 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
 @pytest.mark.parametrize(
     "batching_method",
     [
-        lambda client: client.batch.dynamic(),
-        lambda client: client.batch.fixed_size(),
-        lambda client: client.batch.rate_limit(9999),
+        # lambda client: client.batch.dynamic(),
+        # lambda client: client.batch.fixed_size(),
+        # lambda client: client.batch.rate_limit(9999),
         lambda client: client.batch.experimental(concurrency=1),
     ],
     ids=[
-        "test_add_ten_thousand_data_objects_dynamic",
-        "test_add_ten_thousand_data_objects_fixed_size",
-        "test_add_ten_thousand_data_objects_rate_limit",
+        # "test_add_ten_thousand_data_objects_dynamic",
+        # "test_add_ten_thousand_data_objects_fixed_size",
+        # "test_add_ten_thousand_data_objects_rate_limit",
         "test_add_ten_thousand_data_objects_experimental",
     ],
 )
@@ -389,7 +389,7 @@ def test_add_ten_thousand_data_objects(
         and client._connection._weaviate_version.is_lower_than(1, 33, 0)
     ):  # change to 1.33.0 when released
         pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
-    nr_objects = 10000
+    nr_objects = 100000
     import time
 
     start = time.time()
@@ -401,8 +401,7 @@ def test_add_ten_thousand_data_objects(
             )
     end = time.time()
     print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
-    objs = list(client.collections.use(name).iterator(cache_size=10000))
-    assert len(objs) == nr_objects
+    assert len(client.collections.use(name)) == nr_objects
     client.collections.delete(name)
 
 

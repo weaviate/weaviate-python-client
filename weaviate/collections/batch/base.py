@@ -47,6 +47,7 @@ from weaviate.exceptions import (
     WeaviateBatchValidationError,
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
+    _BatchStreamShutdownError,
 )
 from weaviate.logger import logger
 from weaviate.proto.v1 import batch_pb2
@@ -1014,7 +1015,7 @@ class _BatchBaseNew:
                 request = request_maker()
                 total_size = request.ByteSize()
 
-            request.objects.values.append(obj)
+            request.data.objects.values.append(obj)
             total_size += obj_size
 
         for ref in refs:
@@ -1025,10 +1026,10 @@ class _BatchBaseNew:
                 request = request_maker()
                 total_size = request.ByteSize()
 
-            request.references.values.append(ref)
+            request.data.references.values.append(ref)
             total_size += ref_size
 
-        if len(request.objects.values) > 0 or len(request.references.values) > 0:
+        if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
             yield request
 
     def __generate_stream_requests_for_grpc(
@@ -1048,78 +1049,71 @@ class _BatchBaseNew:
             except Empty:
                 pass
             if self.__stop and self.__reqs.qsize() == 0:
-                logger.warning("Sending stop message to server")
-                yield batch_pb2.BatchStreamRequest(
-                    stop=batch_pb2.BatchStreamRequest.Stop(),
-                )
+                logger.warning("Closing the client-side of the stream")
                 return
 
     def __batch_recv(self) -> None:
-        for message in self.__batch_grpc.stream(
-            connection=self.__connection,
-            requests=self.__generate_stream_requests_for_grpc(),
-        ):
-            if message.HasField("error"):
-                with self.__results_lock:
-                    if message.error.HasField("object"):
-                        # TODO: translate gRPC object back to BatchObject
-                        err = ErrorObject(
-                            message=message.error.error,
-                            object_=message.error.object,  # pyright: ignore
-                        )
-                        self.__results_for_wrapper.failed_objects.append(err)
+        try:
+            for message in self.__batch_grpc.stream(
+                connection=self.__connection,
+                requests=self.__generate_stream_requests_for_grpc(),
+            ):
+                if message.HasField("error"):
+                    with self.__results_lock:
+                        if message.error.HasField("object"):
+                            # TODO: translate gRPC object back to BatchObject
+                            err = ErrorObject(
+                                message=message.error.error,
+                                object_=message.error.object,  # pyright: ignore
+                            )
+                            self.__results_for_wrapper.failed_objects.append(err)
+                            logger.warning(
+                                {
+                                    "error": message.error.error,
+                                    "object": message.error.object.uuid,
+                                    "action": "use {client,collection}.batch.failed_objects to access this error",
+                                }
+                            )
+                        if message.error.HasField("reference"):
+                            # TODO: translate gRPC reference back to BatchReference
+                            err = ErrorReference(
+                                message=message.error.error,
+                                reference=message.error.reference,  # pyright: ignore
+                            )
+                            self.__results_for_wrapper.failed_references.append(err)
+                            logger.warning(
+                                {
+                                    "error": message.error.error,
+                                    "reference": message.error.reference.SerializeToString(),
+                                    "action": "use {client,collection}.batch.failed_references to access this error",
+                                }
+                            )
+                elif message.HasField("backoff"):
+                    if message.backoff.next_batch_size < self.__recommended_num_objects:
                         logger.warning(
-                            {
-                                "error": message.error.error,
-                                "object": message.error.object.uuid,
-                                "action": "use {client,collection}.batch.failed_objects to access this error",
-                            }
+                            f"Scaling down sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
                         )
-                    if message.error.HasField("reference"):
-                        # TODO: translate gRPC reference back to BatchReference
-                        err = ErrorReference(
-                            message=message.error.error,
-                            reference=message.error.reference,  # pyright: ignore
-                        )
-                        self.__results_for_wrapper.failed_references.append(err)
+                        self.__recommended_num_objects = message.backoff.next_batch_size
+                    if message.backoff.next_batch_size > self.__recommended_num_objects:
                         logger.warning(
-                            {
-                                "error": message.error.error,
-                                "reference": message.error.reference.SerializeToString(),
-                                "action": "use {client,collection}.batch.failed_references to access this error",
-                            }
+                            f"Scaling up sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
                         )
-            elif message.HasField("backoff"):
-                if message.backoff.next_batch_size < self.__recommended_num_objects:
+                        self.__recommended_num_objects = message.backoff.next_batch_size
+                    if message.backoff.backoff_seconds != self.__recommended_backoff:
+                        logger.warning(
+                            f"Backing off from sending the next request by {message.backoff.backoff_seconds} seconds"
+                        )
+                        self.__recommended_backoff = message.backoff.backoff_seconds
+                elif message.HasField("shutdown_triggered"):
                     logger.warning(
-                        f"Scaling down sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
+                        f"Received shutdown triggered message from server with {len(self.__batch_objects)} remaining to be sent"
                     )
-                    self.__recommended_num_objects = message.backoff.next_batch_size
-                if message.backoff.next_batch_size > self.__recommended_num_objects:
-                    logger.warning(
-                        f"Scaling up sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
-                    )
-                    self.__recommended_num_objects = message.backoff.next_batch_size
-                if message.backoff.backoff_seconds != self.__recommended_backoff:
-                    logger.warning(
-                        f"Backing off from sending the next request by {message.backoff.backoff_seconds} seconds"
-                    )
-                    self.__recommended_backoff = message.backoff.backoff_seconds
-            elif message.HasField("stop"):
-                logger.warning("Received stop message from server, shutting down batch")
-                self.__shut_background_thread_down.set()
-                return
-            elif message.HasField("shutdown_triggered"):
-                logger.warning(
-                    f"Received shutdown triggered message from server with {len(self.__batch_objects)} remaining to be sent"
-                )
-                self.__is_shutting_down.set()
-            elif message.HasField("shutdown_finished"):
-                logger.warning("Received shutdown finished message from server")
-                self.__is_shutdown.set()
-                self.__is_shutting_down.clear()
-                self.__reconnect()
-                break
+                    self.__is_shutting_down.set()
+        except _BatchStreamShutdownError:
+            logger.warning("Received shutdown finished message from server")
+            self.__is_shutdown.set()
+            self.__is_shutting_down.clear()
+            self.__reconnect()
 
         # restart the stream if we were shutdown by the node we were connected to ensuring that the index is
         # propagated properly from it to the new one
@@ -1127,6 +1121,9 @@ class _BatchBaseNew:
             self.__recommended_num_objects = self.__max_batch_size
             self.__is_shutdown.clear()
             return self.__batch_recv()
+        else:
+            logger.warning("Server closed the stream from its side, shutting down batch")
+            self.__shut_background_thread_down.set()
 
     def __reconnect(self, retry: int = 0) -> None:
         try:
