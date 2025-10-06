@@ -1104,9 +1104,9 @@ class _BatchBaseNew:
                             f"Backing off from sending the next request by {message.backoff.backoff_seconds} seconds"
                         )
                         self.__recommended_backoff = message.backoff.backoff_seconds
-                elif message.HasField("shutdown_triggered"):
+                elif message.HasField("shutting_down"):
                     logger.warning(
-                        f"Received shutdown triggered message from server with {len(self.__batch_objects)} remaining to be sent"
+                        f"Received shutting down message from server with {len(self.__batch_objects)} remaining to be sent"
                     )
                     self.__is_shutting_down.set()
         except _BatchStreamShutdownError:
