@@ -1086,35 +1086,29 @@ class _BatchBaseNew:
                         # we have stopped our side of the stream or we're shutting down, skipping backoff adjustments
                         continue
                     if message.backoff.next_batch_size < self.__recommended_num_objects:
-                        logger.warning(
-                            f"Scaling down sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
-                        )
+                        # logger.warning(
+                        #     f"Scaling down sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
+                        # )
                         self.__recommended_num_objects = message.backoff.next_batch_size
                     if message.backoff.next_batch_size > self.__recommended_num_objects:
-                        logger.warning(
-                            f"Scaling up sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
-                        )
+                        # logger.warning(
+                        #     f"Scaling up sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
+                        # )
                         self.__recommended_num_objects = message.backoff.next_batch_size
                     if message.backoff.backoff_seconds != self.__recommended_backoff:
-                        logger.warning(
-                            f"Backing off from sending the next request by {message.backoff.backoff_seconds} seconds"
-                        )
+                        # logger.warning(
+                        #     f"Backing off from sending the next request by {message.backoff.backoff_seconds} seconds"
+                        # )
                         self.__recommended_backoff = message.backoff.backoff_seconds
                 elif message.HasField("shutting_down"):
                     logger.warning(
                         "Received shutting down message from server, pausing sending until stream is re-established"
                     )
                     self.__is_shutting_down.set()
-        except _BatchStreamShutdownError as e:
+        except _BatchStreamShutdownError:
             logger.warning("Received shutdown finished message from server")
             self.__is_shutdown.set()
             self.__is_shutting_down.clear()
-            if e.msg is not None:
-                logger.warning(
-                    f"Caught potentially lost in-flight message of {len(e.msg.data.objects.values)} objects and {len(e.msg.data.references.values)} references"
-                )
-                self.__batch_objects.prepend(list(e.msg.data.objects.values))
-                self.__batch_references.prepend(list(e.msg.data.references.values))
             self.__reconnect()
 
         # restart the stream if we were shutdown by the node we were connected to ensuring that the index is
