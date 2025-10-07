@@ -1,14 +1,12 @@
 """Weaviate Exceptions."""
 
 from json.decoder import JSONDecodeError
-from typing import Optional, Tuple, Union, cast
+from typing import Any, Optional, Tuple, Union, cast
 
 import httpx
 from grpc import Call, StatusCode  # type: ignore
 from grpc.aio import AioRpcError  # type: ignore
 from packaging import version
-
-from weaviate.proto.v1 import batch_pb2  # type: ignore
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -406,5 +404,5 @@ class WeaviateProtobufIncompatibility(Exception):
 class _BatchStreamShutdownError(Exception):
     """Internal exception to signal that the batch stream was shutdown."""
 
-    def __init__(self, msg: Optional[batch_pb2.BatchStreamRequest]) -> None:
+    def __init__(self, msg: Any) -> None:
         self.msg = msg
