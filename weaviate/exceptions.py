@@ -8,6 +8,8 @@ from grpc import Call, StatusCode  # type: ignore
 from grpc.aio import AioRpcError  # type: ignore
 from packaging import version
 
+from weaviate.proto.v1 import batch_pb2  # type: ignore
+
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
          server."""
@@ -404,4 +406,5 @@ class WeaviateProtobufIncompatibility(Exception):
 class _BatchStreamShutdownError(Exception):
     """Internal exception to signal that the batch stream was shutdown."""
 
-    pass
+    def __init__(self, msg: Optional[batch_pb2.BatchStreamRequest]) -> None:
+        self.msg = msg

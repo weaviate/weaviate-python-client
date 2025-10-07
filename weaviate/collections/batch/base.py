@@ -1105,10 +1105,16 @@ class _BatchBaseNew:
                         "Received shutting down message from server, pausing sending until stream is re-established"
                     )
                     self.__is_shutting_down.set()
-        except _BatchStreamShutdownError:
+        except _BatchStreamShutdownError as e:
             logger.warning("Received shutdown finished message from server")
             self.__is_shutdown.set()
             self.__is_shutting_down.clear()
+            if e.msg is not None:
+                logger.warning(
+                    f"Caught potentially lost in-flight message of {len(e.msg.data.objects.values)} objects and {len(e.msg.data.references.values)} references"
+                )
+                self.__batch_objects.prepend(list(e.msg.data.objects.values))
+                self.__batch_references.prepend(list(e.msg.data.references.values))
             self.__reconnect()
 
         # restart the stream if we were shutdown by the node we were connected to ensuring that the index is

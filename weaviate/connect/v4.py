@@ -1036,10 +1036,18 @@ class ConnectionSync(_ConnectionBase):
         self,
         requests: Generator[batch_pb2.BatchStreamRequest, None, None],
     ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        last_req = None
+
+        def wrapped():
+            nonlocal last_req
+            for req in requests:
+                last_req = req
+                yield req
+
         try:
             assert self.grpc_stub is not None
             for msg in self.grpc_stub.BatchStream(
-                request_iterator=requests, metadata=self.grpc_headers()
+                request_iterator=wrapped(), metadata=self.grpc_headers()
             ):
                 yield msg
         except RpcError as e:
@@ -1047,7 +1055,7 @@ class ConnectionSync(_ConnectionBase):
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
             if error.code() == StatusCode.ABORTED:
-                raise _BatchStreamShutdownError()
+                raise _BatchStreamShutdownError(last_req)
             raise WeaviateBatchStreamError(str(error.details()))
 
     def grpc_batch_delete(
