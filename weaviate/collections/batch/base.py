@@ -1082,8 +1082,8 @@ class _BatchBaseNew:
                                 }
                             )
                 elif message.HasField("backoff"):
-                    if self.__stop:
-                        # we have stopped our side of the stream, skipping backoff adjustments
+                    if self.__stop or self.__is_shutting_down.is_set():
+                        # we have stopped our side of the stream or we're shutting down, skipping backoff adjustments
                         continue
                     if message.backoff.next_batch_size < self.__recommended_num_objects:
                         logger.warning(
