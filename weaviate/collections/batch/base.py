@@ -865,7 +865,6 @@ class _BatchBaseNew:
         self.__bg_thread_exception: Optional[Exception] = None
         self.__is_shutting_down = threading.Event()
         self.__is_shutdown = threading.Event()
-        self.__shutdown_errors: dict[int, str] = {}
 
         self.__objs_cache_lock = threading.Lock()
         self.__refs_cache_lock = threading.Lock()
@@ -877,7 +876,6 @@ class _BatchBaseNew:
         self.__reqs: Queue[batch_pb2.BatchStreamRequest] = Queue(maxsize=1)
 
         self.__stop = False
-        self.__stopped = False
 
         self.__batch_mode = batch_mode
 
@@ -928,11 +926,6 @@ class _BatchBaseNew:
         while self.__any_threads_alive():
             time.sleep(1)
         logger.warning("Send & receive threads finished.")
-
-        with open("shutdown_errors.json", "w") as f:
-            import json
-
-            json.dump(self.__shutdown_errors, f)
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -1207,64 +1200,6 @@ class _BatchBaseNew:
             send=demonBatchSend,
             recv=demonBatchRecv,
         )
-
-    # def __send_batch(
-    #     self,
-    #     objs: List[batch_pb2.BatchObject],
-    #     refs: List[batch_pb2.BatchReference],
-    # ) -> None:
-    #     if (_ := len(objs)) > 0 or (_ := len(refs)) > 0:
-    #         _ = time.time()
-    #         try:
-    #             assert self.__stream_id is not None, "Batch stream was not started"
-    #             res = self.__batch_grpc.send(
-    #                 connection=self.__connection,
-    #                 objects=objs,
-    #                 references=refs,
-    #                 stream_id=self.__stream_id,
-    #                 timeout=DEFAULT_REQUEST_TIMEOUT,
-    #             )
-    #             if res.next_batch_size < self.__recommended_num_objects:
-    #                 logger.warning(
-    #                     f"Scaling down sending: {self.__recommended_num_objects} -> {res.next_batch_size}"
-    #                 )
-    #             if res.next_batch_size > self.__recommended_num_objects:
-    #                 logger.warning(
-    #                     f"Scaling up sending: {self.__recommended_num_objects} -> {res.next_batch_size}"
-    #                 )
-    #             if res.backoff_seconds > 0:
-    #                 logger.warning(
-    #                     f"Backing off from sending the next request by {res.backoff_seconds} seconds"
-    #                 )
-    #             self.__recommended_num_objects = res.next_batch_size
-    #             self.__recommended_backoff = res.backoff_seconds
-    #             # self.__results_for_wrapper.results.objs.add_uuids(
-    #             #     {obj.index: uuid_package.UUID(obj.uuid) for obj in objs}
-    #             # )
-    #             with self.__uuid_lookup_lock:
-    #                 self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
-    #         except Exception as e:
-    #             if (
-    #                 ("grpc shutdown in progress" in str(e))
-    #                 or (f"write queue for stream {self.__stream_id} not found" in str(e))
-    #                 or self.__is_shutting_down.is_set()
-    #                 or self.__is_shutdown.is_set()
-    #             ):
-    #                 logger.warning("Connected node was shutdown, re-adding objects to the queue")
-    #                 self.__batch_objects.prepend(objs)
-    #                 self.__batch_references.prepend(refs)
-    #                 # for obj in objs:
-    #                 #     self.__shutdown_errors[obj.index] = str(obj.uuid)
-    #             else:
-    #                 logger.error(
-    #                     {
-    #                         "message": f"Failed to send all objects in a batch of {len(objs)}",
-    #                         "error": repr(e),
-    #                     }
-    #                 )
-
-    #     with self.__active_requests_lock:
-    #         self.__active_requests -= 1
 
     def flush(self) -> None:
         """Flush the batch queue and wait for all requests to be finished."""
