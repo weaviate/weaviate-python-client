@@ -972,12 +972,17 @@ class _BatchBaseNew:
                     self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
 
                 for req in self.__generate_stream_requests(objs, refs):
+                    logged = False
                     while self.__is_shutting_down.is_set() or self.__is_shutdown.is_set():
                         # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
                         # so that the connection is refreshed to a new node where the objects can be accepted
                         # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
-                        logger.warning("Waiting for stream to be re-established...")
+                        if not logged:
+                            logger.warning("Waiting for stream to be re-established...")
+                            logged = True
                         time.sleep(1)
+                    if logged:
+                        logger.warning("Stream re-established, resuming sending batches")
                     # if the server has told us to backoff then sleep for that amount of time and reset the backoff value
                     # the next return from the server will update the backoff value if necessary, e.g. if the internal queue is overloaded
                     if self.__recommended_backoff > 0:
@@ -1127,6 +1132,7 @@ class _BatchBaseNew:
             logger.warning(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
             self.__connection.close("sync")
             self.__connection.connect(force=True)
+            logger.warning("Reconnected successfully")
         except (WeaviateStartUpError, WeaviateGRPCUnavailableError) as e:
             if retry < 5:
                 time.sleep(2**retry)
