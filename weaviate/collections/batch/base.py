@@ -971,12 +971,6 @@ class _BatchBaseNew:
                 with self.__uuid_lookup_lock:
                     self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
 
-                # if the server has told us to backoff then sleep for that amount of time and reset the backoff value
-                # the next return from the server will update the backoff value if necessary, e.g. if the internal queue is overloaded
-                if self.__recommended_backoff > 0:
-                    time.sleep(self.__recommended_backoff)
-                    self.__recommended_backoff = 0
-
                 for req in self.__generate_stream_requests(objs, refs):
                     while self.__is_shutting_down.is_set() or self.__is_shutdown.is_set():
                         # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
@@ -984,6 +978,10 @@ class _BatchBaseNew:
                         # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
                         logger.warning("Waiting for stream to be re-established...")
                         time.sleep(1)
+                    # if the server has told us to backoff then sleep for that amount of time and reset the backoff value
+                    # the next return from the server will update the backoff value if necessary, e.g. if the internal queue is overloaded
+                    if self.__recommended_backoff > 0:
+                        time.sleep(self.__recommended_backoff)
                     self.__reqs.put(req)
             time.sleep(refresh_time)
 
@@ -1042,7 +1040,10 @@ class _BatchBaseNew:
             except Empty:
                 pass
             if self.__stop and self.__reqs.qsize() == 0:
-                logger.warning("Closing the client-side of the stream")
+                logger.warning("Batching finished, closing the client-side of the stream")
+                return
+            if self.__is_shutting_down.is_set() and self.__reqs.qsize() == 0:
+                logger.warning("Server shutting down, closing the client-side of the stream")
                 return
 
     def __batch_recv(self) -> None:
