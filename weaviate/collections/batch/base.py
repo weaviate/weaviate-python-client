@@ -1047,7 +1047,7 @@ class _BatchBaseNew:
             if self.__stop and self.__reqs.qsize() == 0:
                 logger.warning("Batching finished, closing the client-side of the stream")
                 return
-            if self.__is_shutting_down.is_set() and self.__reqs.qsize() == 0:
+            if self.__is_shutting_down.is_set():
                 logger.warning("Server shutting down, closing the client-side of the stream")
                 return
 
