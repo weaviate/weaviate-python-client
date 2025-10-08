@@ -700,6 +700,10 @@ def test_update_flat_bq(collection_factory: CollectionFactory) -> None:
 
 
 def test_update_flat_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("RQ in flat index is not supported in Weaviate versions lower than 1.34.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
@@ -835,6 +839,10 @@ def test_config_vector_index_flat_and_quantizer_bq(collection_factory: Collectio
 
 
 def test_config_vector_index_flat_and_quantizer_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("RQ in flat index is not supported in Weaviate versions lower than 1.34.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
@@ -849,6 +857,29 @@ def test_config_vector_index_flat_and_quantizer_rq(collection_factory: Collectio
     assert conf.vector_index_config.vector_cache_max_objects == 234
     assert isinstance(conf.vector_index_config.quantizer, _RQConfig)
     assert conf.vector_index_config.quantizer.bits == 8
+
+
+def test_config_vector_index_hnsw_and_quantizer_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("RQ in HNSW index is not supported in Weaviate versions lower than 1.32.0")
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=234,
+            ef_construction=789,
+            quantizer=Configure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=123),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.vector_index_type == VectorIndexType.HNSW
+    assert conf.vector_index_config is not None
+    assert isinstance(conf.vector_index_config, _VectorIndexConfigHNSW)
+    assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert conf.vector_index_config.ef_construction == 789
+    assert isinstance(conf.vector_index_config.quantizer, _RQConfig)
+    assert conf.vector_index_config.quantizer.bits == 8
+    assert conf.vector_index_config.quantizer.rescore_limit == 123
 
 
 def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: CollectionFactory) -> None:
@@ -1171,6 +1202,78 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.flat.vector_cache_max_objects == 9876
     assert isinstance(config.vector_index_config.flat.quantizer, _BQConfig)
     assert config.vector_index_config.flat.quantizer.rescore_limit == 11
+
+
+def test_dynamic_collection_rq(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy", ports=(8090, 50061))
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("Dynamic index with RQ is not supported in Weaviate versions lower than 1.34.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.dynamic(
+            distance_metric=VectorDistances.COSINE,
+            threshold=1000,
+            hnsw=Configure.VectorIndex.hnsw(
+                cleanup_interval_seconds=123,
+                flat_search_cutoff=1234,
+                vector_cache_max_objects=789,
+                quantizer=Configure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=123),
+            ),
+            flat=Configure.VectorIndex.flat(
+                vector_cache_max_objects=7643,
+                quantizer=Configure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=10),
+            ),
+        ),
+        ports=(8090, 50061),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
+    assert config.vector_index_config.threshold == 1000
+    assert isinstance(config.vector_index_config.hnsw, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
+    assert config.vector_index_config.hnsw.flat_search_cutoff == 1234
+    assert config.vector_index_config.hnsw.vector_cache_max_objects == 789
+    assert isinstance(config.vector_index_config.hnsw.quantizer, _RQConfig)
+    assert config.vector_index_config.hnsw.quantizer.bits == 8
+    assert config.vector_index_config.hnsw.quantizer.rescore_limit == 123
+    assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
+    assert config.vector_index_config.flat.vector_cache_max_objects == 7643
+    assert isinstance(config.vector_index_config.flat.quantizer, _RQConfig)
+    assert config.vector_index_config.flat.quantizer.bits == 8
+    assert config.vector_index_config.flat.quantizer.rescore_limit == 10
+
+    collection.config.update(
+        vectorizer_config=Reconfigure.VectorIndex.dynamic(
+            threshold=2000,
+            hnsw=Reconfigure.VectorIndex.hnsw(
+                flat_search_cutoff=4567,
+                vector_cache_max_objects=678,
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=200),
+            ),
+            flat=Reconfigure.VectorIndex.flat(
+                vector_cache_max_objects=9876,
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=20),
+            ),
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
+    assert config.vector_index_config.threshold == 2000
+    assert isinstance(config.vector_index_config.hnsw, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
+    assert config.vector_index_config.hnsw.flat_search_cutoff == 4567
+    assert config.vector_index_config.hnsw.vector_cache_max_objects == 678
+    assert isinstance(config.vector_index_config.hnsw.quantizer, _RQConfig)
+    assert config.vector_index_config.hnsw.quantizer.bits == 8
+    assert config.vector_index_config.hnsw.quantizer.rescore_limit == 200
+    assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
+    assert config.vector_index_config.flat.vector_cache_max_objects == 9876
+    assert isinstance(config.vector_index_config.flat.quantizer, _RQConfig)
+    assert config.vector_index_config.flat.quantizer.bits == 8
+    assert config.vector_index_config.flat.quantizer.rescore_limit == 20
 
 
 def test_config_unknown_module(request: SubRequest) -> None:
