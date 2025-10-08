@@ -659,7 +659,7 @@ def test_update_from_pq_with_hnsw(
         collection.config.update(vector_index_config=vector_index_config)
 
 
-def test_update_flat(collection_factory: CollectionFactory) -> None:
+def test_update_flat_bq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
@@ -695,6 +695,55 @@ def test_update_flat(collection_factory: CollectionFactory) -> None:
         collection.config.update(
             vectorizer_config=Reconfigure.VectorIndex.flat(
                 quantizer=Reconfigure.VectorIndex.Quantizer.bq(enabled=False),
+            )
+        )
+
+
+def test_update_flat_rq(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.rq(rescore_limit=10),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.FLAT
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigFlat)
+    assert config.vector_index_config.vector_cache_max_objects == 5
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer.rescore_limit == 10
+
+    collection.config.update(
+        vectorizer_config=Reconfigure.VectorIndex.flat(
+            vector_cache_max_objects=10,
+            quantizer=Reconfigure.VectorIndex.Quantizer.rq(rescore_limit=20),
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.FLAT
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigFlat)
+    assert config.vector_index_config.vector_cache_max_objects == 10
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer.rescore_limit == 20
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        # cannot enable/disable RQ after flat index was created
+        # must only do this on creation
+        collection.config.update(
+            vectorizer_config=Reconfigure.VectorIndex.flat(
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(enabled=False),
+            )
+        )
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        # cannot change bits after flat index was created
+        # must only do this on creation
+        collection.config.update(
+            vectorizer_config=Reconfigure.VectorIndex.flat(
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(bits=1),
             )
         )
 
@@ -783,6 +832,23 @@ def test_config_vector_index_flat_and_quantizer_bq(collection_factory: Collectio
     assert conf.vector_index_config.vector_cache_max_objects == 234
     assert isinstance(conf.vector_index_config.quantizer, _BQConfig)
     assert conf.vector_index_config.quantizer.rescore_limit == 456
+
+
+def test_config_vector_index_flat_and_quantizer_rq(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=234,
+            quantizer=Configure.VectorIndex.Quantizer.rq(bits=8),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.vector_index_type == VectorIndexType.FLAT
+    assert conf.vector_index_config is not None
+    assert isinstance(conf.vector_index_config, _VectorIndexConfigFlat)
+    assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert isinstance(conf.vector_index_config.quantizer, _RQConfig)
+    assert conf.vector_index_config.quantizer.bits == 8
 
 
 def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: CollectionFactory) -> None:
