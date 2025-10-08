@@ -10,7 +10,7 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
 from dataclasses import dataclass, field
-from queue import Empty, Queue
+from queue import Queue
 from typing import Any, Dict, Generator, Generic, List, Optional, Set, TypeVar, Union, cast
 
 from httpx import ConnectError
@@ -873,7 +873,7 @@ class _BatchBaseNew:
 
         # maxsize=1 so that __batch_send does not run faster than generator for __batch_recv
         # thereby using too much buffer in case of server-side shutdown
-        self.__reqs: Queue[batch_pb2.BatchStreamRequest] = Queue(maxsize=1)
+        self.__reqs: Queue[Optional[batch_pb2.BatchStreamRequest]] = Queue(maxsize=1)
 
         self.__stop = False
 
@@ -956,6 +956,7 @@ class _BatchBaseNew:
                         and self.__shut_background_thread_down.is_set()
                     ):
                         # shutdown was requested, exit early
+                        self.__reqs.put(None)
                         return
                     if time.time() - start >= 1 and (
                         len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
@@ -980,6 +981,8 @@ class _BatchBaseNew:
                         if not logged:
                             logger.warning("Waiting for stream to be re-established...")
                             logged = True
+                            # put sentinel into our queue to signal the end of the current stream
+                            self.__reqs.put(None)
                         time.sleep(1)
                     if logged:
                         logger.warning("Stream re-established, resuming sending batches")
@@ -988,6 +991,10 @@ class _BatchBaseNew:
                     if self.__recommended_backoff > 0:
                         time.sleep(self.__recommended_backoff)
                     self.__reqs.put(req)
+            elif self.__stop:
+                # we are done, send the sentinel into our queue to be consumed by the batch sender
+                self.__reqs.put(None)  # signal the end of the stream
+                return
             time.sleep(refresh_time)
 
     def __generate_stream_requests(
@@ -1040,16 +1047,19 @@ class _BatchBaseNew:
             self.__shut_background_thread_down is not None
             and not self.__shut_background_thread_down.is_set()
         ):
-            try:
-                yield self.__reqs.get(timeout=10)
-            except Empty:
-                pass
-            if self.__stop:
+            req = self.__reqs.get()
+            if req is not None:
+                yield req
+                continue
+            if self.__stop and not (
+                self.__is_shutting_down.is_set() or self.__is_shutdown.is_set()
+            ):
                 logger.warning("Batching finished, closing the client-side of the stream")
                 return
             if self.__is_shutting_down.is_set():
                 logger.warning("Server shutting down, closing the client-side of the stream")
                 return
+            logger.warning("Received sentinel, but not stopping, continuing...")
 
     def __batch_recv(self) -> None:
         try:
