@@ -1041,10 +1041,10 @@ class _BatchBaseNew:
             and not self.__shut_background_thread_down.is_set()
         ):
             try:
-                yield self.__reqs.get(timeout=1)
+                yield self.__reqs.get(timeout=10)
             except Empty:
                 pass
-            if self.__stop and self.__reqs.qsize() == 0:
+            if self.__stop:
                 logger.warning("Batching finished, closing the client-side of the stream")
                 return
             if self.__is_shutting_down.is_set():
