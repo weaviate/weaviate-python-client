@@ -1521,6 +1521,7 @@ class _SQConfig(_ConfigBase):
 
 @dataclass
 class _RQConfig(_ConfigBase):
+    cache: Optional[bool]
     bits: Optional[int]
     rescore_limit: int
 
@@ -2293,7 +2294,7 @@ class _VectorIndexUpdate:
     @staticmethod
     def flat(
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[_BQConfigUpdate] = None,
+        quantizer: Optional[Union[_BQConfigUpdate, _RQConfigUpdate]] = None,
     ) -> _VectorIndexConfigFlatUpdate:
         """Create an `_VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
 
