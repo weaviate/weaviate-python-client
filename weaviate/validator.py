@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Any, List, Sequence, Union, get_args, get_origin
+from types import UnionType
+from typing import Any, Sequence, get_args, get_origin
 
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.str_enum import BaseEnum
@@ -7,7 +8,7 @@ from weaviate.str_enum import BaseEnum
 
 @dataclass
 class _ValidateArgument:
-    expected: List[Any]
+    expected: list[Any]
     name: str
     value: Any
 
@@ -19,11 +20,11 @@ class _ExtraTypes(str, BaseEnum):
     TF = "tensorflow"
 
 
-def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -> None:
+def _validate_input(inputs: list[_ValidateArgument] | _ValidateArgument) -> None:
     """Validate the values of the input arguments in comparison to the expected types defined in _ValidateArgument.
 
     It is not completely robust so be careful supplying subscripted generics in expected as it may not function as expected.
-    To avoid this, only supply simply generics like Sequence[...] and List[...] as seen below in __is_valid.
+    To avoid this, only supply simply generics like Sequence[...] and list[...] as seen below in __is_valid.
     """
     if isinstance(inputs, _ValidateArgument):
         inputs = [inputs]
@@ -44,7 +45,7 @@ def _is_valid(expected: Any, value: Any) -> bool:
         return expected.value in type(value).__module__
 
     expected_origin = get_origin(expected)
-    if expected_origin is Union:
+    if expected_origin is UnionType:
         args = get_args(expected)
         return any(isinstance(value, arg) for arg in args)
     if expected_origin is not None and (
@@ -54,7 +55,7 @@ def _is_valid(expected: Any, value: Any) -> bool:
             return False
         args = get_args(expected)
         if len(args) == 1:
-            if get_origin(args[0]) is Union:
+            if get_origin(args[0]) is UnionType:
                 union_args = get_args(args[0])
                 return any(isinstance(val, union_arg) for val in value for union_arg in union_args)
             else:

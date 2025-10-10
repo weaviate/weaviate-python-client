@@ -2,7 +2,7 @@ import datetime
 import pathlib
 import time
 import uuid
-from typing import Generator, List, Optional, Union
+from typing import Generator, Optional
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -182,7 +182,7 @@ def test_create_and_restore_backup_with_waiting(
 
 @pytest.mark.parametrize("include", [["Article"], "Article"])
 def test_create_and_restore_backup_without_waiting(
-    client: weaviate.WeaviateClient, include: Union[str, List[str]], request: SubRequest
+    client: weaviate.WeaviateClient, include: str | list[str], request: SubRequest
 ) -> None:
     """Create and restore backup without waiting."""
     backup_id = unique_backup_id(request.node.name)

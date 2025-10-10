@@ -1,4 +1,4 @@
-from typing import Generic, Literal, Optional, Type, Union, overload
+from typing import Generic, Literal, Optional, Type, overload
 
 from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
@@ -24,7 +24,7 @@ class _FetchObjectByIDQuery(
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> ObjectSingleReturn[Properties, References]: ...
     @overload
@@ -33,7 +33,7 @@ class _FetchObjectByIDQuery(
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> ObjectSingleReturn[Properties, CrossReferences]: ...
     @overload
@@ -42,7 +42,7 @@ class _FetchObjectByIDQuery(
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> ObjectSingleReturn[Properties, TReferences]: ...
     @overload

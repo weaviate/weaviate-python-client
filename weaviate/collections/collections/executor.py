@@ -1,14 +1,11 @@
 import asyncio
 from typing import (
     Awaitable,
-    Dict,
     Generic,
-    List,
     Optional,
     Sequence,
     Type,
     TypeVar,
-    Union,
 )
 
 from httpx import Response
@@ -68,7 +65,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         data_model_properties: Optional[Type[Properties]],
         data_model_references: Optional[Type[References]],
         skip_argument_validation: bool = False,
-    ) -> Union[CollectionAsync[Properties, References], Collection[Properties, References]]:
+    ) -> CollectionAsync[Properties, References] | Collection[Properties, References]:
         if not skip_argument_validation:
             _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
             _check_properties_generic(data_model_properties)
@@ -97,10 +94,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
-    ) -> Union[
-        Collection[Properties, References],
-        Awaitable[CollectionAsync[Properties, References]],
-    ]:
+    ) -> Collection[Properties, References] | Awaitable[CollectionAsync[Properties, References]]:
         result = self._connection.post(
             path="/schema",
             weaviate_object=config,
@@ -153,23 +147,20 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
+        references: Optional[list[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         reranker_config: Optional[_RerankerProvider] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
+        vector_config: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
     ) -> executor.Result[
-        Union[
-            Collection[Properties, References],
-            Awaitable[CollectionAsync[Properties, References]],
-        ]
+        Collection[Properties, References] | Awaitable[CollectionAsync[Properties, References]]
     ]:
         """Use this method to create a collection in Weaviate and immediately return a collection object.
 
@@ -240,7 +231,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
 
     def delete(
         self,
-        name: Union[str, List[str]],
+        name: str | list[str],
     ) -> executor.Result[None]:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
 
@@ -255,7 +246,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-        _validate_input([_ValidateArgument(expected=[str, List[str]], name="name", value=name)])
+        _validate_input([_ValidateArgument(expected=[str, list[str]], name="name", value=name)])
         if isinstance(name, str):
             name = _capitalize_first_letter(name)
             if isinstance(self._connection, ConnectionAsync):
@@ -359,7 +350,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     def list_all(
         self,
         simple: bool = True,
-    ) -> executor.Result[Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]]:
+    ) -> executor.Result[dict[str, CollectionConfig] | dict[str, CollectionConfigSimple]]:
         """List the configurations of the all the collections currently in the Weaviate instance.
 
         Args:
@@ -378,7 +369,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
 
         def resp(
             res: Response,
-        ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]:
+        ) -> dict[str, CollectionConfig] | dict[str, CollectionConfigSimple]:
             data = _decode_json_response_dict(res, "Get schema all")
             assert data is not None
             if simple:
@@ -395,11 +386,11 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     def _create_from_dict(
         self,
         config: dict,
-    ) -> Union[Collection, Awaitable[CollectionAsync]]:
+    ) -> Collection | Awaitable[CollectionAsync]:
         return self.__create(config=config)
 
     def _create_from_config(
         self,
         config: CollectionConfig,
-    ) -> executor.Result[Union[Collection, CollectionAsync]]:
+    ) -> executor.Result[Collection | CollectionAsync]:
         return self._create_from_dict(config=config.to_dict())

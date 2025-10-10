@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Optional
 
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
@@ -33,12 +33,12 @@ class _BatchDeleteGRPC(_BaseGRPC):
         verbose: bool,
         dry_run: bool,
         tenant: Optional[str],
-    ) -> executor.Result[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
+    ) -> executor.Result[DeleteManyReturn[list[DeleteManyObject]] | DeleteManyReturn[None]]:
         def resp(
             res: batch_delete_pb2.BatchDeleteReply,
-        ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
+        ) -> DeleteManyReturn[list[DeleteManyObject]] | DeleteManyReturn[None]:
             if verbose:
-                objects: List[DeleteManyObject] = [
+                objects: list[DeleteManyObject] = [
                     DeleteManyObject(
                         uuid=_WeaviateUUIDInt(int.from_bytes(obj.uuid, byteorder="big")),
                         successful=obj.successful,

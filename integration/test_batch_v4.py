@@ -1,7 +1,7 @@
 import concurrent.futures
 import uuid
 from dataclasses import dataclass
-from typing import Callable, Generator, List, Optional, Protocol, Tuple
+from typing import Callable, Generator, Optional, Protocol, Tuple
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -82,7 +82,7 @@ def client_factory(
 ) -> Generator[
     Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
 ]:
-    name_fixtures: List[str] = []
+    name_fixtures: list[str] = []
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
     def _factory(
@@ -269,11 +269,11 @@ def _from_uuid_to_str(uuid: uuid.UUID) -> str:
     return str(uuid)
 
 
-def _from_uuid_to_uuid_list(uuid: uuid.UUID) -> List[uuid.UUID]:
+def _from_uuid_to_uuid_list(uuid: uuid.UUID) -> list[uuid.UUID]:
     return [uuid]
 
 
-def _from_uuid_to_str_list(uuid: uuid.UUID) -> List[str]:
+def _from_uuid_to_str_list(uuid: uuid.UUID) -> list[str]:
     return [str(uuid)]
 
 
@@ -387,7 +387,7 @@ def test_add_ten_thousand_data_objects(
     client.collections.delete(name)
 
 
-def make_refs(uuids: List[UUID], name: str) -> List[dict]:
+def make_refs(uuids: list[UUID], name: str) -> list[dict]:
     refs = []
     for from_ in uuids:
         tos = uuids.copy()
@@ -410,7 +410,7 @@ def test_add_one_hundred_objects_and_references_between_all(
     """Test adding one hundred objects and references between all of them."""
     client, name = client_factory()
     nr_objects = 100
-    uuids: List[UUID] = []
+    uuids: list[UUID] = []
     with client.batch.dynamic() as batch:
         for i in range(nr_objects):
             uuid_ = batch.add_object(

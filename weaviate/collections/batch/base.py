@@ -10,7 +10,7 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, Union, cast
+from typing import Any, Generic, Optional, Set, TypeVar, cast
 
 from httpx import ConnectError
 from pydantic import ValidationError
@@ -46,7 +46,7 @@ from weaviate.types import UUID, VECTORS
 from weaviate.util import _decode_json_response_dict
 from weaviate.warnings import _Warnings
 
-BatchResponse = List[Dict[str, Any]]
+BatchResponse = list[dict[str, Any]]
 
 
 TBatchInput = TypeVar("TBatchInput")
@@ -65,7 +65,7 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
     """`BatchRequest` abstract class used as a interface for batch requests."""
 
     def __init__(self) -> None:
-        self._items: List[TBatchInput] = []
+        self._items: list[TBatchInput] = []
         self._lock = threading.Lock()
 
     def __len__(self) -> int:
@@ -77,7 +77,7 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
         self._items.append(item)
         self._lock.release()
 
-    def prepend(self, item: List[TBatchInput]) -> None:
+    def prepend(self, item: list[TBatchInput]) -> None:
         """Add items to the front of the BatchRequest.
 
         This is intended to be used when objects should be retries, eg. after a temporary error.
@@ -90,13 +90,13 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
 class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]):
     """Collect Weaviate-object references to add them in one request to Weaviate."""
 
-    def pop_items(self, pop_amount: int, uuid_lookup: Set[str]) -> List[_BatchReference]:
+    def pop_items(self, pop_amount: int, uuid_lookup: Set[str]) -> list[_BatchReference]:
         """Pop the given number of items from the BatchRequest queue.
 
         Returns:
             A list of items from the BatchRequest.
         """
-        ret: List[_BatchReference] = []
+        ret: list[_BatchReference] = []
         i = 0
         self._lock.acquire()
         while len(ret) < pop_amount and len(self._items) > 0 and i < len(self._items):
@@ -113,7 +113,7 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
 class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
     """Collect objects for one batch request to weaviate."""
 
-    def pop_items(self, pop_amount: int) -> List[_BatchObject]:
+    def pop_items(self, pop_amount: int) -> list[_BatchObject]:
         """Pop the given number of items from the BatchRequest queue.
 
         Returns:
@@ -134,8 +134,8 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
 @dataclass
 class _BatchDataWrapper:
     results: BatchResult = field(default_factory=BatchResult)
-    failed_objects: List[ErrorObject] = field(default_factory=list)
-    failed_references: List[ErrorReference] = field(default_factory=list)
+    failed_objects: list[ErrorObject] = field(default_factory=list)
+    failed_references: list[ErrorReference] = field(default_factory=list)
     imported_shards: Set[Shard] = field(default_factory=set)
 
 
@@ -155,7 +155,7 @@ class _RateLimitedBatching:
     requests_per_minute: int
 
 
-_BatchMode: TypeAlias = Union[_DynamicBatching, _FixedSizeBatching, _RateLimitedBatching]
+_BatchMode: TypeAlias = _DynamicBatching | _FixedSizeBatching | _RateLimitedBatching
 
 
 class _BatchBase:
@@ -481,8 +481,8 @@ class _BatchBase:
 
     def __send_batch(
         self,
-        objs: List[_BatchObject],
-        refs: List[_BatchReference],
+        objs: list[_BatchObject],
+        refs: list[_BatchReference],
         readd_rate_limit: bool,
     ) -> None:
         if (n_objs := len(objs)) > 0:
@@ -719,7 +719,7 @@ class _BatchBase:
     ) -> None:
         self.__check_bg_thread_alive()
         if isinstance(to, ReferenceToMulti):
-            to_strs: Union[List[str], List[UUID]] = to.uuids_str
+            to_strs: list[str] | list[UUID] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
             to_strs = [to]
         else:
@@ -759,7 +759,7 @@ class _ClusterBatch:
 
     def get_nodes_status(
         self,
-    ) -> List[Node]:
+    ) -> list[Node]:
         try:
             response = executor.result(self._connection.get(path="/nodes"))
         except ConnectError as conn_err:
@@ -770,4 +770,4 @@ class _ClusterBatch:
         nodes = response_typed.get("nodes")
         if nodes is None or nodes == []:
             raise EmptyResponseException("Nodes status response returned empty")
-        return cast(List[Node], nodes)
+        return cast(list[Node], nodes)

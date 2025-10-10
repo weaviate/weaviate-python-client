@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class _ConfigCreateModel(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret = cast(dict, self.model_dump(exclude_none=True))
         for key, val in ret.items():
             if isinstance(val, Enum):
@@ -21,7 +21,7 @@ class _ConfigCreateModel(BaseModel):
 class _ConfigUpdateModel(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+    def merge_with_existing(self, schema: dict[str, Any]) -> dict[str, Any]:
         for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if val is None:

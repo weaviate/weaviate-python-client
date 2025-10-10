@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal, Optional
 
 from pydantic import AnyHttpUrl, Field
 from typing_extensions import deprecated as typing_deprecated
@@ -75,15 +75,15 @@ from weaviate.collections.classes.config_vectorizers import (
 
 class _VectorConfigCreate(_ConfigCreateModel):
     name: Optional[str]
-    properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
+    properties: Optional[list[str]] = Field(default=None, min_length=1, alias="source_properties")
     vectorizer: _VectorizerConfigCreate
     vectorIndexType: VectorIndexType = Field(default=VectorIndexType.HNSW, exclude=True)
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
 
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict: Dict[str, Any] = self.__parse_vectorizer()
+    def _to_dict(self) -> dict[str, Any]:
+        ret_dict: dict[str, Any] = self.__parse_vectorizer()
         if self.vectorIndexConfig is not None:
             ret_dict["vectorIndexType"] = self.vectorIndexConfig.vector_index_type().value
             ret_dict["vectorIndexConfig"] = self.vectorIndexConfig._to_dict()
@@ -91,7 +91,7 @@ class _VectorConfigCreate(_ConfigCreateModel):
             ret_dict["vectorIndexType"] = self.vectorIndexType.value
         return ret_dict
 
-    def __parse_vectorizer(self) -> Dict[str, Any]:
+    def __parse_vectorizer(self) -> dict[str, Any]:
         vectorizer_options = self.vectorizer._to_dict()
         if self.properties is not None:
             vectorizer_options["properties"] = self.properties
@@ -210,7 +210,7 @@ class _MultiVectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -249,9 +249,9 @@ class _MultiVectors:
         encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        model: Optional[Union[JinaMultimodalModel, str]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        model: Optional[JinaMultimodalModel | str] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
@@ -315,8 +315,8 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         module_name: str,
-        module_config: Optional[Dict[str, Any]] = None,
-        source_properties: Optional[List[str]] = None,
+        module_config: Optional[dict[str, Any]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using a custom module that is not currently supported by the SDK.
@@ -344,9 +344,9 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[Union[CohereModel, str]] = None,
+        model: Optional[CohereModel | str] = None,
         truncate: Optional[CohereTruncation] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -386,9 +386,9 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        model: Optional[Union[CohereMultimodalModel, str]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        model: Optional[CohereMultimodalModel | str] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         truncate: Optional[CohereTruncation] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -431,7 +431,7 @@ class _Vectors:
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -461,7 +461,7 @@ class _Vectors:
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         inference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
@@ -496,7 +496,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         endpoint: str,
         instruction: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -532,7 +532,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -568,7 +568,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -604,7 +604,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -643,10 +643,10 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
-        model: Optional[Union[OpenAIModel, str]] = None,
+        model: Optional[OpenAIModel | str] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -690,10 +690,10 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         endpoint: Optional[str] = None,
-        model: Optional[Union[AWSModel, str]],
+        model: Optional[AWSModel | str],
         region: str,
-        service: Union[AWSService, str] = "bedrock",
-        source_properties: Optional[List[str]] = None,
+        service: AWSService | str = "bedrock",
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -732,9 +732,9 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         dimensions: Optional[int] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
         model: Optional[str] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         region: Optional[str] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
@@ -773,7 +773,7 @@ class _Vectors:
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-        image_fields: List[str],
+        image_fields: list[str],
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `img2vec-neural` module.
@@ -802,8 +802,8 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         inference_url: Optional[str] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-clip` module.
@@ -836,12 +836,12 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         dimensions: Optional[int] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
         location: str,
         model: Optional[str] = None,
         project_id: str,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        video_fields: Optional[list[str] | list[Multi2VecField]] = None,
         video_interval_seconds: Optional[int] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
@@ -883,13 +883,13 @@ class _Vectors:
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        depth_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        imu_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        audio_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        depth_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        imu_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        thermal_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        video_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-bind` module.
@@ -929,9 +929,9 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        model: Optional[Union[VoyageMultimodalModel, str]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        model: Optional[VoyageMultimodalModel | str] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         truncation: Optional[bool] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
@@ -972,9 +972,9 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
         model: Optional[str] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         truncation: Optional[bool] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
@@ -1014,7 +1014,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         method: Literal["mean"] = "mean",
-        reference_properties: List[str],
+        reference_properties: list[str],
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `ref2vec-centroid` module.
@@ -1048,7 +1048,7 @@ class _Vectors:
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
         resource_name: str,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1091,7 +1091,7 @@ class _Vectors:
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1128,7 +1128,7 @@ class _Vectors:
         wait_for_model: Optional[bool] = None,
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1182,7 +1182,7 @@ class _Vectors:
         model: Optional[str] = None,
         project_id: str,
         title_property: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1228,7 +1228,7 @@ class _Vectors:
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
         title_property: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1274,7 +1274,7 @@ class _Vectors:
         passage_inference_url: Optional[str] = None,
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         query_inference_url: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1316,8 +1316,8 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
-        model: Optional[Union[JinaModel, str]] = None,
-        source_properties: Optional[List[str]] = None,
+        model: Optional[JinaModel | str] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1354,9 +1354,9 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        model: Optional[Union[JinaMultimodalModel, str]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        model: Optional[JinaMultimodalModel | str] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-jinaai` module.
@@ -1395,9 +1395,9 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[str] = None,
-        model: Optional[Union[VoyageModel, str]] = None,
+        model: Optional[VoyageModel | str] = None,
         truncate: Optional[bool] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1437,8 +1437,8 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
-        model: Optional[Union[WeaviateModel, str]] = None,
-        source_properties: Optional[List[str]] = None,
+        model: Optional[WeaviateModel | str] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1462,7 +1462,7 @@ class _Vectors:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         truncate: Optional[bool] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1502,11 +1502,9 @@ class _VectorsUpdate:
     def update(
         *,
         name: Optional[str] = None,
-        vector_index_config: Union[
-            _VectorIndexConfigHNSWUpdate,
-            _VectorIndexConfigFlatUpdate,
-            _VectorIndexConfigDynamicUpdate,
-        ],
+        vector_index_config: _VectorIndexConfigHNSWUpdate
+        | _VectorIndexConfigFlatUpdate
+        | _VectorIndexConfigDynamicUpdate,
     ) -> _VectorConfigUpdate:
         """Update the vector index configuration of a vector.
 

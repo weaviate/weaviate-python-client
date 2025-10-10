@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union, overload
+from typing import Literal, Optional, overload
 
 from weaviate.collections.classes.aggregate import (
     AggregateGroupByReturn,
@@ -37,7 +37,7 @@ class _NearVectorAsync(_NearVectorExecutor[ConnectionAsync]):
         distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
+        group_by: str | GroupByAggregate,
         target_vector: Optional[TargetVectorJoinType] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
@@ -51,8 +51,8 @@ class _NearVectorAsync(_NearVectorExecutor[ConnectionAsync]):
         distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
+    ) -> AggregateReturn | AggregateGroupByReturn: ...

@@ -1,4 +1,4 @@
-from typing import Dict, Optional, cast
+from typing import Optional, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class _IntegrationConfig(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    def _to_header(self) -> Dict[str, str]:
+    def _to_header(self) -> dict[str, str]:
         # headers have to be strings
         return_dict = cast(dict, self.model_dump(by_alias=True, exclude_none=True))
         for key, value in return_dict.items():

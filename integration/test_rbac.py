@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -437,7 +437,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 )
 def test_create_role(
     client_factory: ClientFactory,
-    permissions: List[_Permission],
+    permissions: list[_Permission],
     expected: Role,
     min_version: Optional[int],
 ) -> None:

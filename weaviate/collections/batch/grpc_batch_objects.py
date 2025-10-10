@@ -2,7 +2,7 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Mapping, Optional, Sequence, cast
 
 from google.protobuf.struct_pb2 import Struct
 
@@ -47,18 +47,18 @@ class _BatchGRPC(_BaseGRPC):
             return None
         return _Pack.single(vectors)
 
-    def __multi_vec(self, vectors: Optional[VECTORS]) -> Optional[List[base_pb2.Vectors]]:
+    def __multi_vec(self, vectors: Optional[VECTORS]) -> Optional[list[base_pb2.Vectors]]:
         if vectors is None or _is_1d_vector(vectors):
             return None
         # pylance fails to type narrow TypeGuard in _is_1d_vector properly
-        vectors = cast(Mapping[str, Union[Sequence[float], Sequence[Sequence[float]]]], vectors)
+        vectors = cast(Mapping[str, Sequence[float] | Sequence[Sequence[float]]], vectors)
         return [
             base_pb2.Vectors(name=name, vector_bytes=packing.bytes_, type=packing.type_)
             for name, vec_or_vecs in vectors.items()
             if (packing := _Pack.parse_single_or_multi_vec(vec_or_vecs))
         ]
 
-    def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
+    def __grpc_objects(self, objects: list[_BatchObject]) -> list[batch_pb2.BatchObject]:
         return [
             batch_pb2.BatchObject(
                 collection=obj.collection,
@@ -82,8 +82,8 @@ class _BatchGRPC(_BaseGRPC):
         self,
         connection: Connection,
         *,
-        objects: List[_BatchObject],
-        timeout: Union[int, float],
+        objects: list[_BatchObject],
+        timeout: int | float,
         max_retries: float,
     ) -> executor.Result[BatchObjectReturn]:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -100,7 +100,7 @@ class _BatchGRPC(_BaseGRPC):
         weaviate_objs = self.__grpc_objects(objects)
         start = time.time()
 
-        def resp(errors: Dict[int, str]) -> BatchObjectReturn:
+        def resp(errors: dict[int, str]) -> BatchObjectReturn:
             if len(errors) == len(weaviate_objs):
                 # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: pylance
                 raise WeaviateInsertManyAllFailedError(
@@ -110,12 +110,12 @@ class _BatchGRPC(_BaseGRPC):
                 )
 
             elapsed_time = time.time() - start
-            all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
-                List[Union[uuid_package.UUID, ErrorObject]],
+            all_responses: list[uuid_package.UUID | ErrorObject] = cast(
+                list[uuid_package.UUID | ErrorObject],
                 list(range(len(weaviate_objs))),
             )
-            return_success: Dict[int, uuid_package.UUID] = {}
-            return_errors: Dict[int, ErrorObject] = {}
+            return_success: dict[int, uuid_package.UUID] = {}
+            return_errors: dict[int, ErrorObject] = {}
             for idx, weav_obj in enumerate(weaviate_objs):
                 obj = objects[idx]
                 if idx in errors:
@@ -152,20 +152,20 @@ class _BatchGRPC(_BaseGRPC):
         )
 
     def __translate_properties_from_python_to_grpc(
-        self, data: Dict[str, Any], refs: ReferenceInputs
+        self, data: dict[str, Any], refs: ReferenceInputs
     ) -> batch_pb2.BatchObject.Properties:
         _validate_props(data)
 
-        multi_target: List[batch_pb2.BatchObject.MultiTargetRefProps] = []
-        single_target: List[batch_pb2.BatchObject.SingleTargetRefProps] = []
+        multi_target: list[batch_pb2.BatchObject.MultiTargetRefProps] = []
+        single_target: list[batch_pb2.BatchObject.SingleTargetRefProps] = []
         non_ref_properties: Struct = Struct()
-        bool_arrays: List[base_pb2.BooleanArrayProperties] = []
-        text_arrays: List[base_pb2.TextArrayProperties] = []
-        int_arrays: List[base_pb2.IntArrayProperties] = []
-        float_arrays: List[base_pb2.NumberArrayProperties] = []
-        object_properties: List[base_pb2.ObjectProperties] = []
-        object_array_properties: List[base_pb2.ObjectArrayProperties] = []
-        empty_lists: List[str] = []
+        bool_arrays: list[base_pb2.BooleanArrayProperties] = []
+        text_arrays: list[base_pb2.TextArrayProperties] = []
+        int_arrays: list[base_pb2.IntArrayProperties] = []
+        float_arrays: list[base_pb2.NumberArrayProperties] = []
+        object_properties: list[base_pb2.ObjectProperties] = []
+        object_array_properties: list[base_pb2.ObjectArrayProperties] = []
+        empty_lists: list[str] = []
 
         for key, ref in refs.items():
             if isinstance(ref, ReferenceToMulti):
@@ -210,7 +210,7 @@ class _BatchGRPC(_BaseGRPC):
             elif isinstance(entry, list) and len(entry) == 0:
                 empty_lists.append(key)
             elif isinstance(entry, list) and isinstance(entry[0], dict):
-                entry = cast(List[Dict[str, Any]], entry)
+                entry = cast(list[dict[str, Any]], entry)
                 object_array_properties.append(
                     base_pb2.ObjectArrayProperties(
                         values=[
@@ -272,7 +272,7 @@ class _BatchGRPC(_BaseGRPC):
         )
 
 
-def _validate_props(props: Dict[str, Any]) -> None:
+def _validate_props(props: dict[str, Any]) -> None:
     if "id" in props or "vector" in props:
         raise WeaviateInsertInvalidPropertyError(props)
 

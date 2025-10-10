@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -33,7 +33,7 @@ class _BatchClient(_BatchBase):
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[VECTORS] = None,
-        tenant: Optional[Union[str, Tenant]] = None,
+        tenant: Optional[str | Tenant] = None,
     ) -> UUID:
         """Add one object to this batch.
 
@@ -51,7 +51,7 @@ class _BatchClient(_BatchBase):
                 case this vector takes precedence.
                 Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
-                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+                - for named vectors: dict[str, *list above*], where the string is the name of the vector.
             tenant: The tenant name or Tenant object to be used for this request.
 
         Returns:
@@ -75,7 +75,7 @@ class _BatchClient(_BatchBase):
         from_collection: str,
         from_property: str,
         to: ReferenceInput,
-        tenant: Optional[Union[str, Tenant]] = None,
+        tenant: Optional[str | Tenant] = None,
     ) -> None:
         """Add one reference to this batch.
 

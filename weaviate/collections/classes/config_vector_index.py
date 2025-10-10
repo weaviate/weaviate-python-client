@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Dict, Optional, overload
+from typing import Any, Optional, overload
 
 from pydantic import Field
 from typing_extensions import deprecated
@@ -77,7 +77,7 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
     @abstractmethod
     def vector_index_type() -> VectorIndexType: ...
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.quantizer is not None:
             if isinstance(self.quantizer, _UncompressedConfigCreate):
@@ -231,7 +231,7 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
     type_: Optional[PQEncoderType]
     distribution: Optional[PQEncoderDistribution]
 
-    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+    def merge_with_existing(self, schema: dict[str, Any]) -> dict[str, Any]:
         """Must be done manually since Pydantic does not work well with type and type_.
 
         Errors shadowing type occur if we want to use type as a field name.

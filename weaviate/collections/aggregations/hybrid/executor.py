@@ -1,4 +1,4 @@
-from typing import Generic, List, Literal, Optional, Union, overload
+from typing import Generic, Literal, Optional, overload
 
 from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -23,8 +23,8 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         query: Optional[str],
         *,
         alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        vector: Optional[list[float]] = None,
+        query_properties: Optional[list[str]] = None,
         object_limit: Optional[int] = None,
         bm25_operator: Optional[BM25OperatorOptions] = None,
         filters: Optional[_Filters] = None,
@@ -41,12 +41,12 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         query: Optional[str],
         *,
         alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        vector: Optional[list[float]] = None,
+        query_properties: Optional[list[str]] = None,
         object_limit: Optional[int] = None,
         bm25_operator: Optional[BM25OperatorOptions] = None,
         filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
+        group_by: str | GroupByAggregate,
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
         total_count: bool = True,
@@ -59,34 +59,34 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         query: Optional[str],
         *,
         alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        vector: Optional[list[float]] = None,
+        query_properties: Optional[list[str]] = None,
         object_limit: Optional[int] = None,
         bm25_operator: Optional[BM25OperatorOptions] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+    ) -> executor.Result[AggregateReturn | AggregateGroupByReturn]: ...
 
     def hybrid(
         self,
         query: Optional[str],
         *,
         alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        vector: Optional[list[float]] = None,
+        query_properties: Optional[list[str]] = None,
         object_limit: Optional[int] = None,
         bm25_operator: Optional[BM25OperatorOptions] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]:
+    ) -> executor.Result[AggregateReturn | AggregateGroupByReturn]:
         """Aggregate metrics over all the objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         Args:
@@ -118,7 +118,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
         if self._connection._weaviate_version.is_lower_than(1, 29, 0):
             # use gql, remove once 1.29 is the minimum supported version
-            def resp(res: dict) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            def resp(res: dict) -> AggregateReturn | AggregateGroupByReturn:
                 return (
                     self._to_aggregate_result(res, return_metrics)
                     if group_by is None
@@ -166,7 +166,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
             def respGrpc(
                 res: aggregate_pb2.AggregateReply,
-            ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            ) -> AggregateReturn | AggregateGroupByReturn:
                 return self._to_result(group_by is not None, res)
 
             return executor.execute(

@@ -1,4 +1,4 @@
-from typing import Dict, Generic, List, Optional, cast
+from typing import Generic, Optional, cast
 
 from httpx import Response
 
@@ -14,7 +14,7 @@ class _AliasExecutor(Generic[ConnectionType]):
 
     def list_all(
         self, *, collection: Optional[str] = None
-    ) -> executor.Result[Dict[str, AliasReturn]]:
+    ) -> executor.Result[dict[str, AliasReturn]]:
         """Get the alias for a given alias name."""
         self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
 
@@ -22,14 +22,14 @@ class _AliasExecutor(Generic[ConnectionType]):
         if collection is not None:
             error_msg += f" for collection {collection}"
 
-        def resp(res: Response) -> Dict[str, AliasReturn]:
+        def resp(res: Response) -> dict[str, AliasReturn]:
             response_typed = _decode_json_response_dict(res, "list all aliases")
             assert response_typed is not None
             aliases = response_typed.get("aliases")
             assert aliases is not None, "Expected 'aliases' in response"
             return {
                 alias["alias"]: AliasReturn(alias=alias["alias"], collection=alias["class"])
-                for alias in cast(List[_WeaviateAlias], aliases)
+                for alias in cast(list[_WeaviateAlias], aliases)
             }
 
         return executor.execute(

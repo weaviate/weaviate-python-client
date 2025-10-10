@@ -1,5 +1,4 @@
 import os
-from typing import List, Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -50,7 +49,7 @@ def test_generative_search_single(
     "prop,answer", [(["text"], "apples bananas"), (["content"], "bananas apples")]
 )
 def test_fetch_objects_generate_search_grouped(
-    openai_collection: OpenAICollection, prop: List[str], answer: str
+    openai_collection: OpenAICollection, prop: list[str], answer: str
 ) -> None:
     collection = openai_collection()
 
@@ -672,8 +671,8 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
 )
 def test_near_text_generate_with_dynamic_rag(
     openai_collection: OpenAICollection,
-    grouped: Union[str, _GroupedTask],
-    single: Union[str, _SinglePrompt],
+    grouped: str | _GroupedTask,
+    single: str | _SinglePrompt,
 ) -> None:
     collection = openai_collection(
         vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),

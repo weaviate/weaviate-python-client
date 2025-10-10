@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal, Optional
 
 from deprecation import deprecated as docstring_deprecated
 from pydantic import AnyHttpUrl, Field
@@ -69,15 +69,15 @@ from ...warnings import _Warnings
 
 class _NamedVectorConfigCreate(_ConfigCreateModel):
     name: str
-    properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
+    properties: Optional[list[str]] = Field(default=None, min_length=1, alias="source_properties")
     vectorizer: _VectorizerConfigCreate
     vectorIndexType: VectorIndexType = Field(default=VectorIndexType.HNSW, exclude=True)
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
 
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict: Dict[str, Any] = self.__parse_vectorizer()
+    def _to_dict(self) -> dict[str, Any]:
+        ret_dict: dict[str, Any] = self.__parse_vectorizer()
         if self.vectorIndexConfig is not None:
             ret_dict["vectorIndexType"] = self.vectorIndexConfig.vector_index_type().value
             ret_dict["vectorIndexConfig"] = self.vectorIndexConfig._to_dict()
@@ -85,7 +85,7 @@ class _NamedVectorConfigCreate(_ConfigCreateModel):
             ret_dict["vectorIndexType"] = self.vectorIndexType.value
         return ret_dict
 
-    def __parse_vectorizer(self) -> Dict[str, Any]:
+    def __parse_vectorizer(self) -> dict[str, Any]:
         vectorizer_options = self.vectorizer._to_dict()
         if self.properties is not None:
             vectorizer_options["properties"] = self.properties
@@ -119,8 +119,8 @@ class _NamedVectors:
         name: str,
         *,
         module_name: str,
-        module_config: Optional[Dict[str, Any]] = None,
-        source_properties: Optional[List[str]] = None,
+        module_config: Optional[dict[str, Any]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
@@ -147,7 +147,7 @@ class _NamedVectors:
         *,
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -181,9 +181,9 @@ class _NamedVectors:
         name: str,
         *,
         base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[Union[CohereModel, str]] = None,
+        model: Optional[CohereModel | str] = None,
         truncate: Optional[CohereTruncation] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -222,9 +222,9 @@ class _NamedVectors:
         name: str,
         *,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        model: Optional[Union[CohereMultimodalModel, str]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        model: Optional[CohereMultimodalModel | str] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         truncate: Optional[CohereTruncation] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -263,7 +263,7 @@ class _NamedVectors:
     def text2vec_contextionary(
         name: str,
         *,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -293,7 +293,7 @@ class _NamedVectors:
         *,
         endpoint: str,
         instruction: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -327,7 +327,7 @@ class _NamedVectors:
         *,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -361,7 +361,7 @@ class _NamedVectors:
         *,
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -398,10 +398,10 @@ class _NamedVectors:
         *,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
-        model: Optional[Union[OpenAIModel, str]] = None,
+        model: Optional[OpenAIModel | str] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -445,9 +445,9 @@ class _NamedVectors:
         region: str,
         *,
         endpoint: Optional[str] = None,
-        model: Optional[Union[AWSModel, str]] = None,
-        service: Union[AWSService, str] = "bedrock",
-        source_properties: Optional[List[str]] = None,
+        model: Optional[AWSModel | str] = None,
+        service: AWSService | str = "bedrock",
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -482,7 +482,7 @@ class _NamedVectors:
     @staticmethod
     def img2vec_neural(
         name: str,
-        image_fields: List[str],
+        image_fields: list[str],
         *,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _NamedVectorConfigCreate:
@@ -510,8 +510,8 @@ class _NamedVectors:
         name: str,
         *,
         inference_url: Optional[str] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -555,9 +555,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         vectorize_collection_name: bool = True,
         location: str,
         project_id: str,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        video_fields: Optional[list[str] | list[Multi2VecField]] = None,
         dimensions: Optional[int] = None,
         video_interval_seconds: Optional[int] = None,
         model_id: Optional[str] = None,
@@ -602,9 +602,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         location: str,
         project_id: str,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        video_fields: Optional[list[str] | list[Multi2VecField]] = None,
         dimensions: Optional[int] = None,
         video_interval_seconds: Optional[int] = None,
         model_id: Optional[str] = None,
@@ -648,13 +648,13 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def multi2vec_bind(
         name: str,
         *,
-        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        depth_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        imu_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        audio_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        depth_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        imu_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        thermal_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        video_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -694,11 +694,11 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         name: str,
         *,
         base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[Union[VoyageMultimodalModel, str]] = None,
+        model: Optional[VoyageMultimodalModel | str] = None,
         truncation: Optional[bool] = None,
         output_encoding: Optional[str] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -740,8 +740,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model: Optional[str] = None,
         truncation: Optional[bool] = None,
         output_encoding: Optional[str] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -778,7 +778,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def ref2vec_centroid(
         name: str,
-        reference_properties: List[str],
+        reference_properties: list[str],
         *,
         method: Literal["mean"] = "mean",
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
@@ -812,7 +812,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -850,7 +850,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def text2vec_gpt4all(
         name: str,
         *,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -885,7 +885,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         wait_for_model: Optional[bool] = None,
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -942,7 +942,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         name: str,
         project_id: str,
         *,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         api_endpoint: Optional[str] = None,
@@ -991,7 +991,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1034,7 +1034,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1078,7 +1078,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
         query_inference_url: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1118,8 +1118,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
-        model: Optional[Union[JinaModel, str]] = None,
-        source_properties: Optional[List[str]] = None,
+        model: Optional[JinaModel | str] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1153,10 +1153,10 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         name: str,
         *,
         base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[Union[JinaMultimodalModel, str]] = None,
+        model: Optional[JinaMultimodalModel | str] = None,
         dimensions: Optional[int] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1194,10 +1194,10 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def text2vec_voyageai(
         name: str,
         *,
-        model: Optional[Union[VoyageModel, str]] = None,
+        model: Optional[VoyageModel | str] = None,
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1233,10 +1233,10 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def text2vec_weaviate(
         name: str,
         *,
-        model: Optional[Union[WeaviateModel, str]] = None,
+        model: Optional[WeaviateModel | str] = None,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1259,7 +1259,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model: Optional[str] = None,
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1295,7 +1295,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def text2vec_model2vec(
         name: str,
         *,
-        source_properties: Optional[List[str]] = None,
+        source_properties: Optional[list[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         inference_url: Optional[str] = None,
@@ -1328,11 +1328,9 @@ class _NamedVectorsUpdate:
     def update(
         name: str,
         *,
-        vector_index_config: Union[
-            _VectorIndexConfigHNSWUpdate,
-            _VectorIndexConfigFlatUpdate,
-            _VectorIndexConfigDynamicUpdate,
-        ],
+        vector_index_config: _VectorIndexConfigHNSWUpdate
+        | _VectorIndexConfigFlatUpdate
+        | _VectorIndexConfigDynamicUpdate,
     ) -> _NamedVectorConfigUpdate:
         """Update the vector index configuration of a named vector.
 

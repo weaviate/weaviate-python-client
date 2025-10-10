@@ -1,5 +1,5 @@
 import datetime
-from typing import List, TypedDict, Union
+from typing import TypedDict
 
 import pytest
 
@@ -314,7 +314,7 @@ from weaviate.collections.classes.internal import Nested
 def test_nested_return_all_properties(
     collection_factory: CollectionFactory,
     property_: Property,
-    object_: Union[dict, List[dict]],
+    object_: dict | list[dict],
 ) -> None:
     collection = collection_factory(
         properties=[property_],

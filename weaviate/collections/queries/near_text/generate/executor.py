@@ -1,4 +1,4 @@
-from typing import Any, Generic, List, Literal, Optional, Type, Union, cast, overload
+from typing import Any, Generic, Literal, Optional, Type, cast, overload
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -45,11 +45,11 @@ class _NearTextGenerateExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -64,18 +64,18 @@ class _NearTextGenerateExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> executor.Result[GenerativeReturn[Properties, References]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -90,18 +90,18 @@ class _NearTextGenerateExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> executor.Result[GenerativeReturn[Properties, CrossReferences]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -116,18 +116,18 @@ class _NearTextGenerateExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> executor.Result[GenerativeReturn[Properties, TReferences]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -149,11 +149,11 @@ class _NearTextGenerateExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -175,11 +175,11 @@ class _NearTextGenerateExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -202,11 +202,11 @@ class _NearTextGenerateExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -221,18 +221,18 @@ class _NearTextGenerateExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, References]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -247,18 +247,18 @@ class _NearTextGenerateExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -273,18 +273,18 @@ class _NearTextGenerateExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> executor.Result[GenerativeGroupByReturn[Properties, TReferences]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -306,11 +306,11 @@ class _NearTextGenerateExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -332,11 +332,11 @@ class _NearTextGenerateExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -359,11 +359,11 @@ class _NearTextGenerateExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -386,11 +386,11 @@ class _NearTextGenerateExecutor(
 
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
-        grouped_properties: Optional[List[str]] = None,
+        single_prompt: Optional[str | _SinglePrompt] = None,
+        grouped_task: Optional[str | _GroupedTask] = None,
+        grouped_properties: Optional[list[str]] = None,
         generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,

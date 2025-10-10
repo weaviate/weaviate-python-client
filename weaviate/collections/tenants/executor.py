@@ -1,6 +1,6 @@
 import asyncio
 from math import ceil
-from typing import Any, Dict, Generic, List, Optional, Sequence, Union
+from typing import Any, Generic, Optional, Sequence
 
 from httpx import Response
 
@@ -46,7 +46,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def create(
         self,
-        tenants: Union[TenantCreateInputType, Sequence[TenantCreateInputType]],
+        tenants: TenantCreateInputType | Sequence[TenantCreateInputType],
     ) -> executor.Result[None]:
         """Create the specified tenants for this collection in Weaviate.
 
@@ -70,7 +70,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
                             str,
                             Tenant,
                             TenantCreate,
-                            Sequence[Union[str, Tenant, TenantCreate]],
+                            Sequence[str | Tenant | TenantCreate],
                         ],
                         name="tenants",
                         value=tenants,
@@ -95,7 +95,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def remove(
         self,
-        tenants: Union[TenantInputType, Sequence[TenantInputType]],
+        tenants: TenantInputType | Sequence[TenantInputType],
     ) -> executor.Result[None]:
         """Remove the specified tenants from this collection in Weaviate.
 
@@ -117,7 +117,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
                         expected=[
                             str,
                             Tenant,
-                            Sequence[Union[str, Tenant]],
+                            Sequence[str | Tenant],
                         ],
                         name="tenants",
                         value=tenants,
@@ -125,7 +125,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
                 ]
             )
 
-        tenant_names: List[str] = []
+        tenant_names: list[str] = []
         if isinstance(tenants, str) or isinstance(tenants, Tenant):
             tenant_names = [tenants.name if isinstance(tenants, Tenant) else tenants]
         else:
@@ -150,11 +150,11 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def __get_with_rest(
         self,
-    ) -> executor.Result[Dict[str, TenantOutputType]]:
+    ) -> executor.Result[dict[str, TenantOutputType]]:
         path = "/schema/" + self._name + "/tenants"
 
-        def resp(res: Response) -> Dict[str, TenantOutputType]:
-            tenant_resp: List[Dict[str, Any]] = res.json()
+        def resp(res: Response) -> dict[str, TenantOutputType]:
+            tenant_resp: list[dict[str, Any]] = res.json()
             for tenant in tenant_resp:
                 tenant["activityStatusInternal"] = tenant["activityStatus"]
                 del tenant["activityStatus"]
@@ -172,7 +172,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def __get_with_grpc(
         self, *, tenants: Optional[Sequence[TenantInputType]] = None
-    ) -> executor.Result[Dict[str, TenantOutputType]]:
+    ) -> executor.Result[dict[str, TenantOutputType]]:
         names = (
             [tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
             if tenants is not None
@@ -183,7 +183,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             names=tenants_pb2.TenantNames(values=names) if names is not None else None,
         )
 
-        def resp(res: tenants_pb2.TenantsGetReply) -> Dict[str, TenantOutputType]:
+        def resp(res: tenants_pb2.TenantsGetReply) -> dict[str, TenantOutputType]:
             return {
                 tenant.name: TenantOutput(
                     name=tenant.name,
@@ -229,8 +229,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def __map_create_tenants(
         self,
-        tenants: Union[TenantCreateInputType, Sequence[TenantCreateInputType]],
-    ) -> List[dict]:
+        tenants: TenantCreateInputType | Sequence[TenantCreateInputType],
+    ) -> list[dict]:
         if (
             isinstance(tenants, str)
             or isinstance(tenants, Tenant)
@@ -241,8 +241,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
             return [self.__map_create_tenant(tenant).model_dump() for tenant in tenants]
 
     def __map_update_tenants(
-        self, tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
-    ) -> List[List[dict]]:
+        self, tenants: TenantUpdateInputType | Sequence[TenantUpdateInputType]
+    ) -> list[list[dict]]:
         if isinstance(tenants, Tenant) or isinstance(tenants, TenantUpdate):
             return [[self.__map_update_tenant(tenants).model_dump()]]
         else:
@@ -260,7 +260,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
                 for b in range(batches)
             ]
 
-    def get(self) -> executor.Result[Dict[str, TenantOutputType]]:
+    def get(self) -> executor.Result[dict[str, TenantOutputType]]:
         """Return all tenants currently associated with this collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
@@ -270,7 +270,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
 
-        def resp(res: Dict[str, TenantOutputType]) -> Dict[str, TenantOutputType]:
+        def resp(res: dict[str, TenantOutputType]) -> dict[str, TenantOutputType]:
             return res
 
         return executor.execute(
@@ -284,7 +284,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def get_by_names(
         self, tenants: Sequence[TenantInputType]
-    ) -> executor.Result[Dict[str, TenantOutputType]]:
+    ) -> executor.Result[dict[str, TenantOutputType]]:
         """Return named tenants currently associated with this collection in Weaviate.
 
         If the tenant does not exist, it will not be included in the response.
@@ -302,7 +302,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(
-                    expected=[Sequence[Union[str, Tenant]]],
+                    expected=[Sequence[str | Tenant]],
                     name="names",
                     value=tenants,
                 )
@@ -325,14 +325,12 @@ class _TenantsExecutor(Generic[ConnectionType]):
         """
         self._connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_name' method")
         if self._validate_arguments:
-            _validate_input(
-                _ValidateArgument(expected=[Union[str, Tenant]], name="tenant", value=tenant)
-            )
+            _validate_input(_ValidateArgument(expected=[str | Tenant], name="tenant", value=tenant))
         tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
         if self._connection._weaviate_version.is_lower_than(1, 28, 0):
             # For Weaviate versions < 1.28.0, we need to use the gRPC API
             # such versions don't have RBAC so the filtering issue doesn't exist therein
-            def resp_grpc(res: Dict[str, TenantOutputType]) -> Optional[TenantOutputType]:
+            def resp_grpc(res: dict[str, TenantOutputType]) -> Optional[TenantOutputType]:
                 return res.get(tenant_name)
 
             return executor.execute(
@@ -366,7 +364,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def __update(
         self,
-        tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]],
+        tenants: TenantUpdateInputType | Sequence[TenantUpdateInputType],
     ) -> executor.Result[None]:
         path = "/schema/" + self._name + "/tenants"
         if isinstance(self._connection, ConnectionAsync):
@@ -402,7 +400,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def update(
         self,
-        tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]],
+        tenants: TenantUpdateInputType | Sequence[TenantUpdateInputType],
     ) -> executor.Result[None]:
         """Update the specified tenants for this collection in Weaviate.
 
@@ -423,7 +421,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
                     expected=[
                         Tenant,
                         TenantUpdate,
-                        Sequence[Union[Tenant, TenantUpdate]],
+                        Sequence[Tenant | TenantUpdate],
                     ],
                     name="tenants",
                     value=tenants,
@@ -473,7 +471,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
     def __update_tenant_activity_status(
         self,
-        tenant: Union[TenantInputType, Sequence[TenantInputType]],
+        tenant: TenantInputType | Sequence[TenantInputType],
         activity_status: TenantUpdateActivityStatus,
     ) -> executor.Result[None]:
         if self._validate_arguments:
@@ -482,7 +480,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
                     expected=[
                         str,
                         Tenant,
-                        Sequence[Union[str, Tenant]],
+                        Sequence[str | Tenant],
                     ],
                     name="tenant",
                     value=tenant,
@@ -506,7 +504,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
         return self.__update(tenants=tenants)
 
     def activate(
-        self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
+        self, tenant: TenantInputType | Sequence[TenantInputType]
     ) -> executor.Result[None]:
         """Activate the specified tenants for this collection in Weaviate.
 
@@ -527,7 +525,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
         )
 
     def deactivate(
-        self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
+        self, tenant: TenantInputType | Sequence[TenantInputType]
     ) -> executor.Result[None]:
         """Deactivate the specified tenants for this collection in Weaviate.
 
@@ -547,9 +545,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             activity_status=TenantUpdateActivityStatus.INACTIVE,
         )
 
-    def offload(
-        self, tenant: Union[TenantInputType, Sequence[TenantInputType]]
-    ) -> executor.Result[None]:
+    def offload(self, tenant: TenantInputType | Sequence[TenantInputType]) -> executor.Result[None]:
         """Offload the specified tenants for this collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.

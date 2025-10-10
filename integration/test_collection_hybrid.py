@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, List, Optional, Union
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -178,7 +178,7 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
     collection.data.insert({"text": "dog"})
     collection.data.insert({"text": "different concept"})
 
-    hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+    hybrid_objs: list[Object[Any, Any]] = collection.query.hybrid(
         query=None,
         vector=wvc.query.HybridVector.near_vector(vector=obj.vector["default"]),
     ).objects
@@ -228,7 +228,7 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
 
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         with pytest.raises(WeaviateUnsupportedFeatureError):
-            hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+            hybrid_objs: list[Object[Any, Any]] = collection.query.hybrid(
                 query=None,
                 vector=wvc.query.HybridVector.near_vector(vector=obj.vector["text"]),
                 target_vector="text",
@@ -286,7 +286,7 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
     collection.data.insert({"text": "banana smoothie"})
     collection.data.insert({"text": "different concept"})
 
-    hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+    hybrid_objs: list[Object[Any, Any]] = collection.query.hybrid(
         query=None,
         vector=wvc.query.HybridVector.near_text(query="banana pudding"),
     ).objects
@@ -329,7 +329,7 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
 
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         with pytest.raises(WeaviateUnsupportedFeatureError):
-            hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+            hybrid_objs: list[Object[Any, Any]] = collection.query.hybrid(
                 query=None,
                 vector=wvc.query.HybridVector.near_text(query="banana pudding"),
                 target_vector="text",
@@ -431,8 +431,8 @@ def test_vector_per_target(
 )
 def test_same_target_vector_multiple_input_combinations(
     collection_factory: CollectionFactory,
-    near_vector: Union[List[float], _HybridNearVector],
-    target_vector: List[str],
+    near_vector: list[float] | _HybridNearVector,
+    target_vector: list[str],
 ) -> None:
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):

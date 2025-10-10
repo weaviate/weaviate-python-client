@@ -1,5 +1,4 @@
 import uuid
-from typing import List, Union
 
 import pytest
 
@@ -42,9 +41,7 @@ def test_shards_on_tenants(
 
 
 @pytest.mark.parametrize("tenant", ["tenant1", Tenant(name="tenant1")])
-def test_delete_by_id_tenant(
-    collection_factory: CollectionFactory, tenant: Union[str, Tenant]
-) -> None:
+def test_delete_by_id_tenant(collection_factory: CollectionFactory, tenant: str | Tenant) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
@@ -323,9 +320,9 @@ def test_tenant_exists(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize("tenant3", ["tenant3", Tenant(name="tenant3")])
 def test_tenant_get_by_name(
     collection_factory: CollectionFactory,
-    tenant1: Union[str, Tenant],
-    tenant2: Union[str, Tenant],
-    tenant3: Union[str, Tenant],
+    tenant1: str | Tenant,
+    tenant2: str | Tenant,
+    tenant3: str | Tenant,
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -379,7 +376,7 @@ def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
 )
 def test_tenants_create(
     collection_factory: CollectionFactory,
-    tenants: Union[TenantCreateInputType, List[TenantCreateInputType]],
+    tenants: TenantCreateInputType | list[TenantCreateInputType],
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -402,7 +399,7 @@ def test_tenants_create(
     ],
 )
 def test_tenants_remove(
-    collection_factory: CollectionFactory, tenants: Union[str, Tenant, List[Union[str, Tenant]]]
+    collection_factory: CollectionFactory, tenants: str | Tenant | list[str | Tenant]
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -426,7 +423,7 @@ def test_tenants_remove(
     ],
 )
 def test_tenants_create_with_read_only_activity_status(
-    collection_factory: CollectionFactory, tenants: Union[Tenant, List[Tenant]]
+    collection_factory: CollectionFactory, tenants: Tenant | list[Tenant]
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -448,7 +445,7 @@ def test_tenants_create_with_read_only_activity_status(
     ],
 )
 def test_tenants_update_with_read_only_activity_status(
-    collection_factory: CollectionFactory, tenants: Union[Tenant, List[Tenant]]
+    collection_factory: CollectionFactory, tenants: Tenant | list[Tenant]
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),

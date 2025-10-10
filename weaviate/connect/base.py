@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, TypeVar, Union, cast
+from typing import Any, Mapping, Optional, Sequence, TypeVar, cast
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -14,8 +14,8 @@ from weaviate.types import NUMBER
 # from grpclib.client import Channel
 
 
-JSONPayload = Union[Mapping[str, Any], Sequence[Any]]
-TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
+JSONPayload = Mapping[str, Any] | Sequence[Any]
+TIMEOUT_TYPE_RETURN = tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
 
 
@@ -97,7 +97,7 @@ class ConnectionParams(BaseModel):
         return self
 
     @property
-    def _grpc_address(self) -> Tuple[str, int]:
+    def _grpc_address(self) -> tuple[str, int]:
         return (self.grpc.host, self.grpc.port)
 
     @property
@@ -105,8 +105,8 @@ class ConnectionParams(BaseModel):
         return f"{self.grpc.host}:{self.grpc.port}"
 
     def _grpc_channel(
-        self, proxies: Dict[str, str], grpc_msg_size: Optional[int], is_async: bool
-    ) -> Union[AsyncChannel, SyncChannel]:
+        self, proxies: dict[str, str], grpc_msg_size: Optional[int], is_async: bool
+    ) -> AsyncChannel | SyncChannel:
         if grpc_msg_size is None:
             grpc_msg_size = MAX_GRPC_MESSAGE_LENGTH
         opts = [
@@ -145,7 +145,7 @@ class ConnectionParams(BaseModel):
         return f"{self._http_scheme}://{self.http.host}:{self.http.port}"
 
 
-def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> Dict[str, str]:
+def _get_proxies(proxies: Optional[dict | str | Proxies], trust_env: bool) -> dict[str, str]:
     """Get proxies as dict, compatible with 'requests' library.
 
     NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'

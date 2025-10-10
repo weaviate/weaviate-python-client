@@ -1,4 +1,4 @@
-from typing import Any, Dict, Union, cast
+from typing import Any, cast
 
 from pydantic import BaseModel
 
@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class _BackupLocationConfig(BaseModel):
     """The dynamic location of a backup."""
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret = cast(dict, self.model_dump(exclude_none=True))
 
         return ret
@@ -39,12 +39,9 @@ class _BackupLocationAzure(_BackupLocationConfig):
     bucket: str
 
 
-BackupLocationType = Union[
-    _BackupLocationFilesystem,
-    _BackupLocationS3,
-    _BackupLocationGCP,
-    _BackupLocationAzure,
-]
+BackupLocationType = (
+    _BackupLocationFilesystem | _BackupLocationS3 | _BackupLocationGCP | _BackupLocationAzure
+)
 
 
 class BackupLocation:
