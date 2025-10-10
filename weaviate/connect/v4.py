@@ -84,7 +84,7 @@ from weaviate.proto.v1 import (
     aggregate_pb2,
     batch_delete_pb2,
     batch_pb2,
-    health_pb2,
+    health_weaviate_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,
@@ -325,30 +325,31 @@ class _ConnectionBase:
         try:
             res = self._grpc_channel.unary_unary(
                 "/grpc.health.v1.Health/Check",
-                request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
-                response_deserializer=health_pb2.HealthCheckResponse.FromString,
-            )(health_pb2.HealthCheckRequest(), timeout=self.timeout_config.init)
+                request_serializer=health_weaviate_pb2.WeaviateHealthCheckRequest.SerializeToString,
+                response_deserializer=health_weaviate_pb2.WeaviateHealthCheckResponse.FromString,
+            )(health_weaviate_pb2.WeaviateHealthCheckRequest(), timeout=self.timeout_config.init)
             if colour == "async":
 
                 async def execute():
                     assert isinstance(res, Awaitable)
                     try:
                         return self.__handle_ping_response(
-                            cast(health_pb2.HealthCheckResponse, await res)
+                            cast(health_weaviate_pb2.WeaviateHealthCheckResponse, await res)
                         )
                     except Exception as e:
                         self.__handle_ping_exception(e)
 
                 return execute()
             assert not isinstance(res, Awaitable)
-            return self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, res))
+            self.__handle_ping_response(cast(health_weaviate_pb2.WeaviateHealthCheckResponse, res))
+            return None
 
         except Exception as e:
             self.__handle_ping_exception(e)
         return None
 
-    def __handle_ping_response(self, res: health_pb2.HealthCheckResponse) -> None:
-        if res.status != health_pb2.HealthCheckResponse.SERVING:
+    def __handle_ping_response(self, res: health_weaviate_pb2.WeaviateHealthCheckResponse) -> None:
+        if res.status != health_weaviate_pb2.WeaviateHealthCheckResponse.SERVING:
             raise WeaviateGRPCUnavailableError(
                 f"v{self.server_version}", self._connection_params._grpc_address
             )
@@ -778,9 +779,6 @@ class _ConnectionBase:
         except RequestError:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
-    def supports_groupby_in_bm25_and_hybrid(self) -> bool:
-        return self._weaviate_version.is_at_least(1, 25, 0)
-
     def delete(
         self,
         path: str,
@@ -1150,10 +1148,10 @@ class ConnectionAsync(_ConnectionBase):
                 raise e
 
         # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 23, 7):
+        if self._weaviate_version.is_lower_than(1, 27, 0):
             self._connected = False
             raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
             )
 
         if not self._skip_init_checks:

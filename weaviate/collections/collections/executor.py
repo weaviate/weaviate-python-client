@@ -206,12 +206,6 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-        if isinstance(vectorizer_config, list) and self._connection._weaviate_version.is_lower_than(
-            1, 24, 0
-        ):
-            raise WeaviateInvalidInputError(
-                "Named vectorizers are only supported in Weaviate v1.24.0 and higher"
-            )
         if vectorizer_config is not None:
             _Warnings.vectorizer_config_in_config_create()
         if vector_index_config is not None:

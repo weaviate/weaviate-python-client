@@ -32,7 +32,6 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.queries.base_executor import _BaseExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import INCLUDE_VECTOR
 
@@ -400,10 +399,6 @@ class _BM25GenerateExecutor(
             weaviate.exceptions.WeaviateQueryError: If the network connection to Weaviate fails.
             weaviate.exceptions.WeaviateUnsupportedFeatureError: If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
-        if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
-            raise WeaviateUnsupportedFeatureError(
-                "BM25 group by", self._connection.server_version, "1.25.0"
-            )
 
         def resp(
             res: search_get_pb2.SearchReply,

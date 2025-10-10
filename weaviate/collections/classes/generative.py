@@ -9,6 +9,8 @@ from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
 from weaviate.collections.classes.config import (
     AWSService,
     GenerativeSearches,
+    OpenAiReasoningEffort,
+    OpenAiVerbosity,
     _EnumLikeStr,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -319,6 +321,8 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
     stop: Optional[List[str]]
     temperature: Optional[float]
     top_p: Optional[float]
+    verbosity: Optional[Union[OpenAiVerbosity, str]]
+    reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         return generative_pb2.GenerativeProvider(
@@ -338,8 +342,36 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
                 is_azure=self.is_azure,
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
+                verbosity=self.__verbosity(),
+                reasoning_effort=self.__reasoning_effort(),
             ),
         )
+
+    def __verbosity(self):
+        if self.verbosity is None:
+            return None
+
+        if self.verbosity == "low":
+            return generative_pb2.GenerativeOpenAI.Verbosity.VERBOSITY_LOW
+        if self.verbosity == "medium":
+            return generative_pb2.GenerativeOpenAI.Verbosity.VERBOSITY_MEDIUM
+        if self.verbosity == "high":
+            return generative_pb2.GenerativeOpenAI.Verbosity.VERBOSITY_HIGH
+        raise WeaviateInvalidInputError(f"Invalid verbosity value: {self.verbosity}")
+
+    def __reasoning_effort(self):
+        if self.reasoning_effort is None:
+            return None
+
+        if self.reasoning_effort == "minimal":
+            return generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_MINIMAL
+        if self.reasoning_effort == "low":
+            return generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_LOW
+        if self.reasoning_effort == "medium":
+            return generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_MEDIUM
+        if self.reasoning_effort == "high":
+            return generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_HIGH
+        raise WeaviateInvalidInputError(f"Invalid reasoning_effort value: {self.reasoning_effort}")
 
 
 class _GenerativeGoogle(_GenerativeConfigRuntime):
@@ -763,10 +795,12 @@ class GenerativeConfig:
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
         presence_penalty: Optional[float] = None,
+        reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]] = None,
         resource_name: Optional[str] = None,
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        verbosity: Optional[Union[OpenAiVerbosity, str]] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the OpenAI-backed `generative-openai` module.
 
@@ -781,10 +815,12 @@ class GenerativeConfig:
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
             presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            reasoning_effort: The reasoning effort to use. Defaults to `None`, which uses the server-defined default
             resource_name: The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
             stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            verbosity: The verbosity to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeOpenAI(
             api_version=api_version,
@@ -799,6 +835,8 @@ class GenerativeConfig:
             temperature=temperature,
             top_p=top_p,
             is_azure=False,
+            verbosity=verbosity,
+            reasoning_effort=reasoning_effort,
         )
 
     @staticmethod
@@ -847,6 +885,8 @@ class GenerativeConfig:
             temperature=temperature,
             top_p=top_p,
             is_azure=True,
+            verbosity=None,
+            reasoning_effort=None,
         )
 
     @staticmethod
