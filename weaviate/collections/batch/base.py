@@ -812,7 +812,7 @@ class _BgThreads:
 
     def is_alive(self) -> bool:
         """Check if the background threads are still alive."""
-        return self.send.is_alive() and self.recv.is_alive()
+        return self.send_alive() and self.recv_alive()
 
     def send_alive(self) -> bool:
         """Check if the send background thread is still alive."""
@@ -868,7 +868,7 @@ class _BatchBaseNew:
 
         self.__objs_cache_lock = threading.Lock()
         self.__refs_cache_lock = threading.Lock()
-        self.__objs_cache: dict[int, BatchObject] = {}
+        self.__objs_cache: dict[str, BatchObject] = {}
         self.__refs_cache: dict[int, BatchReference] = {}
 
         # maxsize=1 so that __batch_send does not run faster than generator for __batch_recv
@@ -926,6 +926,16 @@ class _BatchBaseNew:
         while self.__any_threads_alive():
             time.sleep(1)
         logger.warning("Send & receive threads finished.")
+
+        # all uuids still in the objs cache must've been added successfully since any erroring uuids
+        # are removed from the objs cache in __batch_recv
+        uuids = {
+            cached.index: uuid_package.UUID(str(cached.uuid))
+            for cached in self.__objs_cache.values()
+        }
+        self.__results_for_wrapper.results.objs += BatchObjectReturn(
+            _all_responses=list(uuids.values()), uuids=uuids
+        )
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -1068,35 +1078,40 @@ class _BatchBaseNew:
                 requests=self.__generate_stream_requests_for_grpc(),
             ):
                 if message.HasField("error"):
-                    with self.__results_lock:
-                        if message.error.HasField("object"):
-                            # TODO: translate gRPC object back to BatchObject
-                            err = ErrorObject(
-                                message=message.error.error,
-                                object_=message.error.object,  # pyright: ignore
+                    if message.error.HasField("object"):
+                        cached = self.__objs_cache.pop(message.error.object.uuid)
+                        err = ErrorObject(
+                            message=message.error.error,
+                            object_=cached,
+                        )
+                        with self.__results_lock:
+                            self.__results_for_wrapper.results.objs += BatchObjectReturn(
+                                _all_responses=[err],
+                                errors={cached.index: err},
                             )
                             self.__results_for_wrapper.failed_objects.append(err)
-                            logger.warning(
-                                {
-                                    "error": message.error.error,
-                                    "object": message.error.object.uuid,
-                                    "action": "use {client,collection}.batch.failed_objects to access this error",
-                                }
-                            )
-                        if message.error.HasField("reference"):
-                            # TODO: translate gRPC reference back to BatchReference
-                            err = ErrorReference(
-                                message=message.error.error,
-                                reference=message.error.reference,  # pyright: ignore
-                            )
+                        logger.warning(
+                            {
+                                "error": message.error.error,
+                                "object": message.error.object.uuid,
+                                "action": "use {client,collection}.batch.failed_objects to access this error",
+                            }
+                        )
+                    if message.error.HasField("reference"):
+                        # TODO: translate gRPC reference back to BatchReference
+                        err = ErrorReference(
+                            message=message.error.error,
+                            reference=message.error.reference,  # pyright: ignore
+                        )
+                        with self.__results_lock:
                             self.__results_for_wrapper.failed_references.append(err)
-                            logger.warning(
-                                {
-                                    "error": message.error.error,
-                                    "reference": message.error.reference.SerializeToString(),
-                                    "action": "use {client,collection}.batch.failed_references to access this error",
-                                }
-                            )
+                        logger.warning(
+                            {
+                                "error": message.error.error,
+                                "reference": message.error.reference.SerializeToString(),
+                                "action": "use {client,collection}.batch.failed_references to access this error",
+                            }
+                        )
                 elif message.HasField("backoff"):
                     if self.__stop or self.__is_shutting_down.is_set():
                         # we have stopped our side of the stream or we're shutting down, skipping backoff adjustments
@@ -1250,10 +1265,11 @@ class _BatchBaseNew:
             )
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
-        self.__uuid_lookup.add(str(batch_object.uuid))
+        uuid = str(batch_object.uuid)
+        self.__uuid_lookup.add(uuid)
         self.__batch_objects.add(self.__batch_grpc.grpc_object(batch_object._to_internal()))
         with self.__objs_cache_lock:
-            self.__objs_cache[self.__objs_count] = batch_object
+            self.__objs_cache[uuid] = batch_object
         self.__objs_count += 1
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
