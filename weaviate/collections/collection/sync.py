@@ -1,6 +1,6 @@
 import json
 from dataclasses import asdict
-from typing import Generic, List, Literal, Optional, Type, Union, overload
+from typing import Generic, Literal, Optional, Type, overload
 
 from weaviate.cluster import _Cluster
 from weaviate.collections.aggregate import _AggregateCollection
@@ -146,7 +146,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         json_ = json.dumps(asdict(config), indent=2)
         return f"<weaviate.Collection config={json_}>"
 
-    def with_tenant(self, tenant: Union[str, Tenant]) -> "Collection[Properties, References]":
+    def with_tenant(self, tenant: str | Tenant) -> "Collection[Properties, References]":
         """Use this method to return a collection object specific to a single tenant.
 
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
@@ -198,7 +198,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         except Exception:
             return False
 
-    def shards(self) -> List[Shard]:
+    def shards(self) -> list[Shard]:
         """Get the statuses of all the shards of this collection.
 
         Returns:
@@ -296,14 +296,14 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         return_references: Optional[ReturnReferences[TReferences]] = None,
         after: Optional[UUID] = None,
         cache_size: Optional[int] = None,
-    ) -> Union[
-        _ObjectIterator[Properties, References],
-        _ObjectIterator[Properties, CrossReferences],
-        _ObjectIterator[Properties, TReferences],
-        _ObjectIterator[TProperties, References],
-        _ObjectIterator[TProperties, CrossReferences],
-        _ObjectIterator[TProperties, TReferences],
-    ]:
+    ) -> (
+        _ObjectIterator[Properties, References]
+        | _ObjectIterator[Properties, CrossReferences]
+        | _ObjectIterator[Properties, TReferences]
+        | _ObjectIterator[TProperties, References]
+        | _ObjectIterator[TProperties, CrossReferences]
+        | _ObjectIterator[TProperties, TReferences]
+    ):
         """Use this method to return an iterator over the objects in the collection.
 
         This iterator keeps a record of the last object that it returned to be used in each subsequent call to

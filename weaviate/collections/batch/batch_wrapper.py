@@ -1,5 +1,5 @@
 import time
-from typing import Any, Generic, List, Optional, TypeVar, cast
+from typing import Any, Generic, Optional, TypeVar, cast
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -35,7 +35,7 @@ class _BatchWrapper:
         self._batch_data = _BatchDataWrapper()
 
     def __is_ready(
-        self, max_count: int, shards: Optional[List[Shard]], backoff_count: int = 0
+        self, max_count: int, shards: Optional[list[Shard]], backoff_count: int = 0
     ) -> bool:
         try:
             readinesses = [
@@ -53,7 +53,7 @@ class _BatchWrapper:
             return self.__is_ready(max_count, shards, backoff_count + 1)
 
     def wait_for_vector_indexing(
-        self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
+        self, shards: Optional[list[Shard]] = None, how_many_failures: int = 5
     ) -> None:
         """Wait for the all the vectors of the batch imported objects to be indexed.
 
@@ -65,9 +65,9 @@ class _BatchWrapper:
             how_many_failures: How many times to try to get the shards' status before raising an exception. Default 5.
         """
         if shards is not None and not isinstance(shards, list):
-            raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
+            raise TypeError(f"'shards' must be of type list[Shard]. Given type: {type(shards)}.")
         if shards is not None and not isinstance(shards[0], Shard):
-            raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
+            raise TypeError(f"'shards' must be of type list[Shard]. Given type: {type(shards)}.")
 
         waiting_count = 0
         while not self.__is_ready(how_many_failures, shards):
@@ -77,7 +77,7 @@ class _BatchWrapper:
             waiting_count += 1
         logger.debug("Async indexing finished!")
 
-    def __get_shards_readiness(self, shard: Shard) -> List[bool]:
+    def __get_shards_readiness(self, shard: Shard) -> list[bool]:
         path = f"/schema/{_capitalize_first_letter(shard.collection)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
         response = executor.result(self._connection.get(path=path))
 
@@ -89,11 +89,11 @@ class _BatchWrapper:
             for shard in res
         ]
 
-    def _get_shards_readiness(self, shard: Shard) -> List[bool]:
+    def _get_shards_readiness(self, shard: Shard) -> list[bool]:
         return self.__get_shards_readiness(shard)
 
     @property
-    def failed_objects(self) -> List[ErrorObject]:
+    def failed_objects(self) -> list[ErrorObject]:
         """Get all failed objects from the batch manager.
 
         Returns:
@@ -102,7 +102,7 @@ class _BatchWrapper:
         return self._batch_data.failed_objects
 
     @property
-    def failed_references(self) -> List[ErrorReference]:
+    def failed_references(self) -> list[ErrorReference]:
         """Get all failed references from the batch manager.
 
         Returns:

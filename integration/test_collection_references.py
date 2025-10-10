@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 import pytest as pytest
 from typing_extensions import Annotated
@@ -1170,7 +1170,7 @@ def test_bad_generic_return_references(collection_factory: CollectionFactory) ->
 def test_generic_type_hint_return_references(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        data_model_refs=Dict[str, CrossReference[Dict[str, str], None]],
+        data_model_refs=dict[str, CrossReference[dict[str, str], None]],
     )
     collection.config.add_reference(
         ReferenceProperty(name="self", target_collection=collection.name)

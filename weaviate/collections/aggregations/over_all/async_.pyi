@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union, overload
+from typing import Literal, Optional, overload
 
 from weaviate.collections.classes.aggregate import (
     AggregateGroupByReturn,
@@ -26,7 +26,7 @@ class _OverAllAsync(_OverAllExecutor[ConnectionAsync]):
         self,
         *,
         filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
+        group_by: str | GroupByAggregate,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn: ...
@@ -35,7 +35,7 @@ class _OverAllAsync(_OverAllExecutor[ConnectionAsync]):
         self,
         *,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
+    ) -> AggregateReturn | AggregateGroupByReturn: ...

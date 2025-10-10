@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Union
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -53,9 +53,9 @@ class Config:
 class Timeout(BaseModel):
     """Timeouts for the different operations in the client."""
 
-    query: Union[int, float] = Field(default=30, ge=0)
-    insert: Union[int, float] = Field(default=90, ge=0)
-    init: Union[int, float] = Field(default=2, ge=0)
+    query: int | float = Field(default=30, ge=0)
+    insert: int | float = Field(default=90, ge=0)
+    init: int | float = Field(default=2, ge=0)
 
 
 class Proxies(BaseModel):
@@ -78,8 +78,8 @@ class AdditionalConfig(BaseModel):
     """
 
     connection: ConnectionConfig = Field(default_factory=ConnectionConfig)
-    proxies: Union[str, Proxies, None] = Field(default=None)
-    timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
+    proxies: str | Proxies | None = Field(default=None)
+    timeout_: tuple[int, int] | Timeout = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
 
     @property

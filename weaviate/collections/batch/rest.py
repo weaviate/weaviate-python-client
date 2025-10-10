@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Optional
 
 from httpx import Response
 
@@ -19,9 +19,9 @@ class _BatchREST:
         self.__consistency_level = consistency_level
 
     def references(
-        self, connection: Connection, *, references: List[_BatchReference]
+        self, connection: Connection, *, references: list[_BatchReference]
     ) -> executor.Result[BatchReferenceReturn]:
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level.value
 

@@ -1,6 +1,6 @@
 import json
 from dataclasses import asdict
-from typing import Generic, List, Literal, Optional, Type, Union, overload
+from typing import Generic, Literal, Optional, Type, overload
 
 from weaviate.cluster import _ClusterAsync
 from weaviate.collections.aggregate import _AggregateCollectionAsync
@@ -109,7 +109,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
 
     def with_tenant(
-        self, tenant: Union[str, Tenant, None]
+        self, tenant: Optional[str | Tenant]
     ) -> "CollectionAsync[Properties, References]":
         """Use this method to return a collection object specific to a single tenant.
 
@@ -132,7 +132,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         )
 
     def with_consistency_level(
-        self, consistency_level: Union[ConsistencyLevel, None]
+        self, consistency_level: Optional[ConsistencyLevel]
     ) -> "CollectionAsync[Properties, References]":
         """Use this method to return a collection object specific to a single consistency level.
 
@@ -174,7 +174,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         except Exception:
             return False
 
-    async def shards(self) -> List[Shard]:
+    async def shards(self) -> list[Shard]:
         """Get the statuses of all the shards of this collection.
 
         Returns:
@@ -272,14 +272,14 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         return_references: Optional[ReturnReferences[TReferences]] = None,
         after: Optional[UUID] = None,
         cache_size: Optional[int] = None,
-    ) -> Union[
-        _ObjectAIterator[Properties, References],
-        _ObjectAIterator[Properties, CrossReferences],
-        _ObjectAIterator[Properties, TReferences],
-        _ObjectAIterator[TProperties, References],
-        _ObjectAIterator[TProperties, CrossReferences],
-        _ObjectAIterator[TProperties, TReferences],
-    ]:
+    ) -> (
+        _ObjectAIterator[Properties, References]
+        | _ObjectAIterator[Properties, CrossReferences]
+        | _ObjectAIterator[Properties, TReferences]
+        | _ObjectAIterator[TProperties, References]
+        | _ObjectAIterator[TProperties, CrossReferences]
+        | _ObjectAIterator[TProperties, TReferences]
+    ):
         """Use this method to return an iterator over the objects in the collection.
 
         This iterator keeps a record of the last object that it returned to be used in each subsequent call to

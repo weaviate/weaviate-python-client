@@ -3,7 +3,7 @@ import os
 import threading
 import time
 from concurrent.futures import Future
-from typing import Any, Callable, Coroutine, Dict, Generic, Optional, TypeVar, cast
+from typing import Any, Callable, Coroutine, Generic, Optional, TypeVar, cast
 
 from typing_extensions import ParamSpec
 
@@ -98,7 +98,7 @@ class _EventLoop:
             - https://github.com/grpc/grpc/pull/36096
         """
 
-        def exception_handler(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -> None:
+        def exception_handler(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
             if "exception" in context:
                 if type(
                     context["exception"]
@@ -115,7 +115,7 @@ class _EventLoop:
 
 
 class _EventLoopSingleton:
-    _instances: Optional[Dict[int, _EventLoop]] = None
+    _instances: Optional[dict[int, _EventLoop]] = None
 
     @classmethod
     def get_instance(cls) -> _EventLoop:

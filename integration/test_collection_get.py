@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, TypedDict
+from typing import Any, TypedDict
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -23,7 +23,7 @@ def test_get_with_dict_generic(
 
         col = collection_factory_get(request.node.name, Right, Right)
     else:
-        col = collection_factory_get(request.node.name, Dict[str, str], Dict[str, str])
+        col = collection_factory_get(request.node.name, dict[str, str], dict[str, str])
     assert isinstance(col, Collection)
 
 
@@ -39,8 +39,8 @@ def test_data_with_data_model_with_dict_generic(
     assert isinstance(data, _DataCollection)
 
 
-WRONG_PROPERTIES_ERROR_MSG = "properties can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"
-WRONG_REFERENCES_ERROR_MSG = "references can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"
+WRONG_PROPERTIES_ERROR_MSG = "properties can only be a dict type, e.g. dict[str, Any], or a class that inherits from TypedDict"
+WRONG_REFERENCES_ERROR_MSG = "references can only be a dict type, e.g. dict[str, Any], or a class that inherits from TypedDict"
 
 
 class WrongEmpty:

@@ -1,4 +1,4 @@
-from typing import Any, Generic, List, Literal, Optional, Type, Union, cast, overload
+from typing import Any, Generic, Literal, Optional, Type, cast, overload
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -47,7 +47,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -60,7 +60,7 @@ class _HybridQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
@@ -71,7 +71,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -84,7 +84,7 @@ class _HybridQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
@@ -95,7 +95,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -108,7 +108,7 @@ class _HybridQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
@@ -119,7 +119,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -143,7 +143,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -167,7 +167,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -193,7 +193,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -206,7 +206,7 @@ class _HybridQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> executor.Result[GroupByReturn[Properties, References]]: ...
 
@@ -217,7 +217,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -230,7 +230,7 @@ class _HybridQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> executor.Result[GroupByReturn[Properties, CrossReferences]]: ...
 
@@ -241,7 +241,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -254,7 +254,7 @@ class _HybridQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> executor.Result[GroupByReturn[Properties, TReferences]]: ...
 
@@ -265,7 +265,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -289,7 +289,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -313,7 +313,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -338,7 +338,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -363,7 +363,7 @@ class _HybridQueryExecutor(
         *,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
-        query_properties: Optional[List[str]] = None,
+        query_properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         max_vector_distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,

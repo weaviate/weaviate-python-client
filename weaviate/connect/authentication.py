@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Dict, List, Optional, Union
+from typing import Awaitable, Callable, Optional
 
 import httpx
 from authlib.integrations.httpx_client import (  # type: ignore
@@ -21,13 +21,12 @@ from ..warnings import _Warnings
 from . import executor
 
 AUTH_DEFAULT_TIMEOUT = 5
-OIDC_CONFIG = Dict[str, Union[str, List[str]]]
+OIDC_CONFIG = dict[str, str | list[str]]
 
-Result = Union[OAuth2Client, Awaitable[AsyncOAuth2Client]]
-MountsMaker = Union[
-    Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
-    Callable[[], Dict[str, httpx.HTTPTransport]],
-]
+Result = OAuth2Client | Awaitable[AsyncOAuth2Client]
+MountsMaker = (
+    Callable[[], dict[str, httpx.AsyncHTTPTransport]] | Callable[[], dict[str, httpx.HTTPTransport]]
+)
 
 
 class _Auth:
@@ -46,7 +45,7 @@ class _Auth:
         assert isinstance(config_url, str) and isinstance(client_id, str)
         self._open_id_config_url: str = config_url
         self._client_id: str = client_id
-        self._default_scopes: List[str] = []
+        self._default_scopes: list[str] = []
         if "scopes" in oidc_config:
             default_scopes = oidc_config["scopes"]
             assert isinstance(default_scopes, list)
@@ -121,7 +120,7 @@ class _Auth:
         if self.__colour == "async":
 
             async def _execute() -> str:
-                mounts: Dict[str, httpx.AsyncBaseTransport] = {}
+                mounts: dict[str, httpx.AsyncBaseTransport] = {}
                 for key, mount in self.__make_mounts().items():
                     assert isinstance(mount, httpx.AsyncHTTPTransport)
                     mounts[key] = mount
@@ -129,7 +128,7 @@ class _Auth:
                     return resp(await client.get(self._open_id_config_url))
 
             return _execute()
-        mounts: Dict[str, httpx.BaseTransport] = {}
+        mounts: dict[str, httpx.BaseTransport] = {}
         for key, mount in self.__make_mounts().items():
             assert isinstance(mount, httpx.BaseTransport)
             mounts[key] = mount
@@ -147,7 +146,7 @@ class _Auth:
         return sessions
 
     def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> Result:
-        token: Dict[str, Union[str, int]] = {"access_token": config.access_token}
+        token: dict[str, str | int] = {"access_token": config.access_token}
         if config.expires_in is not None:
             token["expires_in"] = config.expires_in
         if config.refresh_token is not None:
@@ -175,7 +174,7 @@ class _Auth:
         )
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> Result:
-        scope: List[str] = self._default_scopes.copy()
+        scope: list[str] = self._default_scopes.copy()
         scope.extend(config.scope_list)
         if self.__colour == "async":
 
@@ -209,8 +208,8 @@ class _Auth:
 
         return session
 
-    def __get_common_scopes(self) -> executor.Result[List[str]]:
-        def resp(res: str) -> List[str]:
+    def __get_common_scopes(self) -> executor.Result[list[str]]:
+        def resp(res: str) -> list[str]:
             if res.startswith("https://login.microsoftonline.com"):
                 return [self._client_id + "/.default"]
             raise MissingScopeError
@@ -218,7 +217,7 @@ class _Auth:
         return executor.execute(response_callback=resp, method=self._get_token_endpoint)
 
     def _get_session_client_credential(self, config: AuthClientCredentials) -> Result:
-        scope: List[str] = self._default_scopes.copy()
+        scope: list[str] = self._default_scopes.copy()
 
         if config.scope_list is not None:
             scope.extend(config.scope_list)

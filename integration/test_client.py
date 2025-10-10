@@ -1,4 +1,4 @@
-from typing import Callable, Generator, Optional, Tuple, Union
+from typing import Callable, Generator, Optional
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -546,7 +546,7 @@ def test_client_with_skip_init_check(request: SubRequest) -> None:
 
 
 @pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
-def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
+def test_client_with_extra_options(timeout: tuple[int, int] | Timeout) -> None:
     additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
 
     for client in [

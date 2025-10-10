@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from typing import (
     Any,
     ClassVar,
-    Dict,
-    List,
     Literal,
     Optional,
     Sequence,
@@ -292,14 +290,14 @@ class _BM25ConfigUpdate(_ConfigUpdateModel):
 
 class _StopwordsCreate(_ConfigCreateModel):
     preset: Optional[StopwordsPreset]
-    additions: Optional[List[str]]
-    removals: Optional[List[str]]
+    additions: Optional[list[str]]
+    removals: Optional[list[str]]
 
 
 class _StopwordsUpdate(_ConfigUpdateModel):
     preset: Optional[StopwordsPreset]
-    additions: Optional[List[str]]
-    removals: Optional[List[str]]
+    additions: Optional[list[str]]
+    removals: Optional[list[str]]
 
 
 class _InvertedIndexConfigCreate(_ConfigCreateModel):
@@ -329,11 +327,11 @@ class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
 
 
 class _GenerativeProvider(_ConfigCreateModel):
-    generative: Union[GenerativeSearches, _EnumLikeStr]
+    generative: GenerativeSearches | _EnumLikeStr
 
 
 class _GenerativeAnyscale(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
     baseURL: Optional[str]
@@ -342,16 +340,16 @@ class _GenerativeAnyscale(_GenerativeProvider):
 
 
 class _GenerativeCustom(_GenerativeProvider):
-    module_config: Optional[Dict[str, Any]]
+    module_config: Optional[dict[str, Any]]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         if self.module_config is None:
             return {}
         return self.module_config
 
 
 class _GenerativeDatabricks(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.DATABRICKS, frozen=True, exclude=True
     )
     endpoint: str
@@ -362,7 +360,7 @@ class _GenerativeDatabricks(_GenerativeProvider):
 
 
 class _GenerativeMistral(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
     )
     temperature: Optional[float]
@@ -372,7 +370,7 @@ class _GenerativeMistral(_GenerativeProvider):
 
 
 class _GenerativeNvidia(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
     )
     temperature: Optional[float]
@@ -382,7 +380,7 @@ class _GenerativeNvidia(_GenerativeProvider):
 
 
 class _GenerativeXai(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.XAI, frozen=True, exclude=True
     )
     temperature: Optional[float]
@@ -392,7 +390,7 @@ class _GenerativeXai(_GenerativeProvider):
 
 
 class _GenerativeFriendliai(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
     )
     temperature: Optional[float]
@@ -402,7 +400,7 @@ class _GenerativeFriendliai(_GenerativeProvider):
 
 
 class _GenerativeOllama(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
     )
     model: Optional[str]
@@ -410,7 +408,7 @@ class _GenerativeOllama(_GenerativeProvider):
 
 
 class _GenerativeOpenAIConfigBase(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
@@ -420,7 +418,7 @@ class _GenerativeOpenAIConfigBase(_GenerativeProvider):
     temperatureProperty: Optional[float]
     topPProperty: Optional[float]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -439,7 +437,7 @@ class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
 
 
 class _GenerativeCohereConfig(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
@@ -447,10 +445,10 @@ class _GenerativeCohereConfig(_GenerativeProvider):
     model: Optional[str]
     maxTokensProperty: Optional[int]
     returnLikelihoodsProperty: Optional[str]
-    stopSequencesProperty: Optional[List[str]]
+    stopSequencesProperty: Optional[list[str]]
     temperatureProperty: Optional[float]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -458,7 +456,7 @@ class _GenerativeCohereConfig(_GenerativeProvider):
 
 
 class _GenerativeGoogleConfig(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
     apiEndpoint: Optional[str]
@@ -471,7 +469,7 @@ class _GenerativeGoogleConfig(_GenerativeProvider):
 
 
 class _GenerativeAWSConfig(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
     region: str
@@ -482,42 +480,40 @@ class _GenerativeAWSConfig(_GenerativeProvider):
 
 
 class _GenerativeAnthropicConfig(_GenerativeProvider):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
     )
     model: Optional[str]
     maxTokens: Optional[int]
-    stopSequences: Optional[List[str]]
+    stopSequences: Optional[list[str]]
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
 
 
 class _RerankerProvider(_ConfigCreateModel):
-    reranker: Union[Rerankers, _EnumLikeStr]
+    reranker: Rerankers | _EnumLikeStr
 
 
 RerankerCohereModel = Literal["rerank-english-v2.0", "rerank-multilingual-v2.0"]
 
 
 class _RerankerCohereConfig(_RerankerProvider):
-    reranker: Union[Rerankers, _EnumLikeStr] = Field(
-        default=Rerankers.COHERE, frozen=True, exclude=True
-    )
-    model: Optional[Union[RerankerCohereModel, str]] = Field(default=None)
+    reranker: Rerankers | _EnumLikeStr = Field(default=Rerankers.COHERE, frozen=True, exclude=True)
+    model: Optional[RerankerCohereModel | str] = Field(default=None)
 
 
 class _RerankerCustomConfig(_RerankerProvider):
-    module_config: Optional[Dict[str, Any]]
+    module_config: Optional[dict[str, Any]]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         if self.module_config is None:
             return {}
         return self.module_config
 
 
 class _RerankerTransformersConfig(_RerankerProvider):
-    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+    reranker: Rerankers | _EnumLikeStr = Field(
         default=Rerankers.TRANSFORMERS, frozen=True, exclude=True
     )
 
@@ -532,30 +528,26 @@ RerankerJinaAIModel = Literal[
 
 
 class _RerankerJinaAIConfig(_RerankerProvider):
-    reranker: Union[Rerankers, _EnumLikeStr] = Field(
-        default=Rerankers.JINAAI, frozen=True, exclude=True
-    )
-    model: Optional[Union[RerankerJinaAIModel, str]] = Field(default=None)
+    reranker: Rerankers | _EnumLikeStr = Field(default=Rerankers.JINAAI, frozen=True, exclude=True)
+    model: Optional[RerankerJinaAIModel | str] = Field(default=None)
 
 
 RerankerVoyageAIModel = Literal["rerank-2", "rerank-2-lite", "rerank-lite-1", "rerank-1"]
 
 
 class _RerankerVoyageAIConfig(_RerankerProvider):
-    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+    reranker: Rerankers | _EnumLikeStr = Field(
         default=Rerankers.VOYAGEAI, frozen=True, exclude=True
     )
-    model: Optional[Union[RerankerVoyageAIModel, str]] = Field(default=None)
+    model: Optional[RerankerVoyageAIModel | str] = Field(default=None)
 
 
 class _RerankerNvidiaConfig(_RerankerProvider):
-    reranker: Union[Rerankers, _EnumLikeStr] = Field(
-        default=Rerankers.NVIDIA, frozen=True, exclude=True
-    )
+    reranker: Rerankers | _EnumLikeStr = Field(default=Rerankers.NVIDIA, frozen=True, exclude=True)
     model: Optional[str] = Field(default=None)
     baseURL: Optional[AnyHttpUrl]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -587,7 +579,7 @@ class _Generative:
     @staticmethod
     def custom(
         module_name: str,
-        module_config: Optional[Dict[str, Any]] = None,
+        module_config: Optional[dict[str, Any]] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeCustom` object for use when generating using a custom specification.
 
@@ -727,8 +719,8 @@ class _Generative:
         top_p: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
         *,
-        verbosity: Optional[Union[OpenAiVerbosity, str]] = None,
-        reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]] = None,
+        verbosity: Optional[OpenAiVerbosity | str] = None,
+        reasoning_effort: Optional[OpenAiReasoningEffort | str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
@@ -801,7 +793,7 @@ class _Generative:
         k: Optional[int] = None,
         max_tokens: Optional[int] = None,
         return_likelihoods: Optional[str] = None,
-        stop_sequences: Optional[List[str]] = None,
+        stop_sequences: Optional[list[str]] = None,
         temperature: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
     ) -> _GenerativeProvider:
@@ -912,7 +904,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model: Optional[str] = None,
         region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC
         endpoint: Optional[str] = None,
-        service: Union[AWSService, str] = "bedrock",
+        service: AWSService | str = "bedrock",
         max_tokens: Optional[int] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
@@ -935,7 +927,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def anthropic(
         model: Optional[str] = None,
         max_tokens: Optional[int] = None,
-        stop_sequences: Optional[List[str]] = None,
+        stop_sequences: Optional[list[str]] = None,
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -978,7 +970,7 @@ class _Reranker:
 
     @staticmethod
     def custom(
-        module_name: str, module_config: Optional[Dict[str, Any]] = None
+        module_name: str, module_config: Optional[dict[str, Any]] = None
     ) -> _RerankerProvider:
         """Create a `_RerankerCustomConfig` object for use when reranking using a custom module.
 
@@ -992,7 +984,7 @@ class _Reranker:
 
     @staticmethod
     def cohere(
-        model: Optional[Union[RerankerCohereModel, str]] = None,
+        model: Optional[RerankerCohereModel | str] = None,
     ) -> _RerankerProvider:
         """Create a `_RerankerCohereConfig` object for use when reranking using the `reranker-cohere` module.
 
@@ -1006,7 +998,7 @@ class _Reranker:
 
     @staticmethod
     def jinaai(
-        model: Optional[Union[RerankerJinaAIModel, str]] = None,
+        model: Optional[RerankerJinaAIModel | str] = None,
     ) -> _RerankerProvider:
         """Create a `_RerankerJinaAIConfig` object for use when reranking using the `reranker-jinaai` module.
 
@@ -1020,7 +1012,7 @@ class _Reranker:
 
     @staticmethod
     def voyageai(
-        model: Optional[Union[RerankerVoyageAIModel, str]] = None,
+        model: Optional[RerankerVoyageAIModel | str] = None,
     ) -> _RerankerProvider:
         """Create a `_RerankerVoyageAIConfig` object for use when reranking using the `reranker-voyageai` module.
 
@@ -1070,8 +1062,8 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     generativeSearch: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
 
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict: Dict[str, Any] = {}
+    def _to_dict(self) -> dict[str, Any]:
+        ret_dict: dict[str, Any] = {}
 
         for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
@@ -1099,7 +1091,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
 
     @staticmethod
     def __add_to_module_config(
-        return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
+        return_dict: dict[str, Any], addition_key: str, addition_val: dict[str, Any]
     ) -> None:
         if "moduleConfig" not in return_dict:
             return_dict["moduleConfig"] = {addition_key: addition_val}
@@ -1109,7 +1101,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
 
 class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
-    property_descriptions: Optional[Dict[str, str]] = Field(default=None)
+    property_descriptions: Optional[dict[str, str]] = Field(default=None)
     invertedIndexConfig: Optional[_InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
     )
@@ -1119,10 +1111,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigUpdate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]] = (
-        Field(default=None, alias="vectorizer_config")
+    vectorizerConfig: Optional[_VectorIndexConfigUpdate | list[_NamedVectorConfigUpdate]] = Field(
+        default=None, alias="vectorizer_config"
     )
-    vectorConfig: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = Field(
+    vectorConfig: Optional[_VectorConfigUpdate | list[_VectorConfigUpdate]] = Field(
         default=None, alias="vector_config"
     )
     multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
@@ -1134,7 +1126,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     @field_validator("vectorConfig", mode="before")
     def mutual_exclusivity(
         cls,
-        v: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]],
+        v: Optional[_VectorConfigUpdate | list[_VectorConfigUpdate]],
         info: ValidationInfo,
     ):
         if v is None:
@@ -1193,7 +1185,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         return None
 
-    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+    def merge_with_existing(self, schema: dict[str, Any]) -> dict[str, Any]:
         if self.description is not None:
             schema["description"] = self.description
         if self.property_descriptions is not None:
@@ -1300,7 +1292,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
 
     @staticmethod
     def __add_to_module_config(
-        return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
+        return_dict: dict[str, Any], addition_key: str, addition_val: dict[str, Any]
     ) -> None:
         if "moduleConfig" not in return_dict:
             return_dict["moduleConfig"] = {addition_key: addition_val}
@@ -1320,8 +1312,8 @@ BM25Config = _BM25Config
 @dataclass
 class _StopwordsConfig(_ConfigBase):
     preset: StopwordsPreset
-    additions: Optional[List[str]]
-    removals: Optional[List[str]]
+    additions: Optional[list[str]]
+    removals: Optional[list[str]]
 
 
 StopwordsConfig = _StopwordsConfig
@@ -1366,10 +1358,10 @@ class _NestedProperty(_ConfigBase):
     index_filterable: bool
     index_searchable: bool
     name: str
-    nested_properties: Optional[List["NestedProperty"]]
+    nested_properties: Optional[list["NestedProperty"]]
     tokenization: Optional[Tokenization]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         out = super().to_dict()
         out["dataType"] = [str(self.data_type.value)]
         if self.nested_properties is not None and len(self.nested_properties) > 0:
@@ -1385,7 +1377,7 @@ class _PropertyBase(_ConfigBase):
     name: str
     description: Optional[str]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         out = {"name": self.name}
 
         if self.description is not None:
@@ -1399,13 +1391,13 @@ class _Property(_PropertyBase):
     index_filterable: bool
     index_range_filters: bool
     index_searchable: bool
-    nested_properties: Optional[List[NestedProperty]]
+    nested_properties: Optional[list[NestedProperty]]
     tokenization: Optional[Tokenization]
     vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
-    vectorizer_configs: Optional[Dict[str, PropertyVectorizerConfig]]
+    vectorizer_configs: Optional[dict[str, PropertyVectorizerConfig]]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         out = super().to_dict()
         out["dataType"] = [self.data_type.value]
         out["indexFilterable"] = self.index_filterable
@@ -1414,7 +1406,7 @@ class _Property(_PropertyBase):
         out["tokenization"] = self.tokenization.value if self.tokenization else None
         if self.nested_properties is not None and len(self.nested_properties) > 0:
             out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
-        module_config: Dict[str, Any] = {}
+        module_config: dict[str, Any] = {}
         if self.vectorizer is not None:
             module_config[self.vectorizer] = {}
         if self.vectorizer_config is not None:
@@ -1438,9 +1430,9 @@ PropertyConfig = _Property
 
 @dataclass
 class _ReferenceProperty(_PropertyBase):
-    target_collections: List[str]
+    target_collections: list[str]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         out = super().to_dict()
         out["dataType"] = self.target_collections
         return out
@@ -1479,7 +1471,7 @@ class _PQEncoderConfig(_ConfigBase):
     type_: PQEncoderType
     distribution: PQEncoderDistribution
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         ret_dict = super().to_dict()
         ret_dict["type"] = str(ret_dict.pop("type"))
         ret_dict["distribution"] = str(ret_dict.pop("distribution"))
@@ -1553,9 +1545,9 @@ MultiVector = _MultiVectorConfig
 @dataclass
 class _VectorIndexConfig(_ConfigBase):
     multi_vector: Optional[_MultiVectorConfig]
-    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig, RQConfig]]
+    quantizer: Optional[PQConfig | BQConfig | SQConfig | RQConfig]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         out = super().to_dict()
         if isinstance(self.quantizer, _PQConfig):
             out["pq"] = {**out.pop("quantizer"), "enabled": True}
@@ -1621,8 +1613,8 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 @dataclass
 class _GenerativeConfig(_ConfigBase):
-    generative: Union[GenerativeSearches, str]
-    model: Dict[str, Any]
+    generative: GenerativeSearches | str
+    model: dict[str, Any]
 
 
 GenerativeConfig = _GenerativeConfig
@@ -1630,8 +1622,8 @@ GenerativeConfig = _GenerativeConfig
 
 @dataclass
 class _VectorizerConfig(_ConfigBase):
-    vectorizer: Union[Vectorizers, str]
-    model: Dict[str, Any]
+    vectorizer: Vectorizers | str
+    model: dict[str, Any]
     vectorize_collection_name: bool
 
 
@@ -1640,8 +1632,8 @@ VectorizerConfig = _VectorizerConfig
 
 @dataclass
 class _RerankerConfig(_ConfigBase):
-    model: Dict[str, Any]
-    reranker: Union[Rerankers, str]
+    model: dict[str, Any]
+    reranker: Rerankers | str
 
 
 RerankerConfig = _RerankerConfig
@@ -1649,11 +1641,11 @@ RerankerConfig = _RerankerConfig
 
 @dataclass
 class _NamedVectorizerConfig(_ConfigBase):
-    vectorizer: Union[Vectorizers, str]
-    model: Dict[str, Any]
-    source_properties: Optional[List[str]]
+    vectorizer: Vectorizers | str
+    model: dict[str, Any]
+    source_properties: Optional[list[str]]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         ret_dict = super().to_dict()
         if "sourceProperties" in ret_dict:
             ret_dict["properties"] = ret_dict.pop("sourceProperties")
@@ -1663,11 +1655,9 @@ class _NamedVectorizerConfig(_ConfigBase):
 @dataclass
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
-    vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic
-    ]
+    vector_index_config: VectorIndexConfigHNSW | VectorIndexConfigFlat | VectorIndexConfigDynamic
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         ret_dict = super().to_dict()
         ret_dict["vectorIndexType"] = self.vector_index_config.vector_index_type()
         return ret_dict
@@ -1683,18 +1673,18 @@ class _CollectionConfig(_ConfigBase):
     generative_config: Optional[GenerativeConfig]
     inverted_index_config: InvertedIndexConfig
     multi_tenancy_config: MultiTenancyConfig
-    properties: List[PropertyConfig]
-    references: List[ReferencePropertyConfig]
+    properties: list[PropertyConfig]
+    references: list[ReferencePropertyConfig]
     replication_config: ReplicationConfig
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
-    vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
-    ]
+    vector_index_config: (
+        VectorIndexConfigHNSW | VectorIndexConfigFlat | VectorIndexConfigDynamic | None
+    )
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Optional[Union[Vectorizers, str]]
-    vector_config: Optional[Dict[str, _NamedVectorConfig]]
+    vectorizer: Optional[Vectorizers | str]
+    vector_config: Optional[dict[str, _NamedVectorConfig]]
 
     def to_dict(self) -> dict:
         out = super().to_dict()
@@ -1747,12 +1737,12 @@ class _CollectionConfigSimple(_ConfigBase):
     name: str
     description: Optional[str]
     generative_config: Optional[GenerativeConfig]
-    properties: List[PropertyConfig]
-    references: List[ReferencePropertyConfig]
+    properties: list[PropertyConfig]
+    references: list[ReferencePropertyConfig]
     reranker_config: Optional[RerankerConfig]
     vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Optional[Union[Vectorizers, str]]
-    vector_config: Optional[Dict[str, _NamedVectorConfig]]
+    vectorizer: Optional[Vectorizers | str]
+    vector_config: Optional[dict[str, _NamedVectorConfig]]
 
 
 CollectionConfigSimple = _CollectionConfigSimple
@@ -1792,7 +1782,7 @@ class Property(_ConfigCreateModel):
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
     indexRangeFilters: Optional[bool] = Field(default=None, alias="index_range_filters")
-    nestedProperties: Optional[Union["Property", List["Property"]]] = Field(
+    nestedProperties: Optional[Union["Property", list["Property"]]] = Field(
         default=None, alias="nested_properties"
     )
     skip_vectorization: bool = Field(default=False)
@@ -1806,8 +1796,8 @@ class Property(_ConfigCreateModel):
         return v
 
     def _to_dict(
-        self, vectorizers: Optional[Sequence[Union[Vectorizers, _EnumLikeStr]]] = None
-    ) -> Dict[str, Any]:
+        self, vectorizers: Optional[Sequence[Vectorizers | _EnumLikeStr]] = None
+    ) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
         if vectorizers is not None:
@@ -1852,10 +1842,10 @@ class _ReferencePropertyMultiTarget(_ReferencePropertyBase):
         description: A description of the property.
     """
 
-    target_collections: List[str]
+    target_collections: list[str]
     description: Optional[str] = Field(default=None)
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["dataType"] = [
             _capitalize_first_letter(target) for target in self.target_collections
@@ -1881,14 +1871,14 @@ class ReferenceProperty(_ReferencePropertyBase):
 
     MultiTarget: ClassVar[Type[_ReferencePropertyMultiTarget]] = _ReferencePropertyMultiTarget
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["dataType"] = [_capitalize_first_letter(self.target_collection)]
         del ret_dict["target_collection"]
         return ret_dict
 
 
-PropertyType = Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]
+PropertyType = Property | ReferenceProperty | _ReferencePropertyMultiTarget
 
 T = TypeVar("T", bound="_CollectionConfigCreate")
 
@@ -1896,7 +1886,7 @@ T = TypeVar("T", bound="_CollectionConfigCreate")
 class _CollectionConfigCreate(_ConfigCreateModel):
     name: str
     properties: Optional[Sequence[Property]] = Field(default=None)
-    references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
+    references: Optional[list[_ReferencePropertyBase]] = Field(default=None)
     description: Optional[str] = Field(default=None)
     invertedIndexConfig: Optional[_InvertedIndexConfigCreate] = Field(
         default=None, alias="inverted_index_config"
@@ -1911,10 +1901,10 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None] = Field(
+    vectorizerConfig: Optional[_VectorizerConfigCreate | list[_NamedVectorConfigCreate]] = Field(
         default=None, alias="vectorizer_config"
     )
-    vectorConfig: Union[_VectorConfigCreate, List[_VectorConfigCreate], None] = Field(
+    vectorConfig: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = Field(
         default=None,
         alias="vector_config",
         validate_default=True,
@@ -1929,9 +1919,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     @classmethod
     def validate_vector_names(
         cls,
-        v: Union[_VectorizerConfigCreate, _NamedVectorConfigCreate, List[_NamedVectorConfigCreate]],
+        v: _VectorizerConfigCreate | _NamedVectorConfigCreate | list[_NamedVectorConfigCreate],
         info: ValidationInfo,
-    ) -> Union[_VectorizerConfigCreate, _NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]:
+    ) -> _VectorizerConfigCreate | _NamedVectorConfigCreate | list[_NamedVectorConfigCreate]:
         if isinstance(v, list):
             names = [vc.name for vc in v]
             if len(names) != len(set(names)):
@@ -1943,9 +1933,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     @classmethod
     def inject_vector_config_none(
         cls,
-        v: Union[_VectorConfigCreate, List[_VectorConfigCreate], None],
+        v: Optional[_VectorConfigCreate | list[_VectorConfigCreate]],
         info: ValidationInfo,
-    ) -> Union[_VectorConfigCreate, List[_VectorConfigCreate], None]:
+    ) -> Optional[_VectorConfigCreate | list[_VectorConfigCreate]]:
         if (
             v is None
             and info.data["vectorizerConfig"] is None
@@ -1958,15 +1948,15 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 
     @staticmethod
     def __add_to_module_config(
-        return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
+        return_dict: dict[str, Any], addition_key: str, addition_val: dict[str, Any]
     ) -> None:
         if "moduleConfig" not in return_dict:
             return_dict["moduleConfig"] = {addition_key: addition_val}
         else:
             return_dict["moduleConfig"][addition_key] = addition_val
 
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict: Dict[str, Any] = {}
+    def _to_dict(self) -> dict[str, Any]:
+        ret_dict: dict[str, Any] = {}
 
         for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
@@ -1992,14 +1982,14 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 and len(val) > 0
                 and all(isinstance(item, _NamedVectorConfigCreate) for item in val)
             ):
-                val = cast(List[_NamedVectorConfigCreate], val)
+                val = cast(list[_NamedVectorConfigCreate], val)
                 ret_dict["vectorConfig"] = {item.name: item._to_dict() for item in val}
             elif (
                 isinstance(val, list)
                 and len(val) > 0
                 and all(isinstance(item, _VectorConfigCreate) for item in val)
             ):
-                val = cast(List[_VectorConfigCreate], val)
+                val = cast(list[_VectorConfigCreate], val)
                 ret_dict["vectorConfig"] = {}
                 for item in val:
                     if item.name is None:
@@ -2021,13 +2011,8 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 
     def __add_props(
         self,
-        props: Optional[
-            Union[
-                Sequence[Union[Property, _ReferencePropertyBase]],
-                List[_ReferencePropertyBase],
-            ]
-        ],
-        ret_dict: Dict[str, Any],
+        props: Sequence[Property | _ReferencePropertyBase] | list[_ReferencePropertyBase] | None,
+        ret_dict: dict[str, Any],
     ) -> None:
         if props is None:
             return
@@ -2077,8 +2062,8 @@ class Configure:
         index_property_length: Optional[bool] = None,
         index_null_state: Optional[bool] = None,
         stopwords_preset: Optional[StopwordsPreset] = None,
-        stopwords_additions: Optional[List[str]] = None,
-        stopwords_removals: Optional[List[str]] = None,
+        stopwords_additions: Optional[list[str]] = None,
+        stopwords_removals: Optional[list[str]] = None,
     ) -> _InvertedIndexConfigCreate:
         """Create an `InvertedIndexConfigCreate` object to be used when defining the configuration of the keyword searching algorithm of Weaviate.
 
@@ -2269,7 +2254,7 @@ class _VectorIndexUpdate:
         filter_strategy: Optional[VectorFilterStrategy] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[
-            Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate, _RQConfigUpdate]
+            _PQConfigUpdate | _BQConfigUpdate | _SQConfigUpdate | _RQConfigUpdate
         ] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
@@ -2350,9 +2335,9 @@ class Reconfigure:
         bm25_b: Optional[float] = None,
         bm25_k1: Optional[float] = None,
         cleanup_interval_seconds: Optional[int] = None,
-        stopwords_additions: Optional[List[str]] = None,
+        stopwords_additions: Optional[list[str]] = None,
         stopwords_preset: Optional[StopwordsPreset] = None,
-        stopwords_removals: Optional[List[str]] = None,
+        stopwords_removals: Optional[list[str]] = None,
     ) -> _InvertedIndexConfigUpdate:
         """Create an `InvertedIndexConfigUpdate` object.
 

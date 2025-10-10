@@ -1,8 +1,6 @@
-from typing import Union
-
 from weaviate.collections.classes.tenants import Tenant, TenantCreate, TenantUpdate
 
-TenantInputType = Union[str, Tenant]
-TenantCreateInputType = Union[str, Tenant, TenantCreate]
-TenantUpdateInputType = Union[Tenant, TenantUpdate]
+TenantInputType = str | Tenant
+TenantCreateInputType = str | Tenant | TenantCreate
+TenantUpdateInputType = Tenant | TenantUpdate
 TenantOutputType = Tenant

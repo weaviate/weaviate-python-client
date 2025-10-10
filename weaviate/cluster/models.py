@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, List, TypedDict, TypeVar, Union
+from typing import Generic, TypedDict, TypeVar
 
 
 class ReplicationType(str, Enum):
@@ -27,7 +27,7 @@ class ReplicateOperationStatus:
     """Class representing the status of a replication operation."""
 
     state: ReplicateOperationState
-    errors: List[str]
+    errors: list[str]
 
     @classmethod
     def _from_weaviate(cls, data: dict) -> "ReplicateOperationStatus":
@@ -37,7 +37,7 @@ class ReplicateOperationStatus:
         )
 
 
-H = TypeVar("H", None, List[ReplicateOperationStatus])
+H = TypeVar("H", None, list[ReplicateOperationStatus])
 
 
 @dataclass
@@ -82,22 +82,20 @@ class _ReplicateOperation(Generic[H]):
 
 
 ReplicateOperationWithoutHistory = _ReplicateOperation[None]
-ReplicateOperationWithHistory = _ReplicateOperation[List[ReplicateOperationStatus]]
+ReplicateOperationWithHistory = _ReplicateOperation[list[ReplicateOperationStatus]]
 
-ReplicateOperation = Union[ReplicateOperationWithoutHistory, ReplicateOperationWithHistory]
-ReplicateOperations = Union[
-    List[ReplicateOperationWithoutHistory], List[ReplicateOperationWithHistory]
-]
+ReplicateOperation = ReplicateOperationWithoutHistory | ReplicateOperationWithHistory
+ReplicateOperations = list[ReplicateOperationWithoutHistory] | list[ReplicateOperationWithHistory]
 
 
 class _ReplicationShardReplicas(TypedDict):
     shard: str
-    replicas: List[str]
+    replicas: list[str]
 
 
 class _ReplicationShardingState(TypedDict):
     collection: str
-    shards: List[_ReplicationShardReplicas]
+    shards: list[_ReplicationShardReplicas]
 
 
 class _ReplicationShardingStateResponse(TypedDict):
@@ -109,7 +107,7 @@ class ShardReplicas:
     """Class representing a shard replica."""
 
     name: str
-    replicas: List[str]
+    replicas: list[str]
 
     @staticmethod
     def _from_weaviate(data: _ReplicationShardReplicas):
@@ -124,7 +122,7 @@ class ShardingState:
     """Class representing the sharding state of a collection."""
 
     collection: str
-    shards: List[ShardReplicas]
+    shards: list[ShardReplicas]
 
     @staticmethod
     def _from_weaviate(data: _ReplicationShardingStateResponse):

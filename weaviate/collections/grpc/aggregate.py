@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Union
+from typing import Literal, Optional
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
@@ -48,11 +48,11 @@ class _AggregateGRPC(_BaseGRPC):
         query: Optional[str],
         alpha: Optional[float],
         vector: Optional[HybridVectorType],
-        properties: Optional[List[str]],
+        properties: Optional[list[str]],
         distance: Optional[NUMBER] = None,
         target_vector: Optional[TargetVectorJoinType],
         bm25_operator: Optional[BM25OperatorOptions],
-        aggregations: List[aggregate_pb2.AggregateRequest.Aggregation],
+        aggregations: list[aggregate_pb2.AggregateRequest.Aggregation],
         filters: Optional[base_pb2.Filters],
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
         limit: Optional[int],
@@ -86,7 +86,7 @@ class _AggregateGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         target_vector: Optional[TargetVectorJoinType],
-        aggregations: List[aggregate_pb2.AggregateRequest.Aggregation],
+        aggregations: list[aggregate_pb2.AggregateRequest.Aggregation],
         filters: Optional[base_pb2.Filters],
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
         limit: Optional[int],
@@ -122,7 +122,7 @@ class _AggregateGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         target_vector: Optional[TargetVectorJoinType],
-        aggregations: List[aggregate_pb2.AggregateRequest.Aggregation],
+        aggregations: list[aggregate_pb2.AggregateRequest.Aggregation],
         filters: Optional[base_pb2.Filters],
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
         limit: Optional[int],
@@ -148,13 +148,13 @@ class _AggregateGRPC(_BaseGRPC):
     def near_text(
         self,
         *,
-        near_text: Union[List[str], str],
+        near_text: list[str] | str,
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         move_to: Optional[Move],
         move_away: Optional[Move],
         target_vector: Optional[TargetVectorJoinType],
-        aggregations: List[aggregate_pb2.AggregateRequest.Aggregation],
+        aggregations: list[aggregate_pb2.AggregateRequest.Aggregation],
         filters: Optional[base_pb2.Filters],
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
         limit: Optional[int],
@@ -191,7 +191,7 @@ class _AggregateGRPC(_BaseGRPC):
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
-        aggregations: List[aggregate_pb2.AggregateRequest.Aggregation],
+        aggregations: list[aggregate_pb2.AggregateRequest.Aggregation],
         filters: Optional[base_pb2.Filters],
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
         limit: Optional[int],
@@ -222,7 +222,7 @@ class _AggregateGRPC(_BaseGRPC):
     def over_all(
         self,
         *,
-        aggregations: List[aggregate_pb2.AggregateRequest.Aggregation],
+        aggregations: list[aggregate_pb2.AggregateRequest.Aggregation],
         filters: Optional[base_pb2.Filters],
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
         limit: Optional[int],
@@ -251,7 +251,7 @@ class _AggregateGRPC(_BaseGRPC):
     def __create_request(
         self,
         *,
-        aggregations: Optional[List[aggregate_pb2.AggregateRequest.Aggregation]] = None,
+        aggregations: Optional[list[aggregate_pb2.AggregateRequest.Aggregation]] = None,
         filters: Optional[base_pb2.Filters] = None,
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy] = None,
         hybrid: Optional[base_search_pb2.Hybrid] = None,

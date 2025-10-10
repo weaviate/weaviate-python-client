@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Dict, List, Sequence, Union
+from typing import Sequence
 
 import pytest
 
@@ -29,7 +29,7 @@ from weaviate.types import INCLUDE_VECTOR
     [["title", "content", "All", "AllExplicit", "bringYourOwn", "bringYourOwn2"], True],
 )
 def test_create_named_vectors(
-    collection_factory: CollectionFactory, include_vector: Union[List[str], bool]
+    collection_factory: CollectionFactory, include_vector: list[str] | bool
 ) -> None:
     collection = collection_factory(
         properties=[
@@ -520,7 +520,7 @@ def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
     ],
 )
 def test_named_vector_multi_target(
-    collection_factory: CollectionFactory, target_vector: Union[List[str], _MultiTargetVectorJoin]
+    collection_factory: CollectionFactory, target_vector: list[str] | _MultiTargetVectorJoin
 ) -> None:
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
@@ -608,8 +608,8 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
 )
 def test_same_target_vector_multiple_input(
     collection_factory: CollectionFactory,
-    target_vector: Union[List[str], _MultiTargetVectorJoin],
-    distances: List[float],
+    target_vector: list[str] | _MultiTargetVectorJoin,
+    distances: list[float],
 ) -> None:
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
@@ -660,8 +660,8 @@ def test_same_target_vector_multiple_input(
 )
 def test_same_target_vector_multiple_input_combinations(
     collection_factory: CollectionFactory,
-    near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]], _ListOfVectorsQuery]],
-    target_vector: List[str],
+    near_vector: dict[str, Sequence[float] | Sequence[Sequence[float]] | _ListOfVectorsQuery],
+    target_vector: list[str],
 ) -> None:
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):

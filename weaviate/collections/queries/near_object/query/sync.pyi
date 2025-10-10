@@ -1,4 +1,4 @@
-from typing import Generic, Literal, Optional, Type, Union, overload
+from typing import Generic, Literal, Optional, Type, overload
 
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
@@ -43,7 +43,7 @@ class _NearObjectQuery(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
@@ -62,7 +62,7 @@ class _NearObjectQuery(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -81,7 +81,7 @@ class _NearObjectQuery(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
@@ -157,7 +157,7 @@ class _NearObjectQuery(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
@@ -176,7 +176,7 @@ class _NearObjectQuery(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
@@ -195,7 +195,7 @@ class _NearObjectQuery(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload

@@ -1,7 +1,6 @@
 import pathlib
 import uuid
 from datetime import datetime, timezone
-from typing import Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -381,7 +380,7 @@ def test_hybrid_aggregation(
 
 @pytest.mark.parametrize("group_by", ["text", GroupByAggregate(prop="text", limit=1)])
 def test_hybrid_aggregation_group_by(
-    collection_factory: CollectionFactory, group_by: Union[str, GroupByAggregate]
+    collection_factory: CollectionFactory, group_by: str | GroupByAggregate
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
@@ -416,7 +415,7 @@ def test_hybrid_aggregation_group_by(
 
 @pytest.mark.parametrize("group_by", ["text", GroupByAggregate(prop="text", limit=1)])
 def test_hybrid_aggregation_group_by_with_named_vectors(
-    collection_factory: CollectionFactory, group_by: Union[str, GroupByAggregate]
+    collection_factory: CollectionFactory, group_by: str | GroupByAggregate
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],

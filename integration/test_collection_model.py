@@ -59,9 +59,9 @@ pytest.skip(allow_module_level=True)
 #         (str, "1"),
 #         (int, 1),
 #         (float, 0.5),
-#         (List[str], ["1", "2"]),
-#         (List[int], [1, 2]),
-#         (List[float], [1.0, 2.1]),
+#         (list[str], ["1", "2"]),
+#         (list[int], [1, 2]),
+#         (list[float], [1.0, 2.1]),
 #     ],
 # )
 # @pytest.mark.parametrize("optional", [True, False])
@@ -326,7 +326,7 @@ pytest.skip(allow_module_level=True)
 #     assert len(objects2) == 0
 
 
-# def make_list() -> List[int]:
+# def make_list() -> list[int]:
 #     return []
 
 
@@ -338,9 +338,9 @@ pytest.skip(allow_module_level=True)
 #         (Optional[int], 10, PydanticUndefined, None, False),
 #         (Optional[int], 10, None, None, False),
 #         (Optional[int], 10, 10, None, False),
-#         (List[int], [10], None, None, True),
-#         (Optional[List[int]], [10], None, None, False),
-#         (List[int], [10], None, make_list, True),
+#         (list[int], [10], None, None, True),
+#         (Optional[list[int]], [10], None, None, False),
+#         (list[int], [10], None, make_list, True),
 #     ],
 # )
 # def test_update_properties(

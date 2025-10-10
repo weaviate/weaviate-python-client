@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from io import BufferedReader
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional
 
 from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
 
@@ -33,11 +33,11 @@ def _to_text_array(values: Optional[Iterable[str]]) -> Optional[base_pb2.TextArr
 class _GenerativeConfigRuntimeOptions:
     return_metadata: bool = False
     images: Optional[Iterable[str]] = None
-    image_properties: Optional[List[str]] = None
+    image_properties: Optional[list[str]] = None
 
 
 class _GenerativeConfigRuntime(BaseModel):
-    generative: Union[GenerativeSearches, _EnumLikeStr]
+    generative: GenerativeSearches | _EnumLikeStr
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         raise NotImplementedError("This method must be implemented in the child class")
@@ -53,7 +53,7 @@ GenerativeConfigRuntime = _GenerativeConfigRuntime
 
 
 class _GenerativeAnthropic(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
@@ -62,7 +62,7 @@ class _GenerativeAnthropic(_GenerativeConfigRuntime):
     temperature: Optional[float]
     top_k: Optional[int]
     top_p: Optional[float]
-    stop_sequences: Optional[List[str]]
+    stop_sequences: Optional[list[str]]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         return generative_pb2.GenerativeProvider(
@@ -82,7 +82,7 @@ class _GenerativeAnthropic(_GenerativeConfigRuntime):
 
 
 class _GenerativeAnyscale(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
@@ -102,7 +102,7 @@ class _GenerativeAnyscale(_GenerativeConfigRuntime):
 
 
 class _GenerativeAWS(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
     max_tokens: Optional[int]
@@ -133,7 +133,7 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
 
 
 class _GenerativeCohere(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
@@ -142,7 +142,7 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
     model: Optional[str]
     p: Optional[float]
     presence_penalty: Optional[float]
-    stop_sequences: Optional[List[str]]
+    stop_sequences: Optional[list[str]]
     temperature: Optional[float]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
@@ -163,7 +163,7 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
 
 
 class _GenerativeDatabricks(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.DATABRICKS, frozen=True, exclude=True
     )
     endpoint: AnyHttpUrl
@@ -173,7 +173,7 @@ class _GenerativeDatabricks(_GenerativeConfigRuntime):
     model: Optional[str]
     n: Optional[int]
     presence_penalty: Optional[float]
-    stop: Optional[List[str]]
+    stop: Optional[list[str]]
     temperature: Optional[float]
     top_log_probs: Optional[int]
     top_p: Optional[float]
@@ -199,7 +199,7 @@ class _GenerativeDatabricks(_GenerativeConfigRuntime):
 
 
 class _GenerativeDummy(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.DUMMY, frozen=True, exclude=True
     )
 
@@ -211,7 +211,7 @@ class _GenerativeDummy(_GenerativeConfigRuntime):
 
 
 class _GenerativeFriendliai(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
@@ -237,7 +237,7 @@ class _GenerativeFriendliai(_GenerativeConfigRuntime):
 
 
 class _GenerativeMistral(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
@@ -261,7 +261,7 @@ class _GenerativeMistral(_GenerativeConfigRuntime):
 
 
 class _GenerativeNvidia(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
@@ -285,7 +285,7 @@ class _GenerativeNvidia(_GenerativeConfigRuntime):
 
 
 class _GenerativeOllama(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
     )
     api_endpoint: Optional[AnyHttpUrl]
@@ -306,7 +306,7 @@ class _GenerativeOllama(_GenerativeConfigRuntime):
 
 
 class _GenerativeOpenAI(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
     api_version: Optional[str]
@@ -318,11 +318,11 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
     model: Optional[str]
     presence_penalty: Optional[float]
     resource_name: Optional[str]
-    stop: Optional[List[str]]
+    stop: Optional[list[str]]
     temperature: Optional[float]
     top_p: Optional[float]
-    verbosity: Optional[Union[OpenAiVerbosity, str]]
-    reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]]
+    verbosity: Optional[OpenAiVerbosity | str]
+    reasoning_effort: Optional[OpenAiReasoningEffort | str]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         return generative_pb2.GenerativeProvider(
@@ -375,7 +375,7 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
 
 
 class _GenerativeGoogle(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
     api_endpoint: Optional[AnyHttpUrl]
@@ -386,7 +386,7 @@ class _GenerativeGoogle(_GenerativeConfigRuntime):
     presence_penalty: Optional[float]
     project_id: Optional[str]
     region: Optional[str]
-    stop_sequences: Optional[List[str]]
+    stop_sequences: Optional[list[str]]
     temperature: Optional[float]
     top_k: Optional[int]
     top_p: Optional[float]
@@ -421,7 +421,7 @@ class _GenerativeGoogle(_GenerativeConfigRuntime):
 
 
 class _GenerativeXAI(_GenerativeConfigRuntime):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+    generative: GenerativeSearches | _EnumLikeStr = Field(
         default=GenerativeSearches.XAI, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
@@ -458,7 +458,7 @@ class GenerativeConfig:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         max_tokens: Optional[int] = None,
-        stop_sequences: Optional[List[str]] = None,
+        stop_sequences: Optional[list[str]] = None,
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -511,7 +511,7 @@ class GenerativeConfig:
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
         region: Optional[str] = None,
-        service: Optional[Union[AWSService, str]] = None,
+        service: Optional[AWSService | str] = None,
         target_model: Optional[str] = None,
         target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
@@ -551,7 +551,7 @@ class GenerativeConfig:
         model: Optional[str] = None,
         p: Optional[float] = None,
         presence_penalty: Optional[float] = None,
-        stop_sequences: Optional[List[str]] = None,
+        stop_sequences: Optional[list[str]] = None,
         temperature: Optional[float] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeCohere` object for use when performing AI generation using the `generative-cohere` module.
@@ -590,7 +590,7 @@ class GenerativeConfig:
         model: Optional[str] = None,
         n: Optional[int] = None,
         presence_penalty: Optional[float] = None,
-        stop: Optional[List[str]] = None,
+        stop: Optional[list[str]] = None,
         temperature: Optional[float] = None,
         top_log_probs: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -669,7 +669,7 @@ class GenerativeConfig:
         presence_penalty: Optional[float] = None,
         project_id: Optional[str] = None,
         region: Optional[str] = None,
-        stop_sequences: Optional[List[str]] = None,
+        stop_sequences: Optional[list[str]] = None,
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -795,12 +795,12 @@ class GenerativeConfig:
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
         presence_penalty: Optional[float] = None,
-        reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]] = None,
+        reasoning_effort: Optional[OpenAiReasoningEffort | str] = None,
         resource_name: Optional[str] = None,
-        stop: Optional[List[str]] = None,
+        stop: Optional[list[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-        verbosity: Optional[Union[OpenAiVerbosity, str]] = None,
+        verbosity: Optional[OpenAiVerbosity | str] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the OpenAI-backed `generative-openai` module.
 
@@ -850,7 +850,7 @@ class GenerativeConfig:
         model: Optional[str] = None,
         presence_penalty: Optional[float] = None,
         resource_name: Optional[str] = None,
-        stop: Optional[List[str]] = None,
+        stop: Optional[list[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeConfigRuntime:
@@ -921,8 +921,8 @@ class GenerativeConfig:
 
 class _GroupedTask(BaseModel):
     prompt: str
-    non_blob_properties: Optional[List[str]]
-    image_properties: Optional[List[str]]
+    non_blob_properties: Optional[list[str]]
+    image_properties: Optional[list[str]]
     images: Optional[Iterable[str]]
     metadata: bool = False
 
@@ -944,7 +944,7 @@ class _GroupedTask(BaseModel):
 
 class _SinglePrompt(BaseModel):
     prompt: str
-    image_properties: Optional[List[str]]
+    image_properties: Optional[list[str]]
     images: Optional[Iterable[str]]
     metadata: bool = False
     debug: bool = False
@@ -976,9 +976,9 @@ class GenerativeParameters:
     def grouped_task(
         prompt: str,
         *,
-        non_blob_properties: Optional[List[str]] = None,
-        image_properties: Optional[List[str]] = None,
-        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]] = None,
+        non_blob_properties: Optional[list[str]] = None,
+        image_properties: Optional[list[str]] = None,
+        images: Optional[BLOB_INPUT | Iterable[BLOB_INPUT]] = None,
         metadata: bool = False,
     ) -> _GroupedTask:
         """Create a `_GroupedTask` object for use when performing AI generation using the `generate` namespace and the `grouped_task` field."""
@@ -994,8 +994,8 @@ class GenerativeParameters:
     def single_prompt(
         prompt: str,
         *,
-        image_properties: Optional[List[str]] = None,
-        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]] = None,
+        image_properties: Optional[list[str]] = None,
+        images: Optional[BLOB_INPUT | Iterable[BLOB_INPUT]] = None,
         metadata: bool = False,
         debug: bool = False,
     ) -> _SinglePrompt:
@@ -1010,7 +1010,7 @@ class GenerativeParameters:
 
     @staticmethod
     def __parse_images(
-        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]],
+        images: Optional[BLOB_INPUT | Iterable[BLOB_INPUT]],
     ) -> Optional[Iterable[str]]:
         if isinstance(images, (str, Path, BufferedReader)):
             return (

@@ -1,4 +1,4 @@
-from typing import Generic, Iterable, Literal, Optional, Type, Union, overload
+from typing import Generic, Iterable, Literal, Optional, Type, overload
 
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
 from weaviate.collections.classes.internal import (
@@ -29,7 +29,7 @@ class _FetchObjectsByIDsQueryAsync(
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
@@ -43,7 +43,7 @@ class _FetchObjectsByIDsQueryAsync(
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -57,7 +57,7 @@ class _FetchObjectsByIDsQueryAsync(
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload

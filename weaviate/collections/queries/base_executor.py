@@ -2,14 +2,11 @@ import datetime
 import uuid as uuid_lib
 from typing import (
     Any,
-    Dict,
     Generic,
-    List,
     Mapping,
     Optional,
     Sequence,
     Type,
-    Union,
     cast,
 )
 
@@ -147,7 +144,7 @@ class _BaseExecutor(Generic[ConnectionType]):
     def __extract_vector_for_object(
         self,
         add_props: "search_get_pb2.MetadataResult",
-    ) -> Dict[str, Union[List[float], List[List[float]]]]:
+    ) -> dict[str, list[float] | list[list[float]]]:
         if (
             len(add_props.vector_bytes) == 0
             and len(add_props.vector) == 0
@@ -159,7 +156,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             vec = _ByteOps.decode_float32s(add_props.vector_bytes)
             return {"default": vec}
 
-        vecs: Dict[str, Union[List[float], List[List[float]]]] = {}
+        vecs: dict[str, list[float] | list[list[float]]] = {}
         for vec in add_props.vectors:
             if vec.type == base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32:
                 vecs[vec.name] = _Unpack.single(vec.vector_bytes)
@@ -243,7 +240,7 @@ class _BaseExecutor(Generic[ConnectionType]):
 
     def __deserialize_list_value_prop_125(
         self, value: properties_pb2.ListValue
-    ) -> Optional[List[Any]]:
+    ) -> Optional[list[Any]]:
         if value.HasField("bool_values"):
             return list(value.bool_values.values)
         if value.HasField("date_values"):
@@ -486,10 +483,10 @@ class _BaseExecutor(Generic[ConnectionType]):
         self,
         res: search_get_pb2.SearchReply,
         options: _QueryOptions,
-    ) -> Union[
-        GenerativeReturn[WeaviateProperties, CrossReferences],
-        GenerativeGroupByReturn[WeaviateProperties, CrossReferences],
-    ]:
+    ) -> (
+        GenerativeReturn[WeaviateProperties, CrossReferences]
+        | GenerativeGroupByReturn[WeaviateProperties, CrossReferences]
+    ):
         return (
             self._result_to_generative_query_return(res, options)
             if options.is_group_by is False
@@ -504,7 +501,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         groups = {
             group.name: self.__result_to_group(group, options) for group in res.group_by_results
         }
-        objects_group_by: List[GroupByObject] = [
+        objects_group_by: list[GroupByObject] = [
             obj for group in groups.values() for obj in group.objects
         ]
         return GroupByReturn(objects=objects_group_by, groups=groups)
@@ -518,7 +515,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             group.name: self.__result_to_generative_group(group, options)
             for group in res.group_by_results
         }
-        objects_group_by: List[GroupByObject] = [
+        objects_group_by: list[GroupByObject] = [
             GroupByObject(
                 collection=obj.collection,
                 properties=obj.properties,
@@ -543,10 +540,10 @@ class _BaseExecutor(Generic[ConnectionType]):
         self,
         res: search_get_pb2.SearchReply,
         options: _QueryOptions,
-    ) -> Union[
-        QueryReturn[WeaviateProperties, CrossReferences],
-        GroupByReturn[WeaviateProperties, CrossReferences],
-    ]:
+    ) -> (
+        QueryReturn[WeaviateProperties, CrossReferences]
+        | GroupByReturn[WeaviateProperties, CrossReferences]
+    ):
         return (
             self._result_to_query_return(res, options)
             if not options.is_group_by
@@ -556,7 +553,7 @@ class _BaseExecutor(Generic[ConnectionType]):
     def _parse_return_properties(
         self,
         return_properties: Optional[ReturnProperties[WeaviateProperties]],
-    ) -> Union[PROPERTIES, bool, None]:
+    ) -> PROPERTIES | bool | None:
         if (
             return_properties is not None and not return_properties
         ):  # fast way to check if it is an empty list or False
@@ -573,7 +570,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         ):
             # return self.__parse_properties(return_properties)
             return cast(
-                Union[PROPERTIES, bool, None], return_properties
+                PROPERTIES | bool | None, return_properties
             )  # is not sourced from any generic
         elif (
             return_properties is None or return_properties is True

@@ -8,7 +8,7 @@ import os
 import re
 import uuid as uuid_lib
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Generator, Optional, Sequence, cast
 from urllib.parse import quote
 
 import httpx
@@ -32,7 +32,7 @@ MINIMUM_NO_WARNING_VERSION = (
 BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
 
 
-def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str:
+def image_encoder_b64(image_or_image_path: str | io.BufferedReader) -> str:
     """Encode a image in a Weaviate understandable format from a binary read file or by providing the image path.
 
     Args:
@@ -60,7 +60,7 @@ def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str
     return base64.b64encode(content).decode("utf-8")
 
 
-def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> str:
+def file_encoder_b64(file_or_file_path: str | Path | io.BufferedReader) -> str:
     """Encode a file in a Weaviate understandable format.
 
     If you pass an io.BufferedReader object, it is your responsibility to close it after encoding.
@@ -225,7 +225,7 @@ def is_object_url(url: str) -> bool:
     return True
 
 
-def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
+def get_valid_uuid(uuid: str | uuid_lib.UUID) -> str:
     """Validate and extract the UUID.
 
     Args:
@@ -416,7 +416,7 @@ def _capitalize_first_letter(string: str) -> str:
 
 
 def check_batch_result(
-    results: Optional[List[Dict[str, Any]]],
+    results: Optional[list[dict[str, Any]]],
 ) -> None:
     """Check batch results for errors.
 
@@ -623,8 +623,8 @@ def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str
 
 
 def _get_valid_timeout_config(
-    timeout_config: Union[Tuple[NUMBER, NUMBER], NUMBER, None],
-) -> Tuple[NUMBER, NUMBER]:
+    timeout_config: tuple[NUMBER, NUMBER] | NUMBER | None,
+) -> tuple[NUMBER, NUMBER]:
     """Validate and return TimeOut configuration.
 
     Args:
@@ -639,7 +639,7 @@ def _get_valid_timeout_config(
         ValueError: If 'timeout_config' is/contains negative number/s.
     """
 
-    def check_number(num: Union[NUMBER, Tuple[NUMBER, NUMBER], None]) -> bool:
+    def check_number(num: NUMBER | tuple[NUMBER, NUMBER] | None) -> bool:
         return isinstance(num, float) or isinstance(num, int)
 
     if (isinstance(timeout_config, float) or isinstance(timeout_config, int)) and not isinstance(
@@ -663,14 +663,14 @@ def _get_valid_timeout_config(
     return timeout_config
 
 
-def _type_request_response(json_response: Any) -> Optional[Dict[str, Any]]:
+def _type_request_response(json_response: Any) -> Optional[dict[str, Any]]:
     if json_response is None:
         return None
     assert isinstance(json_response, dict)
     return json_response
 
 
-def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
+def _to_beacons(uuids: UUIDS, to_class: str = "") -> list[dict[str, str]]:
     if isinstance(uuids, uuid_lib.UUID) or isinstance(
         uuids, str
     ):  # replace with isinstance(uuids, UUID) in 3.10
@@ -682,13 +682,13 @@ def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
     return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
 
 
-def _decode_json_response_dict(response: httpx.Response, location: str) -> Optional[Dict[str, Any]]:
+def _decode_json_response_dict(response: httpx.Response, location: str) -> Optional[dict[str, Any]]:
     if response is None:
         return None
 
     if 200 <= response.status_code < 300:
         try:
-            json_response = cast(Dict[str, Any], response.json())
+            json_response = cast(dict[str, Any], response.json())
             return json_response
         except (httpx.DecodingError, json.decoder.JSONDecodeError):
             raise ResponseCannotBeDecodedError(location, response)
@@ -698,7 +698,7 @@ def _decode_json_response_dict(response: httpx.Response, location: str) -> Optio
 
 def _decode_json_response_list(
     response: httpx.Response, location: str
-) -> Optional[List[Dict[str, Any]]]:
+) -> Optional[list[dict[str, Any]]]:
     if response is None:
         return None
 

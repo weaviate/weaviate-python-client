@@ -1,4 +1,4 @@
-from typing import Generic, List, Literal, Optional, Union, cast, overload
+from typing import Generic, Literal, Optional, cast, overload
 
 from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -45,7 +45,7 @@ class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
+        group_by: str | GroupByAggregate,
         target_vector: Optional[TargetVectorJoinType] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
@@ -60,11 +60,11 @@ class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+    ) -> executor.Result[AggregateReturn | AggregateGroupByReturn]: ...
 
     def near_vector(
         self,
@@ -74,11 +74,11 @@ class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]:
+    ) -> executor.Result[AggregateReturn | AggregateGroupByReturn]:
         """Aggregate metrics over the objects returned by a near vector search on this collection.
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
@@ -122,14 +122,14 @@ class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
                     "A `near_vector` argument other than a list of floats is not supported in <v1.28.4",
                 )
             near_vector = cast(
-                List[float], near_vector
+                list[float], near_vector
             )  # pylance cannot type narrow the immediately above check
             if target_vector is not None and not isinstance(target_vector, str):
                 raise WeaviateInvalidInputError(
                     "A `target_vector` argument other than a string is not supported in <v1.28.4",
                 )
 
-            def resp(res: dict) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            def resp(res: dict) -> AggregateReturn | AggregateGroupByReturn:
                 return (
                     self._to_aggregate_result(res, return_metrics)
                     if group_by is None
@@ -167,7 +167,7 @@ class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
 
             def respGrpc(
                 res: aggregate_pb2.AggregateReply,
-            ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            ) -> AggregateReturn | AggregateGroupByReturn:
                 return self._to_result(group_by is not None, res)
 
             return executor.execute(

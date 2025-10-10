@@ -1,4 +1,4 @@
-from typing import Generic, Literal, Optional, Type, Union, cast, overload
+from typing import Generic, Literal, Optional, Type, cast, overload
 
 from weaviate.collections.classes.filters import (
     Filter,
@@ -35,7 +35,7 @@ class _FetchObjectByIDQueryExecutor(
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> executor.Result[ObjectSingleReturn[Properties, References]]: ...
 
@@ -45,7 +45,7 @@ class _FetchObjectByIDQueryExecutor(
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> executor.Result[ObjectSingleReturn[Properties, CrossReferences]]: ...
 
@@ -55,7 +55,7 @@ class _FetchObjectByIDQueryExecutor(
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> executor.Result[ObjectSingleReturn[Properties, TReferences]]: ...
 

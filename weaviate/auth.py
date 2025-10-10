@@ -1,11 +1,11 @@
 """Authentication class definitions."""
 
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Optional
 
 from weaviate.warnings import _Warnings
 
-SCOPES = Union[str, List[str]]
+SCOPES = str | list[str]
 
 
 @dataclass
@@ -15,7 +15,7 @@ class _ClientCredentials:
     Acquire the client secret from your identify provider and set the appropriate scope. The client includes hardcoded
     scopes for Azure, otherwise it needs to be supplied.
     Scopes can be given as:
-      - List of strings: ["scope1", "scope2"]
+      - list of strings: ["scope1", "scope2"]
       - space separated string: "scope1 scope2"
     """
 
@@ -24,7 +24,7 @@ class _ClientCredentials:
 
     def __post_init__(self) -> None:
         if self.scope is None:
-            self.scope_list: List[str] = []
+            self.scope_list: list[str] = []
         elif isinstance(self.scope, str):
             self.scope_list = self.scope.split(" ")
         elif isinstance(self.scope, list):
@@ -38,7 +38,7 @@ class _ClientPassword:
     For some providers the scope needs to contain "offline_access" (and "openid" which is automatically added) to return
     a refresh token. Without a refresh token the authentication will expire once the lifetime of the access token is up.
     Scopes can be given as:
-      - List of strings: ["scope1", "scope2"]
+      - list of strings: ["scope1", "scope2"]
       - space separated string: "scope1 scope2"
     """
 
@@ -48,7 +48,7 @@ class _ClientPassword:
 
     def __post_init__(self) -> None:
         if self.scope is None:
-            self.scope_list: List[str] = []
+            self.scope_list: list[str] = []
         elif isinstance(self.scope, str):
             self.scope_list = self.scope.split(" ")
         elif isinstance(self.scope, list):
@@ -110,8 +110,8 @@ class Auth:
         )
 
 
-OidcAuth = Union[_BearerToken, _ClientPassword, _ClientCredentials]
-AuthCredentials = Union[OidcAuth, _APIKey]
+OidcAuth = _BearerToken | _ClientPassword | _ClientCredentials
+AuthCredentials = OidcAuth | _APIKey
 
 # required to ease v3 -> v4 transition
 AuthApiKey = _APIKey

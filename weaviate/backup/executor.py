@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from typing import Dict, Generic, List, Literal, Optional, Tuple, Union
+from typing import Generic, Literal, Optional
 
 from httpx import Response
 
@@ -45,8 +45,8 @@ class _BackupExecutor(Generic[ConnectionType]):
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_collections: Union[List[str], str, None] = None,
-        exclude_collections: Union[List[str], str, None] = None,
+        include_collections: list[str] | str | None = None,
+        exclude_collections: list[str] | str | None = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -198,7 +198,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         )
 
         path = f"/backups/{backend.value}/{backup_id}"
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
         if backup_location is not None:
             if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
@@ -228,8 +228,8 @@ class _BackupExecutor(Generic[ConnectionType]):
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_collections: Union[List[str], str, None] = None,
-        exclude_collections: Union[List[str], str, None] = None,
+        include_collections: list[str] | str | None = None,
+        exclude_collections: list[str] | str | None = None,
         roles_restore: Optional[Literal["noRestore", "all"]] = None,
         users_restore: Optional[Literal["noRestore", "all"]] = None,
         wait_for_completion: bool = False,
@@ -397,7 +397,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         )
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
         if backup_location is not None:
             if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
@@ -446,7 +446,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             backend=backend,
         )
         path = f"/backups/{backend.value}/{backup_id}"
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
 
         if backup_location is not None:
             if self._connection._weaviate_version.is_lower_than(1, 27, 2):
@@ -474,11 +474,11 @@ class _BackupExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="cancel backup"),
         )
 
-    def list_backups(self, backend: BackupStorage) -> executor.Result[List[BackupListReturn]]:
+    def list_backups(self, backend: BackupStorage) -> executor.Result[list[BackupListReturn]]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
         path = f"/backups/{backend.value}"
 
-        def resp(res: Response) -> List[BackupListReturn]:
+        def resp(res: Response) -> list[BackupListReturn]:
             typed_response = _decode_json_response_list(res, "Backup list")
             if typed_response is None:
                 raise EmptyResponseException()
@@ -495,11 +495,11 @@ class _BackupExecutor(Generic[ConnectionType]):
 
 def _get_and_validate_create_restore_arguments(
     backup_id: str,
-    backend: Union[str, BackupStorage],
-    include_classes: Union[List[str], str, None],
-    exclude_classes: Union[List[str], str, None],
+    backend: str | BackupStorage,
+    include_classes: list[str] | str | None,
+    exclude_classes: list[str] | str | None,
     wait_for_completion: bool,
-) -> Tuple[str, BackupStorage, List[str], List[str]]:
+) -> tuple[str, BackupStorage, list[str], list[str]]:
     """Validate and return the Backup.create/Backup.restore arguments.
 
     Args:
@@ -565,8 +565,8 @@ def _get_and_validate_create_restore_arguments(
 
 
 def _get_and_validate_get_status(
-    backup_id: str, backend: Union[str, BackupStorage]
-) -> Tuple[str, BackupStorage]:
+    backup_id: str, backend: str | BackupStorage
+) -> tuple[str, BackupStorage]:
     """Checks if a started classification job has completed.
 
     Args:

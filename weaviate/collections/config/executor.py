@@ -1,13 +1,9 @@
 import asyncio
 from typing import (
     Any,
-    Dict,
     Generic,
-    List,
     Literal,
     Optional,
-    Tuple,
-    Union,
     cast,
     overload,
 )
@@ -67,9 +63,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         self._name = name
         self._tenant = tenant
 
-    def __get(self) -> executor.Result[Dict[str, Any]]:
-        def resp(res: Response) -> Dict[str, Any]:
-            return cast(Dict[str, Any], res.json())
+    def __get(self) -> executor.Result[dict[str, Any]]:
+        def resp(res: Response) -> dict[str, Any]:
+            return cast(dict[str, Any], res.json())
 
         return executor.execute(
             response_callback=resp,
@@ -95,12 +91,12 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def get(
         self,
         simple: bool = False,
-    ) -> executor.Result[Union[CollectionConfig, CollectionConfigSimple]]: ...
+    ) -> executor.Result[CollectionConfig | CollectionConfigSimple]: ...
 
     def get(
         self,
         simple: bool = False,
-    ) -> executor.Result[Union[CollectionConfig, CollectionConfigSimple]]:
+    ) -> executor.Result[CollectionConfig | CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.
 
         Args:
@@ -112,7 +108,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         """
         _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
 
-        def resp(res: Dict[str, Any]) -> Union[CollectionConfig, CollectionConfigSimple]:
+        def resp(res: dict[str, Any]) -> CollectionConfig | CollectionConfigSimple:
             if simple:
                 return _collection_config_simple_from_json(res)
             return _collection_config_from_json(res)
@@ -126,25 +122,20 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         self,
         *,
         description: Optional[str] = None,
-        property_descriptions: Optional[Dict[str, str]] = None,
+        property_descriptions: Optional[dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-            ]
+            _VectorIndexConfigHNSWUpdate | _VectorIndexConfigFlatUpdate
         ] = None,
         vectorizer_config: Optional[
-            Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigDynamicUpdate,
-                List[_NamedVectorConfigUpdate],
-            ]
+            _VectorIndexConfigHNSWUpdate
+            | _VectorIndexConfigFlatUpdate
+            | _VectorIndexConfigDynamicUpdate
+            | list[_NamedVectorConfigUpdate]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
+        vector_config: Optional[_VectorConfigUpdate | list[_VectorConfigUpdate]] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> executor.Result[None]:
@@ -203,7 +194,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e
 
-        def resp(schema: Dict[str, Any]) -> executor.Result[None]:
+        def resp(schema: dict[str, Any]) -> executor.Result[None]:
             schema = config.merge_with_existing(schema)
 
             def inner_resp(res: Response) -> None:
@@ -234,7 +225,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         path = f"/schema/{self._name}/properties"
         obj = additional_property._to_dict()
 
-        def resp(schema: Dict[str, Any]) -> executor.Result[None]:
+        def resp(schema: dict[str, Any]) -> executor.Result[None]:
             modconf = {}
             if "skip_vectorization" in obj:
                 modconf["skip"] = obj["skip_vectorization"]
@@ -244,14 +235,14 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
                 del obj["vectorize_property_name"]
 
-            module_config: Dict[str, Any] = schema.get("moduleConfig", {})
+            module_config: dict[str, Any] = schema.get("moduleConfig", {})
             legacy_vectorizer = [
                 str(k) for k in module_config if "generative" not in k and "reranker" not in k
             ]
             if len(legacy_vectorizer) > 0 and len(modconf) > 0:
                 obj["moduleConfig"] = {legacy_vectorizer[0]: modconf}
 
-            vector_config: Dict[str, Any] = schema.get("vectorConfig", {})
+            vector_config: dict[str, Any] = schema.get("vectorConfig", {})
             if len(vector_config) > 0:
                 obj["moduleConfig"] = {
                     list(conf["vectorizer"].keys()).pop(): modconf
@@ -281,7 +272,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         return executor.result(resp(schema))
 
     def __property_exists(self, property_name: str) -> executor.Result[bool]:
-        def resp(schema: Dict[str, Any]) -> bool:
+        def resp(schema: dict[str, Any]) -> bool:
             conf = _collection_config_simple_from_json(schema)
             if len(conf.properties) == 0:
                 return False
@@ -296,7 +287,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         )
 
     def __reference_exists(self, reference_name: str) -> executor.Result[bool]:
-        def resp(schema: Dict[str, Any]) -> bool:
+        def resp(schema: dict[str, Any]) -> bool:
             conf = _collection_config_simple_from_json(schema)
             if len(conf.references) == 0:
                 return False
@@ -310,8 +301,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             method=self.__get,
         )
 
-    def __get_shards(self) -> executor.Result[List[ShardStatus]]:
-        def resp(res: Response) -> List[ShardStatus]:
+    def __get_shards(self) -> executor.Result[list[ShardStatus]]:
+        def resp(res: Response) -> list[ShardStatus]:
             shards = _decode_json_response_list(res, "get shards")
             assert shards is not None
             return [
@@ -330,7 +321,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             error_msg="Shard statuses could not be retrieved.",
         )
 
-    def get_shards(self) -> executor.Result[List[ShardStatus]]:
+    def get_shards(self) -> executor.Result[list[ShardStatus]]:
         """Get the statuses of the shards of this collection.
 
         If the collection is multi-tenancy and you did not call `.with_tenant` then you
@@ -348,11 +339,11 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
     def __update_shard(
         self, shard_name: str, status: str
-    ) -> executor.Result[Tuple[str, ShardTypes]]:
+    ) -> executor.Result[tuple[str, ShardTypes]]:
         path = f"/schema/{self._name}/shards/{shard_name}"
         data = {"status": status}
 
-        def resp(res: Response) -> Tuple[str, ShardTypes]:
+        def resp(res: Response) -> tuple[str, ShardTypes]:
             shard = _decode_json_response_dict(res, f"Update shard '{shard_name}' status")
             assert shard is not None
             return shard_name, shard["status"]
@@ -368,8 +359,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def update_shards(
         self,
         status: Literal["READY", "READONLY"],
-        shard_names: Optional[Union[str, List[str]]] = None,
-    ) -> executor.Result[Dict[str, ShardTypes]]:
+        shard_names: Optional[str | list[str]] = None,
+    ) -> executor.Result[dict[str, ShardTypes]]:
         """Update the status of one or all shards of this collection.
 
         Args:
@@ -386,8 +377,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute(
-                shard_names: Optional[Union[str, List[str]]],
-            ) -> Dict[str, ShardTypes]:
+                shard_names: Optional[str | list[str]],
+            ) -> dict[str, ShardTypes]:
                 if shard_names is None:
                     shards_config = await executor.aresult(self.__get_shards())
                     shard_names = [shard_config.name for shard_config in shards_config]
@@ -451,7 +442,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
     def add_reference(
         self,
-        ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget],
+        ref: ReferenceProperty | _ReferencePropertyMultiTarget,
     ) -> executor.Result[None]:
         """Add a reference to the collection in Weaviate.
 
@@ -495,23 +486,21 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.MultiVectors`."
     )
     def add_vector(
-        self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
+        self, *, vector_config: _NamedVectorConfigCreate | list[_NamedVectorConfigCreate]
     ) -> executor.Result[None]: ...
 
     @overload
     def add_vector(
-        self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
+        self, *, vector_config: _VectorConfigCreate | list[_VectorConfigCreate]
     ) -> executor.Result[None]: ...
 
     def add_vector(
         self,
         *,
-        vector_config: Union[
-            _NamedVectorConfigCreate,
-            _VectorConfigCreate,
-            List[_NamedVectorConfigCreate],
-            List[_VectorConfigCreate],
-        ],
+        vector_config: _NamedVectorConfigCreate
+        | _VectorConfigCreate
+        | list[_NamedVectorConfigCreate]
+        | list[_VectorConfigCreate],
     ) -> executor.Result[None]:
         """Add a vector to the collection in Weaviate.
 
@@ -529,8 +518,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                     expected=[
                         _NamedVectorConfigCreate,
                         _VectorConfigCreate,
-                        List[_NamedVectorConfigCreate],
-                        List[_VectorConfigCreate],
+                        list[_NamedVectorConfigCreate],
+                        list[_VectorConfigCreate],
                     ],
                     name="vector_config",
                     value=vector_config,
@@ -551,7 +540,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         if isinstance(vector_config, _VectorConfigCreate):
             vector_config = [vector_config]
 
-        def resp(schema: Dict[str, Any]) -> executor.Result[None]:
+        def resp(schema: dict[str, Any]) -> executor.Result[None]:
             if "vectorConfig" not in schema:
                 schema["vectorConfig"] = {}
             for vector in vector_config:

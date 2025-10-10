@@ -1,4 +1,4 @@
-from typing import Dict, Generator, Optional, TypedDict, cast
+from typing import Generator, Optional, TypedDict, cast
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -189,7 +189,7 @@ def test_iterator(collection_factory: CollectionFactory, count: int) -> None:
     collection = collection_factory(
         properties=[Property(name="data", data_type=DataType.INT)],
         vectorizer_config=Configure.Vectorizer.none(),
-        data_model_properties=Dict[str, int],
+        data_model_properties=dict[str, int],
     )
 
     if count > 0:
@@ -214,7 +214,7 @@ def test_iterator_with_after(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="data", data_type=DataType.INT)],
         vectorizer_config=Configure.Vectorizer.none(),
-        data_model_properties=Dict[str, int],
+        data_model_properties=dict[str, int],
     )
 
     collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])

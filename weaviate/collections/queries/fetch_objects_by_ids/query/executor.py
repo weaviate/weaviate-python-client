@@ -5,7 +5,6 @@ from typing import (
     Literal,
     Optional,
     Type,
-    Union,
     cast,
     overload,
 )
@@ -47,7 +46,7 @@ class _FetchObjectsByIDsQueryExecutor(
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
@@ -62,7 +61,7 @@ class _FetchObjectsByIDsQueryExecutor(
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
@@ -77,7 +76,7 @@ class _FetchObjectsByIDsQueryExecutor(
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 

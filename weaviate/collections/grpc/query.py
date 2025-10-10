@@ -1,15 +1,10 @@
 import uuid as uuid_lib
 from dataclasses import dataclass
 from typing import (
-    Dict,
-    List,
     Literal,
     Optional,
     Sequence,
-    Set,
-    Tuple,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -48,26 +43,26 @@ from weaviate.util import _ServerVersion
 from weaviate.validator import _validate_input, _ValidateArgument
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
-_PyValue: TypeAlias = Union[
-    Dict[str, "_PyValue"],
-    List["_PyValue"],
-    str,
-    float,
-    bool,
-    None,
-    List[float],
-    List[int],
-    List[str],
-    List[bool],
-    List[UUID],
-]
+_PyValue: TypeAlias = (
+    dict[str, "_PyValue"]
+    | list["_PyValue"]
+    | str
+    | float
+    | bool
+    | None
+    | list[float]
+    | list[int]
+    | list[str]
+    | list[bool]
+    | list[UUID]
+)
 
 
 @dataclass
 class _Move:
     force: float
-    concepts: List[str]
-    objects: List[uuid_lib.UUID]
+    concepts: list[str]
+    objects: list[uuid_lib.UUID]
 
 
 A = TypeVar("A")
@@ -95,7 +90,7 @@ class _QueryGRPC(_BaseGRPC):
         self,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
-    ) -> Tuple[Optional[float], Optional[float]]:
+    ) -> tuple[Optional[float], Optional[float]]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -117,7 +112,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         sort: Optional[_Sorting] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: PROPERTIES | bool | None = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
@@ -126,7 +121,7 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
 
         if sort is not None:
-            sort_by: Optional[List[search_get_pb2.SortBy]] = [
+            sort_by: Optional[list[search_get_pb2.SortBy]] = [
                 search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
                 for sort in sort.sorts
             ]
@@ -152,7 +147,7 @@ class _QueryGRPC(_BaseGRPC):
         query: Optional[str],
         alpha: Optional[float] = None,
         vector: Optional[HybridVectorType] = None,
-        properties: Optional[List[str]] = None,
+        properties: Optional[list[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -162,7 +157,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
@@ -195,7 +190,7 @@ class _QueryGRPC(_BaseGRPC):
         self,
         *,
         query: Optional[str],
-        properties: Optional[List[str]] = None,
+        properties: Optional[list[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         operator: Optional[BM25OperatorOptions] = None,
@@ -203,7 +198,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
@@ -212,7 +207,7 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(
                 [
                     _ValidateArgument([None, str], "query", query),
-                    _ValidateArgument([List, None], "properties", properties),
+                    _ValidateArgument([list, None], "properties", properties),
                 ]
             )
 
@@ -260,7 +255,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
@@ -294,7 +289,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
@@ -314,7 +309,7 @@ class _QueryGRPC(_BaseGRPC):
     def near_text(
         self,
         *,
-        near_text: Union[List[str], str],
+        near_text: list[str] | str,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
@@ -328,7 +323,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
@@ -368,7 +363,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
@@ -398,7 +393,7 @@ class _QueryGRPC(_BaseGRPC):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         metadata: Optional[_MetadataQuery] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
@@ -462,7 +457,7 @@ class _QueryGRPC(_BaseGRPC):
                     )
 
         if return_references is not None:
-            return_references_parsed: Optional[Set[REFERENCE]] = self.__convert_to_set(
+            return_references_parsed: Optional[set[REFERENCE]] = self.__convert_to_set(
                 return_references
             )
         else:
@@ -534,14 +529,14 @@ class _QueryGRPC(_BaseGRPC):
         )
 
     def __parse_return_properties(
-        self, props: Union[PROPERTIES, bool, None]
-    ) -> Optional[Set[PROPERTY]]:
+        self, props: Optional[PROPERTIES | bool]
+    ) -> Optional[set[PROPERTY]]:
         if props is None or props is True:
             return None
         return self.__convert_to_set([] if props is False else props)
 
     def _translate_properties_from_python_to_grpc(
-        self, properties: Optional[Set[PROPERTY]], references: Optional[Set[REFERENCE]]
+        self, properties: Optional[set[PROPERTY]], references: Optional[set[REFERENCE]]
     ) -> Optional[search_get_pb2.PropertiesRequest]:
         if properties is None and references is None:
             return None
@@ -592,7 +587,7 @@ class _QueryGRPC(_BaseGRPC):
         )
 
     @staticmethod
-    def __convert_to_set(args: Union[A, Sequence[A]]) -> Set[A]:
+    def __convert_to_set(args: A | Sequence[A]) -> set[A]:
         if isinstance(args, list):
             return set(args)
         else:

@@ -1,5 +1,3 @@
-from typing import List, Union
-
 import pytest
 from pydantic import ValidationError
 
@@ -771,7 +769,7 @@ TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS = [
 )
 def test_config_with_vectorizer_and_properties(
     vectorizer_config: _VectorizerConfigCreate,
-    properties: List[Property],
+    properties: list[Property],
     expected_mc: dict,
     expected_props: dict,
 ) -> None:
@@ -1153,7 +1151,7 @@ def test_config_with_reranker(
     ],
 )
 def test_config_create_with_properties(
-    vectorizer_config: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]],
+    vectorizer_config: _VectorizerConfigCreate | list[_NamedVectorConfigCreate],
 ) -> None:
     config = _CollectionConfigCreate(
         name="test",
@@ -1285,8 +1283,8 @@ def test_config_create_with_properties(
         },
     ]
 
-    def make_expected_props() -> List[dict]:
-        out: List[dict] = []
+    def make_expected_props() -> list[dict]:
+        out: list[dict] = []
         for prop in props:
             if isinstance(vectorizer_config, _VectorizerConfigCreate):
                 if vectorizer_config.vectorizer == Vectorizers.NONE:
@@ -1898,7 +1896,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
 
 @pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS)
 def test_config_with_named_vectors(
-    vectorizer_config: List[_NamedVectorConfigCreate], expected: dict
+    vectorizer_config: list[_NamedVectorConfigCreate], expected: dict
 ) -> None:
     config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
     assert config._to_dict() == {
@@ -2434,7 +2432,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
 
 
 @pytest.mark.parametrize("vector_config,expected", TEST_CONFIG_WITH_VECTORS_PARAMETERS)
-def test_config_with_vectors(vector_config: List[_VectorConfigCreate], expected: dict) -> None:
+def test_config_with_vectors(vector_config: list[_VectorConfigCreate], expected: dict) -> None:
     config = _CollectionConfigCreate(name="test", vector_config=vector_config)
     assert config._to_dict() == {
         "class": "Test",

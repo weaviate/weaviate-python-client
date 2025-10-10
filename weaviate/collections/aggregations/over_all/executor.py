@@ -1,4 +1,4 @@
-from typing import Generic, Literal, Optional, Union, overload
+from typing import Generic, Literal, Optional, overload
 
 from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -30,7 +30,7 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         self,
         *,
         filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
+        group_by: str | GroupByAggregate,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> executor.Result[AggregateGroupByReturn]: ...
@@ -40,19 +40,19 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         self,
         *,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+    ) -> executor.Result[AggregateReturn | AggregateGroupByReturn]: ...
 
     def over_all(
         self,
         *,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]:
+    ) -> executor.Result[AggregateReturn | AggregateGroupByReturn]:
         """Aggregate metrics over all the objects in this collection without any vector search.
 
         Args:
@@ -78,7 +78,7 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
         if self._connection._weaviate_version.is_lower_than(1, 29, 0):
             # use gql, remove once 1.29 is the minimum supported version
-            def resp(res: dict) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            def resp(res: dict) -> AggregateReturn | AggregateGroupByReturn:
                 return (
                     self._to_aggregate_result(res, return_metrics)
                     if group_by is None
@@ -109,7 +109,7 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
             def respGrpc(
                 res: aggregate_pb2.AggregateReply,
-            ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            ) -> AggregateReturn | AggregateGroupByReturn:
                 return self._to_result(group_by is not None, res)
 
             return executor.execute(

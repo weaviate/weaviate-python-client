@@ -2,9 +2,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import (
     Any,
-    Dict,
     Generic,
-    List,
     Literal,
     Mapping,
     Optional,
@@ -38,8 +36,8 @@ class Move:
     def __init__(
         self,
         force: float,
-        objects: Optional[Union[List[UUID], UUID]] = None,
-        concepts: Optional[Union[List[str], str]] = None,
+        objects: Optional[list[UUID] | UUID] = None,
+        concepts: Optional[list[str] | str] = None,
     ):
         if (objects is None or (isinstance(objects, list) and len(objects) == 0)) and (
             concepts is None or (isinstance(concepts, list) and len(concepts) == 0)
@@ -64,11 +62,11 @@ class Move:
             self.__concepts = concepts
 
     @property
-    def _objects_list(self) -> Optional[List[str]]:
+    def _objects_list(self) -> Optional[list[str]]:
         return self.__objects
 
     @property
-    def _concepts_list(self) -> Optional[List[str]]:
+    def _concepts_list(self) -> Optional[list[str]]:
         return self.__concepts
 
     def _to_gql_payload(self) -> dict:
@@ -116,7 +114,7 @@ class _MetadataQuery:
     score: bool = False
     explain_score: bool = False
     is_consistent: bool = False
-    vectors: Optional[List[str]] = None
+    vectors: Optional[list[str]] = None
 
     @classmethod
     def from_public(
@@ -142,8 +140,8 @@ class _MetadataQuery:
         )
 
 
-METADATA = Union[
-    List[
+METADATA = (
+    list[
         Literal[
             "creation_time",
             "last_update_time",
@@ -153,9 +151,9 @@ METADATA = Union[
             "explain_score",
             "is_consistent",
         ]
-    ],
-    MetadataQuery,
-]
+    ]
+    | MetadataQuery
+)
 
 
 class Generate(_WeaviateInput):
@@ -163,7 +161,7 @@ class Generate(_WeaviateInput):
 
     single_prompt: Optional[str] = Field(default=None)
     grouped_task: Optional[str] = Field(default=None)
-    grouped_properties: Optional[List[str]] = Field(default=None)
+    grouped_properties: Optional[list[str]] = Field(default=None)
 
 
 class GroupBy(_WeaviateInput):
@@ -181,7 +179,7 @@ class _Sort(_WeaviateInput):
 
 class _Sorting:
     def __init__(self) -> None:
-        self.sorts: List[_Sort] = []
+        self.sorts: list[_Sort] = []
 
     def by_property(self, name: str, ascending: bool = True) -> "_Sorting":
         """Sort by an object property in the collection."""
@@ -294,7 +292,7 @@ OneDimensionalVectorType = Sequence[NUMBER]
 TwoDimensionalVectorType = Sequence[Sequence[NUMBER]]
 """Represents a two-dimensional vector, e.g. one produced by the `Configure.MultiVectors.text2vec_jinaai()` module"""
 
-PrimitiveVectorType = Union[OneDimensionalVectorType, TwoDimensionalVectorType]
+PrimitiveVectorType = OneDimensionalVectorType | TwoDimensionalVectorType
 
 
 V = TypeVar("V", OneDimensionalVectorType, TwoDimensionalVectorType)
@@ -321,19 +319,17 @@ ListOfVectorsQuery = _ListOfVectorsQuery
 """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
 
 
-NearVectorInputType = Union[
-    OneDimensionalVectorType,
-    TwoDimensionalVectorType,
-    Mapping[
+NearVectorInputType = (
+    OneDimensionalVectorType
+    | TwoDimensionalVectorType
+    | Mapping[
         str,
-        Union[
-            OneDimensionalVectorType,
-            TwoDimensionalVectorType,
-            ListOfVectorsQuery[OneDimensionalVectorType],
-            ListOfVectorsQuery[TwoDimensionalVectorType],
-        ],
-    ],
-]
+        OneDimensionalVectorType
+        | TwoDimensionalVectorType
+        | ListOfVectorsQuery[OneDimensionalVectorType]
+        | ListOfVectorsQuery[TwoDimensionalVectorType],
+    ]
+)
 """Define the input types that can be used in a near vector search"""
 
 
@@ -362,7 +358,7 @@ class _HybridNearBase(_WeaviateInput):
 
 
 class _HybridNearText(_HybridNearBase):
-    text: Union[str, List[str]]
+    text: str | list[str]
     move_to: Optional[Move] = None
     move_away: Optional[Move] = None
 
@@ -384,7 +380,7 @@ class _HybridNearVector:  # can't be a Pydantic model because of validation issu
         self.certainty = certainty
 
 
-HybridVectorType = Union[NearVectorInputType, _HybridNearText, _HybridNearVector]
+HybridVectorType = NearVectorInputType | _HybridNearText | _HybridNearVector
 
 
 class _MultiTargetVectorJoinEnum(BaseEnum):
@@ -400,8 +396,8 @@ class _MultiTargetVectorJoinEnum(BaseEnum):
 @dataclass
 class _MultiTargetVectorJoin:
     combination: _MultiTargetVectorJoinEnum
-    target_vectors: List[str]
-    weights: Optional[Dict[str, Union[float, List[float]]]] = None
+    target_vectors: list[str]
+    weights: Optional[dict[str, float | list[float]]] = None
 
     def to_grpc_target_vector(self, version: _ServerVersion) -> base_search_pb2.Targets:
         combination = self.combination
@@ -417,8 +413,8 @@ class _MultiTargetVectorJoin:
             assert combination == _MultiTargetVectorJoinEnum.MINIMUM
             combination_grpc = base_search_pb2.COMBINATION_METHOD_TYPE_MIN
 
-        weights: List[base_search_pb2.WeightsForTarget] = []
-        target_vectors: List[str] = self.target_vectors
+        weights: list[base_search_pb2.WeightsForTarget] = []
+        target_vectors: list[str] = self.target_vectors
         if self.weights is not None:
             target_vectors = []
             for target, weight in self.weights.items():
@@ -437,21 +433,21 @@ class _MultiTargetVectorJoin:
         )
 
 
-TargetVectorJoinType = Union[str, List[str], _MultiTargetVectorJoin]
+TargetVectorJoinType = str | list[str] | _MultiTargetVectorJoin
 
 
 class TargetVectors:
     """Define how the distances from different target vectors should be combined using the available methods."""
 
     @staticmethod
-    def sum(target_vectors: List[str]) -> _MultiTargetVectorJoin:  # noqa: A003
+    def sum(target_vectors: list[str]) -> _MultiTargetVectorJoin:  # noqa: A003
         """Combine the distance from different target vectors by summing them."""
         return _MultiTargetVectorJoin(
             combination=_MultiTargetVectorJoinEnum.SUM, target_vectors=target_vectors
         )
 
     @staticmethod
-    def average(target_vectors: List[str]) -> _MultiTargetVectorJoin:
+    def average(target_vectors: list[str]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors by averaging them."""
         return _MultiTargetVectorJoin(
             combination=_MultiTargetVectorJoinEnum.AVERAGE,
@@ -459,7 +455,7 @@ class TargetVectors:
         )
 
     @staticmethod
-    def minimum(target_vectors: List[str]) -> _MultiTargetVectorJoin:
+    def minimum(target_vectors: list[str]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors by using the minimum distance."""
         return _MultiTargetVectorJoin(
             combination=_MultiTargetVectorJoinEnum.MINIMUM,
@@ -467,7 +463,7 @@ class TargetVectors:
         )
 
     @staticmethod
-    def manual_weights(weights: Dict[str, Union[float, List[float]]]) -> _MultiTargetVectorJoin:
+    def manual_weights(weights: dict[str, float | list[float]]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors by summing them using manual weights."""
         return _MultiTargetVectorJoin(
             combination=_MultiTargetVectorJoinEnum.MANUAL_WEIGHTS,
@@ -476,7 +472,7 @@ class TargetVectors:
         )
 
     @staticmethod
-    def relative_score(weights: Dict[str, Union[float, List[float]]]) -> _MultiTargetVectorJoin:
+    def relative_score(weights: dict[str, float | list[float]]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors using score fusion."""
         return _MultiTargetVectorJoin(
             combination=_MultiTargetVectorJoinEnum.RELATIVE_SCORE,
@@ -490,7 +486,7 @@ class HybridVector:
 
     @staticmethod
     def near_text(
-        query: Union[str, List[str]],
+        query: str | list[str],
         *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
@@ -572,13 +568,13 @@ class QueryNested(_WeaviateInput):
         return hash(str(self))
 
 
-REFERENCE = Union[_QueryReference, _QueryReferenceMultiTarget]
-REFERENCES = Union[Sequence[REFERENCE], REFERENCE]
+REFERENCE = _QueryReference | _QueryReferenceMultiTarget
+REFERENCES = Sequence[REFERENCE] | REFERENCE
 
-PROPERTY = Union[str, QueryNested]
-PROPERTIES = Union[Sequence[PROPERTY], PROPERTY]
+PROPERTY = str | QueryNested
+PROPERTIES = Sequence[PROPERTY] | PROPERTY
 
-NestedProperties = Union[List[Union[str, QueryNested]], str, QueryNested]
+NestedProperties = list[str | QueryNested] | str | QueryNested
 
 
 class NearMediaType(str, Enum):

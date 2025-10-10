@@ -1,7 +1,7 @@
 import io
 import json
 import pathlib
-from typing import Generic, List, Optional, TypeVar, Union, cast
+from typing import Generic, Optional, TypeVar, cast
 
 from httpx import Response
 from typing_extensions import ParamSpec
@@ -76,7 +76,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         )
 
     def _to_aggregate_result(
-        self, response: dict, metrics: Optional[List[_Metrics]]
+        self, response: dict, metrics: Optional[list[_Metrics]]
     ) -> AggregateReturn:
         try:
             result: dict = response["data"]["Aggregate"][self._name][0]
@@ -93,7 +93,7 @@ class _BaseExecutor(Generic[ConnectionType]):
 
     def _to_result(
         self, is_groupby: bool, response: aggregate_pb2.AggregateReply
-    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+    ) -> AggregateReturn | AggregateGroupByReturn:
         if not is_groupby:
             return AggregateReturn(
                 properties={
@@ -120,18 +120,18 @@ class _BaseExecutor(Generic[ConnectionType]):
     def __parse_grouped_by_value(
         self, grouped_by: aggregate_pb2.AggregateReply.Group.GroupedBy
     ) -> GroupedBy:
-        value: Union[
-            str,
-            int,
-            float,
-            bool,
-            List[str],
-            List[int],
-            List[float],
-            List[bool],
-            GeoCoordinate,
-            None,
-        ]
+        value: (
+            str
+            | int
+            | float
+            | bool
+            | list[str]
+            | list[int]
+            | list[float]
+            | list[bool]
+            | GeoCoordinate
+            | None
+        )
         if grouped_by.HasField("text"):
             value = grouped_by.text
         elif grouped_by.HasField("int"):
@@ -160,7 +160,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         return GroupedBy(prop=grouped_by.path[0], value=value)
 
     def _to_group_by_result(
-        self, response: dict, metrics: Optional[List[_Metrics]]
+        self, response: dict, metrics: Optional[list[_Metrics]]
     ) -> AggregateGroupByReturn:
         try:
             results: dict = response["data"]["Aggregate"][self._name]
@@ -186,7 +186,7 @@ class _BaseExecutor(Generic[ConnectionType]):
                 f"There was an error accessing the {e} key when parsing the GraphQL response: {response}"
             )
 
-    def __parse_properties(self, result: dict, metrics: List[_Metrics]) -> AProperties:
+    def __parse_properties(self, result: dict, metrics: list[_Metrics]) -> AProperties:
         props: AProperties = {}
         for metric in metrics:
             if metric.property_name in result:
@@ -311,7 +311,7 @@ class _BaseExecutor(Generic[ConnectionType]):
 
     @staticmethod
     def _add_groupby_to_builder(
-        builder: AggregateBuilder, group_by: Union[str, GroupByAggregate, None]
+        builder: AggregateBuilder, group_by: str | GroupByAggregate | None
     ) -> AggregateBuilder:
         _validate_input(_ValidateArgument([str, GroupByAggregate, None], "group_by", group_by))
         if group_by is None:
@@ -325,13 +325,13 @@ class _BaseExecutor(Generic[ConnectionType]):
 
     def _base(
         self,
-        return_metrics: Optional[List[_Metrics]],
+        return_metrics: Optional[list[_Metrics]],
         filters: Optional[_Filters],
         total_count: bool,
     ) -> AggregateBuilder:
         _validate_input(
             [
-                _ValidateArgument([List[_Metrics], None], "return_metrics", return_metrics),
+                _ValidateArgument([list[_Metrics], None], "return_metrics", return_metrics),
                 _ValidateArgument([_Filters, None], "filters", filters),
                 _ValidateArgument([bool], "total_count", total_count),
             ]
@@ -389,8 +389,8 @@ class _BaseExecutor(Generic[ConnectionType]):
         builder: AggregateBuilder,
         query: Optional[str],
         alpha: Optional[NUMBER],
-        vector: Optional[List[float]],
-        query_properties: Optional[List[str]],
+        vector: Optional[list[float]],
+        query_properties: Optional[list[str]],
         object_limit: Optional[int],
         target_vector: Optional[str],
         max_vector_distance: Optional[NUMBER],
@@ -416,7 +416,7 @@ class _BaseExecutor(Generic[ConnectionType]):
     @staticmethod
     def _add_near_image_to_builder(
         builder: AggregateBuilder,
-        near_image: Union[str, pathlib.Path, io.BufferedReader],
+        near_image: str | pathlib.Path | io.BufferedReader,
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         object_limit: Optional[int],
@@ -474,7 +474,7 @@ class _BaseExecutor(Generic[ConnectionType]):
     @staticmethod
     def _add_near_text_to_builder(
         builder: AggregateBuilder,
-        query: Union[List[str], str],
+        query: list[str] | str,
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         move_to: Optional[Move],
@@ -488,7 +488,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             )
         _validate_input(
             [
-                _ValidateArgument([List[str], str], "query", query),
+                _ValidateArgument([list[str], str], "query", query),
                 _ValidateArgument([Move, None], "move_to", move_to),
                 _ValidateArgument([Move, None], "move_away", move_away),
                 _ValidateArgument([str, None], "target_vector", target_vector),
@@ -515,7 +515,7 @@ class _BaseExecutor(Generic[ConnectionType]):
     @staticmethod
     def _add_near_vector_to_builder(
         builder: AggregateBuilder,
-        near_vector: List[float],
+        near_vector: list[float],
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         object_limit: Optional[int],

@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Any, Generator, Optional, Protocol, Union
+from typing import Any, Generator, Optional, Protocol
 
 import pytest
 
@@ -17,7 +17,7 @@ from weaviate.collections.classes.internal import ReferenceToMulti, _CrossRefere
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import VECTORS
 
-UUID = Union[str, uuid.UUID]
+UUID = str | uuid.UUID
 
 
 @dataclass

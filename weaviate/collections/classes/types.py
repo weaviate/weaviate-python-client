@@ -1,9 +1,9 @@
 import datetime
 import uuid as uuid_package
-from typing import Any, Dict, Mapping, Optional, Sequence, Type, Union, get_origin
+from typing import Any, Mapping, Optional, Sequence, Type, get_origin, is_typeddict
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing_extensions import TypeAlias, TypeVar, is_typeddict
+from typing_extensions import TypeVar
 
 from weaviate.exceptions import InvalidDataModelError
 
@@ -18,7 +18,7 @@ class GeoCoordinate(_WeaviateInput):
     latitude: float = Field(default=..., le=90, ge=-90)
     longitude: float = Field(default=..., le=180, ge=-180)
 
-    def _to_dict(self) -> Dict[str, float]:
+    def _to_dict(self) -> dict[str, float]:
         return self.model_dump(exclude_none=True)
 
 
@@ -36,7 +36,7 @@ class PhoneNumber(_PhoneNumberBase):
     default_country: Optional[str] = Field(default=None)
 
     def _to_dict(self) -> Mapping[str, str]:
-        out: Dict[str, str] = {"input": self.number}
+        out: dict[str, str] = {"input": self.number}
         if self.default_country is not None:
             out["defaultCountry"] = self.default_country
         return out
@@ -53,32 +53,33 @@ class _PhoneNumber(_PhoneNumberBase):
     valid: bool
 
 
-PhoneNumberType: TypeAlias = _PhoneNumber
+PhoneNumberType = _PhoneNumber
 
 
-WeaviateField: TypeAlias = Union[
-    None,  # null
-    str,  # text
-    bool,  # boolean
-    int,  # int
-    float,  # number
-    datetime.datetime,  # date
-    uuid_package.UUID,  # uuid
-    GeoCoordinate,  # geoCoordinates
-    Union[PhoneNumber, PhoneNumberType],  # phoneNumber
-    Mapping[str, "WeaviateField"],  # object
-    Sequence[str],  # text[]
-    Sequence[bool],  # boolean[]
-    Sequence[int],  # int[]
-    Sequence[float],  # number[]
-    Sequence[datetime.datetime],  # date[]
-    Sequence[uuid_package.UUID],  # uuid[]
-    Sequence[Mapping[str, "WeaviateField"]],  # object[]
+WeaviateField = (
+    None  # null
+    | str  # text
+    | bool  # boolean
+    | int  # int
+    | float  # number
+    | datetime.datetime  # date
+    | uuid_package.UUID  # uuid
+    | GeoCoordinate  # geoCoordinates
+    | PhoneNumber
+    | PhoneNumberType  # phoneNumber
+    | Mapping[str, "WeaviateField"]  # object
+    | Sequence[str]  # text[]
+    | Sequence[bool]  # boolean[]
+    | Sequence[int]  # int[]
+    | Sequence[float]  # number[]
+    | Sequence[datetime.datetime]  # date[]
+    | Sequence[uuid_package.UUID]  # uuid[]
+    | Sequence[Mapping[str, "WeaviateField"]]  # object[]
     # Sequence is covariant while List is not, so we use Sequence here to allow for
-    # List[Dict[str, WeaviateField]] to be used interchangeably with List[Dict[str, Any]]
-]
+    # list[dict[str, WeaviateField]] to be used interchangeably with list[dict[str, Any]]
+)
 
-WeaviateProperties: TypeAlias = Mapping[str, WeaviateField]
+WeaviateProperties = Mapping[str, WeaviateField]
 
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=WeaviateProperties)
 """`Properties` is used wherever a single generic type is needed for properties"""
@@ -93,7 +94,7 @@ a new instance of `_DataCollection` with a different `Properties` type.
 To be clear: `_DataCollection[Properties]().with_data_model(TProperties) -> _DataCollection[TProperties]()`
 """
 
-DProperties = TypeVar("DProperties", bound=Mapping[str, Any], default=Dict[str, Any])
+DProperties = TypeVar("DProperties", bound=Mapping[str, Any], default=dict[str, Any])
 QProperties = TypeVar("QProperties", bound=Mapping[str, Any], default=WeaviateProperties)
 
 NProperties = TypeVar("NProperties", bound=Optional[Mapping[str, Any]], default=None)

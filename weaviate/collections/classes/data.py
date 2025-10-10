@@ -1,6 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, Generic, List, Optional, Union
+from typing import Any, Generic, Optional
 
 from typing_extensions import TypeAlias, TypeVar
 
@@ -43,9 +43,9 @@ class DataObject(Generic[P, R]):
 class _DataReference:
     from_property: str
     from_uuid: UUID
-    to_uuid: Union[UUID, List[UUID]]
+    to_uuid: UUID | list[UUID]
 
-    def _to_uuids(self) -> List[UUID]:
+    def _to_uuids(self) -> list[UUID]:
         if isinstance(self.to_uuid, uuid_package.UUID) or isinstance(self.to_uuid, str):
             return [self.to_uuid]
         else:
@@ -58,7 +58,7 @@ class DataReferenceMulti(_DataReference):
 
     target_collection: str
 
-    def _to_beacons(self) -> List[str]:
+    def _to_beacons(self) -> list[str]:
         return [f"{BEACON}{self.target_collection}/{uuid}" for uuid in self._to_uuids()]
 
 
@@ -68,8 +68,8 @@ class DataReference(_DataReference):
 
     MultiTarget = DataReferenceMulti
 
-    def _to_beacons(self) -> List[str]:
+    def _to_beacons(self) -> list[str]:
         return [f"{BEACON}{uuid}" for uuid in self._to_uuids()]
 
 
-DataReferences: TypeAlias = Union[DataReference, DataReferenceMulti]
+DataReferences: TypeAlias = DataReference | DataReferenceMulti

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Final, List, Literal
+from typing import Final, Literal
 
 from weaviate.rbac.models import (
     Role,
@@ -14,14 +14,14 @@ USER_TYPE = Literal["db", "oidc"]
 @dataclass
 class OwnUser:
     user_id: str
-    roles: Dict[str, Role]
-    groups: List[str]
+    roles: dict[str, Role]
+    groups: list[str]
 
 
 @dataclass
 class UserBase:
     user_id: str
-    role_names: List[str]
+    role_names: list[str]
     user_type: UserTypes
 
 

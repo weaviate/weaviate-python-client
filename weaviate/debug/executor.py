@@ -1,4 +1,4 @@
-from typing import Dict, Generic, Optional
+from typing import Generic, Optional
 
 from httpx import Response
 
@@ -29,7 +29,7 @@ class _DebugExecutor(Generic[ConnectionType]):
         """
         path = f"/objects/{collection}/{str(uuid)}"
 
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
         if consistency_level is not None:
             params["consistency"] = consistency_level.value
         if node_name is not None:

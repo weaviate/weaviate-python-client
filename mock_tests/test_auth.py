@@ -2,7 +2,6 @@ import asyncio
 import json
 import time
 import warnings
-from typing import Union
 
 import grpc
 import pytest
@@ -424,7 +423,7 @@ def test_with_simple_auth_no_oidc_via_api_key(
     weaviate_mock: HTTPServer,
     start_grpc_server: grpc.Server,
     recwarn,
-    api_key: Union[str, weaviate.auth.AuthApiKey],
+    api_key: str | weaviate.auth.AuthApiKey,
 ) -> None:
     weaviate_mock.expect_request(
         "/v1/schema", headers={"Authorization": "Bearer " + "Super-secret-key"}

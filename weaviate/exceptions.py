@@ -1,7 +1,7 @@
 """Weaviate Exceptions."""
 
 from json.decoder import JSONDecodeError
-from typing import Optional, Tuple, Union, cast
+from typing import Optional, cast
 
 import httpx
 from grpc import Call, StatusCode  # type: ignore
@@ -31,7 +31,7 @@ class WeaviateBaseError(Exception):
 
 
 class UnexpectedStatusCodeError(WeaviateBaseError):
-    def __init__(self, message: str, response: Union[httpx.Response, AioRpcError, Call]):
+    def __init__(self, message: str, response: httpx.Response | AioRpcError | Call):
         """Is raised in case the status code returned from Weaviate is not handled in the client implementation and suggests an error.
 
         Custom code can act on the attributes:
@@ -176,7 +176,7 @@ class InvalidDataModelError(WeaviateBaseError):
     """Is raised when the user provides a generic that is not supported."""
 
     def __init__(self, type_: str) -> None:
-        msg = f"""{type_} can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"""
+        msg = f"""{type_} can only be a dict type, e.g. dict[str, Any], or a class that inherits from TypedDict"""
         super().__init__(msg)
 
 
@@ -290,7 +290,7 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
     def __init__(
         self,
         weaviate_version: str = "",
-        grpc_address: Tuple[str, int] = ("not provided", 0),
+        grpc_address: tuple[str, int] = ("not provided", 0),
     ) -> None:
         if grpc_address[0] == "not provided":
             grpc_msg = "Please check the server address and port."
@@ -365,7 +365,7 @@ class WeaviateRetryError(WeaviateBaseError):
 class InsufficientPermissionsError(UnexpectedStatusCodeError):
     """Is raised when a request to Weaviate fails due to insufficient permissions."""
 
-    def __init__(self, res: Union[httpx.Response, AioRpcError, Call]) -> None:
+    def __init__(self, res: httpx.Response | AioRpcError | Call) -> None:
         super().__init__("forbidden", res)
 
 

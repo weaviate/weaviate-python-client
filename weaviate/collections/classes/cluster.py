@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generic, List, Literal, Optional, TypeVar, cast
+from typing import Generic, Literal, Optional, TypeVar, cast
 
 from weaviate.cluster.types import Node as NodeREST
 from weaviate.cluster.types import Shard as ShardREST
@@ -27,7 +27,7 @@ class Stats:
     shard_count: int
 
 
-Shards = List[Shard]
+Shards = list[Shard]
 Sh = TypeVar("Sh")
 St = TypeVar("St")
 
@@ -50,7 +50,7 @@ NodeMinimal = Node[None, None]
 
 class _ConvertFromREST:
     @staticmethod
-    def nodes_verbose(nodes: List[NodeREST]) -> List[NodeVerbose]:
+    def nodes_verbose(nodes: list[NodeREST]) -> list[NodeVerbose]:
         return [
             Node(
                 git_hash=node.get("gitHash", "None"),
@@ -67,7 +67,7 @@ class _ConvertFromREST:
                             compressed=shard["compressed"],
                             loaded=shard.get("loaded"),
                         )
-                        for shard in cast(List[ShardREST], node["shards"])
+                        for shard in cast(list[ShardREST], node["shards"])
                     ]
                     if "shards" in node and node["shards"] is not None
                     else []
@@ -90,7 +90,7 @@ class _ConvertFromREST:
         ]
 
     @staticmethod
-    def nodes_minimal(nodes: List[NodeREST]) -> List[NodeMinimal]:
+    def nodes_minimal(nodes: list[NodeREST]) -> list[NodeMinimal]:
         return [
             Node(
                 git_hash=node.get("gitHash", "None"),

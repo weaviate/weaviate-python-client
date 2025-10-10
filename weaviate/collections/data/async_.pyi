@@ -1,5 +1,5 @@
 import uuid as uuid_package
-from typing import Generic, List, Literal, Optional, Sequence, Union, overload
+from typing import Generic, Literal, Optional, Sequence, overload
 
 from weaviate.collections.classes.batch import (
     BatchObjectReturn,
@@ -31,8 +31,7 @@ class _DataCollectionAsync(
         vector: Optional[VECTORS] = None,
     ) -> uuid_package.UUID: ...
     async def insert_many(
-        self,
-        objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
+        self, objects: Sequence[Properties | DataObject[Properties, Optional[ReferenceInputs]]]
     ) -> BatchObjectReturn: ...
     async def exists(self, uuid: UUID) -> bool: ...
     async def replace(
@@ -52,7 +51,7 @@ class _DataCollectionAsync(
     async def reference_add(
         self, from_uuid: UUID, from_property: str, to: SingleReferenceInput
     ) -> None: ...
-    async def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn: ...
+    async def reference_add_many(self, refs: list[DataReferences]) -> BatchReferenceReturn: ...
     async def reference_delete(
         self, from_uuid: UUID, from_property: str, to: SingleReferenceInput
     ) -> None: ...
@@ -67,8 +66,8 @@ class _DataCollectionAsync(
     @overload
     async def delete_many(
         self, where: _Filters, *, verbose: Literal[True], dry_run: bool = False
-    ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
+    ) -> DeleteManyReturn[list[DeleteManyObject]]: ...
     @overload
     async def delete_many(
         self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
-    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...
+    ) -> DeleteManyReturn[list[DeleteManyObject]] | DeleteManyReturn[None]: ...

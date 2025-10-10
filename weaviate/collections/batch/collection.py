@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Generic, List, Optional, Union
+from typing import TYPE_CHECKING, Generic, Optional
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -66,7 +66,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
                 vector was generated using the _identical_ vectorization module that is configured for the class. In this
                 case this vector takes precedence. Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
-                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+                - for named vectors: dict[str, *list above*], where the string is the name of the vector.
 
         Returns:
             The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
@@ -84,7 +84,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         )
 
     def add_reference(
-        self, from_uuid: UUID, from_property: str, to: Union[ReferenceInput, List[UUID]]
+        self, from_uuid: UUID, from_property: str, to: ReferenceInput | list[UUID]
     ) -> None:
         """Add a reference to this batch.
 

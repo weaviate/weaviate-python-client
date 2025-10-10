@@ -6,7 +6,6 @@ from typing import (
     Generic,
     Iterable,
     Iterator,
-    List,
     Optional,
 )
 from uuid import UUID
@@ -54,7 +53,7 @@ class _ObjectIterator(
         self.__query = query
         self.__inputs = inputs
 
-        self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
+        self.__iter_object_cache: list[Object[TProperties, TReferences]] = []
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
 
@@ -100,7 +99,7 @@ class _ObjectAIterator(
         self.__query = query
         self.__inputs = inputs
 
-        self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
+        self.__iter_object_cache: list[Object[TProperties, TReferences]] = []
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
 

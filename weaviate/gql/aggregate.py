@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from weaviate.util import _capitalize_first_letter, _sanitize_str, file_encoder_b64
 
@@ -27,10 +27,10 @@ from .filter import (
 class Hybrid:
     query: Optional[str]
     alpha: Optional[float]
-    vector: Optional[List[float]]
-    properties: Optional[List[str]]
-    target_vectors: Optional[List[str]]
-    max_vector_distance: Optional[List[str]]
+    vector: Optional[list[float]]
+    properties: Optional[list[str]]
+    target_vectors: Optional[list[str]]
+    max_vector_distance: Optional[list[str]]
 
     def __init__(self, content: dict) -> None:
         self.query = content.get("query")
@@ -71,9 +71,9 @@ class AggregateBuilder(GraphQL):
         self._class_name: str = _capitalize_first_letter(class_name)
         self._object_limit: Optional[int] = None
         self._with_meta_count: bool = False
-        self._fields: List[str] = []
+        self._fields: list[str] = []
         self._where: Optional[Where] = None
-        self._group_by_properties: Optional[List[str]] = None
+        self._group_by_properties: Optional[list[str]] = None
         self._uses_filter: bool = False
         self._near: Optional[Filter] = None
         self._tenant: Optional[str] = None
@@ -162,7 +162,7 @@ class AggregateBuilder(GraphQL):
         self._uses_filter = True
         return self
 
-    def with_group_by_filter(self, properties: List[str]) -> "AggregateBuilder":
+    def with_group_by_filter(self, properties: list[str]) -> "AggregateBuilder":
         """Add a group by filter to the query. Might requires the user to set an additional group by clause using `with_fields(..)`.
 
         Args:

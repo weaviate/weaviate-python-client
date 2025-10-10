@@ -2,12 +2,9 @@
 
 from typing import (
     Any,
-    Dict,
     Generic,
     Optional,
-    Tuple,
     Type,
-    Union,
 )
 
 from httpx import Response
@@ -28,7 +25,7 @@ from .types import NUMBER
 from .util import _decode_json_response_dict
 from .validator import _validate_input, _ValidateArgument
 
-TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
+TIMEOUT_TYPE = tuple[NUMBER, NUMBER] | NUMBER
 
 
 class _WeaviateClientExecutor(Generic[ConnectionType]):
@@ -87,7 +84,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
         self,
         connection_params: Optional[ConnectionParams],
         embedded_options: Optional[EmbeddedOptions],
-    ) -> Tuple[ConnectionParams, Optional[EmbeddedV4]]:
+    ) -> tuple[ConnectionParams, Optional[EmbeddedV4]]:
         if connection_params is None and embedded_options is None:
             raise TypeError("Either connection_params or embedded_options must be present.")
         elif connection_params is not None and embedded_options is not None:
@@ -204,8 +201,8 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             res = _decode_json_response_dict(response, "GQL query")
             assert res is not None
 
-            errors: Optional[Dict[str, Any]] = res.get("errors")
-            data_raw: Optional[Dict[str, _GQLEntryReturnType]] = res.get("data")
+            errors: Optional[dict[str, Any]] = res.get("errors")
+            data_raw: Optional[dict[str, _GQLEntryReturnType]] = res.get("data")
 
             if data_raw is not None:
                 return _RawGQLReturn(
@@ -247,7 +244,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
 
     def get_open_id_configuration(
         self,
-    ) -> executor.Result[Optional[Dict[str, Any]]]:
+    ) -> executor.Result[Optional[dict[str, Any]]]:
         """Get the openid-configuration.
 
         Returns:

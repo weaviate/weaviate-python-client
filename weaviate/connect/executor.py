@@ -5,11 +5,8 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    List,
     Literal,
-    Tuple,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -22,15 +19,13 @@ T = TypeVar("T")
 A = TypeVar("A")
 
 
-SyncOrAsyncCallback = Union[
-    Callable[[R], T], Callable[[R], Awaitable[A]], Callable[[R], Union[T, Awaitable[A]]]
-]
+SyncOrAsyncCallback = (
+    Callable[[R], T] | Callable[[R], Awaitable[A]] | Callable[[R], T | Awaitable[A]]
+)
 
-SyncOrAsyncMethod = Union[
-    Callable[P, R], Callable[P, Awaitable[R]], Callable[P, Union[R, Awaitable[R]]]
-]
+SyncOrAsyncMethod = Callable[P, R] | Callable[P, Awaitable[R]] | Callable[P, R | Awaitable[R]]
 
-Result = Union[T, Awaitable[T]]
+Result = T | Awaitable[T]
 Colour = Literal["async", "sync"]
 
 
@@ -65,7 +60,7 @@ def execute(
     exception_callback: Callable[[Exception], Any] = raise_exception,
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Union[T, Awaitable[T]]: ...
+) -> T | Awaitable[T]: ...
 
 
 def execute(
@@ -74,7 +69,7 @@ def execute(
     exception_callback: Callable[[Exception], Any] = raise_exception,
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Union[T, Awaitable[T], Awaitable[A]]:
+) -> T | Awaitable[T] | Awaitable[A]:
     # wrap method call in try-except to catch exceptions for sync method
     try:
         call = method(*args, **kwargs)
@@ -137,7 +132,7 @@ def no_wrapping(func: T) -> T:
 
 def wrap(colour: Colour) -> Callable[[T], T]:
     def decorator(cls: T) -> T:
-        methods: List[Tuple[str, FunctionType]] = []
+        methods: list[tuple[str, FunctionType]] = []
         for name, method in inspect.getmembers(cls, inspect.isfunction):
             # pulls the original method if it was wrapped by functools.wraps, e.g. @deprecated
             method = getattr(method, "__wrapped__", method)

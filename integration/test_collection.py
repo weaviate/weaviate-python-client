@@ -3,7 +3,7 @@ import io
 import pathlib
 import time
 import uuid
-from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
+from typing import Any, Callable, Optional, Sequence, TypedDict
 
 import pytest
 
@@ -81,7 +81,7 @@ def test_insert_with_dict_generic(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vector_config=Configure.Vectors.self_provided(),
     )
-    collection = collection_factory_get(dummy.name, Dict[str, str])
+    collection = collection_factory_get(dummy.name, dict[str, str])
     uuid = collection.data.insert(properties={"name": "some name"})
     objects = collection.query.fetch_objects()
     assert len(objects.objects) == 1
@@ -211,7 +211,7 @@ def test_delete_by_id_consistency_level(collection_factory: CollectionFactory) -
 )
 def test_insert_many(
     collection_factory: CollectionFactory,
-    objects: Sequence[Union[WeaviateProperties, DataObject[WeaviateProperties, Any]]],
+    objects: Sequence[WeaviateProperties | DataObject[WeaviateProperties, Any]],
     should_error: bool,
 ) -> None:
     collection = collection_factory(
@@ -966,9 +966,9 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize("include_vector", [False, True])
 def test_return_properties_metadata_references_combos(
     collection_factory: CollectionFactory,
-    return_properties: Union[List[PROPERTY], bool, None],
+    return_properties: list[PROPERTY] | bool | None,
     return_metadata: Optional[MetadataQuery],
-    return_references: Optional[List[REFERENCE]],
+    return_references: Optional[list[REFERENCE]],
     include_vector: bool,
 ) -> None:
     collection = collection_factory(
@@ -1118,9 +1118,9 @@ def test_return_list_properties(collection_factory: CollectionFactory) -> None:
 )  # Passing none here causes a server-side bug with <=1.22.2
 def test_near_text(
     collection_factory: CollectionFactory,
-    query: Union[str, List[str]],
-    objects: Union[UUID, List[UUID]],
-    concepts: Union[str, List[str]],
+    query: str | list[str],
+    objects: UUID | list[UUID],
+    concepts: str | list[str],
     return_properties: Optional[PROPERTIES],
 ) -> None:
     collection = collection_factory(
@@ -1276,7 +1276,7 @@ def test_near_text_offset(collection_factory: CollectionFactory) -> None:
 )
 def test_near_image(
     collection_factory: CollectionFactory,
-    image_maker: Callable[[], Union[str, pathlib.Path, io.BufferedReader]],
+    image_maker: Callable[[], str | pathlib.Path | io.BufferedReader],
     distance: Optional[float],
     certainty: Optional[float],
 ) -> None:
@@ -1333,7 +1333,7 @@ def test_near_image(
 )
 def test_near_media(
     collection_factory: CollectionFactory,
-    image_maker: Callable[[], Union[str, pathlib.Path, io.BufferedReader]],
+    image_maker: Callable[[], str | pathlib.Path | io.BufferedReader],
     distance: Optional[float],
     certainty: Optional[float],
 ) -> None:
@@ -1402,11 +1402,11 @@ def test_return_properties_with_query_specific_typed_dict(
         int_: int
 
     class DataModel1(TypedDict):
-        ints: List[int]
+        ints: list[int]
 
     class DataModel2(TypedDict):
         int_: int
-        ints: List[int]
+        ints: list[int]
 
     class DataModel3(TypedDict):
         non_existant: str
@@ -1414,13 +1414,13 @@ def test_return_properties_with_query_specific_typed_dict(
     class DataModel4(TypedDict):
         pass
 
-    objects: Union[
-        List[Object[DataModel0, None]],
-        List[Object[DataModel1, None]],
-        List[Object[DataModel2, None]],
-        List[Object[DataModel3, None]],
-        List[Object[DataModel4, None]],
-    ]
+    objects: (
+        list[Object[DataModel0, None]]
+        | list[Object[DataModel1, None]]
+        | list[Object[DataModel2, None]]
+        | list[Object[DataModel3, None]]
+        | list[Object[DataModel4, None]]
+    )
     if which_case == 0:
         objects = collection.query.fetch_objects(return_properties=DataModel0).objects
         assert len(objects) == 1
@@ -1445,7 +1445,7 @@ def test_return_properties_with_query_specific_typed_dict(
 def test_return_properties_with_general_typed_dict(collection_factory: CollectionFactory) -> None:
     class _Data(TypedDict):
         int_: int
-        ints: List[int]
+        ints: list[int]
 
     collection = collection_factory(
         vector_config=Configure.Vectors.self_provided(),
@@ -1467,7 +1467,7 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
 ) -> None:
     class _DataAll(TypedDict):
         int_: int
-        ints: List[int]
+        ints: list[int]
 
     class _Data(TypedDict):
         int_: int
@@ -1557,7 +1557,7 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
 def test_sort(
     collection_factory: CollectionFactory,
     sort: _Sorting,
-    expected: List[int],
+    expected: list[int],
 ) -> None:
     collection = collection_factory(
         vector_config=Configure.Vectors.self_provided(),
@@ -1620,7 +1620,7 @@ def test_return_properties_with_type_hint_generic(
             Property(name="name", data_type=DataType.TEXT),
         ],
     )
-    collection = collection_factory_get(dummy.name, Dict[str, str])
+    collection = collection_factory_get(dummy.name, dict[str, str])
     collection.data.insert(properties={"name": value})
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1

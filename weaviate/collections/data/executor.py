@@ -3,16 +3,12 @@ import datetime
 import uuid as uuid_package
 from typing import (
     Any,
-    Dict,
     Generic,
-    List,
     Literal,
     Mapping,
     Optional,
     Sequence,
-    Tuple,
     Type,
-    Union,
     cast,
     overload,
 )
@@ -97,7 +93,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             uuid: The UUID of the object. If not provided, a random UUID will be generated.
             vector: The vector(s) of the object. Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
-                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+                - for named vectors: dict[str, *list above*], where the string is the name of the vector.
 
         Returns:
             The UUID of the inserted object.
@@ -119,7 +115,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             )
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
-        weaviate_obj: Dict[str, Any] = {
+        weaviate_obj: dict[str, Any] = {
             "class": self.name,
             "properties": {**props, **refs},
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
@@ -144,7 +140,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
 
     def insert_many(
         self,
-        objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
+        objects: Sequence[Properties | DataObject[Properties, Optional[ReferenceInputs]]],
     ) -> executor.Result[BatchObjectReturn]:
         """Insert multiple objects into the collection.
 
@@ -249,7 +245,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             references: Any references to other objects in Weaviate, REQUIRED.
             vector: The vector(s) of the object. Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
-                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+                - for named vectors: dict[str, *list above*], where the string is the name of the vector.
 
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
@@ -271,7 +267,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             )
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
-        weaviate_obj: Dict[str, Any] = {
+        weaviate_obj: dict[str, Any] = {
             "class": self.name,
             "properties": {**props, **refs},
         }
@@ -311,7 +307,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             references: Any references to other objects in Weaviate.
             vector: The vector(s) of the object. Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
-                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+                - for named vectors: dict[str, *list above*], where the string is the name of the vector.
         """
         path = f"/objects/{self.name}/{uuid}"
 
@@ -329,7 +325,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             )
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
-        weaviate_obj: Dict[str, Any] = {
+        weaviate_obj: dict[str, Any] = {
             "class": self.name,
             "properties": {**props, **refs},
         }
@@ -368,7 +364,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
 
@@ -425,7 +421,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
 
     def reference_add_many(
         self,
-        refs: List[DataReferences],
+        refs: list[DataReferences],
     ) -> executor.Result[BatchReferenceReturn]:
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
@@ -465,7 +461,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             from_property: The name of the property in the object in this collection from which the reference should be deleted, REQUIRED.
             to: The reference to delete, REQUIRED.
         """
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
 
         if self._validate_arguments:
@@ -534,7 +530,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             from_property: The name of the property in the object in this collection from which the reference should be replaced, REQUIRED.
             to: The reference to replace, REQUIRED.
         """
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
 
         if self._validate_arguments:
@@ -546,9 +542,9 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
                         expected=[
                             UUID,
                             ReferenceToMulti,
-                            List[str],
-                            List[uuid_package.UUID],
-                            List[UUID],
+                            list[str],
+                            list[uuid_package.UUID],
+                            list[UUID],
                         ],
                         name="references",
                         value=to,
@@ -601,18 +597,16 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
     @overload
     def delete_many(
         self, where: _Filters, *, verbose: Literal[True], dry_run: bool = False
-    ) -> executor.Result[DeleteManyReturn[List[DeleteManyObject]]]: ...
+    ) -> executor.Result[DeleteManyReturn[list[DeleteManyObject]]]: ...
 
     @overload
     def delete_many(
         self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
-    ) -> executor.Result[
-        Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]
-    ]: ...
+    ) -> executor.Result[DeleteManyReturn[list[DeleteManyObject]] | DeleteManyReturn[None]]: ...
 
     def delete_many(
         self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
-    ) -> executor.Result[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
+    ) -> executor.Result[DeleteManyReturn[list[DeleteManyObject]] | DeleteManyReturn[None]]:
         """Delete multiple objects from the collection based on a filter.
 
         Args:
@@ -636,7 +630,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             tenant=self._tenant,
         )
 
-    def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def __apply_context(self, params: dict[str, Any]) -> dict[str, Any]:
         if self._tenant is not None:
             params["tenant"] = self._tenant
         if self._consistency_level is not None:
@@ -644,18 +638,18 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
         return params
 
     def __apply_context_to_params_and_object(
-        self, params: Dict[str, Any], obj: Dict[str, Any]
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        self, params: dict[str, Any], obj: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         if self._tenant is not None:
             obj["tenant"] = self._tenant
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level.value
         return params, obj
 
-    def __serialize_props(self, props: Properties) -> Dict[str, Any]:
+    def __serialize_props(self, props: Properties) -> dict[str, Any]:
         return {key: self.__serialize_primitive(val) for key, val in props.items()}
 
-    def __serialize_refs(self, refs: ReferenceInputs) -> Dict[str, Any]:
+    def __serialize_refs(self, refs: ReferenceInputs) -> dict[str, Any]:
         return {
             key: (
                 val._to_beacons()
@@ -690,7 +684,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             f"Cannot serialize value of type {type(value)} to Weaviate."
         )
 
-    def __parse_vector(self, obj: Dict[str, Any], vector: VECTORS) -> Dict[str, Any]:
+    def __parse_vector(self, obj: dict[str, Any], vector: VECTORS) -> dict[str, Any]:
         if isinstance(vector, dict):
             obj["vectors"] = {key: _get_vector_v4(val) for key, val in vector.items()}
         else:

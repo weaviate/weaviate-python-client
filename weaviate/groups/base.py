@@ -1,4 +1,4 @@
-from typing import Dict, Generic, List, Literal, Union, overload
+from typing import Generic, Literal, overload
 
 from httpx import Response
 
@@ -24,10 +24,10 @@ class _BaseExecutor(Generic[ConnectionType]):
         group_id: str,
         group_type: USER_TYPE,
         include_permissions: bool,
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]:
         path = f"/authz/groups/{escape_string(group_id)}/roles/{group_type}"
 
-        def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
+        def resp(res: Response) -> dict[str, Role] | dict[str, RoleBase]:
             roles = res.json()
             if include_permissions:
                 return {role["name"]: Role._from_weaviate_role(role) for role in roles}
@@ -44,7 +44,7 @@ class _BaseExecutor(Generic[ConnectionType]):
 
     def _assign_roles_to_group(
         self,
-        roles: List[str],
+        roles: list[str],
         group_id: str,
         group_type: USER_TYPE,
     ) -> executor.Result[None]:
@@ -64,7 +64,7 @@ class _BaseExecutor(Generic[ConnectionType]):
 
     def _revoke_roles_from_group(
         self,
-        roles: Union[str, List[str]],
+        roles: str | list[str],
         group_id: str,
         group_type: USER_TYPE,
     ) -> executor.Result[None]:
@@ -82,10 +82,10 @@ class _BaseExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Revoke group from user"),
         )
 
-    def _get_known_group_names(self, group_type: USER_TYPE) -> executor.Result[List[str]]:
+    def _get_known_group_names(self, group_type: USER_TYPE) -> executor.Result[list[str]]:
         path = f"/authz/groups/{group_type}"
 
-        def resp(res: Response) -> List[str]:
+        def resp(res: Response) -> list[str]:
             groups = res.json()
             assert isinstance(groups, list), "Expected a list of group names"
             return groups
@@ -103,12 +103,12 @@ class _GroupsOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
     @overload
     def get_assigned_roles(
         self, *, group_id: str, include_permissions: Literal[False] = False
-    ) -> executor.Result[Dict[str, RoleBase]]: ...
+    ) -> executor.Result[dict[str, RoleBase]]: ...
 
     @overload
     def get_assigned_roles(
         self, *, group_id: str, include_permissions: Literal[True]
-    ) -> executor.Result[Dict[str, Role]]: ...
+    ) -> executor.Result[dict[str, Role]]: ...
 
     @overload
     def get_assigned_roles(
@@ -116,14 +116,14 @@ class _GroupsOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         *,
         group_id: str,
         include_permissions: bool = False,
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]: ...
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]: ...
 
     def get_assigned_roles(
         self,
         *,
         group_id: str,
         include_permissions: bool = False,
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]:
         """Get the roles assigned to a group specific to the configured OIDC's dynamic auth functionality.
 
         Args:
@@ -142,7 +142,7 @@ class _GroupsOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         self,
         *,
         group_id: str,
-        role_names: Union[str, List[str]],
+        role_names: str | list[str],
     ) -> executor.Result[None]:
         """Assign roles to a group specific to the configured OIDC's dynamic auth functionality.
 
@@ -160,7 +160,7 @@ class _GroupsOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         self,
         *,
         group_id: str,
-        role_names: Union[str, List[str]],
+        role_names: str | list[str],
     ) -> executor.Result[None]:
         """Revoke roles from a group specific to the configured OIDC's dynamic auth functionality.
 
@@ -174,7 +174,7 @@ class _GroupsOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
             USER_TYPE_OIDC,
         )
 
-    def get_known_group_names(self) -> executor.Result[List[str]]:
+    def get_known_group_names(self) -> executor.Result[list[str]]:
         """Get the known group names specific to the configured OIDC's dynamic auth functionality.
 
         Returns:

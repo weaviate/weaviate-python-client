@@ -1,6 +1,6 @@
 import os
 import warnings
-from typing import Dict, Optional
+from typing import Optional
 
 import httpx
 import pytest
@@ -137,7 +137,7 @@ def test_client_with_authentication_with_anon_weaviate() -> None:
         assert any(str(warn.message).startswith("Auth001") for warn in recwarn.list)
 
 
-def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
+def _get_access_token(url: str, user: str, pw: str) -> dict[str, str]:
     # get an access token with WCS user and pw.
     weaviate_open_id_config = httpx.get("http://" + url + "/v1/.well-known/openid-configuration")
     response_json = weaviate_open_id_config.json()
