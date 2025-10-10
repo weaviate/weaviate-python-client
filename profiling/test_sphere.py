@@ -28,7 +28,7 @@ def test_sphere(collection_factory: CollectionFactory) -> None:
     start = time.time()
 
     import_objects = 1000000
-    with collection.batch.automatic() as batch:
+    with collection.batch.dynamic() as batch:
         with open(sphere_file) as jsonl_file:
             for i, jsonl in enumerate(jsonl_file):
                 if i == import_objects or batch.number_errors > 10:
