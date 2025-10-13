@@ -757,7 +757,8 @@ def test_contextualai_generative_search_single(
             model="v2",
             max_tokens=100,
             temperature=0.1,
-            system_prompt="You are a helpful AI assistant. Answer with yes or no only.",
+            system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context. Answer with yes or no only.",
+            avoid_commentary=False,
         ),
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
@@ -798,7 +799,8 @@ def test_contextualai_generative_and_rerank_combined(collection_factory: Collect
             model="v2",
             max_tokens=100,
             temperature=0.1,
-            system_prompt="You are a helpful AI assistant.",
+            system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
+            avoid_commentary=False,
         ),
         reranker_config=Configure.Reranker.contextualai(
             model="ctxl-rerank-v2-instruct-multilingual",
