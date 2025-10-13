@@ -1077,6 +1077,10 @@ class _BatchBaseNew:
                 connection=self.__connection,
                 requests=self.__generate_stream_requests_for_grpc(),
             ):
+                if message.HasField("started"):
+                    logger.warning("Batch stream started successfully")
+                    for threads in self.__bg_threads:
+                        threads.send.start()
                 if message.HasField("error"):
                     if message.error.HasField("object"):
                         cached = self.__objs_cache.pop(message.error.object.uuid)
@@ -1219,7 +1223,6 @@ class _BatchBaseNew:
             daemon=True,
             name="BgBatchSend",
         )
-        demonBatchSend.start()
 
         demonBatchRecv = threading.Thread(
             target=batch_recv_wrapper,
