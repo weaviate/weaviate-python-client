@@ -1055,8 +1055,8 @@ TEST_CONFIG_WITH_GENERATIVE = [
             max_tokens=512,
             temperature=0.7,
             top_p=0.9,
-            system_prompt="You are a helpful AI assistant",
-            avoid_commentary=True,
+            system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
+            avoid_commentary=False,
             base_url="https://api.contextual.ai",
         ),
         {
@@ -1065,9 +1065,9 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "maxTokensProperty": 512,
                 "temperatureProperty": 0.7,
                 "topPProperty": 0.9,
-                "systemPromptProperty": "You are a helpful AI assistant",
-                "avoidCommentaryProperty": True,
-                "baseURL": "https://api.contextual.ai",
+                "systemPromptProperty": "You are a helpful assistant that provides accurate and informative responses based on the given context.",
+                "avoidCommentaryProperty": False,
+                "baseURL": "https://api.contextual.ai/",
             }
         },
     ),
