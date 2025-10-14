@@ -24,12 +24,15 @@ class BatchReferencesRequest(_message.Message):
     def __init__(self, references: _Optional[_Iterable[_Union[BatchReference, _Mapping]]] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
 
 class BatchStreamRequest(_message.Message):
-    __slots__ = ["start", "data"]
+    __slots__ = ["start", "data", "stop"]
     class Start(_message.Message):
         __slots__ = ["consistency_level"]
         CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
         consistency_level: _base_pb2.ConsistencyLevel
         def __init__(self, consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...) -> None: ...
+    class Stop(_message.Message):
+        __slots__ = []
+        def __init__(self) -> None: ...
     class Data(_message.Message):
         __slots__ = ["objects", "references"]
         class Objects(_message.Message):
@@ -49,9 +52,11 @@ class BatchStreamRequest(_message.Message):
         def __init__(self, objects: _Optional[_Union[BatchStreamRequest.Data.Objects, _Mapping]] = ..., references: _Optional[_Union[BatchStreamRequest.Data.References, _Mapping]] = ...) -> None: ...
     START_FIELD_NUMBER: _ClassVar[int]
     DATA_FIELD_NUMBER: _ClassVar[int]
+    STOP_FIELD_NUMBER: _ClassVar[int]
     start: BatchStreamRequest.Start
     data: BatchStreamRequest.Data
-    def __init__(self, start: _Optional[_Union[BatchStreamRequest.Start, _Mapping]] = ..., data: _Optional[_Union[BatchStreamRequest.Data, _Mapping]] = ...) -> None: ...
+    stop: BatchStreamRequest.Stop
+    def __init__(self, start: _Optional[_Union[BatchStreamRequest.Start, _Mapping]] = ..., data: _Optional[_Union[BatchStreamRequest.Data, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamRequest.Stop, _Mapping]] = ...) -> None: ...
 
 class BatchStreamReply(_message.Message):
     __slots__ = ["error", "shutting_down", "backoff", "started"]

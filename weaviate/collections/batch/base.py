@@ -1065,6 +1065,7 @@ class _BatchBaseNew:
                 self.__is_shutting_down.is_set() or self.__is_shutdown.is_set()
             ):
                 logger.warning("Batching finished, closing the client-side of the stream")
+                yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                 return
             if self.__is_shutting_down.is_set():
                 logger.warning("Server shutting down, closing the client-side of the stream")
