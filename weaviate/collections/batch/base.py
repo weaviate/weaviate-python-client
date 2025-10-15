@@ -809,6 +809,18 @@ class _BgThreads:
     def __init__(self, send: threading.Thread, recv: threading.Thread):
         self.send = send
         self.recv = recv
+        self.__started_recv = False
+        self.__started_send = False
+
+    def start_recv(self) -> None:
+        if not self.__started_recv:
+            self.recv.start()
+            self.__started_recv = True
+
+    def start_send(self) -> None:
+        if not self.__started_send:
+            self.send.start()
+            self.__started_send = True
 
     def is_alive(self) -> bool:
         """Check if the background threads are still alive."""
@@ -1081,7 +1093,7 @@ class _BatchBaseNew:
                 if message.HasField("started"):
                     logger.warning("Batch stream started successfully")
                     for threads in self.__bg_threads:
-                        threads.send.start()
+                        threads.start_send()
                 if message.HasField("error"):
                     if message.error.HasField("object"):
                         cached = self.__objs_cache.pop(message.error.object.uuid)
@@ -1219,23 +1231,20 @@ class _BatchBaseNew:
                 # start a new stream with a newly reconnected channel
                 return batch_recv_wrapper()
 
-        demonBatchSend = threading.Thread(
-            target=batch_send_wrapper,
-            daemon=True,
-            name="BgBatchSend",
+        threads = _BgThreads(
+            send=threading.Thread(
+                target=batch_send_wrapper,
+                daemon=True,
+                name="BgBatchSend",
+            ),
+            recv=threading.Thread(
+                target=batch_recv_wrapper,
+                daemon=True,
+                name="BgBatchRecv",
+            ),
         )
-
-        demonBatchRecv = threading.Thread(
-            target=batch_recv_wrapper,
-            daemon=True,
-            name="BgBatchRecv",
-        )
-        demonBatchRecv.start()
-
-        return _BgThreads(
-            send=demonBatchSend,
-            recv=demonBatchRecv,
-        )
+        threads.start_recv()
+        return threads
 
     def flush(self) -> None:
         """Flush the batch queue and wait for all requests to be finished."""
