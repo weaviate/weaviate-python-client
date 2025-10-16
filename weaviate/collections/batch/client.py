@@ -305,9 +305,10 @@ class _BatchClientWrapper(_BatchWrapper):
                 "Server-side batching", str(self._connection._weaviate_version), "1.33.0"
             )
         self._batch_mode = _ServerSideBatching(
-            concurrency=concurrency
-            if concurrency is not None
-            else len(self._cluster.get_nodes_status())
+            # concurrency=concurrency
+            # if concurrency is not None
+            # else len(self._cluster.get_nodes_status())
+            concurrency=1,  # hard-code until client-side multi-threading is fixed
         )
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset(_BatchClientNew)
