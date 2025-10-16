@@ -824,7 +824,7 @@ class _BgThreads:
 
     def is_alive(self) -> bool:
         """Check if the background threads are still alive."""
-        return self.send_alive() and self.recv_alive()
+        return self.send_alive() or self.recv_alive()
 
     def send_alive(self) -> bool:
         """Check if the send background thread is still alive."""
