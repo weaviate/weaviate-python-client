@@ -24,7 +24,8 @@ env:
   WEAVIATE_130: 1.30.18
   WEAVIATE_131: 1.31.16
   WEAVIATE_132: 1.32.5
-  WEAVIATE_133: 1.34.0-dev-6686b25.amd64
+  WEAVIATE_133: 1.33.0
+  WEAVIATE_134: 1.34.0-dev-6686b25.amd64
 
 jobs:
   lint-and-format:
@@ -152,11 +153,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_131, grpc: "1.59.0"},
-          { py: "3.10", weaviate: $WEAVIATE_131, grpc: "1.66.0"},
-          { py: "3.11", weaviate: $WEAVIATE_131, grpc: "1.70.0"},
-          { py: "3.12", weaviate: $WEAVIATE_131, grpc: "1.72.1"},
-          { py: "3.13", weaviate: $WEAVIATE_131, grpc: "1.74.0"}
+          { py: "3.9", weaviate: $WEAVIATE_132, grpc: "1.59.0"},
+          { py: "3.10", weaviate: $WEAVIATE_132, grpc: "1.66.0"},
+          { py: "3.11", weaviate: $WEAVIATE_132, grpc: "1.70.0"},
+          { py: "3.12", weaviate: $WEAVIATE_132, grpc: "1.72.1"},
+          { py: "3.13", weaviate: $WEAVIATE_132, grpc: "1.74.0"}
         ]
         optional_dependencies: [false]
     steps:
@@ -207,11 +208,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_131},
-          { py: "3.10", weaviate: $WEAVIATE_131},
-          { py: "3.11", weaviate: $WEAVIATE_131},
-          { py: "3.12", weaviate: $WEAVIATE_131},
-          { py: "3.13", weaviate: $WEAVIATE_131}
+          { py: "3.9", weaviate: $WEAVIATE_132},
+          { py: "3.10", weaviate: $WEAVIATE_132},
+          { py: "3.11", weaviate: $WEAVIATE_132},
+          { py: "3.12", weaviate: $WEAVIATE_132},
+          { py: "3.13", weaviate: $WEAVIATE_132}
         ]
         optional_dependencies: [false]
     steps:
@@ -302,7 +303,8 @@ jobs:
           $WEAVIATE_130,
           $WEAVIATE_131,
           $WEAVIATE_132,
-          $WEAVIATE_133
+          $WEAVIATE_133,
+          $WEAVIATE_134
         ]
     steps:
       - name: Checkout

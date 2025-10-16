@@ -386,9 +386,9 @@ def test_add_ten_thousand_data_objects(
     client, name = client_factory()
     if (
         request.node.callspec.id == "test_add_ten_thousand_data_objects_experimental"
-        and client._connection._weaviate_version.is_lower_than(1, 33, 0)
-    ):  # change to 1.33.0 when released
-        pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
+        and client._connection._weaviate_version.is_lower_than(1, 34, 0)
+    ):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
     nr_objects = 100000
     import time
 
@@ -595,9 +595,9 @@ def test_add_one_object_and_a_self_reference(
     if (
         request.node.callspec.id
         == "test_add_one_hundred_objects_and_references_between_all_experimental"
-        and client._connection._weaviate_version.is_lower_than(1, 33, 0)
+        and client._connection._weaviate_version.is_lower_than(1, 34, 0)
     ):
-        pytest.skip("Server-side batching not supported in Weaviate < 1.33.0")
+        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
     with batching_method(client) as batch:
         uuid = batch.add_object(collection=name, properties={})
         batch.add_reference(
