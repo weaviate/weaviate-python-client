@@ -1,5 +1,4 @@
-import time
-from typing import Callable, Generator, List, Optional, TypeVar, Union
+from typing import Generator, List, Optional, Union
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -42,39 +41,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
-
-T = TypeVar("T")
-
-
-def retry_on_http_error(
-    func: Callable[[], T], http_error_code: int, max_retries: int = 3, delay: float = 0.5
-) -> T:
-    """Retry a function call if it raises UnexpectedStatusCodeError with 404 status code.
-
-    Args:
-        func: The function to retry
-        http_error_code: The HTTP error code to retry on
-        max_retries: Maximum number of retries (default: 3)
-        delay: Initial delay between retries in seconds (default: 0.5)
-
-    Returns:
-        The result of the function call
-
-    Raises:
-        The last exception if all retries are exhausted
-    """
-    last_exception = None
-    for attempt in range(max_retries + 1):
-        try:
-            return func()
-        except UnexpectedStatusCodeError as e:
-            last_exception = e
-            if e.status_code == http_error_code and attempt < max_retries:
-                time.sleep(delay * (2**attempt))  # Exponential backoff
-                continue
-            raise
-    # This should never be reached, but satisfies the type checker
-    raise last_exception  # type: ignore
+from integration.conftest import retry_on_http_error
 
 
 @pytest.fixture(scope="module")
