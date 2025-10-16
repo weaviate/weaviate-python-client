@@ -45,6 +45,7 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigSPFreshUpdate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
@@ -1593,6 +1594,21 @@ class _VectorIndexConfigHNSW(_VectorIndexConfig):
 
 VectorIndexConfigHNSW = _VectorIndexConfigHNSW
 
+@dataclass
+class _VectorIndexConfigSPFresh(_VectorIndexConfig):
+    distance_metric: VectorDistances
+    max_posting_size: int
+    min_posting_size: int
+    replicas: int
+    rng_factor: int
+    search_probe: int
+    centroids_index_type: str
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.SPFRESH.value
+
+VectorIndexConfigSPFresh = _VectorIndexConfigSPFresh
 
 @dataclass
 class _VectorIndexConfigFlat(_VectorIndexConfig):
@@ -1667,7 +1683,7 @@ class _NamedVectorizerConfig(_ConfigBase):
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, VectorIndexConfigSPFresh
     ]
 
     def to_dict(self) -> Dict:
@@ -1692,7 +1708,7 @@ class _CollectionConfig(_ConfigBase):
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, VectorIndexConfigSPFresh, None
     ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]

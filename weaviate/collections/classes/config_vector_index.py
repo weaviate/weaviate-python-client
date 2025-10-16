@@ -34,11 +34,14 @@ class VectorIndexType(str, Enum):
     Attributes:
         HNSW: Hierarchical Navigable Small World (HNSW) index.
         FLAT: Flat index.
+        DYNAMIC: Dynamic index.
+        SPFRESH: SPFRESH index.
     """
 
     HNSW = "hnsw"
     FLAT = "flat"
     DYNAMIC = "dynamic"
+    SPFRESH = "spfresh"
 
 
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):
@@ -127,6 +130,19 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
         return VectorIndexType.HNSW
 
 
+class _VectorIndexConfigSPFreshCreate(_VectorIndexConfigCreate):
+    maxPostingSize: Optional[int]
+    minPostingSize: Optional[int]
+    replicas: Optional[int]
+    rngFactor: Optional[int]
+    searchProbe: Optional[int]
+    centroidsIndexType: Optional[str]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.SPFRESH
+
+
 class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
     vectorCacheMaxObjects: Optional[int]
 
@@ -147,6 +163,17 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.HNSW
+
+
+class _VectorIndexConfigSPFreshUpdate(_VectorIndexConfigUpdate):
+    maxPostingSize: Optional[int]
+    minPostingSize: Optional[int]
+    rngFactor: Optional[int]
+    searchProbe: Optional[int]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.SPFRESH
 
 
 class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
@@ -562,6 +589,36 @@ class _VectorIndex:
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
             multivector=multi_vector,
+        )
+
+    @staticmethod
+    def spfresh(
+        distance_metric: Optional[VectorDistances] = None,
+        max_posting_size: Optional[int] = None,
+        min_posting_size: Optional[int] = None,
+        replicas: Optional[int] = None,
+        rng_factor: Optional[int] = None,
+        search_probe: Optional[int] = None,
+        centroids_index_type: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+    ) -> _VectorIndexConfigSPFreshCreate:
+        """Create a `_VectorIndexConfigSPFreshCreate` object to be used when defining the SPFresh vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collections.create()`.
+
+        Args:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-spfresh) for a more detailed view!
+        """
+        return _VectorIndexConfigSPFreshCreate(
+            distance=distance_metric,
+            maxPostingSize=max_posting_size,
+            minPostingSize=min_posting_size,
+            replicas=replicas,
+            rngFactor=rng_factor,
+            searchProbe=search_probe,
+            centroidsIndexType=centroids_index_type,
+            quantizer=quantizer,
+            multivector=None,
         )
 
     @staticmethod

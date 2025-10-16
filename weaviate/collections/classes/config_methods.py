@@ -39,6 +39,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
+    _VectorIndexConfigSPFresh,
     _VectorizerConfig,
 )
 
@@ -210,6 +211,18 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         multi_vector=__get_multivector(config),
     )
 
+def __get_spfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigSPFresh:
+    quantizer = __get_quantizer_config(config)
+    return _VectorIndexConfigSPFresh(
+        distance_metric=VectorDistances(config.get("distance")),
+        max_posting_size=config["maxPostingSize"],
+        min_posting_size=config["minPostingSize"],
+        replicas=config["replicas"],
+        rng_factor=config["rngFactor"],
+        search_probe=config["searchProbe"],
+        centroids_index_type=config["centroidsIndexType"],
+        quantizer=quantizer,
+    )
 
 def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
     quantizer = __get_quantizer_config(config)
@@ -237,6 +250,8 @@ def __get_vector_index_config(
             hnsw=__get_hnsw_config(schema["vectorIndexConfig"]["hnsw"]),
             flat=__get_flat_config(schema["vectorIndexConfig"]["flat"]),
         )
+    elif schema["vectorIndexType"] == "spfresh":
+        return __get_spfresh_config(schema["vectorIndexConfig"])
     else:
         return None
 
