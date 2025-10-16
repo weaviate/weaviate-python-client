@@ -853,7 +853,7 @@ class _BatchBaseNew:
         self.__connection = connection
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
         self.__recommended_num_objects = 1000
-        self.__recommended_backoff = 0
+        self.__recommended_backoff = 0.0
 
         self.__batch_grpc = _BatchGRPC(
             connection._weaviate_version, self.__consistency_level, connection._grpc_max_msg_size
@@ -866,7 +866,7 @@ class _BatchBaseNew:
         self.__results_for_wrapper_backup = results
         self.__results_for_wrapper = _BatchDataWrapper()
 
-        self.__max_batch_size: int = 1000
+        self.__max_batch_size: int = 100
 
         self.__objs_count = 0
         self.__refs_count = 0
@@ -1135,17 +1135,17 @@ class _BatchBaseNew:
                         continue
                     if message.backoff.next_batch_size < self.__recommended_num_objects:
                         # logger.warning(
-                        #     f"Scaling down sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
+                        #     f"Adjusting batch size: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
                         # )
                         self.__recommended_num_objects = message.backoff.next_batch_size
                     if message.backoff.next_batch_size > self.__recommended_num_objects:
                         # logger.warning(
-                        #     f"Scaling up sending: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
+                        #     f"Adjusting batch size: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
                         # )
                         self.__recommended_num_objects = message.backoff.next_batch_size
                     if message.backoff.backoff_seconds != self.__recommended_backoff:
                         # logger.warning(
-                        #     f"Backing off from sending the next request by {message.backoff.backoff_seconds} seconds"
+                        #     f"Adjusting backoff time: {self.__recommended_backoff:.2}s -> {message.backoff.backoff_seconds:.2}s"
                         # )
                         self.__recommended_backoff = message.backoff.backoff_seconds
                 elif message.HasField("shutting_down"):
