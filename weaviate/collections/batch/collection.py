@@ -9,6 +9,7 @@ from weaviate.collections.batch.base import (
     _DynamicBatching,
     _FixedSizeBatching,
     _RateLimitedBatching,
+    _ServerSideBatching,
 )
 from weaviate.collections.batch.batch_wrapper import (
     BatchCollectionProtocol,
@@ -267,9 +268,14 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
         When you exit the context manager, the final batch will be sent automatically.
         """
-        # TODO: Change to 1.33.0 when it lands
-        if self._connection._weaviate_version.is_lower_than(1, 32, 1):
+        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Automatic batching", str(self._connection._weaviate_version), "1.32.1"
+                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
             )
+        self._batch_mode = _ServerSideBatching(
+            # concurrency=concurrency
+            # if concurrency is not None
+            # else len(self._cluster.get_nodes_status())
+            concurrency=1,  # hard-code until client-side multi-threading is fixed
+        )
         return self.__create_batch_and_reset(_BatchCollectionNew)
