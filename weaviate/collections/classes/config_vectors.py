@@ -20,6 +20,8 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigSPFreshCreate,
+    _VectorIndexConfigSPFreshUpdate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vectorizers import (
@@ -124,6 +126,19 @@ class _IndexWrappers:
             vectorCacheMaxObjects=None,
             quantizer=quantizer,
             multivector=multivector,
+        )
+
+    @staticmethod
+    def __spfresh(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigSPFreshCreate:
+        return _VectorIndexConfigSPFreshCreate(
+            distance_metric=None,
+            maxPostingSize=None,
+            minPostingSize=None,
+            replicas=None,
+            rngFactor=None,
+            searchProbe=None,
+            centroidsIndexType=None,
+            quantizer=quantizer,
         )
 
     @staticmethod
@@ -1760,6 +1775,7 @@ class _VectorsUpdate:
         name: Optional[str] = None,
         vector_index_config: Union[
             _VectorIndexConfigHNSWUpdate,
+            _VectorIndexConfigSPFreshUpdate,
             _VectorIndexConfigFlatUpdate,
             _VectorIndexConfigDynamicUpdate,
         ],
