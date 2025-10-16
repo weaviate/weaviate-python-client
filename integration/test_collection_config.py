@@ -736,8 +736,7 @@ def test_update_flat_rq(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.rescore_limit == 20
 
     with pytest.raises(UnexpectedStatusCodeError):
-        # cannot enable/disable RQ after flat index was created
-        # must only do this on creation
+        # cannot disable RQ after it was enabled
         collection.config.update(
             vectorizer_config=Reconfigure.VectorIndex.flat(
                 quantizer=Reconfigure.VectorIndex.Quantizer.rq(enabled=False),
@@ -745,7 +744,7 @@ def test_update_flat_rq(collection_factory: CollectionFactory) -> None:
         )
 
     with pytest.raises(UnexpectedStatusCodeError):
-        # cannot change bits after flat index was created
+        # cannot change bits afteradding data
         # must only do this on creation
         collection.config.update(
             vectorizer_config=Reconfigure.VectorIndex.flat(
