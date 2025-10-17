@@ -44,6 +44,18 @@ class VectorIndexType(str, Enum):
     SPFRESH = "spfresh"
 
 
+class VectorCentroidsIndexType(str, Enum):
+    """The available index type that can be used for centroids in SPFresh.
+    
+    Attributes:
+        HNSW: Hierarchical Navigable Small World (HNSW) index.
+        FLAT: flat index. 
+    """
+
+    HNSW = "hnsw"
+    FLAT = "bruteforce"
+
+
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):
     enabled: bool = Field(default=True)
 
@@ -136,7 +148,7 @@ class _VectorIndexConfigSPFreshCreate(_VectorIndexConfigCreate):
     replicas: Optional[int]
     rngFactor: Optional[int]
     searchProbe: Optional[int]
-    centroidsIndexType: Optional[str]
+    centroidsIndexType: Optional[VectorCentroidsIndexType]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -599,7 +611,7 @@ class _VectorIndex:
         replicas: Optional[int] = None,
         rng_factor: Optional[int] = None,
         search_probe: Optional[int] = None,
-        centroids_index_type: Optional[str] = None,
+        centroids_index_type: Optional[VectorCentroidsIndexType] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
     ) -> _VectorIndexConfigSPFreshCreate:
         """Create a `_VectorIndexConfigSPFreshCreate` object to be used when defining the SPFresh vector index configuration of Weaviate.
