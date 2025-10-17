@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Literal, Optional, Union, overload
+from typing import Literal, Optional, overload
 
 from weaviate.cluster.models import ReplicationType, ShardingState
 from weaviate.cluster.replicate import _Replicate
@@ -17,7 +17,7 @@ class _Cluster(_ClusterExecutor[ConnectionSync]):
         shard: Optional[str] = None,
         *,
         output: Literal[None] = None,
-    ) -> List[NodeMinimal]: ...
+    ) -> list[NodeMinimal]: ...
     @overload
     def nodes(
         self,
@@ -25,7 +25,7 @@ class _Cluster(_ClusterExecutor[ConnectionSync]):
         shard: Optional[str] = None,
         *,
         output: Literal["minimal"],
-    ) -> List[NodeMinimal]: ...
+    ) -> list[NodeMinimal]: ...
     @overload
     def nodes(
         self,
@@ -33,7 +33,7 @@ class _Cluster(_ClusterExecutor[ConnectionSync]):
         shard: Optional[str] = None,
         *,
         output: Literal["verbose"],
-    ) -> List[NodeVerbose]: ...
+    ) -> list[NodeVerbose]: ...
     @overload
     def nodes(
         self,
@@ -41,7 +41,7 @@ class _Cluster(_ClusterExecutor[ConnectionSync]):
         shard: Optional[str] = None,
         *,
         output: Optional[Verbosity] = None,
-    ) -> Union[List[NodeMinimal], List[NodeVerbose]]: ...
+    ) -> list[NodeMinimal] | list[NodeVerbose]: ...
     def replicate(
         self,
         *,

@@ -1,6 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Optional, TypeVar, Union, cast
+from typing import Any, Generic, Optional, TypeVar, cast
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -18,7 +18,7 @@ class _BatchObject:
     collection: str
     vector: Optional[VECTORS]
     uuid: str
-    properties: Optional[Dict[str, WeaviateField]]
+    properties: Optional[dict[str, WeaviateField]]
     tenant: Optional[str]
     references: Optional[ReferenceInputs]
     index: int
@@ -31,7 +31,7 @@ class _BatchReference:
     to: str
     tenant: Optional[str]
     from_uuid: str
-    to_uuid: Union[str, None]
+    to_uuid: Optional[str]
 
 
 class BatchObject(BaseModel):
@@ -42,7 +42,7 @@ class BatchObject(BaseModel):
     """
 
     collection: str = Field(min_length=1)
-    properties: Optional[Dict[str, Any]] = Field(default=None)
+    properties: Optional[dict[str, Any]] = Field(default=None)
     references: Optional[ReferenceInputs] = Field(default=None)
     uuid: Optional[UUID] = Field(default=None)
     vector: Optional[VECTORS] = Field(default=None)
@@ -203,14 +203,14 @@ class BatchObjectReturn:
         has_errors: A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
-    _all_responses: List[Union[uuid_package.UUID, ErrorObject]] = field(default_factory=list)
+    _all_responses: list[uuid_package.UUID | ErrorObject] = field(default_factory=list)
     elapsed_seconds: float = 0.0
-    errors: Dict[int, ErrorObject] = field(default_factory=dict)
-    uuids: Dict[int, uuid_package.UUID] = field(default_factory=dict)
+    errors: dict[int, ErrorObject] = field(default_factory=dict)
+    uuids: dict[int, uuid_package.UUID] = field(default_factory=dict)
     has_errors: bool = False
 
     @property
-    def all_responses(self) -> List[Union[uuid_package.UUID, ErrorObject]]:
+    def all_responses(self) -> list[uuid_package.UUID | ErrorObject]:
         """@deprecated: A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
 
         WARNING: This only stores the last `MAX_STORED_RESULTS` objects. If more than `MAX_STORED_RESULTS` objects are added to the batch, the oldest objects will be removed from this list.
@@ -249,7 +249,7 @@ class BatchReferenceReturn:
     """
 
     elapsed_seconds: float = 0.0
-    errors: Dict[int, ErrorReference] = field(default_factory=dict)
+    errors: dict[int, ErrorReference] = field(default_factory=dict)
     has_errors: bool = False
 
     def __add__(self, other: "BatchReferenceReturn") -> "BatchReferenceReturn":

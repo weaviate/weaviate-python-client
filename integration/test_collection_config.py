@@ -1,4 +1,4 @@
-from typing import Generator, List, Optional, Union
+from typing import Generator, Optional
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -1258,7 +1258,7 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
 
 @pytest.mark.parametrize("source_properties", [None, ["text"]])
 def test_named_vectors_export_and_import(
-    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+    collection_factory: CollectionFactory, source_properties: Optional[list[str]]
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
@@ -1285,7 +1285,7 @@ def test_named_vectors_export_and_import(
 
 @pytest.mark.parametrize("source_properties", [None, ["text"]])
 def test_vectors_export_and_import(
-    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+    collection_factory: CollectionFactory, source_properties: Optional[list[str]]
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
@@ -1309,7 +1309,7 @@ def test_vectors_export_and_import(
 
 @pytest.mark.parametrize("source_properties", [None, ["text"]])
 def test_named_vectors_export_and_import_dict(
-    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+    collection_factory: CollectionFactory, source_properties: Optional[list[str]]
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
@@ -1336,7 +1336,7 @@ def test_named_vectors_export_and_import_dict(
 
 @pytest.mark.parametrize("source_properties", [None, ["text"]])
 def test_vectors_export_and_import_dict(
-    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+    collection_factory: CollectionFactory, source_properties: Optional[list[str]]
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
@@ -1551,7 +1551,7 @@ def test_config_muvera_disabled(
 )
 def test_config_add_vector(
     collection_factory: CollectionFactory,
-    existing_vectors: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None],
+    existing_vectors: _VectorizerConfigCreate | list[_NamedVectorConfigCreate] | None,
 ) -> None:
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):

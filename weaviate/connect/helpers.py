@@ -1,6 +1,6 @@
 """Helper functions for creating new WeaviateClient or WeaviateAsyncClient instances in common scenarios."""
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional
 from urllib.parse import urlparse
 
 from deprecation import deprecated as docstring_deprecated
@@ -22,7 +22,7 @@ from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 
-def __parse_weaviate_cloud_cluster_url(cluster_url: str) -> Tuple[str, str]:
+def __parse_weaviate_cloud_cluster_url(cluster_url: str) -> tuple[str, str]:
     _validate_input(_ValidateArgument([str], "cluster_url", cluster_url))
     if cluster_url.startswith("http"):
         # Handle the common case of copy/pasting a URL instead of the hostname.
@@ -35,7 +35,7 @@ def __parse_weaviate_cloud_cluster_url(cluster_url: str) -> Tuple[str, str]:
     return cluster_url, grpc_host
 
 
-def __parse_auth_credentials(creds: Union[str, AuthCredentials, None]) -> Optional[AuthCredentials]:
+def __parse_auth_credentials(creds: Optional[str | AuthCredentials]) -> Optional[AuthCredentials]:
     if isinstance(creds, str):
         # If the credentials are a string, assume it's an API key.
         return Auth.api_key(creds)
@@ -53,8 +53,8 @@ def __parse_auth_credentials(creds: Union[str, AuthCredentials, None]) -> Option
 
 def connect_to_weaviate_cloud(
     cluster_url: str,
-    auth_credentials: Union[str, AuthCredentials],
-    headers: Optional[Dict[str, str]] = None,
+    auth_credentials: str | AuthCredentials,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
@@ -129,8 +129,8 @@ This method is deprecated and will be removed in a future release. Use :func:`co
 )
 def connect_to_wcs(
     cluster_url: str,
-    auth_credentials: Union[str, AuthCredentials],
-    headers: Optional[Dict[str, str]] = None,
+    auth_credentials: str | AuthCredentials,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
@@ -143,10 +143,10 @@ def connect_to_local(
     host: str = "localhost",
     port: int = 8080,
     grpc_port: int = 50051,
-    headers: Optional[Dict[str, str]] = None,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
-    auth_credentials: Union[str, AuthCredentials, None] = None,
+    auth_credentials: Optional[str | AuthCredentials] = None,
 ) -> WeaviateClient:
     """Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
@@ -208,12 +208,12 @@ def connect_to_embedded(
     hostname: str = "127.0.0.1",
     port: int = 8079,
     grpc_port: int = 50050,
-    headers: Optional[Dict[str, str]] = None,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     version: str = WEAVIATE_VERSION,
     persistence_data_path: Optional[str] = None,
     binary_path: Optional[str] = None,
-    environment_variables: Optional[Dict[str, str]] = None,
+    environment_variables: Optional[dict[str, str]] = None,
 ) -> WeaviateClient:
     """Connect to an embedded Weaviate instance.
 
@@ -286,7 +286,7 @@ def connect_to_custom(
     grpc_host: str,
     grpc_port: int,
     grpc_secure: bool,
-    headers: Optional[Dict[str, str]] = None,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,
@@ -374,7 +374,7 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
 def use_async_with_weaviate_cloud(
     cluster_url: str,
     auth_credentials: Optional[AuthCredentials],
-    headers: Optional[Dict[str, str]] = None,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateAsyncClient:
@@ -435,10 +435,10 @@ def use_async_with_local(
     host: str = "localhost",
     port: int = 8080,
     grpc_port: int = 50051,
-    headers: Optional[Dict[str, str]] = None,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
-    auth_credentials: Union[str, AuthCredentials, None] = None,
+    auth_credentials: Optional[str | AuthCredentials] = None,
 ) -> WeaviateAsyncClient:
     """Create an async client object ready to connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
@@ -501,12 +501,12 @@ def use_async_with_embedded(
     hostname: str = "127.0.0.1",
     port: int = 8079,
     grpc_port: int = 50050,
-    headers: Optional[Dict[str, str]] = None,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     version: str = WEAVIATE_VERSION,
     persistence_data_path: Optional[str] = None,
     binary_path: Optional[str] = None,
-    environment_variables: Optional[Dict[str, str]] = None,
+    environment_variables: Optional[dict[str, str]] = None,
 ) -> WeaviateAsyncClient:
     """Create an async client object ready to connect to an embedded Weaviate instance.
 
@@ -583,7 +583,7 @@ def use_async_with_custom(
     grpc_host: str,
     grpc_port: int,
     grpc_secure: bool,
-    headers: Optional[Dict[str, str]] = None,
+    headers: Optional[dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,

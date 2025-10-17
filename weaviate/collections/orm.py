@@ -92,7 +92,7 @@
 #             raise UnexpectedStatusCodeError("Get schema", response)
 
 #         response_json = response.json()
-#         fields: Dict[str, Any] = {
+#         fields: dict[str, Any] = {
 #             prop["name"]: (PYTHON_TYPE_TO_DATATYPE[prop["dataType"][0]], None)
 #             for prop in response_json["properties"]
 #         }
@@ -134,7 +134,7 @@
 #         super().__init__(connection, name, consistency_level, tenant)
 #         self.__model = model
 
-#     def _json_to_object(self, obj: Dict[str, Any]) -> Object[Model, dict]:
+#     def _json_to_object(self, obj: dict[str, Any]) -> Object[Model, dict]:
 #         for ref in self.__model.get_ref_fields(self.__model):
 #             if ref not in obj["properties"]:
 #                 continue
@@ -174,7 +174,7 @@
 
 #     def insert(self, obj: Model) -> uuid_package.UUID:
 #         self.__model.model_validate(obj)
-#         weaviate_obj: Dict[str, Any] = {
+#         weaviate_obj: dict[str, Any] = {
 #             "class": self.name,
 #             "properties": self._serialize_props(obj.props_to_dict()),
 #             "id": str(obj.uuid),
@@ -185,7 +185,7 @@
 #         self._insert(weaviate_obj)
 #         return uuid_package.UUID(str(obj.uuid))
 
-#     def insert_many(self, objects: List[Model]) -> BatchObjectReturn:
+#     def insert_many(self, objects: list[Model]) -> BatchObjectReturn:
 #         for obj in objects:
 #             self.__model.model_validate(obj)
 
@@ -206,7 +206,7 @@
 #     def replace(self, obj: Model, uuid: UUID) -> None:
 #         self.__model.model_validate(obj)
 
-#         weaviate_obj: Dict[str, Any] = {
+#         weaviate_obj: dict[str, Any] = {
 #             "class": self.name,
 #             "properties": self._serialize_props(obj.props_to_dict()),
 #         }
@@ -218,7 +218,7 @@
 #     def update(self, obj: Model, uuid: UUID) -> None:
 #         self.__model.model_validate(obj)
 
-#         weaviate_obj: Dict[str, Any] = {
+#         weaviate_obj: dict[str, Any] = {
 #             "class": self.name,
 #             "properties": self._serialize_props(obj.props_to_dict()),
 #         }
@@ -236,15 +236,15 @@
 #     def reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
 #         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-#     def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
+#     def reference_add_many(self, refs: list[DataReferences]) -> BatchReferenceReturn:
 #         return self._reference_add_many(refs)
 
 # class _ConfigCollectionModel(_ConfigBase):
 #     def __compare_properties_with_model(
-#         self, schema_props: List[_Property], model_props: List[PropertyType]
-#     ) -> Tuple[List[_Property], List[PropertyType]]:
-#         only_in_model: List[PropertyType] = []
-#         only_in_schema: List[_Property] = list(schema_props)
+#         self, schema_props: list[_Property], model_props: list[PropertyType]
+#     ) -> Tuple[list[_Property], list[PropertyType]]:
+#         only_in_model: list[PropertyType] = []
+#         only_in_schema: list[_Property] = list(schema_props)
 
 #         schema_props_simple = [
 #             {

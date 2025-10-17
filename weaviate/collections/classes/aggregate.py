@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union, overload
+from typing import Optional, overload
 
 from pydantic import BaseModel, Field
 from typing_extensions import TypeVar, deprecated
@@ -50,7 +50,7 @@ class AggregateText:
     """The aggregation result for a text property."""
 
     count: Optional[int]
-    top_occurrences: List[TopOccurrence]
+    top_occurrences: list[TopOccurrence]
 
 
 @dataclass
@@ -68,7 +68,7 @@ class AggregateBoolean:
 class AggregateReference:
     """The aggregation result for a cross-reference property."""
 
-    pointing_to: Optional[List[str]]
+    pointing_to: Optional[list[str]]
 
 
 @dataclass
@@ -82,16 +82,16 @@ class AggregateDate:
     mode: Optional[str]
 
 
-AggregateResult = Union[
-    AggregateInteger,
-    AggregateNumber,
-    AggregateText,
-    AggregateBoolean,
-    AggregateDate,
-    AggregateReference,
-]
+AggregateResult = (
+    AggregateInteger
+    | AggregateNumber
+    | AggregateText
+    | AggregateBoolean
+    | AggregateDate
+    | AggregateReference
+)
 
-AProperties = Dict[str, AggregateResult]
+AProperties = dict[str, AggregateResult]
 
 
 @dataclass
@@ -107,18 +107,18 @@ class GroupedBy:
     """The property that the collection was grouped by."""
 
     prop: str
-    value: Union[
-        str,
-        int,
-        float,
-        bool,
-        List[str],
-        List[int],
-        List[float],
-        List[bool],
-        GeoCoordinate,
-        None,
-    ]
+    value: (
+        str
+        | int
+        | float
+        | bool
+        | list[str]
+        | list[int]
+        | list[float]
+        | list[bool]
+        | GeoCoordinate
+        | None
+    )
 
 
 @dataclass
@@ -134,7 +134,7 @@ class AggregateGroup:
 class AggregateGroupByReturn:
     """The aggregation results for a collection grouped by a property."""
 
-    groups: List[AggregateGroup]
+    groups: list[AggregateGroup]
 
 
 class _MetricsBase(BaseModel):
@@ -319,16 +319,16 @@ class _MetricsReference(BaseModel):
         )
 
 
-_Metrics = Union[
-    _MetricsText,
-    _MetricsInteger,
-    _MetricsNumber,
-    _MetricsDate,
-    _MetricsBoolean,
-    _MetricsReference,
-]
+_Metrics = (
+    _MetricsText
+    | _MetricsInteger
+    | _MetricsNumber
+    | _MetricsDate
+    | _MetricsBoolean
+    | _MetricsReference
+)
 
-PropertiesMetrics = Union[_Metrics, List[_Metrics]]
+PropertiesMetrics = _Metrics | list[_Metrics]
 
 
 class GroupByAggregate(_WeaviateInput):

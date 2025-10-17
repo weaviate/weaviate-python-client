@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Dict, Generic, List, Optional, Sequence, Union, cast
+from typing import Generic, Optional, Sequence, cast
 
 from httpx import Response
 from typing_extensions import deprecated
@@ -22,13 +22,11 @@ from weaviate.rbac.models import (
 
 
 def _flatten_permissions(
-    permissions: Union[
-        PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
-    ],
-) -> List[_Permission]:
+    permissions: PermissionsInputType | PermissionsOutputType | Sequence[PermissionsOutputType],
+) -> list[_Permission]:
     if isinstance(permissions, _Permission):
         return [permissions]
-    flattened_permissions: List[_Permission] = []
+    flattened_permissions: list[_Permission] = []
     for permission in permissions:
         if isinstance(permission, _Permission):
             flattened_permissions.append(permission)
@@ -41,7 +39,7 @@ class _RolesExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
 
-    def list_all(self) -> executor.Result[Dict[str, Role]]:
+    def list_all(self) -> executor.Result[dict[str, Role]]:
         """Get all roles.
 
         Returns:
@@ -49,7 +47,7 @@ class _RolesExecutor(Generic[ConnectionType]):
         """
         path = "/authz/roles"
 
-        def resp(res: Response) -> Dict[str, Role]:
+        def resp(res: Response) -> dict[str, Role]:
             return {role["name"]: Role._from_weaviate_role(role) for role in res.json()}
 
         return executor.execute(
@@ -63,12 +61,12 @@ class _RolesExecutor(Generic[ConnectionType]):
     @deprecated(
         """This method is deprecated and will be removed in Q4 25. Please use `users.get_my_user()` instead."""
     )
-    def get_current_roles(self) -> executor.Result[List[Role]]:
+    def get_current_roles(self) -> executor.Result[list[Role]]:
         # TODO: Add documentation here and this method to the stubs plus tests
         path = "/authz/users/own-roles"
 
-        def resp(res: Response) -> List[Role]:
-            return [Role._from_weaviate_role(role) for role in cast(List[WeaviateRole], res.json())]
+        def resp(res: Response) -> list[Role]:
+            return [Role._from_weaviate_role(role) for role in cast(list[WeaviateRole], res.json())]
 
         return executor.execute(
             response_callback=resp,
@@ -157,7 +155,7 @@ class _RolesExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create role"),
         )
 
-    def get_user_assignments(self, role_name: str) -> executor.Result[List[UserAssignment]]:
+    def get_user_assignments(self, role_name: str) -> executor.Result[list[UserAssignment]]:
         """Get the ids and usertype of users that have been assigned this role.
 
         Args:
@@ -168,7 +166,7 @@ class _RolesExecutor(Generic[ConnectionType]):
         """
         path = f"/authz/roles/{role_name}/user-assignments"
 
-        def resp(res: Response) -> List[UserAssignment]:
+        def resp(res: Response) -> list[UserAssignment]:
             return [
                 UserAssignment(
                     user_id=assignment["userId"],
@@ -185,7 +183,7 @@ class _RolesExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get users of role"),
         )
 
-    def get_group_assignments(self, role_name: str) -> executor.Result[List[GroupAssignment]]:
+    def get_group_assignments(self, role_name: str) -> executor.Result[list[GroupAssignment]]:
         """Get the ids and group type of groups that have been assigned this role.
 
         Args:
@@ -196,7 +194,7 @@ class _RolesExecutor(Generic[ConnectionType]):
         """
         path = f"/authz/roles/{role_name}/group-assignments"
 
-        def resp(res: Response) -> List[GroupAssignment]:
+        def resp(res: Response) -> list[GroupAssignment]:
             return [
                 GroupAssignment(
                     group_id=assignment["groupId"],
@@ -219,7 +217,7 @@ class _RolesExecutor(Generic[ConnectionType]):
     def get_assigned_user_ids(
         self,
         role_name: str,
-    ) -> executor.Result[List[str]]:
+    ) -> executor.Result[list[str]]:
         """Get the ids of user that have been assigned this role.
 
         Args:
@@ -230,8 +228,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         """
         path = f"/authz/roles/{role_name}/users"
 
-        def resp(res: Response) -> List[str]:
-            return cast(List[str], res.json())
+        def resp(res: Response) -> list[str]:
+            return cast(list[str], res.json())
 
         return executor.execute(
             response_callback=resp,
@@ -354,9 +352,7 @@ class _RolesExecutor(Generic[ConnectionType]):
     def has_permissions(
         self,
         *,
-        permissions: Union[
-            PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
-        ],
+        permissions: PermissionsInputType | PermissionsOutputType | Sequence[PermissionsOutputType],
         role: str,
     ) -> executor.Result[bool]:
         """Check if a role has a specific set of permission.

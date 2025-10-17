@@ -30,7 +30,7 @@ from weaviate.validator import _ExtraTypes, _validate_input, _ValidateArgument
         (pl.Series([1, 1]), [_ExtraTypes.PANDAS, _ExtraTypes.NUMPY, List], True),
     ],
 )
-def test_validator(inputs: Any, expected: List[Any], error: bool) -> None:
+def test_validator(inputs: Any, expected: list[Any], error: bool) -> None:
     if error:
         with pytest.raises(WeaviateInvalidInputError):
             _validate_input(_ValidateArgument(expected=expected, name="test", value=inputs))

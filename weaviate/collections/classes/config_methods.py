@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Optional, cast
 
 from weaviate.collections.classes.config import (
     DataType,
@@ -47,7 +47,7 @@ def _is_primitive(d_type: str) -> bool:
     return d_type[0][0].lower() == d_type[0][0]
 
 
-def __get_rerank_config(schema: Dict[str, Any]) -> Optional[_RerankerConfig]:
+def __get_rerank_config(schema: dict[str, Any]) -> Optional[_RerankerConfig]:
     if (
         len(
             rerankers := [key for key in schema.get("moduleConfig", {}).keys() if "reranker" in key]
@@ -66,7 +66,7 @@ def __get_rerank_config(schema: Dict[str, Any]) -> Optional[_RerankerConfig]:
         return None
 
 
-def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfig]:
+def __get_generative_config(schema: dict[str, Any]) -> Optional[_GenerativeConfig]:
     if (
         len(
             generators := [
@@ -88,9 +88,9 @@ def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfi
         return None
 
 
-def __get_vectorizer_config(schema: Dict[str, Any]) -> Optional[_VectorizerConfig]:
+def __get_vectorizer_config(schema: dict[str, Any]) -> Optional[_VectorizerConfig]:
     if __is_vectorizer_present(schema) is not None and schema.get("vectorizer", "none") != "none":
-        vec_config: Dict[str, Any] = schema["moduleConfig"].pop(schema["vectorizer"])
+        vec_config: dict[str, Any] = schema["moduleConfig"].pop(schema["vectorizer"])
         try:
             vectorizer = Vectorizers(schema["vectorizer"])
         except ValueError:
@@ -104,14 +104,14 @@ def __get_vectorizer_config(schema: Dict[str, Any]) -> Optional[_VectorizerConfi
         return None
 
 
-def __is_vectorizer_present(schema: Dict[str, Any]) -> bool:
+def __is_vectorizer_present(schema: dict[str, Any]) -> bool:
     # ignore single vectorizer config if named vectors are present
     if "vectorConfig" in schema:
         return False
     return True
 
 
-def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]:
+def __get_vector_index_type(schema: dict[str, Any]) -> Optional[VectorIndexType]:
     if "vectorIndexType" in schema:
         return VectorIndexType(schema["vectorIndexType"])
     else:
@@ -119,9 +119,9 @@ def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]
 
 
 def __get_quantizer_config(
-    config: Dict[str, Any],
-) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig, _RQConfig]]:
-    quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig, _RQConfig]] = None
+    config: dict[str, Any],
+) -> Optional[_PQConfig | _BQConfig | _SQConfig | _RQConfig]:
+    quantizer: Optional[_PQConfig | _BQConfig | _SQConfig | _RQConfig] = None
     if "bq" in config and config["bq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _BQConfig(
@@ -156,7 +156,7 @@ def __get_quantizer_config(
     return quantizer
 
 
-def __get_multivector_encoding(config: Dict[str, Any]) -> Optional[_MuveraConfig]:
+def __get_multivector_encoding(config: dict[str, Any]) -> Optional[_MuveraConfig]:
     return (
         None
         if config.get("muvera") is None
@@ -170,7 +170,7 @@ def __get_multivector_encoding(config: Dict[str, Any]) -> Optional[_MuveraConfig
     )
 
 
-def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
+def __get_multivector(config: dict[str, Any]) -> Optional[_MultiVectorConfig]:
     return (
         None
         if config.get("multivector") is None
@@ -186,7 +186,7 @@ def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
     )
 
 
-def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
+def __get_hnsw_config(config: dict[str, Any]) -> _VectorIndexConfigHNSW:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigHNSW(
         cleanup_interval_seconds=config["cleanupIntervalSeconds"],
@@ -210,7 +210,7 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
     )
 
 
-def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
+def __get_flat_config(config: dict[str, Any]) -> _VectorIndexConfigFlat:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigFlat(
         distance_metric=VectorDistances(config["distance"]),
@@ -221,8 +221,8 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
 
 
 def __get_vector_index_config(
-    schema: Dict[str, Any],
-) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None]:
+    schema: dict[str, Any],
+) -> Optional[_VectorIndexConfigHNSW | _VectorIndexConfigFlat | _VectorIndexConfigDynamic]:
     if "vectorIndexConfig" not in schema:
         return None
     if schema["vectorIndexType"] == "hnsw":
@@ -241,10 +241,10 @@ def __get_vector_index_config(
 
 
 def __get_vector_config(
-    schema: Dict[str, Any], simple: bool
-) -> Optional[Dict[str, _NamedVectorConfig]]:
+    schema: dict[str, Any], simple: bool
+) -> Optional[dict[str, _NamedVectorConfig]]:
     if "vectorConfig" in schema:
-        named_vectors: Dict[str, _NamedVectorConfig] = {}
+        named_vectors: dict[str, _NamedVectorConfig] = {}
         for name in schema["vectorConfig"]:
             named_vector = schema["vectorConfig"][name]
 
@@ -252,13 +252,13 @@ def __get_vector_config(
             assert len(vectorizer) == 1
 
             vectorizer_str: str = str(list(vectorizer)[0])
-            vec_config: Dict[str, Any] = named_vector["vectorizer"][vectorizer_str]
+            vec_config: dict[str, Any] = named_vector["vectorizer"][vectorizer_str]
             props = vec_config.pop("properties", None)
 
             vector_index_config = __get_vector_index_config(named_vector)
             assert vector_index_config is not None
             try:
-                vec: Union[str, Vectorizers] = Vectorizers(vectorizer_str)
+                vec: str | Vectorizers = Vectorizers(vectorizer_str)
             except ValueError:
                 vec = vectorizer_str
 
@@ -276,7 +276,7 @@ def __get_vector_config(
         return None
 
 
-def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]]:
+def __get_vectorizer(schema: dict[str, Any]) -> Optional[str | Vectorizers]:
     if "vectorConfig" in schema:
         return None
 
@@ -287,7 +287,7 @@ def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]
         return vectorizer
 
 
-def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
+def _collection_config_simple_from_json(schema: dict[str, Any]) -> _CollectionConfigSimple:
     return _CollectionConfigSimple(
         name=schema["class"],
         description=schema.get("description"),
@@ -305,7 +305,7 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
     )
 
 
-def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
+def _collection_config_from_json(schema: dict[str, Any]) -> _CollectionConfig:
     return _CollectionConfig(
         name=schema["class"],
         description=schema.get("description"),
@@ -377,7 +377,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     )
 
 
-def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _CollectionConfig]:
+def _collection_configs_from_json(schema: dict[str, Any]) -> dict[str, _CollectionConfig]:
     configs = {
         schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]
     }
@@ -385,15 +385,15 @@ def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _Collecti
 
 
 def _collection_configs_simple_from_json(
-    schema: Dict[str, Any],
-) -> Dict[str, _CollectionConfigSimple]:
+    schema: dict[str, Any],
+) -> dict[str, _CollectionConfigSimple]:
     configs = {
         schema["class"]: _collection_config_simple_from_json(schema) for schema in schema["classes"]
     }
     return dict(sorted(configs.items()))
 
 
-def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedProperty]:
+def _nested_properties_from_config(props: list[dict[str, Any]]) -> list[_NestedProperty]:
     return [
         _NestedProperty(
             data_type=DataType(prop["dataType"][0]),
@@ -414,7 +414,7 @@ def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedP
     ]
 
 
-def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
+def _properties_from_config(schema: dict[str, Any]) -> list[_Property]:
     return [
         _Property(
             data_type=DataType(prop["dataType"][0]),
@@ -460,7 +460,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
     ]
 
 
-def _references_from_config(schema: Dict[str, Any]) -> List[_ReferenceProperty]:
+def _references_from_config(schema: dict[str, Any]) -> list[_ReferenceProperty]:
     return [
         _ReferenceProperty(
             target_collections=prop["dataType"],

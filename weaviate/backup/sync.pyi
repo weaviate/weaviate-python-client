@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Union
+from typing import Literal, Optional
 
 from weaviate.backup.backup import (
     BackupConfigCreate,
@@ -18,8 +18,8 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_collections: Union[List[str], str, None] = None,
-        exclude_collections: Union[List[str], str, None] = None,
+        include_collections: list[str] | str | None = None,
+        exclude_collections: list[str] | str | None = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -34,8 +34,8 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_collections: Union[List[str], str, None] = None,
-        exclude_collections: Union[List[str], str, None] = None,
+        include_collections: list[str] | str | None = None,
+        exclude_collections: list[str] | str | None = None,
         roles_restore: Optional[Literal["noRestore", "all"]] = None,
         users_restore: Optional[Literal["noRestore", "all"]] = None,
         wait_for_completion: bool = False,
@@ -55,4 +55,4 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> bool: ...
-    def list_backups(self, backend: BackupStorage) -> List[BackupListReturn]: ...
+    def list_backups(self, backend: BackupStorage) -> list[BackupListReturn]: ...

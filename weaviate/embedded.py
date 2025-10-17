@@ -13,7 +13,7 @@ import zipfile
 from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import httpx
 import validators
@@ -40,7 +40,7 @@ class EmbeddedOptions:
     version: str = WEAVIATE_VERSION
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
-    additional_env_vars: Optional[Dict[str, str]] = None
+    additional_env_vars: Optional[dict[str, str]] = None
     grpc_port: int = DEFAULT_GRPC_PORT
 
 

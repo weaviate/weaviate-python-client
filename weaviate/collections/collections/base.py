@@ -4,7 +4,6 @@ from typing import (
     Generic,
     Optional,
     Type,
-    Union,
 )
 
 from weaviate.collections.classes.config import (
@@ -31,7 +30,7 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
-    ) -> Union[Collection[Properties, References], CollectionAsync[Properties, References]]:
+    ) -> Collection[Properties, References] | CollectionAsync[Properties, References]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
         This method does not send a request to Weaviate. It simply creates a Python object for you to use to make requests.
@@ -40,10 +39,10 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
             name: The name of the collection to get.
             data_model_properties: The generic class that you want to use to represent the properties of objects in this collection when mutating objects through the `.query` namespace.
                 The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
-                If you do not provide a generic, the methods in `.query` will return objects properties as `Dict[str, Any]`.
+                If you do not provide a generic, the methods in `.query` will return objects properties as `dict[str, Any]`.
             data_model_references: The generic class that you want to use to represent the objects of references in this collection when mutating objects through the `.query` namespace.
                 The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
-                If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
+                If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `dict[str, Any]`.
             skip_argument_validation: If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
 
         Raises:
@@ -64,7 +63,7 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
-    ) -> Union[Collection[Properties, References], CollectionAsync[Properties, References]]:
+    ) -> Collection[Properties, References] | CollectionAsync[Properties, References]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
         This method does not send a request to Weaviate. It simply creates a Python object for you to use to make requests.
@@ -73,10 +72,10 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
             name: The name of the collection to get.
             data_model_properties: The generic class that you want to use to represent the properties of objects in this collection when mutating objects through the `.query` namespace.
                 The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
-                If you do not provide a generic, the methods in `.query` will return objects properties as `Dict[str, Any]`.
+                If you do not provide a generic, the methods in `.query` will return objects properties as `dict[str, Any]`.
             data_model_references: The generic class that you want to use to represent the objects of references in this collection when mutating objects through the `.query` namespace.
                 The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
-                If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
+                If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `dict[str, Any]`.
             skip_argument_validation: If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
 
         Raises:
@@ -88,10 +87,7 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
     @abstractmethod
     def create_from_dict(
         self, config: dict
-    ) -> Union[
-        Collection[Properties, References],
-        Awaitable[CollectionAsync[Properties, References]],
-    ]:
+    ) -> Collection[Properties, References] | Awaitable[CollectionAsync[Properties, References]]:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.
 
         This method is helpful for those making the v3 -> v4 migration and for those interfacing with any experimental
@@ -109,10 +105,7 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
     @abstractmethod
     def create_from_config(
         self, config: CollectionConfig
-    ) -> Union[
-        Collection[Properties, References],
-        Awaitable[CollectionAsync[Properties, References]],
-    ]:
+    ) -> Collection[Properties, References] | Awaitable[CollectionAsync[Properties, References]]:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
 
         Args:

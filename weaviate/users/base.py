@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
+from typing import Any, Generic, Literal, Optional, cast, overload
 
 from httpx import Response
 from typing_extensions import deprecated
@@ -30,10 +30,10 @@ class _BaseExecutor(Generic[ConnectionType]):
         user_id: str,
         user_type: USER_TYPE,
         include_permissions: bool,
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]:
         path = f"/authz/users/{escape_string(user_id)}/roles/{user_type}"
 
-        def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
+        def resp(res: Response) -> dict[str, Role] | dict[str, RoleBase]:
             roles = res.json()
             if include_permissions:
                 return {role["name"]: Role._from_weaviate_role(role) for role in roles}
@@ -51,10 +51,10 @@ class _BaseExecutor(Generic[ConnectionType]):
     def _get_roles_of_user_deprecated(
         self,
         user_id: str,
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]:
         path = f"/authz/users/{escape_string(user_id)}/roles"
 
-        def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
+        def resp(res: Response) -> dict[str, Role] | dict[str, RoleBase]:
             return {role["name"]: Role._from_weaviate_role(role) for role in res.json()}
 
         return executor.execute(
@@ -67,13 +67,13 @@ class _BaseExecutor(Generic[ConnectionType]):
 
     def _assign_roles_to_user(
         self,
-        roles: List[str],
+        roles: list[str],
         user_id: str,
         user_type: Optional[USER_TYPE],
     ) -> executor.Result[None]:
         path = f"/authz/users/{escape_string(user_id)}/assign"
 
-        payload: Dict[str, Any] = {"roles": roles}
+        payload: dict[str, Any] = {"roles": roles}
         if user_type is not None:
             payload["userType"] = user_type
 
@@ -91,13 +91,13 @@ class _BaseExecutor(Generic[ConnectionType]):
 
     def _revoke_roles_from_user(
         self,
-        roles: Union[str, List[str]],
+        roles: str | list[str],
         user_id: str,
         user_type: Optional[USER_TYPE],
     ) -> executor.Result[None]:
         path = f"/authz/users/{escape_string(user_id)}/revoke"
 
-        payload: Dict[str, Any] = {"roles": roles}
+        payload: dict[str, Any] = {"roles": roles}
         if user_type is not None:
             payload["userType"] = user_type
 
@@ -150,7 +150,7 @@ class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         """This method is deprecated and will be removed in Q4 25.
                 Please use `users.db.get_assigned_roles` and/or `users.oidc.get_assigned_roles` instead."""
     )
-    def get_assigned_roles(self, user_id: str) -> executor.Result[Dict[str, Role]]:
+    def get_assigned_roles(self, user_id: str) -> executor.Result[dict[str, Role]]:
         """Get the roles assigned to a user.
 
         Args:
@@ -160,7 +160,7 @@ class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             A dictionary with role names as keys and the `Role` objects as values.
         """
         # cast here because the deprecated method is only used in the deprecated class and this type is known
-        return cast(Dict[str, Role], self._get_roles_of_user_deprecated(user_id))
+        return cast(dict[str, Role], self._get_roles_of_user_deprecated(user_id))
 
     @deprecated(
         """This method is deprecated and will be removed in Q4 25.
@@ -170,7 +170,7 @@ class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         self,
         *,
         user_id: str,
-        role_names: Union[str, List[str]],
+        role_names: str | list[str],
     ) -> executor.Result[None]:
         """Assign roles to a user.
 
@@ -192,7 +192,7 @@ class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         self,
         *,
         user_id: str,
-        role_names: Union[str, List[str]],
+        role_names: str | list[str],
     ) -> executor.Result[None]:
         """Revoke roles from a user.
 
@@ -211,12 +211,12 @@ class _UsersOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType])
     @overload
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: Literal[False] = False
-    ) -> executor.Result[Dict[str, RoleBase]]: ...
+    ) -> executor.Result[dict[str, RoleBase]]: ...
 
     @overload
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: Literal[True]
-    ) -> executor.Result[Dict[str, Role]]: ...
+    ) -> executor.Result[dict[str, Role]]: ...
 
     @overload
     def get_assigned_roles(
@@ -224,14 +224,14 @@ class _UsersOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType])
         *,
         user_id: str,
         include_permissions: bool = False,
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]: ...
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]: ...
 
     def get_assigned_roles(
         self,
         *,
         user_id: str,
         include_permissions: bool = False,
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]:
         """Get the roles assigned to a user specific to the configured OIDC's dynamic auth functionality.
 
         Args:
@@ -250,7 +250,7 @@ class _UsersOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType])
         self,
         *,
         user_id: str,
-        role_names: Union[str, List[str]],
+        role_names: str | list[str],
     ) -> executor.Result[None]:
         """Assign roles to a user specific to the configured OIDC's dynamic auth functionality.
 
@@ -268,7 +268,7 @@ class _UsersOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType])
         self,
         *,
         user_id: str,
-        role_names: Union[str, List[str]],
+        role_names: str | list[str],
     ) -> executor.Result[None]:
         """Revoke roles from a user specific to the configured OIDC's dynamic auth functionality.
 
@@ -287,21 +287,21 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     @overload
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: Literal[False] = False
-    ) -> executor.Result[Dict[str, RoleBase]]: ...
+    ) -> executor.Result[dict[str, RoleBase]]: ...
 
     @overload
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: Literal[True]
-    ) -> executor.Result[Dict[str, Role]]: ...
+    ) -> executor.Result[dict[str, Role]]: ...
 
     @overload
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: bool = False
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]: ...
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]: ...
 
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: bool = False
-    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[dict[str, Role] | dict[str, RoleBase]]:
         """Get the roles assigned to a user.
 
         Args:
@@ -320,7 +320,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         self,
         *,
         user_id: str,
-        role_names: Union[str, List[str]],
+        role_names: str | list[str],
     ) -> executor.Result[None]:
         """Assign roles to a user.
 
@@ -334,9 +334,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             USER_TYPE_DB,
         )
 
-    def revoke_roles(
-        self, *, user_id: str, role_names: Union[str, List[str]]
-    ) -> executor.Result[None]:
+    def revoke_roles(self, *, user_id: str, role_names: str | list[str]) -> executor.Result[None]:
         """Revoke roles from a user.
 
         Args:
@@ -478,10 +476,10 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get user"),
         )
 
-    def list_all(self) -> executor.Result[List[UserDB]]:
+    def list_all(self) -> executor.Result[list[UserDB]]:
         """List all DB users."""
 
-        def resp(res: Response) -> List[UserDB]:
+        def resp(res: Response) -> list[UserDB]:
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
             return [
@@ -491,7 +489,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     active=user["active"],
                     user_type=UserTypes(user["dbUserType"]),
                 )
-                for user in cast(List[WeaviateDBUserRoleNames], parsed)
+                for user in cast(list[WeaviateDBUserRoleNames], parsed)
             ]
 
         return executor.execute(

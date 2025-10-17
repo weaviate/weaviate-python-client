@@ -1,6 +1,5 @@
 import datetime
 import uuid
-from typing import List
 
 import pytest as pytest
 
@@ -525,8 +524,8 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
 )
 def test_delete_many_simple(
     collection_factory: CollectionFactory,
-    properties: List[Property],
-    inserts: List[DataObject],
+    properties: list[Property],
+    inserts: list[DataObject],
     where: _FilterValue,
     expected_len: int,
 ) -> None:

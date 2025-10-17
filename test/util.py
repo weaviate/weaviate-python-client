@@ -1,12 +1,12 @@
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 from unittest.mock import Mock
 
 
 def mock_connection_func(
     rest_method: Optional[str] = None,
-    return_json: Union[list, dict, None] = None,
+    return_json: list | dict | None = None,
     status_code: int = 200,
-    side_effect: Union[Exception, Callable, None] = None,
+    side_effect: Exception | Callable | None = None,
     connection_mock: Optional[Mock] = None,
     server_version: str = "1.13.2,",
     timeout_config: tuple = (10, 60),

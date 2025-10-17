@@ -8,13 +8,9 @@ from threading import Event, Thread
 from typing import (
     Any,
     Awaitable,
-    Dict,
-    List,
     Literal,
     Optional,
-    Tuple,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -97,18 +93,18 @@ from weaviate.util import (
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
-Session = Union[Client, OAuth2Client]
-AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
-HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
+Session = Client | OAuth2Client
+AsyncSession = AsyncClient | AsyncOAuth2Client
+HttpClient = AsyncClient | AsyncOAuth2Client | Client | OAuth2Client
 
 PERMISSION_DENIED = "PERMISSION_DENIED"
 
 
 @dataclass
 class _ExpectedStatusCodes:
-    ok_in: Union[List[int], int]
+    ok_in: list[int] | int
     error: str
-    ok: List[int] = field(init=False)
+    ok: list[int] = field(init=False)
 
     def __post_init__(self) -> None:
         if isinstance(self.ok_in, int):
@@ -123,9 +119,9 @@ class _ConnectionBase:
         connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
         timeout_config: TimeoutConfig,
-        proxies: Union[str, Proxies, None],
+        proxies: str | Proxies | None,
         trust_env: bool,
-        additional_headers: Optional[Dict[str, Any]],
+        additional_headers: Optional[dict[str, Any]],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedV4] = None,
         skip_init_checks: bool = False,
@@ -138,7 +134,7 @@ class _ConnectionBase:
         self._client: Optional[HttpClient] = None
         self._connection_params = connection_params
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
-        self._grpc_channel: Union[AsyncChannel, SyncChannel, None] = None
+        self._grpc_channel: AsyncChannel | SyncChannel | None = None
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
@@ -159,7 +155,7 @@ class _ConnectionBase:
                     )
                 self._headers[key.lower()] = value
 
-        self._proxies: Dict[str, str] = _get_proxies(proxies, trust_env)
+        self._proxies: dict[str, str] = _get_proxies(proxies, trust_env)
 
         # auth secrets can contain more information than a header (refresh tokens and lifetime) and therefore take
         # precedent over headers
@@ -182,7 +178,7 @@ class _ConnectionBase:
             # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
             self._headers["X-Weaviate-Api-Key"] = self._auth.api_key
 
-    def set_integrations(self, integrations_config: List[_IntegrationConfig]) -> None:
+    def set_integrations(self, integrations_config: list[_IntegrationConfig]) -> None:
         for integration in integrations_config:
             self._headers.update(integration._to_header())
             self.__additional_headers.update(integration._to_header())
@@ -193,7 +189,7 @@ class _ConnectionBase:
     @overload
     def _make_client(self, colour: Literal["sync"]) -> Client: ...
 
-    def _make_client(self, colour: executor.Colour) -> Union[AsyncClient, Client]:
+    def _make_client(self, colour: executor.Colour) -> AsyncClient | Client:
         if colour == "async":
             return AsyncClient(
                 headers=self._headers,
@@ -208,14 +204,14 @@ class _ConnectionBase:
             )
 
     @overload
-    def _make_mounts(self, colour: Literal["async"]) -> Dict[str, AsyncHTTPTransport]: ...
+    def _make_mounts(self, colour: Literal["async"]) -> dict[str, AsyncHTTPTransport]: ...
 
     @overload
-    def _make_mounts(self, colour: Literal["sync"]) -> Dict[str, HTTPTransport]: ...
+    def _make_mounts(self, colour: Literal["sync"]) -> dict[str, HTTPTransport]: ...
 
     def _make_mounts(
         self, colour: executor.Colour
-    ) -> Union[Dict[str, AsyncHTTPTransport], Dict[str, HTTPTransport]]:
+    ) -> dict[str, AsyncHTTPTransport] | dict[str, HTTPTransport]:
         if colour == "async":
             return {
                 (f"{key}://" if key == "http" or key == "https" else key): AsyncHTTPTransport(
@@ -256,7 +252,7 @@ class _ConnectionBase:
         return ""
 
     def _prepare_grpc_headers(self) -> None:
-        self.__metadata_list: List[Tuple[str, str]] = []
+        self.__metadata_list: list[tuple[str, str]] = []
         if len(self.additional_headers):
             for key, val in self.additional_headers.items():
                 if val is not None:
@@ -282,7 +278,7 @@ class _ConnectionBase:
                 )
 
         if len(self.__metadata_list) > 0:
-            self.__grpc_headers: Optional[Tuple[Tuple[str, str], ...]] = tuple(self.__metadata_list)
+            self.__grpc_headers: Optional[tuple[tuple[str, str], ...]] = tuple(self.__metadata_list)
         else:
             self.__grpc_headers = None
 
@@ -293,7 +289,7 @@ class _ConnectionBase:
                 ("x-weaviate-api-key", "dummy_will_be_refreshed_for_each_call")
             )
 
-    def grpc_headers(self) -> Optional[Tuple[Tuple[str, str], ...]]:
+    def grpc_headers(self) -> Optional[tuple[tuple[str, str], ...]]:
         if self._auth is None or isinstance(self._auth, AuthApiKey):
             return self.__grpc_headers
 
@@ -315,7 +311,7 @@ class _ConnectionBase:
                 self.get_current_bearer_token(),
             )
 
-    def _ping_grpc(self, colour: executor.Colour) -> Union[None, Awaitable[None]]:
+    def _ping_grpc(self, colour: executor.Colour) -> None | Awaitable[None]:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         assert self._grpc_channel is not None
 
@@ -372,11 +368,11 @@ class _ConnectionBase:
         """Version of the weaviate instance."""
         return str(self._weaviate_version)
 
-    def get_proxies(self) -> Dict[str, str]:
+    def get_proxies(self) -> dict[str, str]:
         return self._proxies
 
     @property
-    def additional_headers(self) -> Dict[str, str]:
+    def additional_headers(self) -> dict[str, str]:
         return self.__additional_headers
 
     def __make_clients(self, colour: Literal["async", "sync"]) -> None:
@@ -394,7 +390,7 @@ class _ConnectionBase:
 
     def _open_connections_rest(
         self, auth_client_secret: Optional[AuthCredentials], colour: executor.Colour
-    ) -> Union[None, Awaitable[None]]:
+    ) -> None | Awaitable[None]:
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self.__make_clients(colour)
@@ -445,7 +441,7 @@ class _ConnectionBase:
         auth_client_secret: Optional[AuthCredentials],
         oidc_url: str,
         colour: executor.Colour,
-    ) -> Union[None, Awaitable[None]]:
+    ) -> None | Awaitable[None]:
         if response.status_code == 200:
             # Some setups are behind proxies that return some default page - for example a login - for all requests.
             # If the response is not json, we assume that this is the case and try unauthenticated access. Any auth
@@ -613,7 +609,7 @@ class _ConnectionBase:
         )
         demon.start()
 
-    def __get_latest_headers(self) -> Dict[str, str]:
+    def __get_latest_headers(self) -> dict[str, str]:
         if "authorization" in self._headers:
             return self._headers
 
@@ -693,7 +689,7 @@ class _ConnectionBase:
         status_codes: Optional[_ExpectedStatusCodes],
         is_gql_query: bool = False,
         weaviate_object: Optional[JSONPayload] = None,
-        params: Optional[Dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
         check_is_connected: bool = True,
     ) -> executor.Result[Response]:
         if check_is_connected and not self.is_connected():
@@ -780,7 +776,7 @@ class _ConnectionBase:
         self,
         path: str,
         weaviate_object: Optional[JSONPayload] = None,
-        params: Optional[Dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> executor.Result[Response]:
@@ -797,7 +793,7 @@ class _ConnectionBase:
         self,
         path: str,
         weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> executor.Result[Response]:
@@ -814,7 +810,7 @@ class _ConnectionBase:
         self,
         path: str,
         weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
         is_gql_query: bool = False,
@@ -833,7 +829,7 @@ class _ConnectionBase:
         self,
         path: str,
         weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> executor.Result[Response]:
@@ -849,7 +845,7 @@ class _ConnectionBase:
     def get(
         self,
         path: str,
-        params: Optional[Dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
         check_is_connected: bool = True,
@@ -866,7 +862,7 @@ class _ConnectionBase:
     def head(
         self,
         path: str,
-        params: Optional[Dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> executor.Result[Response]:
@@ -878,8 +874,8 @@ class _ConnectionBase:
             status_codes=status_codes,
         )
 
-    def get_meta(self, check_is_connected: bool = True) -> executor.Result[Dict[str, str]]:
-        def resp(res: Response) -> Dict[str, str]:
+    def get_meta(self, check_is_connected: bool = True) -> executor.Result[dict[str, str]]:
+        def resp(res: Response) -> dict[str, str]:
             data = _decode_json_response_dict(res, "Meta endpoint")
             assert data is not None
             return data
@@ -891,8 +887,8 @@ class _ConnectionBase:
             check_is_connected=check_is_connected,
         )
 
-    def get_open_id_configuration(self) -> executor.Result[Optional[Dict[str, Any]]]:
-        def resp(res: Response) -> Optional[Dict[str, Any]]:
+    def get_open_id_configuration(self) -> executor.Result[Optional[dict[str, Any]]]:
+        def resp(res: Response) -> Optional[dict[str, Any]]:
             if res.status_code == 200:
                 return _decode_json_response_dict(res, "OpenID Configuration")
             if res.status_code == 404:
@@ -1002,9 +998,9 @@ class ConnectionSync(_ConnectionBase):
     def grpc_batch_objects(
         self,
         request: batch_pb2.BatchObjectsRequest,
-        timeout: Union[int, float],
+        timeout: int | float,
         max_retries: float,
-    ) -> Dict[int, str]:
+    ) -> dict[int, str]:
         try:
             assert self.grpc_stub is not None
             res = _Retry(max_retries).with_exponential_backoff(
@@ -1017,7 +1013,7 @@ class ConnectionSync(_ConnectionBase):
             )
             res = cast(batch_pb2.BatchObjectsReply, res)
 
-            objects: Dict[int, str] = {}
+            objects: dict[int, str] = {}
             for err in res.errors:
                 objects[err.index] = err.error
             return objects
@@ -1187,9 +1183,9 @@ class ConnectionAsync(_ConnectionBase):
     async def grpc_batch_objects(
         self,
         request: batch_pb2.BatchObjectsRequest,
-        timeout: Union[int, float],
+        timeout: int | float,
         max_retries: float,
-    ) -> Dict[int, str]:
+    ) -> dict[int, str]:
         try:
             assert self.grpc_stub is not None
             res = await _Retry(max_retries).awith_exponential_backoff(
@@ -1202,7 +1198,7 @@ class ConnectionAsync(_ConnectionBase):
             )
             res = cast(batch_pb2.BatchObjectsReply, res)
 
-            objects: Dict[int, str] = {}
+            objects: dict[int, str] = {}
             for err in res.errors:
                 objects[err.index] = err.error
             return objects
@@ -1269,5 +1265,5 @@ class ConnectionAsync(_ConnectionBase):
 
 
 ConnectionV4 = ConnectionAsync
-Connection = Union[ConnectionSync, ConnectionAsync]
+Connection = ConnectionSync | ConnectionAsync
 ConnectionType = TypeVar("ConnectionType", ConnectionSync, ConnectionAsync)

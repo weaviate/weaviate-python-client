@@ -1,7 +1,7 @@
 import datetime
 import time
 import uuid
-from typing import Callable, Iterable, List, Optional
+from typing import Callable, Iterable, Optional
 
 import pytest as pytest
 
@@ -35,7 +35,7 @@ UUID4 = uuid.uuid4()
 def test_filters_text(
     collection_factory: CollectionFactory,
     weaviate_filter: _Filters,
-    results: List[int],
+    results: list[int],
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
@@ -69,7 +69,7 @@ def test_filters_text(
 def test_array_types(
     collection_factory: CollectionFactory,
     weaviate_filter: _FilterValue,
-    results: List[int],
+    results: list[int],
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -106,7 +106,7 @@ def test_array_types(
 def test_filter_with_wrong_types(
     collection_factory: CollectionFactory,
     weaviate_filter: _FilterValue,
-    results: Optional[List[int]],
+    results: Optional[list[int]],
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -161,7 +161,7 @@ def test_filter_with_wrong_types(
 def test_filters_nested(
     collection_factory: CollectionFactory,
     weaviate_filter: _Filters,
-    results: List[int],
+    results: list[int],
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -215,7 +215,7 @@ def test_length_filter(collection_factory: CollectionFactory) -> None:
 def test_filters_comparison(
     collection_factory: CollectionFactory,
     weaviate_filter: _FilterValue,
-    results: List[int],
+    results: list[int],
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -280,7 +280,7 @@ def test_filters_comparison(
 def test_filters_contains(
     collection_factory: CollectionFactory,
     weaviate_filter: _FilterValue,
-    results: List[int],
+    results: list[int],
     require_version: Optional[tuple[int, int, int]],
 ) -> None:
     collection = collection_factory(
@@ -394,7 +394,7 @@ def test_filters_contains(
     ],
 )
 def test_ref_filters(
-    collection_factory: CollectionFactory, weaviate_filter: _Filters, results: List[int]
+    collection_factory: CollectionFactory, weaviate_filter: _Filters, results: list[int]
 ) -> None:
     to_collection = collection_factory(
         name="Target",
@@ -675,7 +675,7 @@ def test_time_filter(
     collection_factory: CollectionFactory,
     weav_filter: Callable,
     filter_value: int,
-    results: List[int],
+    results: list[int],
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -735,7 +735,7 @@ def test_time_filter_contains(collection_factory: CollectionFactory) -> None:
 def test_ref_count_filter(
     collection_factory: CollectionFactory,
     weav_filter: _FilterValue,
-    results: List[int],
+    results: list[int],
 ) -> None:
     collection = collection_factory()
     collection.config.add_reference(

@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
+from typing import Literal, Optional, Sequence, Type, overload
 
 from typing_extensions import deprecated
 
@@ -40,15 +40,15 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
+        references: Optional[list[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         reranker_config: Optional[_RerankerProvider] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: _VectorIndexConfigCreate,
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
+        vector_config: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
@@ -66,13 +66,13 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
+        references: Optional[list[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         reranker_config: Optional[_RerankerProvider] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorizer_config: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]],
-        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
+        vectorizer_config: _VectorizerConfigCreate | list[_NamedVectorConfigCreate],
+        vector_config: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
@@ -87,15 +87,15 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
+        references: Optional[list[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         reranker_config: Optional[_RerankerProvider] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
+        vector_config: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
@@ -114,20 +114,20 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
     ) -> CollectionAsync[Properties, References]: ...
-    async def delete(self, name: Union[str, List[str]]) -> None: ...
+    async def delete(self, name: str | list[str]) -> None: ...
     async def delete_all(self) -> None: ...
     async def exists(self, name: str) -> bool: ...
     async def export_config(self, name: str) -> CollectionConfig: ...
     @overload
-    async def list_all(self, simple: Literal[False]) -> Dict[str, CollectionConfig]: ...
+    async def list_all(self, simple: Literal[False]) -> dict[str, CollectionConfig]: ...
     @overload
-    async def list_all(self, simple: Literal[True] = ...) -> Dict[str, CollectionConfigSimple]: ...
+    async def list_all(self, simple: Literal[True] = ...) -> dict[str, CollectionConfigSimple]: ...
     @overload
     async def list_all(
         self, simple: bool = ...
-    ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]: ...
+    ) -> dict[str, CollectionConfig] | dict[str, CollectionConfigSimple]: ...
     async def list_all(
         self, simple: bool = True
-    ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]: ...
+    ) -> dict[str, CollectionConfig] | dict[str, CollectionConfigSimple]: ...
     async def create_from_dict(self, config: dict) -> CollectionAsync: ...
     async def create_from_config(self, config: CollectionConfig) -> CollectionAsync: ...

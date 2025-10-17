@@ -25,9 +25,9 @@ pytest.skip("Not implemented yet", allow_module_level=True)
 #         (str, "text"),
 #         (int, "int"),
 #         (float, "number"),
-#         (List[str], "text[]"),
-#         (List[int], "int[]"),
-#         (List[float], "number[]"),
+#         (list[str], "text[]"),
+#         (list[int], "int[]"),
+#         (list[float], "number[]"),
 #     ],
 # )
 # @pytest.mark.parametrize("optional", [True, False])

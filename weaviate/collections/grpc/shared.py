@@ -3,12 +3,8 @@ import uuid as uuid_lib
 from dataclasses import dataclass
 from typing import (
     Any,
-    Dict,
-    List,
     Literal,
     Optional,
-    Tuple,
-    Union,
     cast,
     get_args,
 )
@@ -78,8 +74,8 @@ class _BaseGRPC:
     def _recompute_target_vector_to_grpc(
         self,
         target_vector: Optional[TargetVectorJoinType],
-        target_vectors_tmp: List[str],
-    ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
+        target_vectors_tmp: list[str],
+    ) -> tuple[Optional[base_search_pb2.Targets], Optional[list[str]]]:
         # reorder input for targets so they match the vectors
         if isinstance(target_vector, _MultiTargetVectorJoin):
             target_vector.target_vectors = target_vectors_tmp
@@ -93,7 +89,7 @@ class _BaseGRPC:
 
     def __target_vector_to_grpc(
         self, target_vector: Optional[TargetVectorJoinType]
-    ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
+    ) -> tuple[Optional[base_search_pb2.Targets], Optional[list[str]]]:
         if target_vector is None:
             return None, None
 
@@ -109,7 +105,7 @@ class _BaseGRPC:
         vector: NearVectorInputType,
         targets: Optional[base_search_pb2.Targets],
         argument_name: str,
-    ) -> Tuple[Optional[Dict[str, bytes]], Optional[bytes]]:
+    ) -> tuple[Optional[dict[str, bytes]], Optional[bytes]]:
         """@deprecated in 1.27.0, included for BC until 1.27.0 is no longer supported."""  # noqa: D401
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
@@ -123,7 +119,7 @@ class _BaseGRPC:
                     "The number of target vectors must be equal to the number of vectors."
                 )
 
-            vector_per_target: Dict[str, bytes] = {}
+            vector_per_target: dict[str, bytes] = {}
             for key, value in vector.items():
                 nv = _get_vector_v4(value)
 
@@ -159,10 +155,10 @@ class _BaseGRPC:
         vector: NearVectorInputType,
         targets: Optional[base_search_pb2.Targets],
         argument_name: str,
-    ) -> Tuple[
-        Optional[List[base_search_pb2.VectorForTarget]],
+    ) -> tuple[
+        Optional[list[base_search_pb2.VectorForTarget]],
         Optional[bytes],
-        Optional[List[str]],
+        Optional[list[str]],
     ]:
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
@@ -171,8 +167,8 @@ class _BaseGRPC:
                         received: {vector} and {targets}."""
         )
 
-        vector_for_target: List[base_search_pb2.VectorForTarget] = []
-        target_vectors: List[str] = []
+        vector_for_target: list[base_search_pb2.VectorForTarget] = []
+        target_vectors: list[str] = []
 
         def add_1d_vector(val: OneDimensionalVectorType, key: str) -> None:
             vec = _get_vector_v4(val)
@@ -297,7 +293,7 @@ class _BaseGRPC:
         self,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
-    ) -> Tuple[Optional[float], Optional[float]]:
+    ) -> tuple[Optional[float], Optional[float]]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -322,8 +318,8 @@ class _BaseGRPC:
                 [
                     _ValidateArgument(
                         [
-                            List,
-                            Dict,
+                            list,
+                            dict,
                             _ExtraTypes.PANDAS,
                             _ExtraTypes.POLARS,
                             _ExtraTypes.NUMPY,
@@ -333,7 +329,7 @@ class _BaseGRPC:
                         near_vector,
                     ),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin],
+                        [str, None, list, _MultiTargetVectorJoin],
                         "target_vector",
                         target_vector,
                     ),
@@ -417,7 +413,7 @@ class _BaseGRPC:
 
     def _parse_near_text(
         self,
-        near_text: Union[List[str], str],
+        near_text: list[str] | str,
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         move_to: Optional[Move],
@@ -427,11 +423,11 @@ class _BaseGRPC:
         if self._validate_arguments:
             _validate_input(
                 [
-                    _ValidateArgument([List, str], "near_text", near_text),
+                    _ValidateArgument([list, str], "near_text", near_text),
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
                     _ValidateArgument(
-                        [str, List, _MultiTargetVectorJoin, None],
+                        [str, list, _MultiTargetVectorJoin, None],
                         "target_vector",
                         target_vector,
                     ),
@@ -465,7 +461,7 @@ class _BaseGRPC:
                 [
                     _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin],
+                        [str, None, list, _MultiTargetVectorJoin],
                         "target_vector",
                         target_vector,
                     ),
@@ -497,7 +493,7 @@ class _BaseGRPC:
                 [
                     _ValidateArgument([str], "media", media),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin],
+                        [str, None, list, _MultiTargetVectorJoin],
                         "target_vector",
                         target_vector,
                     ),
@@ -506,7 +502,7 @@ class _BaseGRPC:
 
         certainty, distance = self._parse_near_options(certainty, distance)
 
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
         targets, target_vector = self.__target_vector_to_grpc(target_vector)
         if type_ == "audio":
             kwargs["near_audio"] = base_search_pb2.NearAudioSearch(
@@ -567,12 +563,12 @@ class _BaseGRPC:
         query: Optional[str],
         alpha: Optional[float],
         vector: Optional[HybridVectorType],
-        properties: Optional[List[str]],
+        properties: Optional[list[str]],
         bm25_operator: Optional[BM25OperatorOptions],
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
-    ) -> Union[base_search_pb2.Hybrid, None]:
+    ) -> Optional[base_search_pb2.Hybrid]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -580,8 +576,8 @@ class _BaseGRPC:
                     _ValidateArgument([float, int, None], "alpha", alpha),
                     _ValidateArgument(
                         [
-                            List,
-                            Dict,
+                            list,
+                            dict,
                             _ExtraTypes.PANDAS,
                             _ExtraTypes.POLARS,
                             _ExtraTypes.NUMPY,
@@ -593,10 +589,10 @@ class _BaseGRPC:
                         "vector",
                         vector,
                     ),
-                    _ValidateArgument([List, None], "properties", properties),
+                    _ValidateArgument([list, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin],
+                        [str, None, list, _MultiTargetVectorJoin],
                         "target_vector",
                         target_vector,
                     ),
@@ -722,19 +718,19 @@ class _BaseGRPC:
 
 class _ByteOps:
     @staticmethod
-    def decode_float32s(byte_vector: bytes) -> List[float]:
+    def decode_float32s(byte_vector: bytes) -> list[float]:
         return [
             float(val) for val in struct.unpack(f"{len(byte_vector) // UINT32_LEN}f", byte_vector)
         ]
 
     @staticmethod
-    def decode_float64s(byte_vector: bytes) -> List[float]:
+    def decode_float64s(byte_vector: bytes) -> list[float]:
         return [
             float(val) for val in struct.unpack(f"{len(byte_vector) // UINT64_LEN}d", byte_vector)
         ]
 
     @staticmethod
-    def decode_int64s(byte_vector: bytes) -> List[int]:
+    def decode_int64s(byte_vector: bytes) -> list[int]:
         return [
             int(val) for val in struct.unpack(f"{len(byte_vector) // UINT64_LEN}q", byte_vector)
         ]
@@ -777,11 +773,11 @@ class _Pack:
 
 class _Unpack:
     @staticmethod
-    def single(byte_vector: bytes) -> List[float]:
+    def single(byte_vector: bytes) -> list[float]:
         return _ByteOps.decode_float32s(byte_vector)
 
     @staticmethod
-    def multi(byte_vector: bytes) -> List[List[float]]:
+    def multi(byte_vector: bytes) -> list[list[float]]:
         dim_bytes = byte_vector[:2]
         dim = int(struct.unpack("<H", dim_bytes)[0])
         byte_vector = byte_vector[2:]
@@ -824,7 +820,7 @@ def __is_list_type(inputs: Any) -> bool:
     return any(
         _is_valid(types, inputs)
         for types in [
-            List,
+            list,
             _ExtraTypes.TF,
             _ExtraTypes.PANDAS,
             _ExtraTypes.NUMPY,

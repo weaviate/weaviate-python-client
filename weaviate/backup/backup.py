@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Optional, cast
 
 from pydantic import BaseModel, Field
 
@@ -44,7 +44,7 @@ class BackupStatus(str, Enum):
 class _BackupConfigBase(BaseModel):
     CPUPercentage: Optional[int] = Field(default=None, alias="cpu_percentage")
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret = cast(dict, self.model_dump(exclude_none=True))
 
         for key, val in ret.items():
@@ -79,12 +79,12 @@ class BackupStatusReturn(BaseModel):
 class BackupReturn(BackupStatusReturn):
     """Return type of the backup creation and restore methods."""
 
-    collections: List[str] = Field(default_factory=list, alias="classes")
+    collections: list[str] = Field(default_factory=list, alias="classes")
 
 
 class BackupListReturn(BaseModel):
     """Return type of the backup list method."""
 
-    collections: List[str] = Field(default_factory=list, alias="classes")
+    collections: list[str] = Field(default_factory=list, alias="classes")
     status: BackupStatus
     backup_id: str = Field(alias="id")

@@ -1,6 +1,6 @@
 import warnings
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Literal, Optional, cast
 
 from deprecation import deprecated as docstring_deprecated
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
@@ -158,11 +158,11 @@ class VectorDistances(str, Enum):
 
 
 class _VectorizerConfigCreate(_ConfigCreateModel):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(default=..., exclude=True)
+    vectorizer: Vectorizers | _EnumLikeStr = Field(default=..., exclude=True)
 
 
 class _Text2ColbertJinaAIConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2COLBERT_JINAAI, frozen=True, exclude=True
     )
     vectorizeClassName: bool
@@ -171,14 +171,14 @@ class _Text2ColbertJinaAIConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
     )
     vectorizeClassName: bool
 
 
 class _Text2VecModel2VecConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_MODEL2VEC, frozen=True, exclude=True
     )
     vectorizeClassName: bool
@@ -186,16 +186,16 @@ class _Text2VecModel2VecConfig(_VectorizerConfigCreate):
 
 
 class _VectorizerCustomConfig(_VectorizerConfigCreate):
-    module_config: Optional[Dict[str, Any]]
+    module_config: Optional[dict[str, Any]]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         if self.module_config is None:
             return {}
         return self.module_config
 
 
 class _Text2VecAWSConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_AWS, frozen=True, exclude=True
     )
     model: Optional[str]
@@ -212,7 +212,7 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
@@ -222,7 +222,7 @@ class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
     dimensions: Optional[int]
     model: Optional[str]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -231,7 +231,7 @@ class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
     )
     model: Optional[str]
@@ -243,7 +243,7 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
     useCache: Optional[bool]
     vectorizeClassName: bool
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         options = {}
         if self.waitForModel is not None:
@@ -260,14 +260,14 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecMistralConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_MISTRAL, frozen=True, exclude=True
     )
     model: Optional[str]
     vectorizeClassName: bool
     baseURL: Optional[AnyHttpUrl]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -275,14 +275,14 @@ class _Text2VecMistralConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecMorphConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_MORPH, frozen=True, exclude=True
     )
     model: Optional[str]
     vectorizeClassName: bool
     baseURL: Optional[AnyHttpUrl]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -290,7 +290,7 @@ class _Text2VecMorphConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecDatabricksConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_DATABRICKS, frozen=True, exclude=True
     )
     endpoint: str
@@ -302,7 +302,7 @@ OpenAIType = Literal["text", "code"]
 
 
 class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
@@ -312,7 +312,7 @@ class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
     type_: Optional[OpenAIType]
     vectorizeClassName: bool
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.type_ is not None:
             ret_dict["type"] = ret_dict.pop("type_")
@@ -323,7 +323,7 @@ class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecCohereConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_COHERE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
@@ -331,7 +331,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
     truncate: Optional[CohereTruncation]
     vectorizeClassName: bool
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -339,7 +339,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecGoogleConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True
     )
     projectId: Optional[str]
@@ -351,7 +351,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecTransformersConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
     )
     poolingStrategy: Literal["masked_mean", "cls"]
@@ -363,14 +363,14 @@ class _Text2VecTransformersConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_GPT4ALL, frozen=True, exclude=True
     )
     vectorizeClassName: bool
 
 
 class _Text2VecJinaConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_JINAAI, frozen=True, exclude=True
     )
     baseURL: Optional[str]
@@ -380,7 +380,7 @@ class _Text2VecJinaConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecVoyageConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
     )
     model: Optional[str]
@@ -390,7 +390,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_NVIDIA, frozen=True, exclude=True
     )
     model: Optional[str]
@@ -400,7 +400,7 @@ class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_WEAVIATE, frozen=True, exclude=True
     )
     model: Optional[str]
@@ -410,7 +410,7 @@ class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecOllamaConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.TEXT2VEC_OLLAMA, frozen=True, exclude=True
     )
     model: Optional[str]
@@ -419,10 +419,10 @@ class _Text2VecOllamaConfig(_VectorizerConfigCreate):
 
 
 class _Img2VecNeuralConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.IMG2VEC_NEURAL, frozen=True, exclude=True
     )
-    imageFields: List[str]
+    imageFields: list[str]
 
 
 class Multi2VecField(BaseModel):
@@ -433,16 +433,16 @@ class Multi2VecField(BaseModel):
 
 
 class _Multi2VecBase(_VectorizerConfigCreate):
-    imageFields: Optional[List[Multi2VecField]]
-    textFields: Optional[List[Multi2VecField]]
+    imageFields: Optional[list[Multi2VecField]]
+    textFields: Optional[list[Multi2VecField]]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["weights"] = {}
         for cls_field in type(self).model_fields:
             val = getattr(self, cls_field)
             if "Fields" in cls_field and val is not None:
-                val = cast(List[Multi2VecField], val)
+                val = cast(list[Multi2VecField], val)
                 ret_dict[cls_field] = [field.name for field in val]
                 weights = [field.weight for field in val if field.weight is not None]
                 if len(weights) > 0:
@@ -453,14 +453,14 @@ class _Multi2VecBase(_VectorizerConfigCreate):
 
 
 class _Multi2VecCohereConfig(_Multi2VecBase):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2VEC_COHERE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncate: Optional[CohereTruncation]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -468,14 +468,14 @@ class _Multi2VecCohereConfig(_Multi2VecBase):
 
 
 class _Multi2VecJinaConfig(_Multi2VecBase):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2VEC_JINAAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     dimensions: Optional[int]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -483,7 +483,7 @@ class _Multi2VecJinaConfig(_Multi2VecBase):
 
 
 class _Multi2VecAWSConfig(_Multi2VecBase):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2VEC_AWS, frozen=True, exclude=True
     )
     region: Optional[str]
@@ -492,13 +492,13 @@ class _Multi2VecAWSConfig(_Multi2VecBase):
 
 
 class _Multi2MultiVecJinaConfig(_Multi2VecBase):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2MULTI_JINAAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -506,17 +506,17 @@ class _Multi2MultiVecJinaConfig(_Multi2VecBase):
 
 
 class _Multi2VecClipConfig(_Multi2VecBase):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2VEC_CLIP, frozen=True, exclude=True
     )
     inferenceUrl: Optional[str]
 
 
 class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
     )
-    videoFields: Optional[List[Multi2VecField]]
+    videoFields: Optional[list[Multi2VecField]]
     projectId: str
     location: Optional[str]
     modelId: Optional[str]
@@ -525,25 +525,25 @@ class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
 
 
 class _Multi2VecBindConfig(_Multi2VecBase):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2VEC_BIND, frozen=True, exclude=True
     )
-    audioFields: Optional[List[Multi2VecField]]
-    depthFields: Optional[List[Multi2VecField]]
-    IMUFields: Optional[List[Multi2VecField]]
-    thermalFields: Optional[List[Multi2VecField]]
-    videoFields: Optional[List[Multi2VecField]]
+    audioFields: Optional[list[Multi2VecField]]
+    depthFields: Optional[list[Multi2VecField]]
+    IMUFields: Optional[list[Multi2VecField]]
+    thermalFields: Optional[list[Multi2VecField]]
+    videoFields: Optional[list[Multi2VecField]]
 
 
 class _Multi2VecVoyageaiConfig(_Multi2VecBase):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2VEC_VOYAGEAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncation: Optional[bool]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -551,14 +551,14 @@ class _Multi2VecVoyageaiConfig(_Multi2VecBase):
 
 
 class _Multi2VecNvidiaConfig(_Multi2VecBase):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.MULTI2VEC_NVIDIA, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncation: Optional[bool]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
@@ -566,16 +566,16 @@ class _Multi2VecNvidiaConfig(_Multi2VecBase):
 
 
 class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+    vectorizer: Vectorizers | _EnumLikeStr = Field(
         default=Vectorizers.REF2VEC_CENTROID, frozen=True, exclude=True
     )
-    referenceProperties: List[str]
+    referenceProperties: list[str]
     method: Literal["mean"]
 
 
 def _map_multi2vec_fields(
-    fields: Optional[Union[List[str], List[Multi2VecField]]],
-) -> Optional[List[Multi2VecField]]:
+    fields: Optional[list[str] | list[Multi2VecField]],
+) -> Optional[list[Multi2VecField]]:
     if fields is None:
         return None
     return [Multi2VecField(name=field) if isinstance(field, str) else field for field in fields]
@@ -595,7 +595,7 @@ class _Vectorizer:
 
     @staticmethod
     def img2vec_neural(
-        image_fields: List[str],
+        image_fields: list[str],
     ) -> _VectorizerConfigCreate:
         """Create a `_Img2VecNeuralConfigCreate` object for use when vectorizing using the `img2vec-neural` model.
 
@@ -613,8 +613,8 @@ class _Vectorizer:
 
     @staticmethod
     def multi2vec_clip(
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
         interference_url: Optional[str] = None,
         inference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
@@ -653,13 +653,13 @@ class _Vectorizer:
 
     @staticmethod
     def multi2vec_bind(
-        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        depth_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        imu_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        audio_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        depth_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        imu_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        thermal_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        video_fields: Optional[list[str] | list[Multi2VecField]] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecBindConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
@@ -692,7 +692,7 @@ class _Vectorizer:
 
     @staticmethod
     def ref2vec_centroid(
-        reference_properties: List[str],
+        reference_properties: list[str],
         method: Literal["mean"] = "mean",
     ) -> _VectorizerConfigCreate:
         """Create a `_Ref2VecCentroidConfigCreate` object for use when vectorizing using the `ref2vec-centroid` model.
@@ -714,10 +714,10 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_aws(
-        model: Optional[Union[AWSModel, str]] = None,
+        model: Optional[AWSModel | str] = None,
         region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC - will be validated in the model
         endpoint: Optional[str] = None,
-        service: Union[AWSService, str] = "bedrock",
+        service: AWSService | str = "bedrock",
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
@@ -792,7 +792,7 @@ class _Vectorizer:
 
     @staticmethod
     def custom(
-        module_name: str, module_config: Optional[Dict[str, Any]] = None
+        module_name: str, module_config: Optional[dict[str, Any]] = None
     ) -> _VectorizerConfigCreate:
         """Create a `_VectorizerCustomConfig` object for use when vectorizing using a custom specification.
 
@@ -806,7 +806,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_cohere(
-        model: Optional[Union[CohereModel, str]] = None,
+        model: Optional[CohereModel | str] = None,
         truncate: Optional[CohereTruncation] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
@@ -835,12 +835,12 @@ class _Vectorizer:
     @staticmethod
     def multi2vec_cohere(
         *,
-        model: Optional[Union[CohereMultimodalModel, str]] = None,
+        model: Optional[CohereMultimodalModel | str] = None,
         truncate: Optional[CohereTruncation] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecCohereConfig` object for use when vectorizing using the `multi2vec-cohere` model.
 
@@ -869,13 +869,13 @@ class _Vectorizer:
     @staticmethod
     def multi2vec_voyageai(
         *,
-        model: Optional[Union[CohereMultimodalModel, str]] = None,
+        model: Optional[CohereMultimodalModel | str] = None,
         truncation: Optional[bool] = None,
         output_encoding: Optional[str],
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecCohereConfig` object for use when vectorizing using the `multi2vec-cohere` model.
 
@@ -910,8 +910,8 @@ class _Vectorizer:
         output_encoding: Optional[str] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecNvidiaConfig` object for use when vectorizing using the `multi2vec-nvidia` model.
 
@@ -1070,7 +1070,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_openai(
-        model: Optional[Union[OpenAIModel, str]] = None,
+        model: Optional[OpenAIModel | str] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
         vectorize_collection_name: bool = True,
@@ -1219,9 +1219,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         location: str,
         project_id: str,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        video_fields: Optional[list[str] | list[Multi2VecField]] = None,
         dimensions: Optional[int] = None,
         model_id: Optional[str] = None,
         video_interval_seconds: Optional[int] = None,
@@ -1263,9 +1263,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         location: str,
         project_id: str,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        video_fields: Optional[list[str] | list[Multi2VecField]] = None,
         model_id: Optional[str] = None,
         video_interval_seconds: Optional[int] = None,
         vectorize_collection_name: bool = True,
@@ -1335,7 +1335,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_jinaai(
-        model: Optional[Union[JinaModel, str]] = None,
+        model: Optional[JinaModel | str] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
@@ -1363,12 +1363,12 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def multi2vec_jinaai(
         *,
-        model: Optional[Union[JinaMultimodalModel, str]] = None,
+        model: Optional[JinaMultimodalModel | str] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[list[str] | list[Multi2VecField]] = None,
+        text_fields: Optional[list[str] | list[Multi2VecField]] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecJinaConfig` object for use when vectorizing using the `multi2vec-jinaai` model.
 
@@ -1397,7 +1397,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def text2vec_voyageai(
         *,
-        model: Optional[Union[VoyageModel, str]] = None,
+        model: Optional[VoyageModel | str] = None,
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
         vectorize_collection_name: bool = True,
@@ -1425,7 +1425,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def text2vec_weaviate(
         *,
-        model: Optional[Union[WeaviateModel, str]] = None,
+        model: Optional[WeaviateModel | str] = None,
         base_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
         dimensions: Optional[int] = None,

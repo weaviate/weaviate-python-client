@@ -1,4 +1,4 @@
-from typing import Generic, List, Literal, Optional, Union, overload
+from typing import Generic, Literal, Optional, overload
 
 from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -20,7 +20,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -37,7 +37,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -45,7 +45,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
+        group_by: str | GroupByAggregate,
         target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
@@ -54,7 +54,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -62,15 +62,15 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+    ) -> executor.Result[AggregateReturn | AggregateGroupByReturn]: ...
 
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -78,11 +78,11 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        group_by: Optional[str | GroupByAggregate] = None,
         target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]:
+    ) -> executor.Result[AggregateReturn | AggregateGroupByReturn]:
         """Aggregate metrics over the objects returned by a near text vector search on this collection.
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
@@ -119,7 +119,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
         if self._connection._weaviate_version.is_lower_than(1, 29, 0):
             # use gql, remove once 1.29 is the minimum supported version
-            def resp(res: dict) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            def resp(res: dict) -> AggregateReturn | AggregateGroupByReturn:
                 return (
                     self._to_aggregate_result(res, return_metrics)
                     if group_by is None
@@ -166,7 +166,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
             def respGrpc(
                 res: aggregate_pb2.AggregateReply,
-            ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            ) -> AggregateReturn | AggregateGroupByReturn:
                 return self._to_result(group_by is not None, res)
 
             return executor.execute(

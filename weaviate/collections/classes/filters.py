@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Sequence, Union
+from typing import Optional, Sequence
 
 from pydantic import Field
 from typing_extensions import TypeAlias
@@ -78,8 +78,8 @@ class _Filters:
 
 
 class _FilterAnd(_Filters):
-    def __init__(self, filters: List[_Filters]):
-        self.filters: List[_Filters] = filters
+    def __init__(self, filters: list[_Filters]):
+        self.filters: list[_Filters] = filters
 
     # replace with the following once 3.11 is the minimum version
     #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorAnd
@@ -89,8 +89,8 @@ class _FilterAnd(_Filters):
 
 
 class _FilterOr(_Filters):
-    def __init__(self, filters: List[_Filters]):
-        self.filters: List[_Filters] = filters
+    def __init__(self, filters: list[_Filters]):
+        self.filters: list[_Filters] = filters
 
     # replace with the following once 3.11 is the minimum version
     #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorOr
@@ -101,7 +101,7 @@ class _FilterOr(_Filters):
 
 class _FilterNot(_Filters):
     def __init__(self, filter_: _Filters):
-        self.filters: List[_Filters] = [filter_]
+        self.filters: list[_Filters] = [filter_]
 
     @property
     def operator(self) -> _Operator:
@@ -112,17 +112,18 @@ class _GeoCoordinateFilter(GeoCoordinate):
     distance: float
 
 
-FilterValuesList = Union[
-    Sequence[str],
-    Sequence[bool],
-    Sequence[int],
-    Sequence[float],
-    Sequence[datetime],
-    Sequence[UUID],
-]
-FilterValues = Union[
-    int, float, str, bool, datetime, UUID, _GeoCoordinateFilter, None, FilterValuesList
-]
+FilterValuesList = (
+    Sequence[str]
+    | Sequence[bool]
+    | Sequence[int]
+    | Sequence[float]
+    | Sequence[datetime]
+    | Sequence[UUID]
+)
+
+FilterValues = (
+    int | float | str | bool | datetime | UUID | _GeoCoordinateFilter | None | FilterValuesList
+)
 
 
 class _SingleTargetRef(_WeaviateInput):
@@ -140,8 +141,8 @@ class _CountRef(_WeaviateInput):
     link_on: str
 
 
-_TargetRefs = Union[_SingleTargetRef, _MultiTargetRef]
-_FilterTargets = Union[_SingleTargetRef, _MultiTargetRef, _CountRef, str]
+_TargetRefs = _SingleTargetRef | _MultiTargetRef
+_FilterTargets = _SingleTargetRef | _MultiTargetRef | _CountRef | str
 
 
 class _FilterValue(_Filters, _WeaviateInput):
@@ -152,7 +153,7 @@ class _FilterValue(_Filters, _WeaviateInput):
 
 class _FilterBase:
     _target: Optional[_TargetRefs] = None
-    _property: Union[str, _CountRef]
+    _property: str | _CountRef
 
     def _target_path(self) -> _FilterTargets:
         if self._target is None:
@@ -278,11 +279,11 @@ class _FilterByProperty(_FilterBase):
 
 
 class _FilterByTime(_FilterBase):
-    def contains_any(self, dates: List[datetime]) -> _Filters:
+    def contains_any(self, dates: list[datetime]) -> _Filters:
         """Filter for objects with the given time.
 
         Args:
-            dates: List of dates to filter on.
+            dates: list of dates to filter on.
         """
         return _FilterValue(
             target=self._target_path(),
@@ -290,11 +291,11 @@ class _FilterByTime(_FilterBase):
             operator=_Operator.CONTAINS_ANY,
         )
 
-    def contains_none(self, dates: List[datetime]) -> _Filters:
+    def contains_none(self, dates: list[datetime]) -> _Filters:
         """Filter for objects that contain none of the dates.
 
         Args:
-            dates: List of dates to filter on.
+            dates: list of dates to filter on.
         """
         return _FilterValue(
             target=self._target_path(),
@@ -610,7 +611,7 @@ class Filter:
         return _FilterByProperty(prop=name, length=length, target=None)
 
     @staticmethod
-    def all_of(filters: List[_Filters]) -> _Filters:
+    def all_of(filters: list[_Filters]) -> _Filters:
         """Combine all filters in the input list with an AND operator."""
         if len(filters) == 1:
             return filters[0]
@@ -619,7 +620,7 @@ class Filter:
         return _FilterAnd(filters)
 
     @staticmethod
-    def any_of(filters: List[_Filters]) -> _Filters:
+    def any_of(filters: list[_Filters]) -> _Filters:
         """Combine all filters in the input list with an OR operator."""
         if len(filters) == 1:
             return filters[0]

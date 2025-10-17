@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 import grpc
 import pytest
@@ -170,7 +170,7 @@ def test_return_from_bind_module(
     config = wvc.config.Configure
 
     # point of this test is to check if the return from the bind module is correctly parsed. There is no skip and vectorizePropertyName present
-    prop_modconf: Dict[str, Any] = {"multi2vec-bind": {}}
+    prop_modconf: dict[str, Any] = {"multi2vec-bind": {}}
 
     hnsw_config = config.VectorIndex.hnsw(
         1, VectorDistances.COSINE, 1, 1, 1, 1, 1, None, 1, 1, 1
@@ -264,7 +264,7 @@ def test_integration_config(
     weaviate_no_auth_mock: HTTPServer,
     start_grpc_server: grpc.Server,
     integrations: _IntegrationConfig,
-    headers: Dict[str, Any],
+    headers: dict[str, Any],
 ) -> None:
     client = weaviate.connect_to_local(
         port=MOCK_PORT,

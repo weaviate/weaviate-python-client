@@ -53,12 +53,12 @@
 
 # class BaseProperty(BaseModel):
 #     uuid: uuid_package.UUID = Field(default_factory=uuid_package.uuid4)
-#     vector: Optional[List[float]] = None
+#     vector: Optional[list[float]] = None
 
 #     def model_post_init(self, __context: Any) -> None:
 #         self._reference_fields: Set[str] = self.get_ref_fields(type(self))
 
-#         self._reference_to_class: Dict[str, str] = {}
+#         self._reference_to_class: dict[str, str] = {}
 #         for ref in self._reference_fields:
 #             self._reference_to_class[ref] = self.model_fields[ref].metadata[0].name
 
@@ -88,7 +88,7 @@
 #             and name not in BaseProperty.model_fields
 #         }
 
-#     def props_to_dict(self, update: bool = False) -> Dict[str, Any]:
+#     def props_to_dict(self, update: bool = False) -> dict[str, Any]:
 #         fields_to_exclude: Set[str] = self._reference_fields.union({"uuid", "vector"})
 #         if update:
 #             fields_to_exclude.union(
@@ -115,7 +115,7 @@
 #             return uuid_package.UUID(hex=hex_string)
 
 #     @staticmethod
-#     def type_to_dict(model: Type["BaseProperty"]) -> List[Dict[str, Any]]:
+#     def type_to_dict(model: Type["BaseProperty"]) -> list[dict[str, Any]]:
 #         types = get_type_hints(model)
 
 #         non_optional_types = {
@@ -153,7 +153,7 @@
 #     @staticmethod
 #     def type_to_properties(
 #         model: Type["BaseProperty"],
-#     ) -> List[Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]]:
+#     ) -> list[Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]]:
 #         types = get_type_hints(model)
 
 #         non_optional_types = {
@@ -163,10 +163,10 @@
 #         }
 
 #         non_ref_fields = model.get_non_ref_fields(model)
-#         properties: List[Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]] = []
+#         properties: list[Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]] = []
 #         for name in non_ref_fields:
 #             data_type = [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]]
-#             prop: Dict[str, Any] = {}
+#             prop: dict[str, Any] = {}
 #             metadata_list = model.model_fields[name].metadata
 #             if metadata_list is not None and len(metadata_list) > 0:
 #                 metadata = metadata_list[0]
@@ -195,7 +195,7 @@
 #         }
 
 #     @staticmethod
-#     def remove_optional_type(python_type: T) -> Union[Any, List[Any], T]:
+#     def remove_optional_type(python_type: T) -> Union[Any, list[Any], T]:
 #         args = get_args(python_type)
 #         if len(args) == 0:
 #             return python_type
@@ -204,7 +204,7 @@
 
 #         is_list = get_origin(python_type) == list
 #         if is_list:
-#             return List[return_type]  # type: ignore
+#             return list[return_type]  # type: ignore
 #         else:
 #             return return_type
 
@@ -213,9 +213,9 @@
 
 
 # class RefToObjectModel(BaseModel, Generic[Model]):
-#     uuids_to: Union[List[UUID], UUID] = Field()
+#     uuids_to: Union[list[UUID], UUID] = Field()
 
-#     def to_beacon(self) -> List[Dict[str, str]]:
+#     def to_beacon(self) -> list[dict[str, str]]:
 #         return _to_beacons(self.uuids_to)
 
 
@@ -225,7 +225,7 @@
 # class CollectionModelConfig(_CollectionConfigCreateBase, Generic[Model]):
 #     model: Type[Model]
 
-#     def _to_dict(self) -> Dict[str, Any]:
+#     def _to_dict(self) -> dict[str, Any]:
 #         ret_dict = super()._to_dict()
 
 #         ret_dict["class"] = _capitalize_first_letter(self.model.__name__)

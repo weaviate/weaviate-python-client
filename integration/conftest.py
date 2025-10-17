@@ -2,14 +2,11 @@ import os
 from typing import (
     Any,
     AsyncGenerator,
-    Dict,
     Generator,
-    List,
     Optional,
     Protocol,
     Tuple,
     Type,
-    Union,
 )
 
 import pytest
@@ -43,15 +40,13 @@ class CollectionFactory(Protocol):
     def __call__(
         self,
         name: str = "",
-        properties: Optional[List[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
-        vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
-        ] = None,
+        properties: Optional[list[Property]] = None,
+        references: Optional[list[_ReferencePropertyBase]] = None,
+        vectorizer_config: _VectorizerConfigCreate | list[_NamedVectorConfigCreate] | None = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeProvider] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
@@ -59,9 +54,7 @@ class CollectionFactory(Protocol):
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerProvider] = None,
-        vector_config: Optional[
-            Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
-        ] = None,
+        vector_config: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -72,7 +65,7 @@ class ClientFactory(Protocol):
 
     def __call__(
         self,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         auth_credentials: Optional[weaviate.auth.AuthCredentials] = None,
     ) -> weaviate.WeaviateClient:
@@ -85,7 +78,7 @@ def client_factory() -> Generator[ClientFactory, None, None]:
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
     def _factory(
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         auth_credentials: Optional[weaviate.auth.AuthCredentials] = None,
     ) -> weaviate.WeaviateClient:
@@ -111,21 +104,21 @@ def client_factory() -> Generator[ClientFactory, None, None]:
 def collection_factory(
     request: SubRequest, client_factory: ClientFactory
 ) -> Generator[CollectionFactory, None, None]:
-    name_fixtures: List[str] = []
+    name_fixtures: list[str] = []
     client_fixture: Optional[weaviate.WeaviateClient] = None
     call_counter: int = 0
 
     def _factory(
         name: str = "",
-        properties: Optional[List[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
+        properties: Optional[list[Property]] = None,
+        references: Optional[list[_ReferencePropertyBase]] = None,
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeProvider] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
@@ -133,9 +126,7 @@ def collection_factory(
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerProvider] = None,
-        vector_config: Optional[
-            Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
-        ] = None,
+        vector_config: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = None,
     ) -> Collection[Any, Any]:
         try:
             nonlocal client_fixture, name_fixtures, call_counter  # noqa: F824
@@ -191,15 +182,15 @@ class AsyncCollectionFactory(Protocol):
     async def __call__(
         self,
         name: str = "",
-        properties: Optional[List[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
+        properties: Optional[list[Property]] = None,
+        references: Optional[list[_ReferencePropertyBase]] = None,
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeProvider] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
@@ -217,7 +208,7 @@ class AsyncClientFactory(Protocol):
 
     async def __call__(
         self,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
     ) -> weaviate.WeaviateAsyncClient:
         """Typing for fixture."""
@@ -229,7 +220,7 @@ async def async_client_factory() -> AsyncGenerator[AsyncClientFactory, None]:
     client_fixture: Optional[weaviate.WeaviateAsyncClient] = None
 
     async def _factory(
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
     ) -> weaviate.WeaviateAsyncClient:
         nonlocal client_fixture
@@ -254,20 +245,20 @@ async def async_client_factory() -> AsyncGenerator[AsyncClientFactory, None]:
 async def async_collection_factory(
     request: SubRequest, async_client_factory: AsyncClientFactory
 ) -> AsyncGenerator[AsyncCollectionFactory, None]:
-    name_fixtures: List[str] = []
+    name_fixtures: list[str] = []
     client_fixture: Optional[weaviate.WeaviateAsyncClient] = None
 
     async def _factory(
         name: str = "",
-        properties: Optional[List[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
+        properties: Optional[list[Property]] = None,
+        references: Optional[list[_ReferencePropertyBase]] = None,
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeProvider] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
@@ -322,11 +313,9 @@ class OpenAICollection(Protocol):
         self,
         name: str = "",
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
-        vector_config: Optional[
-            Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
-        ] = None,
+        vector_config: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -339,11 +328,9 @@ def openai_collection(
     def _factory(
         name: str = "",
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
-        vector_config: Optional[
-            Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
-        ] = None,
+        vector_config: Optional[_VectorConfigCreate | list[_VectorConfigCreate]] = None,
     ) -> Collection[Any, Any]:
         api_key = os.environ.get("OPENAI_APIKEY")
         if api_key is None:
@@ -375,7 +362,7 @@ class AsyncOpenAICollectionFactory(Protocol):
         self,
         name: str = "",
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
     ) -> CollectionAsync[Any, Any]:
         """Typing for fixture."""
@@ -389,7 +376,7 @@ async def async_openai_collection(
     async def _factory(
         name: str = "",
         vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+            _VectorizerConfigCreate | list[_NamedVectorConfigCreate]
         ] = None,
     ) -> CollectionAsync[Any, Any]:
         api_key = os.environ.get("OPENAI_APIKEY")

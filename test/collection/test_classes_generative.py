@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable
 
 import pytest
 
@@ -28,10 +28,7 @@ LOGO_ENCODED = "iVBORw0KGgoAAAANSUhEUgAAAZAAAAE5CAYAAAC+rHbqAAAAGXRFWHRTb2Z0d2Fy
     ],
 )
 def test_generative_parameters_images_parsing(
-    provider: Union[
-        Callable[[BLOB_INPUT], _GroupedTask],
-        Callable[[BLOB_INPUT], _SinglePrompt],
-    ],
+    provider: Callable[[BLOB_INPUT], _GroupedTask] | Callable[[BLOB_INPUT], _SinglePrompt],
 ) -> None:
     # tests image as a path string
     p = provider(LOGO)

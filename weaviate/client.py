@@ -1,6 +1,6 @@
 """Client class definition."""
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional
 
 from typing_extensions import deprecated
 
@@ -25,7 +25,7 @@ from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
 from .users import _Users, _UsersAsync
 
-TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
+TIMEOUT_TYPE = tuple[NUMBER, NUMBER] | NUMBER
 
 
 @executor.wrap("async")

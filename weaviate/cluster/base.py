@@ -1,5 +1,5 @@
 import uuid
-from typing import Generic, List, Optional, Union
+from typing import Generic, Optional
 
 from httpx import Response
 
@@ -102,7 +102,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
         shard: Optional[str] = None,
         *,
         output: Optional[Verbosity] = None,
-    ) -> executor.Result[Union[List[NodeMinimal], List[NodeVerbose]]]:
+    ) -> executor.Result[list[NodeMinimal] | list[NodeVerbose]]:
         """Get the status of all nodes in the cluster.
 
         Args:
@@ -129,7 +129,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
 
         def resp(
             res: Response,
-        ) -> Union[List[NodeMinimal], List[NodeVerbose]]:
+        ) -> list[NodeMinimal] | list[NodeVerbose]:
             response_typed = _decode_json_response_dict(res, "Nodes status")
             assert response_typed is not None
 

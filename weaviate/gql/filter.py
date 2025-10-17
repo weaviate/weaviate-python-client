@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from enum import Enum
 from json import dumps
-from typing import Any, Tuple, Union
+from typing import Any
 
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
 from weaviate.util import _sanitize_str, get_vector
@@ -510,7 +510,7 @@ class NearIMU(NearMedia):
 class Sort(Filter):
     """Sort filter class used to sort weaviate objects."""
 
-    def __init__(self, content: Union[dict, list]):
+    def __init__(self, content: dict | list):
         """Initialize a Where filter class instance.
 
         Args:
@@ -526,7 +526,7 @@ class Sort(Filter):
 
         self.add(content=content)
 
-    def add(self, content: Union[dict, list]) -> None:
+    def add(self, content: dict | list) -> None:
         """Add more sort clauses to the already existing sort clauses.
 
         Args:
@@ -900,7 +900,7 @@ def _check_objects(content: dict) -> None:
             )
 
 
-def _check_type(var_name: str, value: Any, dtype: Union[Tuple[type, type], type]) -> None:
+def _check_type(var_name: str, value: Any, dtype: tuple[type, type] | type) -> None:
     """Check key-value type.
 
     Args:

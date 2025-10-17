@@ -1,4 +1,4 @@
-from typing import Any, Generic, List, Literal, Optional, Type, Union, cast, overload
+from typing import Any, Generic, Literal, Optional, Type, cast, overload
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -41,7 +41,7 @@ class _NearTextQueryExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -56,14 +56,14 @@ class _NearTextQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -78,14 +78,14 @@ class _NearTextQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -100,14 +100,14 @@ class _NearTextQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -129,7 +129,7 @@ class _NearTextQueryExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -151,7 +151,7 @@ class _NearTextQueryExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -175,7 +175,7 @@ class _NearTextQueryExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -190,14 +190,14 @@ class _NearTextQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Literal[None] = None,
     ) -> executor.Result[GroupByReturn[Properties, References]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -212,14 +212,14 @@ class _NearTextQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: REFERENCES,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -234,14 +234,14 @@ class _NearTextQueryExecutor(
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Union[PROPERTIES, bool, None] = None,
+        return_properties: Optional[PROPERTIES | bool] = None,
         return_references: Type[TReferences],
     ) -> executor.Result[GroupByReturn[Properties, TReferences]]: ...
 
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -263,7 +263,7 @@ class _NearTextQueryExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -285,7 +285,7 @@ class _NearTextQueryExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -308,7 +308,7 @@ class _NearTextQueryExecutor(
     @overload
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -331,7 +331,7 @@ class _NearTextQueryExecutor(
 
     def near_text(
         self,
-        query: Union[List[str], str],
+        query: list[str] | str,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
