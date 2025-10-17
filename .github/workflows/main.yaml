@@ -303,7 +303,8 @@ jobs:
           $WEAVIATE_130,
           $WEAVIATE_131,
           $WEAVIATE_132,
-          $WEAVIATE_133
+          $WEAVIATE_133,
+          $WEAVIATE_134
         ]
     steps:
       - name: Checkout
