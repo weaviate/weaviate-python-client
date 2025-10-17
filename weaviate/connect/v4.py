@@ -9,6 +9,7 @@ from typing import (
     Any,
     Awaitable,
     Dict,
+    Generator,
     List,
     Literal,
     Optional,
@@ -66,6 +67,7 @@ from weaviate.exceptions import (
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
     WeaviateBatchError,
+    WeaviateBatchStreamError,
     WeaviateClosedClientError,
     WeaviateConnectionError,
     WeaviateDeleteManyError,
@@ -76,6 +78,7 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     WeaviateTenantGetError,
     WeaviateTimeoutError,
+    _BatchStreamShutdownError,
 )
 from weaviate.proto.v1 import (
     aggregate_pb2,
@@ -909,8 +912,8 @@ class _ConnectionBase:
 class ConnectionSync(_ConnectionBase):
     """Connection class used to communicate to a weaviate instance."""
 
-    def connect(self) -> None:
-        if self._connected:
+    def connect(self, force: bool = False) -> None:
+        if self._connected and not force:
             return None
 
         self._open_connections_rest(self._auth, "sync")
@@ -1026,6 +1029,24 @@ class ConnectionSync(_ConnectionBase):
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
             raise WeaviateBatchError(str(error.details()))
+
+    def grpc_batch_stream(
+        self,
+        requests: Generator[batch_pb2.BatchStreamRequest, None, None],
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        try:
+            assert self.grpc_stub is not None
+            for msg in self.grpc_stub.BatchStream(
+                request_iterator=requests, metadata=self.grpc_headers()
+            ):
+                yield msg
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(str(error.details()))
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest

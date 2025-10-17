@@ -131,7 +131,7 @@ class GenerativeAWS(_message.Message):
     def __init__(self, model: _Optional[str] = ..., temperature: _Optional[float] = ..., service: _Optional[str] = ..., region: _Optional[str] = ..., endpoint: _Optional[str] = ..., target_model: _Optional[str] = ..., target_variant: _Optional[str] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., max_tokens: _Optional[int] = ...) -> None: ...
 
 class GenerativeCohere(_message.Message):
-    __slots__ = ("base_url", "frequency_penalty", "max_tokens", "model", "k", "p", "presence_penalty", "stop_sequences", "temperature")
+    __slots__ = ("base_url", "frequency_penalty", "max_tokens", "model", "k", "p", "presence_penalty", "stop_sequences", "temperature", "images", "image_properties")
     BASE_URL_FIELD_NUMBER: _ClassVar[int]
     FREQUENCY_PENALTY_FIELD_NUMBER: _ClassVar[int]
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -141,6 +141,8 @@ class GenerativeCohere(_message.Message):
     PRESENCE_PENALTY_FIELD_NUMBER: _ClassVar[int]
     STOP_SEQUENCES_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     base_url: str
     frequency_penalty: float
     max_tokens: int
@@ -150,7 +152,9 @@ class GenerativeCohere(_message.Message):
     presence_penalty: float
     stop_sequences: _base_pb2.TextArray
     temperature: float
-    def __init__(self, base_url: _Optional[str] = ..., frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., k: _Optional[int] = ..., p: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., stop_sequences: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., temperature: _Optional[float] = ...) -> None: ...
+    images: _base_pb2.TextArray
+    image_properties: _base_pb2.TextArray
+    def __init__(self, base_url: _Optional[str] = ..., frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., k: _Optional[int] = ..., p: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., stop_sequences: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., temperature: _Optional[float] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
 
 class GenerativeDummy(_message.Message):
     __slots__ = ()
