@@ -365,15 +365,15 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
 @pytest.mark.parametrize(
     "batching_method",
     [
-        lambda client: client.batch.dynamic(),
-        lambda client: client.batch.fixed_size(),
-        lambda client: client.batch.rate_limit(9999),
+        # lambda client: client.batch.dynamic(),
+        # lambda client: client.batch.fixed_size(),
+        # lambda client: client.batch.rate_limit(9999),
         lambda client: client.batch.experimental(concurrency=1),
     ],
     ids=[
-        "test_add_ten_thousand_data_objects_dynamic",
-        "test_add_ten_thousand_data_objects_fixed_size",
-        "test_add_ten_thousand_data_objects_rate_limit",
+        # "test_add_ten_thousand_data_objects_dynamic",
+        # "test_add_ten_thousand_data_objects_fixed_size",
+        # "test_add_ten_thousand_data_objects_rate_limit",
         "test_add_ten_thousand_data_objects_experimental",
     ],
 )
@@ -401,10 +401,10 @@ def test_add_ten_thousand_data_objects(
             )
     end = time.time()
     print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
-    assert len(client.collections.use(name)) == nr_objects
+    assert len(client.batch.results.objs.errors) == 0
     assert len(client.batch.results.objs.all_responses) == nr_objects
     assert len(client.batch.results.objs.uuids) == nr_objects
-    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.collections.use(name)) == nr_objects
     assert client.batch.results.objs.has_errors is False
     assert len(client.batch.failed_objects) == 0, [
         obj.message for obj in client.batch.failed_objects

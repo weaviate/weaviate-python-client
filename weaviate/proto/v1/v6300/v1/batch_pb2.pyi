@@ -60,38 +60,43 @@ class BatchStreamRequest(_message.Message):
     def __init__(self, start: _Optional[_Union[BatchStreamRequest.Start, _Mapping]] = ..., data: _Optional[_Union[BatchStreamRequest.Data, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamRequest.Stop, _Mapping]] = ...) -> None: ...
 
 class BatchStreamReply(_message.Message):
-    __slots__ = ("error", "shutting_down", "backoff", "started")
+    __slots__ = ("results", "shutting_down", "started")
     class Started(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
     class ShuttingDown(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
-    class Error(_message.Message):
-        __slots__ = ("error", "object", "reference")
-        ERROR_FIELD_NUMBER: _ClassVar[int]
-        OBJECT_FIELD_NUMBER: _ClassVar[int]
-        REFERENCE_FIELD_NUMBER: _ClassVar[int]
-        error: str
-        object: BatchObject
-        reference: BatchReference
-        def __init__(self, error: _Optional[str] = ..., object: _Optional[_Union[BatchObject, _Mapping]] = ..., reference: _Optional[_Union[BatchReference, _Mapping]] = ...) -> None: ...
-    class Backoff(_message.Message):
-        __slots__ = ("next_batch_size", "backoff_seconds")
-        NEXT_BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
-        BACKOFF_SECONDS_FIELD_NUMBER: _ClassVar[int]
-        next_batch_size: int
-        backoff_seconds: float
-        def __init__(self, next_batch_size: _Optional[int] = ..., backoff_seconds: _Optional[float] = ...) -> None: ...
-    ERROR_FIELD_NUMBER: _ClassVar[int]
+    class Results(_message.Message):
+        __slots__ = ("errors", "successes")
+        class Error(_message.Message):
+            __slots__ = ("error", "uuid", "beacon")
+            ERROR_FIELD_NUMBER: _ClassVar[int]
+            UUID_FIELD_NUMBER: _ClassVar[int]
+            BEACON_FIELD_NUMBER: _ClassVar[int]
+            error: str
+            uuid: str
+            beacon: str
+            def __init__(self, error: _Optional[str] = ..., uuid: _Optional[str] = ..., beacon: _Optional[str] = ...) -> None: ...
+        class Success(_message.Message):
+            __slots__ = ("uuid", "beacon")
+            UUID_FIELD_NUMBER: _ClassVar[int]
+            BEACON_FIELD_NUMBER: _ClassVar[int]
+            uuid: str
+            beacon: str
+            def __init__(self, uuid: _Optional[str] = ..., beacon: _Optional[str] = ...) -> None: ...
+        ERRORS_FIELD_NUMBER: _ClassVar[int]
+        SUCCESSES_FIELD_NUMBER: _ClassVar[int]
+        errors: _containers.RepeatedCompositeFieldContainer[BatchStreamReply.Results.Error]
+        successes: _containers.RepeatedCompositeFieldContainer[BatchStreamReply.Results.Success]
+        def __init__(self, errors: _Optional[_Iterable[_Union[BatchStreamReply.Results.Error, _Mapping]]] = ..., successes: _Optional[_Iterable[_Union[BatchStreamReply.Results.Success, _Mapping]]] = ...) -> None: ...
+    RESULTS_FIELD_NUMBER: _ClassVar[int]
     SHUTTING_DOWN_FIELD_NUMBER: _ClassVar[int]
-    BACKOFF_FIELD_NUMBER: _ClassVar[int]
     STARTED_FIELD_NUMBER: _ClassVar[int]
-    error: BatchStreamReply.Error
+    results: BatchStreamReply.Results
     shutting_down: BatchStreamReply.ShuttingDown
-    backoff: BatchStreamReply.Backoff
     started: BatchStreamReply.Started
-    def __init__(self, error: _Optional[_Union[BatchStreamReply.Error, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamReply.ShuttingDown, _Mapping]] = ..., backoff: _Optional[_Union[BatchStreamReply.Backoff, _Mapping]] = ..., started: _Optional[_Union[BatchStreamReply.Started, _Mapping]] = ...) -> None: ...
+    def __init__(self, results: _Optional[_Union[BatchStreamReply.Results, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamReply.ShuttingDown, _Mapping]] = ..., started: _Optional[_Union[BatchStreamReply.Started, _Mapping]] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")

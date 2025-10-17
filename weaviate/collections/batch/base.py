@@ -852,8 +852,7 @@ class _BatchBaseNew:
 
         self.__connection = connection
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
-        self.__recommended_num_objects = 1000
-        self.__recommended_backoff = 0.0
+        self.__batch_size = 1000
 
         self.__batch_grpc = _BatchGRPC(
             connection._weaviate_version, self.__consistency_level, connection._grpc_max_msg_size
@@ -865,8 +864,6 @@ class _BatchBaseNew:
         # we do not want that users can access the results directly as they are not thread-safe
         self.__results_for_wrapper_backup = results
         self.__results_for_wrapper = _BatchDataWrapper()
-
-        self.__max_batch_size: int = 100
 
         self.__objs_count = 0
         self.__refs_count = 0
@@ -939,16 +936,6 @@ class _BatchBaseNew:
             time.sleep(1)
         logger.warning("Send & receive threads finished.")
 
-        # all uuids still in the objs cache must've been added successfully since any erroring uuids
-        # are removed from the objs cache in __batch_recv
-        uuids = {
-            cached.index: uuid_package.UUID(str(cached.uuid))
-            for cached in self.__objs_cache.values()
-        }
-        self.__results_for_wrapper.results.objs += BatchObjectReturn(
-            _all_responses=list(uuids.values()), uuids=uuids
-        )
-
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
         self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
@@ -970,8 +957,8 @@ class _BatchBaseNew:
                 start = time.time()
                 while (len_o := len(self.__batch_objects)) + (
                     len_r := len(self.__batch_references)
-                ) < self.__recommended_num_objects:
-                    # wait for more objects to be added up to the recommended number
+                ) < self.__batch_size:
+                    # wait for more objects to be added up to the batch size
                     time.sleep(0.01)
                     if (
                         self.__shut_background_thread_down is not None
@@ -986,9 +973,9 @@ class _BatchBaseNew:
                         # no new objects were added in the last second, exit the loop
                         break
 
-                objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
+                objs = self.__batch_objects.pop_items(self.__batch_size)
                 refs = self.__batch_references.pop_items(
-                    self.__recommended_num_objects - len(objs),
+                    self.__batch_size - len(objs),
                     uuid_lookup=self.__uuid_lookup,
                 )
                 with self.__uuid_lookup_lock:
@@ -1008,10 +995,6 @@ class _BatchBaseNew:
                         time.sleep(1)
                     if logged:
                         logger.warning("Stream re-established, resuming sending batches")
-                    # if the server has told us to backoff then sleep for that amount of time and reset the backoff value
-                    # the next return from the server will update the backoff value if necessary, e.g. if the internal queue is overloaded
-                    if self.__recommended_backoff > 0:
-                        time.sleep(self.__recommended_backoff)
                     self.__reqs.put(req)
             elif self.__stop:
                 # we are done, send the sentinel into our queue to be consumed by the batch sender
@@ -1094,60 +1077,55 @@ class _BatchBaseNew:
                     logger.warning("Batch stream started successfully")
                     for threads in self.__bg_threads:
                         threads.start_send()
-                if message.HasField("error"):
-                    if message.error.HasField("object"):
-                        cached = self.__objs_cache.pop(message.error.object.uuid)
-                        err = ErrorObject(
-                            message=message.error.error,
-                            object_=cached,
-                        )
-                        with self.__results_lock:
-                            self.__results_for_wrapper.results.objs += BatchObjectReturn(
-                                _all_responses=[err],
-                                errors={cached.index: err},
+                if message.HasField("results"):
+                    for error in message.results.errors:
+                        if error.HasField("uuid"):
+                            cached = self.__objs_cache.pop(error.uuid)
+                            err = ErrorObject(
+                                message=error.error,
+                                object_=cached,
                             )
-                            self.__results_for_wrapper.failed_objects.append(err)
-                        logger.warning(
-                            {
-                                "error": message.error.error,
-                                "object": message.error.object.uuid,
-                                "action": "use {client,collection}.batch.failed_objects to access this error",
-                            }
-                        )
-                    if message.error.HasField("reference"):
-                        # TODO: translate gRPC reference back to BatchReference
-                        err = ErrorReference(
-                            message=message.error.error,
-                            reference=message.error.reference,  # pyright: ignore
-                        )
-                        with self.__results_lock:
-                            self.__results_for_wrapper.failed_references.append(err)
-                        logger.warning(
-                            {
-                                "error": message.error.error,
-                                "reference": message.error.reference.SerializeToString(),
-                                "action": "use {client,collection}.batch.failed_references to access this error",
-                            }
-                        )
-                elif message.HasField("backoff"):
-                    if self.__stop or self.__is_shutting_down.is_set():
-                        # we have stopped our side of the stream or we're shutting down, skipping backoff adjustments
-                        continue
-                    if message.backoff.next_batch_size < self.__recommended_num_objects:
-                        # logger.warning(
-                        #     f"Adjusting batch size: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
-                        # )
-                        self.__recommended_num_objects = message.backoff.next_batch_size
-                    if message.backoff.next_batch_size > self.__recommended_num_objects:
-                        # logger.warning(
-                        #     f"Adjusting batch size: {self.__recommended_num_objects} -> {message.backoff.next_batch_size}"
-                        # )
-                        self.__recommended_num_objects = message.backoff.next_batch_size
-                    if message.backoff.backoff_seconds != self.__recommended_backoff:
-                        # logger.warning(
-                        #     f"Adjusting backoff time: {self.__recommended_backoff:.2}s -> {message.backoff.backoff_seconds:.2}s"
-                        # )
-                        self.__recommended_backoff = message.backoff.backoff_seconds
+                            with self.__results_lock:
+                                self.__results_for_wrapper.results.objs += BatchObjectReturn(
+                                    _all_responses=[err],
+                                    errors={cached.index: err},
+                                )
+                                self.__results_for_wrapper.failed_objects.append(err)
+                            logger.warning(
+                                {
+                                    "error": error.error,
+                                    "object": error.uuid,
+                                    "action": "use {client,collection}.batch.failed_objects to access this error",
+                                }
+                            )
+                        if error.HasField("beacon"):
+                            # TODO: get cached ref from beacon
+                            err = ErrorReference(
+                                message=error.error,
+                                reference=error.beacon,  # pyright: ignore
+                            )
+                            with self.__results_lock:
+                                self.__results_for_wrapper.failed_references.append(err)
+                            logger.warning(
+                                {
+                                    "error": error.error,
+                                    "reference": error.beacon,
+                                    "action": "use {client,collection}.batch.failed_references to access this error",
+                                }
+                            )
+                    for success in message.results.successes:
+                        if success.HasField("uuid"):
+                            cached = self.__objs_cache.pop(success.uuid)
+                            uuid = uuid_package.UUID(success.uuid)
+                            with self.__results_lock:
+                                self.__results_for_wrapper.results.objs += BatchObjectReturn(
+                                    _all_responses=[uuid],
+                                    uuids={cached.index: uuid},
+                                )
+                        if success.HasField("beacon"):
+                            # TODO: remove cached ref using beacon
+                            # self.__refs_cache.pop(success.beacon, None)
+                            pass
                 elif message.HasField("shutting_down"):
                     logger.warning(
                         "Received shutting down message from server, pausing sending until stream is re-established"
@@ -1162,7 +1140,6 @@ class _BatchBaseNew:
         # restart the stream if we were shutdown by the node we were connected to ensuring that the index is
         # propagated properly from it to the new one
         if self.__is_shutdown.is_set():
-            self.__recommended_num_objects = self.__max_batch_size
             self.__is_shutdown.clear()
             return self.__batch_recv()
         else:
@@ -1279,7 +1256,8 @@ class _BatchBaseNew:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         uuid = str(batch_object.uuid)
-        self.__uuid_lookup.add(uuid)
+        with self.__uuid_lookup_lock:
+            self.__uuid_lookup.add(uuid)
         self.__batch_objects.add(self.__batch_grpc.grpc_object(batch_object._to_internal()))
         with self.__objs_cache_lock:
             self.__objs_cache[uuid] = batch_object
@@ -1287,10 +1265,7 @@ class _BatchBaseNew:
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
         # not need a long queue
-        while (
-            self.__recommended_num_objects == 0
-            or len(self.__batch_objects) >= self.__recommended_num_objects * 2
-        ):
+        while len(self.__batch_objects) >= self.__batch_size * 2:
             self.__check_bg_threads_alive()
             time.sleep(0.01)
 
@@ -1334,11 +1309,6 @@ class _BatchBaseNew:
             with self.__refs_cache_lock:
                 self.__refs_cache[self.__refs_count] = batch_reference
                 self.__refs_count += 1
-
-        # block if queue gets too long or weaviate is overloaded
-        while self.__recommended_num_objects == 0:
-            time.sleep(0.01)  # block if weaviate is overloaded, also do not send any refs
-            self.__check_bg_threads_alive()
 
     def __check_bg_threads_alive(self) -> None:
         if self.__any_threads_alive():
