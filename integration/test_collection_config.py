@@ -415,7 +415,13 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.multi_tenancy_config.auto_tenant_activation is False
     assert config.multi_tenancy_config.auto_tenant_creation is False
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
-    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+
+    if collection._connection._weaviate_version.is_lower_than(1, 34, 0):
+        assert (
+            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        )
+    else:
+        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
 
     collection.config.update(
         description="Test",
