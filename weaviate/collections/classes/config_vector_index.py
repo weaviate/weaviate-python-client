@@ -275,6 +275,7 @@ class _SQConfigCreate(_QuantizerConfigCreate):
 
 
 class _RQConfigCreate(_QuantizerConfigCreate):
+    cache: Optional[bool]
     bits: Optional[int]
     rescoreLimit: Optional[int]
 
@@ -443,6 +444,7 @@ class _VectorIndexQuantizer:
 
     @staticmethod
     def rq(
+        cache: Optional[bool] = None,
         bits: Optional[int] = None,
         rescore_limit: Optional[int] = None,
     ) -> _RQConfigCreate:
@@ -454,6 +456,7 @@ class _VectorIndexQuantizer:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _RQConfigCreate(
+            cache=cache,
             bits=bits,
             rescoreLimit=rescore_limit,
         )
