@@ -467,19 +467,12 @@ class _GenerativeContextualAIConfig(_GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
     )
-    baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     maxTokensProperty: Optional[int]
     temperatureProperty: Optional[float]
     topPProperty: Optional[float]
     systemPromptProperty: Optional[str]
     avoidCommentaryProperty: Optional[bool]
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        if self.baseURL is not None:
-            ret_dict["baseURL"] = self.baseURL.unicode_string()
-        return ret_dict
 
 
 class _GenerativeGoogleConfig(_GenerativeProvider):
@@ -599,15 +592,8 @@ class _RerankerContextualAIConfig(_RerankerProvider):
         default=Rerankers.CONTEXTUALAI, frozen=True, exclude=True
     )
     model: Optional[Union[RerankerContextualAIModel, str]] = Field(default=None)
-    baseURL: Optional[AnyHttpUrl]
     instruction: Optional[str] = Field(default=None)
     topN: Optional[int] = Field(default=None)
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        if self.baseURL is not None:
-            ret_dict["baseURL"] = self.baseURL.unicode_string()
-        return ret_dict
 
 
 class _Generative:
@@ -885,7 +871,6 @@ class _Generative:
         top_p: Optional[float] = None,
         system_prompt: Optional[str] = None,
         avoid_commentary: Optional[bool] = None,
-        base_url: Optional[AnyHttpUrl] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeContextualAIConfig` object for use when performing AI generation using the `generative-contextualai` module.
 
@@ -899,10 +884,8 @@ class _Generative:
             top_p: Nucleus sampling parameter (0 < x <= 1). Defaults to `None`, which uses the server-defined default
             system_prompt: System instructions the model follows. Defaults to `None`, which uses the server-defined default
             avoid_commentary: If `True`, reduce conversational commentary in responses. Defaults to `None`, which uses the server-defined default
-            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeContextualAIConfig(
-            baseURL=base_url,
             maxTokensProperty=max_tokens,
             model=model,
             temperatureProperty=temperature,
@@ -1133,7 +1116,6 @@ class _Reranker:
     @staticmethod
     def contextualai(
         model: Optional[str] = None,
-        base_url: Optional[AnyHttpUrl] = None,
         instruction: Optional[str] = None,
         top_n: Optional[int] = None,
     ) -> _RerankerProvider:
@@ -1144,13 +1126,11 @@ class _Reranker:
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default
-            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
             instruction: Custom instructions for reranking. Defaults to `None`.
             top_n: Number of top results to return. Defaults to `None`, which uses the server-defined default.
         """
         return _RerankerContextualAIConfig(
             model=model, 
-            baseURL=base_url,
             instruction=instruction,
             topN=top_n
         )

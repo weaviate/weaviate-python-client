@@ -449,7 +449,6 @@ class _GenerativeContextualAI(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
     )
-    base_url: Optional[AnyHttpUrl]
     model: Optional[str]
     max_tokens: Optional[int]
     temperature: Optional[float]
@@ -462,7 +461,6 @@ class _GenerativeContextualAI(_GenerativeConfigRuntime):
         return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
             contextualai=generative_pb2.GenerativeContextualAI(
-                base_url=_parse_anyhttpurl(self.base_url),
                 model=self.model,
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
@@ -611,7 +609,6 @@ class GenerativeConfig:
     @staticmethod
     def contextualai(
         *,
-        base_url: Optional[str] = None,
         model: Optional[str] = None,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
@@ -622,7 +619,6 @@ class GenerativeConfig:
         """Create a `_GenerativeContextualAI` object for use with the `generative-contextualai` module.
 
         Args:
-            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
@@ -631,7 +627,6 @@ class GenerativeConfig:
             avoid_commentary: Whether to avoid model commentary in responses
         """
         return _GenerativeContextualAI(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
             model=model,
             max_tokens=max_tokens,
             temperature=temperature,
