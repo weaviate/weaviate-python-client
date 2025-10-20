@@ -1073,6 +1073,10 @@ class _BatchBaseNew:
                 connection=self.__connection,
                 requests=self.__generate_stream_requests_for_grpc(),
             ):
+                result_objs = BatchObjectReturn()
+                # result_refs = BatchReferenceReturn()
+                failed_objs: List[ErrorObject] = []
+                failed_refs: List[ErrorReference] = []
                 if message.HasField("started"):
                     logger.warning("Batch stream started successfully")
                     for threads in self.__bg_threads:
@@ -1085,12 +1089,11 @@ class _BatchBaseNew:
                                 message=error.error,
                                 object_=cached,
                             )
-                            with self.__results_lock:
-                                self.__results_for_wrapper.results.objs += BatchObjectReturn(
-                                    _all_responses=[err],
-                                    errors={cached.index: err},
-                                )
-                                self.__results_for_wrapper.failed_objects.append(err)
+                            result_objs += BatchObjectReturn(
+                                _all_responses=[err],
+                                errors={cached.index: err},
+                            )
+                            failed_objs.append(err)
                             logger.warning(
                                 {
                                     "error": error.error,
@@ -1104,8 +1107,7 @@ class _BatchBaseNew:
                                 message=error.error,
                                 reference=error.beacon,  # pyright: ignore
                             )
-                            with self.__results_lock:
-                                self.__results_for_wrapper.failed_references.append(err)
+                            failed_refs.append(err)
                             logger.warning(
                                 {
                                     "error": error.error,
@@ -1117,11 +1119,10 @@ class _BatchBaseNew:
                         if success.HasField("uuid"):
                             cached = self.__objs_cache.pop(success.uuid)
                             uuid = uuid_package.UUID(success.uuid)
-                            with self.__results_lock:
-                                self.__results_for_wrapper.results.objs += BatchObjectReturn(
-                                    _all_responses=[uuid],
-                                    uuids={cached.index: uuid},
-                                )
+                            result_objs += BatchObjectReturn(
+                                _all_responses=[uuid],
+                                uuids={cached.index: uuid},
+                            )
                         if success.HasField("beacon"):
                             # TODO: remove cached ref using beacon
                             # self.__refs_cache.pop(success.beacon, None)
@@ -1131,6 +1132,10 @@ class _BatchBaseNew:
                         "Received shutting down message from server, pausing sending until stream is re-established"
                     )
                     self.__is_shutting_down.set()
+                with self.__results_lock:
+                    self.__results_for_wrapper.results.objs += result_objs
+                    self.__results_for_wrapper.failed_objects.extend(failed_objs)
+                    self.__results_for_wrapper.failed_references.extend(failed_refs)
         except _BatchStreamShutdownError:
             logger.warning("Received shutdown finished message from server")
             self.__is_shutdown.set()
