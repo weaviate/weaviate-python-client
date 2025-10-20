@@ -79,7 +79,7 @@ class _BaseGRPC:
         self,
         target_vector: Optional[TargetVectorJoinType],
         target_vectors_tmp: List[str],
-    ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
+    ) -> Optional[base_search_pb2.Targets]:
         # reorder input for targets so they match the vectors
         if isinstance(target_vector, _MultiTargetVectorJoin):
             target_vector.target_vectors = target_vectors_tmp
@@ -93,16 +93,16 @@ class _BaseGRPC:
 
     def __target_vector_to_grpc(
         self, target_vector: Optional[TargetVectorJoinType]
-    ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
+    ) -> Optional[base_search_pb2.Targets]:
         if target_vector is None:
-            return None, None
+            return None
 
         if isinstance(target_vector, str):
-            return base_search_pb2.Targets(target_vectors=[target_vector]), None
+            return base_search_pb2.Targets(target_vectors=[target_vector])
         elif isinstance(target_vector, list):
-            return base_search_pb2.Targets(target_vectors=target_vector), None
+            return base_search_pb2.Targets(target_vectors=target_vector)
         else:
-            return target_vector.to_grpc_target_vector(self._weaviate_version), None
+            return target_vector.to_grpc_target_vector(self._weaviate_version)
 
     def _vector_per_target(
         self,
@@ -342,7 +342,7 @@ class _BaseGRPC:
 
         certainty, distance = self._parse_near_options(certainty, distance)
 
-        targets, target_vectors = self.__target_vector_to_grpc(target_vector)
+        targets = self.__target_vector_to_grpc(target_vector)
 
         if _is_1d_vector(near_vector) and len(near_vector) > 0:
             # fast path for simple single-vector
@@ -386,7 +386,7 @@ class _BaseGRPC:
                 )
                 vector_per_target_tmp = None
                 if target_vectors_tmp is not None:
-                    targets, target_vectors = self._recompute_target_vector_to_grpc(
+                    targets = self._recompute_target_vector_to_grpc(
                         target_vector, target_vectors_tmp
                     )
             vectors = None
@@ -395,7 +395,6 @@ class _BaseGRPC:
             certainty=certainty,
             distance=distance,
             targets=targets,
-            target_vectors=target_vectors,
             vector_per_target=vector_per_target_tmp,
             vector_for_targets=vector_for_targets,
             vectors=vectors,
@@ -441,7 +440,7 @@ class _BaseGRPC:
         if isinstance(near_text, str):
             near_text = [near_text]
         certainty, distance = self._parse_near_options(certainty, distance)
-        targets, target_vector = self.__target_vector_to_grpc(target_vector)
+        targets = self.__target_vector_to_grpc(target_vector)
 
         return base_search_pb2.NearTextSearch(
             query=near_text,
@@ -450,7 +449,6 @@ class _BaseGRPC:
             move_away=self.__parse_move(move_away),
             move_to=self.__parse_move(move_to),
             targets=targets,
-            target_vectors=target_vector,
         )
 
     def _parse_near_object(
@@ -474,14 +472,13 @@ class _BaseGRPC:
 
         certainty, distance = self._parse_near_options(certainty, distance)
 
-        targets, target_vector = self.__target_vector_to_grpc(target_vector)
+        targets = self.__target_vector_to_grpc(target_vector)
 
         return base_search_pb2.NearObject(
             id=str(near_object),
             certainty=certainty,
             distance=distance,
             targets=targets,
-            target_vectors=target_vector,
         )
 
     def _parse_media(
@@ -507,13 +504,12 @@ class _BaseGRPC:
         certainty, distance = self._parse_near_options(certainty, distance)
 
         kwargs: Dict[str, Any] = {}
-        targets, target_vector = self.__target_vector_to_grpc(target_vector)
+        targets = self.__target_vector_to_grpc(target_vector)
         if type_ == "audio":
             kwargs["near_audio"] = base_search_pb2.NearAudioSearch(
                 audio=media,
                 distance=distance,
                 certainty=certainty,
-                target_vectors=target_vector,
                 targets=targets,
             )
         elif type_ == "depth":
@@ -521,7 +517,6 @@ class _BaseGRPC:
                 depth=media,
                 distance=distance,
                 certainty=certainty,
-                target_vectors=target_vector,
                 targets=targets,
             )
         elif type_ == "image":
@@ -529,7 +524,6 @@ class _BaseGRPC:
                 image=media,
                 distance=distance,
                 certainty=certainty,
-                target_vectors=target_vector,
                 targets=targets,
             )
         elif type_ == "imu":
@@ -537,7 +531,6 @@ class _BaseGRPC:
                 imu=media,
                 distance=distance,
                 certainty=certainty,
-                target_vectors=target_vector,
                 targets=targets,
             )
         elif type_ == "thermal":
@@ -545,7 +538,6 @@ class _BaseGRPC:
                 thermal=media,
                 distance=distance,
                 certainty=certainty,
-                target_vectors=target_vector,
                 targets=targets,
             )
         elif type_ == "video":
@@ -553,7 +545,6 @@ class _BaseGRPC:
                 video=media,
                 distance=distance,
                 certainty=certainty,
-                target_vectors=target_vector,
                 targets=targets,
             )
         else:
@@ -607,7 +598,7 @@ class _BaseGRPC:
         if query is None:
             alpha = 1
 
-        targets, target_vectors = self.__target_vector_to_grpc(target_vector)
+        targets = self.__target_vector_to_grpc(target_vector)
 
         near_text, near_vector, vector_bytes, vectors = None, None, None, None
 
@@ -646,7 +637,7 @@ class _BaseGRPC:
                 ) = self._vector_for_target(vector.vector, targets, "vector")
                 vector_per_target_tmp = None
                 if target_vectors_tmp is not None:
-                    targets, target_vectors = self._recompute_target_vector_to_grpc(
+                    targets = self._recompute_target_vector_to_grpc(
                         target_vector, target_vectors_tmp
                     )
 
@@ -671,11 +662,11 @@ class _BaseGRPC:
                 ) = self._vector_for_target(vector, targets, "vector")
                 vector_per_target_tmp = None
                 if target_vectors_tmp is not None:
-                    targets, target_vectors = self._recompute_target_vector_to_grpc(
+                    targets = self._recompute_target_vector_to_grpc(
                         target_vector, target_vectors_tmp
                     )
                 else:
-                    targets, target_vectors = self.__target_vector_to_grpc(target_vector)
+                    targets = self.__target_vector_to_grpc(target_vector)
 
             if vector_per_target_tmp is not None or vector_for_targets_tmp is not None:
                 near_vector = base_search_pb2.NearVector(
@@ -699,7 +690,6 @@ class _BaseGRPC:
                     if fusion_type is not None
                     else None
                 ),
-                target_vectors=target_vectors,
                 targets=targets,
                 near_text=near_text,
                 near_vector=near_vector,
