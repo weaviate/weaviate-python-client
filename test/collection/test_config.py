@@ -1057,7 +1057,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
             top_p=0.9,
             system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
             avoid_commentary=False,
-            base_url="https://api.contextual.ai",
         ),
         {
             "generative-contextualai": {
@@ -1067,7 +1066,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "topPProperty": 0.9,
                 "systemPromptProperty": "You are a helpful assistant that provides accurate and informative responses based on the given context.",
                 "avoidCommentaryProperty": False,
-                "baseURL": "https://api.contextual.ai/",
             }
         },
     ),
@@ -1164,14 +1162,12 @@ TEST_CONFIG_WITH_RERANKER = [
             model="ctxl-rerank-v2-instruct-multilingual",
             instruction="Prioritize recent documents",
             top_n=5,
-            base_url="https://api.contextual.ai",
         ),
         {
             "reranker-contextualai": {
                 "model": "ctxl-rerank-v2-instruct-multilingual",
                 "instruction": "Prioritize recent documents",
                 "topN": 5,
-                "baseURL": "https://api.contextual.ai",
             }
         },
     ),

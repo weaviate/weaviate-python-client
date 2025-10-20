@@ -416,7 +416,6 @@ def test_generative_parameters_images_parsing(
         ),
         (
             GenerativeConfig.contextualai(
-                base_url="http://localhost:8080",
                 model="v2",
                 max_tokens=100,
                 temperature=0.5,
@@ -427,7 +426,6 @@ def test_generative_parameters_images_parsing(
             generative_pb2.GenerativeProvider(
                 return_metadata=True,
                 contextualai=generative_pb2.GenerativeContextualAI(
-                    base_url="http://localhost:8080",
                     model="v2",
                     max_tokens=100,
                     temperature=0.5,
