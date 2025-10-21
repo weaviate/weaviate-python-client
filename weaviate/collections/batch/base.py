@@ -964,6 +964,7 @@ class _BatchBaseNew:
                         self.__shut_background_thread_down is not None
                         and self.__shut_background_thread_down.is_set()
                     ):
+                        logger.warning("Threads were shutdown, exiting batch send loop")
                         # shutdown was requested, exit early
                         self.__reqs.put(None)
                         return
