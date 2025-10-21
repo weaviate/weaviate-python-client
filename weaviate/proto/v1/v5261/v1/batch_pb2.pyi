@@ -59,13 +59,18 @@ class BatchStreamRequest(_message.Message):
     def __init__(self, start: _Optional[_Union[BatchStreamRequest.Start, _Mapping]] = ..., data: _Optional[_Union[BatchStreamRequest.Data, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamRequest.Stop, _Mapping]] = ...) -> None: ...
 
 class BatchStreamReply(_message.Message):
-    __slots__ = ("results", "shutting_down", "started")
+    __slots__ = ("results", "shutting_down", "started", "backoff")
     class Started(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
     class ShuttingDown(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
+    class Backoff(_message.Message):
+        __slots__ = ("batch_size",)
+        BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
+        batch_size: int
+        def __init__(self, batch_size: _Optional[int] = ...) -> None: ...
     class Results(_message.Message):
         __slots__ = ("errors", "successes")
         class Error(_message.Message):
@@ -92,10 +97,12 @@ class BatchStreamReply(_message.Message):
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     SHUTTING_DOWN_FIELD_NUMBER: _ClassVar[int]
     STARTED_FIELD_NUMBER: _ClassVar[int]
+    BACKOFF_FIELD_NUMBER: _ClassVar[int]
     results: BatchStreamReply.Results
     shutting_down: BatchStreamReply.ShuttingDown
     started: BatchStreamReply.Started
-    def __init__(self, results: _Optional[_Union[BatchStreamReply.Results, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamReply.ShuttingDown, _Mapping]] = ..., started: _Optional[_Union[BatchStreamReply.Started, _Mapping]] = ...) -> None: ...
+    backoff: BatchStreamReply.Backoff
+    def __init__(self, results: _Optional[_Union[BatchStreamReply.Results, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamReply.ShuttingDown, _Mapping]] = ..., started: _Optional[_Union[BatchStreamReply.Started, _Mapping]] = ..., backoff: _Optional[_Union[BatchStreamReply.Backoff, _Mapping]] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")

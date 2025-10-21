@@ -1081,6 +1081,11 @@ class _BatchBaseNew:
                     logger.warning("Batch stream started successfully")
                     for threads in self.__bg_threads:
                         threads.start_send()
+                if message.HasField("backoff"):
+                    self.__batch_size = message.backoff.batch_size
+                    logger.warning(
+                        f"Updated batch size to {self.__batch_size} as per server request"
+                    )
                 if message.HasField("results"):
                     for error in message.results.errors:
                         if error.HasField("uuid"):
