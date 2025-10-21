@@ -1056,6 +1056,7 @@ class _BatchBaseNew:
             try:
                 req = self.__reqs.get(timeout=1)
             except Empty:
+                logger.warning("No batch request received in 1 second, continuing...")
                 continue
             if req is not None:
                 yield req
