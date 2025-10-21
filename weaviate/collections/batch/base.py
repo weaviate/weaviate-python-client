@@ -1183,7 +1183,9 @@ class _BatchBaseNew:
                 self.__batch_recv()
                 logger.warning("exited batch receive thread")
             except Exception as e:
-                if isinstance(e, WeaviateBatchStreamError) and "Socket closed" in e.message:
+                if isinstance(e, WeaviateBatchStreamError) and (
+                    "Socket closed" in e.message or "context canceled" in e.message
+                ):
                     socket_hung_up = True
                 else:
                     logger.error(e)
