@@ -10,7 +10,7 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
 from dataclasses import dataclass, field
-from queue import Queue
+from queue import Empty, Queue
 from typing import Any, Dict, Generator, Generic, List, Optional, Set, TypeVar, Union, cast
 
 from httpx import ConnectError
@@ -1053,7 +1053,10 @@ class _BatchBaseNew:
             self.__shut_background_thread_down is not None
             and not self.__shut_background_thread_down.is_set()
         ):
-            req = self.__reqs.get()
+            try:
+                req = self.__reqs.get(timeout=1)
+            except Empty:
+                continue
             if req is not None:
                 yield req
                 continue
