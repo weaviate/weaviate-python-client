@@ -888,6 +888,8 @@ class _BatchBaseNew:
 
         self.__batch_mode = batch_mode
 
+        self.__total = 0
+
     @property
     def number_errors(self) -> int:
         """Return the number of errors in the batch."""
@@ -935,6 +937,7 @@ class _BatchBaseNew:
         while self.__any_threads_alive():
             time.sleep(1)
         logger.warning("Send & receive threads finished.")
+        logger.error(f"Total: {self.__total} objects/references processed in batch.")
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -1055,6 +1058,7 @@ class _BatchBaseNew:
         ):
             req = self.__reqs.get()
             if req is not None:
+                self.__total += len(req.data.objects.values) + len(req.data.references.values)
                 yield req
                 continue
             if self.__stop and not (
