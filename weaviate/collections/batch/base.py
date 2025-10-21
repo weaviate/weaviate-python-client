@@ -1155,6 +1155,7 @@ class _BatchBaseNew:
         # restart the stream if we were shutdown by the node we were connected to ensuring that the index is
         # propagated properly from it to the new one
         if self.__is_shutdown.is_set():
+            logger.warning("Restarting batch recv after shutdown...")
             self.__is_shutdown.clear()
             return self.__batch_recv()
         else:
