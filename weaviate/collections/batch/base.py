@@ -852,7 +852,7 @@ class _BatchBaseNew:
 
         self.__connection = connection
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
-        self.__batch_size = 1000
+        self.__batch_size = 100
 
         self.__batch_grpc = _BatchGRPC(
             connection._weaviate_version, self.__consistency_level, connection._grpc_max_msg_size
