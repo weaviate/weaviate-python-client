@@ -1076,10 +1076,6 @@ class _BatchBaseNew:
             connection=self.__connection,
             requests=self.__generate_stream_requests_for_grpc(),
         ):
-            result_objs = BatchObjectReturn()
-            # result_refs = BatchReferenceReturn()
-            failed_objs: List[ErrorObject] = []
-            failed_refs: List[ErrorReference] = []
             if message.HasField("started"):
                 logger.warning("Batch stream started successfully")
                 for threads in self.__bg_threads:
@@ -1091,6 +1087,10 @@ class _BatchBaseNew:
                         f"Updated batch size to {self.__batch_size} as per server request"
                     )
             if message.HasField("results"):
+                result_objs = BatchObjectReturn()
+                # result_refs = BatchReferenceReturn()
+                failed_objs: List[ErrorObject] = []
+                failed_refs: List[ErrorReference] = []
                 for error in message.results.errors:
                     if error.HasField("uuid"):
                         cached = self.__objs_cache.pop(error.uuid)
@@ -1136,6 +1136,10 @@ class _BatchBaseNew:
                         # TODO: remove cached ref using beacon
                         # self.__refs_cache.pop(success.beacon, None)
                         pass
+                with self.__results_lock:
+                    self.__results_for_wrapper.results.objs += result_objs
+                    self.__results_for_wrapper.failed_objects.extend(failed_objs)
+                    self.__results_for_wrapper.failed_references.extend(failed_refs)
             elif message.HasField("shutting_down"):
                 logger.warning(
                     "Received shutting down message from server, pausing sending until stream is re-established"
@@ -1146,10 +1150,6 @@ class _BatchBaseNew:
                 self.__is_shutdown.set()
                 self.__is_shutting_down.clear()
                 self.__reconnect()
-            with self.__results_lock:
-                self.__results_for_wrapper.results.objs += result_objs
-                self.__results_for_wrapper.failed_objects.extend(failed_objs)
-                self.__results_for_wrapper.failed_references.extend(failed_refs)
 
         # restart the stream if we were shutdown by the node we were connected to ensuring that the index is
         # propagated properly from it to the new one
