@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, cast
 
@@ -11,6 +12,13 @@ STORAGE_NAMES = {
     "gcs",
     "azure",
 }
+
+
+class BackupsListOrder(str, Enum):
+    """Order in which the backups should be listed."""
+
+    ASC = "asc"
+    DESC = "desc"
 
 
 class BackupCompressionLevel(str, Enum):
@@ -88,3 +96,6 @@ class BackupListReturn(BaseModel):
     collections: List[str] = Field(default_factory=list, alias="classes")
     status: BackupStatus
     backup_id: str = Field(alias="id")
+    started_at: datetime = Field(alias="startedAt")
+    completed_at: datetime = Field(alias="completedAt")
+    size: float = Field(default=0)

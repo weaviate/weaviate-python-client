@@ -5,6 +5,7 @@ from weaviate.backup.backup import (
     BackupConfigRestore,
     BackupListReturn,
     BackupReturn,
+    BackupsListOrder,
     BackupStatusReturn,
     BackupStorage,
 )
@@ -55,4 +56,6 @@ class _BackupAsync(_BackupExecutor[ConnectionAsync]):
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> bool: ...
-    async def list_backups(self, backend: BackupStorage) -> List[BackupListReturn]: ...
+    async def list_backups(
+        self, backend: BackupStorage, order: Optional[BackupsListOrder] = None
+    ) -> List[BackupListReturn]: ...
