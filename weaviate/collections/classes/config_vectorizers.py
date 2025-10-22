@@ -131,6 +131,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_COHERE = "multi2vec-cohere"
     MULTI2VEC_JINAAI = "multi2vec-jinaai"
     MULTI2MULTI_JINAAI = "multi2multivec-jinaai"
+    MULTI2MULTI_WEAVIATE = "multi2multivec-weaviate"
     MULTI2VEC_BIND = "multi2vec-bind"
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
@@ -496,6 +497,20 @@ class _Multi2VecAWSConfig(_Multi2VecBase):
 class _Multi2MultiVecJinaConfig(_Multi2VecBase):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2MULTI_JINAAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Multi2MultiVecWeaviateConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2MULTI_WEAVIATE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
