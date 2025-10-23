@@ -474,9 +474,14 @@ class _BackupExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="cancel backup"),
         )
 
-    def list_backups(self, backend: BackupStorage) -> executor.Result[List[BackupListReturn]]:
+    def list_backups(
+        self, backend: BackupStorage, sort_ascending: Optional[bool] = None
+    ) -> executor.Result[List[BackupListReturn]]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
         path = f"/backups/{backend.value}"
+        params = {}
+        if sort_ascending:
+            params["order"] = "asc"
 
         def resp(res: Response) -> List[BackupListReturn]:
             typed_response = _decode_json_response_list(res, "Backup list")
@@ -487,6 +492,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         return executor.execute(
             response_callback=resp,
             method=self._connection.get,
+            params=params,
             path=path,
             error_msg="Backup listing failed due to connection error.",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="list backup"),
