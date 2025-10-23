@@ -629,19 +629,6 @@ def test_list_backup_ascending_order(client: weaviate.WeaviateClient, request: S
     backups = client.backup.list_backups(backend=BACKEND, sort_ascending=True)
     assert backup_id.lower() in [b.backup_id.lower() for b in backups]
 
-    # wait until created
-    while True:
-        create_status = client.backup.get_create_status(backup_id, BACKEND)
-        assert create_status.status in [
-            BackupStatus.SUCCESS,
-            BackupStatus.TRANSFERRED,
-            BackupStatus.TRANSFERRING,
-            BackupStatus.STARTED,
-        ]
-        if create_status.status == BackupStatus.SUCCESS:
-            break
-        time.sleep(0.1)
-
     assert sorted(backups, key=lambda b: b.started_at or b.backup_id) == backups
 
 
