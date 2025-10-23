@@ -12,7 +12,6 @@ from weaviate.backup.backup import (
     BackupConfigRestore,
     BackupListReturn,
     BackupReturn,
-    BackupsListOrder,
     BackupStatus,
     BackupStatusReturn,
     BackupStorage,
@@ -476,13 +475,13 @@ class _BackupExecutor(Generic[ConnectionType]):
         )
 
     def list_backups(
-        self, backend: BackupStorage, order: Optional[BackupsListOrder] = None
+        self, backend: BackupStorage, sort_ascending: Optional[bool] = None
     ) -> executor.Result[List[BackupListReturn]]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
         path = f"/backups/{backend.value}"
         params = {}
-        if order is not None:
-            params["order"] = order.value
+        if sort_ascending:
+            params["order"] = "asc"
 
         def resp(res: Response) -> List[BackupListReturn]:
             typed_response = _decode_json_response_list(res, "Backup list")

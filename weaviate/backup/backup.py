@@ -14,13 +14,6 @@ STORAGE_NAMES = {
 }
 
 
-class BackupsListOrder(str, Enum):
-    """Order in which the backups should be listed."""
-
-    ASC = "asc"
-    DESC = "desc"
-
-
 class BackupCompressionLevel(str, Enum):
     """Which compression level should be used to compress the backup."""
 
