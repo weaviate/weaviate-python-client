@@ -620,8 +620,8 @@ def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> No
 def test_list_backup_ascending_order(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     """List all backups in ascending order."""
     backup_id = unique_backup_id(request.node.name)
-    if client._connection._weaviate_version.is_lower_than(1, 32, 14):
-        pytest.skip("List backups sorting is only supported from 1.32.14")
+    if client._connection._weaviate_version.is_lower_than(1, 33, 2):
+        pytest.skip("List backups sorting is only supported from 1.33.2")
 
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED

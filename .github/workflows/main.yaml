@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags:
-      - '**'
+      - "**"
     paths-ignore:
       - docs/**
       - README.rst
@@ -23,7 +23,7 @@ env:
   WEAVIATE_129: 1.29.9
   WEAVIATE_130: 1.30.12
   WEAVIATE_131: 1.31.5
-  WEAVIATE_132: 1.32.14
+  WEAVIATE_132: 1.32.5
   WEAVIATE_133: 1.33.0-rc.1
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - name: "Ruff lint"
         run: ruff check weaviate test mock_tests integration
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version }}
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - uses: jakebailey/pyright-action@v2
         with:
@@ -85,7 +85,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version }}
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - run: pip install -r requirements-test.txt -r requirements-devel.txt
       - name: Run unittests
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
@@ -102,14 +102,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        grpc: ["1.59.5", "1.63.0", "1.65.0", "1.66.0", "1.68.0", "1.72.1", "1.73.0", "1.74.0"]
-        protobuf: ["4.25.8", "5.26.0", "5.27.4", "5.28.3", "5.29.0", "6.30.0", "6.31.1", "6.32.0"]
+        grpc:
+          [
+            "1.59.5",
+            "1.63.0",
+            "1.65.0",
+            "1.66.0",
+            "1.68.0",
+            "1.72.1",
+            "1.73.0",
+            "1.74.0",
+          ]
+        protobuf:
+          [
+            "4.25.8",
+            "5.26.0",
+            "5.27.4",
+            "5.28.3",
+            "5.29.0",
+            "6.30.0",
+            "6.31.1",
+            "6.32.0",
+          ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - run: |
           pip install -r requirements-test.txt  -r requirements-devel.txt
           pip install grpcio==${{ matrix.grpc }} protobuf==${{ matrix.protobuf }}
@@ -131,7 +151,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version }}
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - run: |
           pip install -r requirements-test.txt -r requirements-devel.txt
           pip install .
@@ -151,13 +171,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        versions: [
-          { py: "3.9", weaviate: $WEAVIATE_131, grpc: "1.59.0"},
-          { py: "3.10", weaviate: $WEAVIATE_131, grpc: "1.66.0"},
-          { py: "3.11", weaviate: $WEAVIATE_131, grpc: "1.70.0"},
-          { py: "3.12", weaviate: $WEAVIATE_131, grpc: "1.72.1"},
-          { py: "3.13", weaviate: $WEAVIATE_131, grpc: "1.74.0"}
-        ]
+        versions:
+          [
+            { py: "3.9", weaviate: $WEAVIATE_131, grpc: "1.59.0" },
+            { py: "3.10", weaviate: $WEAVIATE_131, grpc: "1.66.0" },
+            { py: "3.11", weaviate: $WEAVIATE_131, grpc: "1.70.0" },
+            { py: "3.12", weaviate: $WEAVIATE_131, grpc: "1.72.1" },
+            { py: "3.13", weaviate: $WEAVIATE_131, grpc: "1.74.0" },
+          ]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -167,7 +188,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.versions.py }}
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
@@ -186,7 +207,7 @@ jobs:
           OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
-#          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
+        #          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
         run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork || github.triggering_actor == 'dependabot[bot]' }}
@@ -206,20 +227,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        versions: [
-          { py: "3.9", weaviate: $WEAVIATE_131},
-          { py: "3.10", weaviate: $WEAVIATE_131},
-          { py: "3.11", weaviate: $WEAVIATE_131},
-          { py: "3.12", weaviate: $WEAVIATE_131},
-          { py: "3.13", weaviate: $WEAVIATE_131}
-        ]
+        versions:
+          [
+            { py: "3.9", weaviate: $WEAVIATE_131 },
+            { py: "3.10", weaviate: $WEAVIATE_131 },
+            { py: "3.11", weaviate: $WEAVIATE_131 },
+            { py: "3.12", weaviate: $WEAVIATE_131 },
+            { py: "3.13", weaviate: $WEAVIATE_131 },
+          ]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
@@ -277,7 +299,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - name: Install dependencies
         run: pip install -r requirements-test.txt -r requirements-devel.txt
       - name: Build a binary wheel
@@ -295,15 +317,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [
-          $WEAVIATE_127,
-          $WEAVIATE_128,
-          $WEAVIATE_129,
-          $WEAVIATE_130,
-          $WEAVIATE_131,
-          $WEAVIATE_132,
-          $WEAVIATE_133
-        ]
+        version:
+          [
+            $WEAVIATE_127,
+            $WEAVIATE_128,
+            $WEAVIATE_129,
+            $WEAVIATE_130,
+            $WEAVIATE_131,
+            $WEAVIATE_132,
+            $WEAVIATE_133,
+          ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -330,7 +353,15 @@ jobs:
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package, proto-test]
+    needs:
+      [
+        integration-tests,
+        unit-tests,
+        lint-and-format,
+        type-checking,
+        test-package,
+        proto-test,
+      ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -341,7 +372,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
       - name: Install dependencies
         run: pip install -r requirements-devel.txt
       - name: Build a binary wheel
