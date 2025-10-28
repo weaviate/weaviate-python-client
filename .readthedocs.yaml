@@ -17,3 +17,5 @@ build:
 python:
   install:
   - requirements: requirements-devel.txt
+  - method: pip  # Add this section
+    path: docs/weaviate-agents-python-client
