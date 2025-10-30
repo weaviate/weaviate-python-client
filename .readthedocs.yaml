@@ -13,9 +13,8 @@ build:
   jobs:
     pre_build:
       - git clone -b main --depth=1 https://github.com/weaviate/weaviate-agents-python-client.git docs/weaviate-agents-python-client
+      - python -m pip install -e ./docs/weaviate-agents-python-client
 
 python:
   install:
-  - requirements: requirements-devel.txt
-  - method: pip  # Add this section  
-    path: docs/weaviate-agents-python-client
+    - requirements: requirements-devel.txt
