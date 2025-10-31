@@ -56,5 +56,5 @@ class _BackupAsync(_BackupExecutor[ConnectionAsync]):
         backup_location: Optional[BackupLocationType] = None,
     ) -> bool: ...
     async def list_backups(
-        self, backend: BackupStorage, started_at_asc: Optional[bool] = None
+        self, backend: BackupStorage, sort_by_starting_time_asc: Optional[bool] = None
     ) -> List[BackupListReturn]: ...

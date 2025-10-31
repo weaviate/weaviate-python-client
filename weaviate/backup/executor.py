@@ -475,12 +475,12 @@ class _BackupExecutor(Generic[ConnectionType]):
         )
 
     def list_backups(
-        self, backend: BackupStorage, started_at_asc: Optional[bool] = None
+        self, backend: BackupStorage, sort_by_starting_time_asc: Optional[bool] = None
     ) -> executor.Result[List[BackupListReturn]]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
         path = f"/backups/{backend.value}"
         params = {}
-        if started_at_asc:
+        if sort_by_starting_time_asc:
             params["order"] = "asc"
 
         def resp(res: Response) -> List[BackupListReturn]:
