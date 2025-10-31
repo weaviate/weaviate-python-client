@@ -30,7 +30,7 @@ class _Retry:
         except AioRpcError as e:
             if e.code() != StatusCode.UNAVAILABLE:
                 raise e
-            logger.info(
+            logger.warning(
                 f"{error} received exception: {e}. Retrying with exponential backoff in {2**count} seconds"
             )
             await asyncio.sleep(2**count)
@@ -52,7 +52,7 @@ class _Retry:
             err = cast(Call, e)
             if err.code() != StatusCode.UNAVAILABLE:
                 raise e
-            logger.info(
+            logger.warning(
                 f"{error} received exception: {e}. Retrying with exponential backoff in {2**count} seconds"
             )
             time.sleep(2**count)
