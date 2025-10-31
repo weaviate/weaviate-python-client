@@ -32,12 +32,14 @@ class _Retry:
                 raise e
             if count > self.n:
                 raise WeaviateRetryError(str(e), count) from e
-            wait = 2 ** (count - 1)
-            logger.warning(
-                f"{error} received exception: {e}. Retrying with exponential backoff in {wait} seconds"
-            )
             if count > 0:
+                wait = 2 ** (count - 1)
+                logger.warning(
+                    f"{error} received exception: {e}. Retrying with exponential backoff in {wait} seconds"
+                )
                 await asyncio.sleep(wait)
+            else:
+                logger.warning(f"{error} received exception: {e}. Retrying immediately")
             return await self.awith_exponential_backoff(count + 1, error, f, *args, **kwargs)
 
     def with_exponential_backoff(
@@ -56,10 +58,12 @@ class _Retry:
                 raise e
             if count > self.n:
                 raise WeaviateRetryError(str(e), count) from e
-            wait = 2**count
-            logger.warning(
-                f"{error} received exception: {e}. Retrying with exponential backoff in {wait} seconds"
-            )
             if count > 0:
+                wait = 2**count
+                logger.warning(
+                    f"{error} received exception: {e}. Retrying with exponential backoff in {wait} seconds"
+                )
                 time.sleep(wait)
+            else:
+                logger.warning(f"{error} received exception: {e}. Retrying immediately")
             return self.with_exponential_backoff(count + 1, error, f, *args, **kwargs)
