@@ -30,14 +30,14 @@ class _Retry:
         except AioRpcError as e:
             if e.code() != StatusCode.UNAVAILABLE:
                 raise e
+            if count > self.n:
+                raise WeaviateRetryError(str(e), count) from e
             wait = 2 ** (count - 1)
             logger.warning(
                 f"{error} received exception: {e}. Retrying with exponential backoff in {wait} seconds"
             )
             if count > 0:
                 await asyncio.sleep(wait)
-            if count > self.n:
-                raise WeaviateRetryError(str(e), count) from e
             return await self.awith_exponential_backoff(count + 1, error, f, *args, **kwargs)
 
     def with_exponential_backoff(
@@ -54,12 +54,12 @@ class _Retry:
             err = cast(Call, e)
             if err.code() != StatusCode.UNAVAILABLE:
                 raise e
+            if count > self.n:
+                raise WeaviateRetryError(str(e), count) from e
             wait = 2**count
             logger.warning(
                 f"{error} received exception: {e}. Retrying with exponential backoff in {wait} seconds"
             )
             if count > 0:
                 time.sleep(wait)
-            if count > self.n:
-                raise WeaviateRetryError(str(e), count) from e
             return self.with_exponential_backoff(count + 1, error, f, *args, **kwargs)
