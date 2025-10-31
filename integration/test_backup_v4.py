@@ -626,7 +626,7 @@ def test_list_backup_ascending_order(client: weaviate.WeaviateClient, request: S
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED
 
-    backups = client.backup.list_backups(backend=BACKEND, sort_ascending=True)
+    backups = client.backup.list_backups(backend=BACKEND, sort_by_starting_time_asc=True)
     assert backup_id.lower() in [b.backup_id.lower() for b in backups]
 
     assert sorted(backups, key=lambda b: b.started_at or b.backup_id) == backups
