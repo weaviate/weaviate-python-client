@@ -936,7 +936,6 @@ class _BatchBaseNew:
         while self.__any_threads_alive():
             time.sleep(1)
         logger.warning("Send & receive threads finished.")
-        logger.error(f"Total: {self.__total} objects/references processed in batch.")
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -1002,6 +1001,7 @@ class _BatchBaseNew:
             elif self.__stop:
                 # we are done, send the sentinel into our queue to be consumed by the batch sender
                 self.__reqs.put(None)  # signal the end of the stream
+                logger.warning("Batching finished, sent stop signal to batch stream")
                 return
             time.sleep(refresh_time)
 
@@ -1081,7 +1081,12 @@ class _BatchBaseNew:
                 for threads in self.__bg_threads:
                     threads.start_send()
             if message.HasField("backoff"):
-                if message.backoff.batch_size != self.__batch_size:
+                if (
+                    message.backoff.batch_size != self.__batch_size
+                    and not self.__is_shutting_down.is_set()
+                    and not self.__is_shutdown.is_set()
+                    and not self.__stop
+                ):
                     self.__batch_size = message.backoff.batch_size
                     logger.warning(
                         f"Updated batch size to {self.__batch_size} as per server request"
@@ -1093,7 +1098,10 @@ class _BatchBaseNew:
                 failed_refs: List[ErrorReference] = []
                 for error in message.results.errors:
                     if error.HasField("uuid"):
-                        cached = self.__objs_cache.pop(error.uuid)
+                        try:
+                            cached = self.__objs_cache.pop(error.uuid)
+                        except KeyError:
+                            continue
                         err = ErrorObject(
                             message=error.error,
                             object_=cached,
@@ -1126,7 +1134,10 @@ class _BatchBaseNew:
                         )
                 for success in message.results.successes:
                     if success.HasField("uuid"):
-                        cached = self.__objs_cache.pop(success.uuid)
+                        try:
+                            cached = self.__objs_cache.pop(success.uuid)
+                        except KeyError:
+                            continue
                         uuid = uuid_package.UUID(success.uuid)
                         result_objs += BatchObjectReturn(
                             _all_responses=[uuid],
@@ -1159,7 +1170,7 @@ class _BatchBaseNew:
             return self.__batch_recv()
         else:
             logger.warning("Server closed the stream from its side, shutting down batch")
-            self.__shut_background_thread_down.set()
+            return
 
     def __reconnect(self, retry: int = 0) -> None:
         try:
@@ -1209,6 +1220,9 @@ class _BatchBaseNew:
                 # server sets this whenever it restarts, gracefully or unexpectedly, so need to clear it now
                 self.__is_shutting_down.clear()
                 with self.__objs_cache_lock:
+                    logger.warning(
+                        f"Re-adding {len(self.__objs_cache)} cached objects to the batch"
+                    )
                     self.__batch_objects.prepend(
                         [
                             self.__batch_grpc.grpc_object(o._to_internal())
