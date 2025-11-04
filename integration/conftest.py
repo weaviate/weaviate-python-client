@@ -15,6 +15,8 @@ from typing import (
 import pytest
 import pytest_asyncio
 from _pytest.fixtures import SubRequest
+import time
+from typing import Callable, TypeVar
 
 import weaviate
 from weaviate.collections import Collection, CollectionAsync
@@ -35,6 +37,8 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties
 from weaviate.config import AdditionalConfig
+
+from weaviate.exceptions import UnexpectedStatusCodeError
 
 
 class CollectionFactory(Protocol):
@@ -459,3 +463,37 @@ def collection_factory_get(
 def _sanitize_collection_name(name: str) -> str:
     name = name.replace("[", "").replace("]", "").replace("-", "").replace(" ", "").replace(".", "")
     return name[0].upper() + name[1:]
+
+
+T = TypeVar("T")
+
+
+def retry_on_http_error(
+    func: Callable[[], T], http_error_code: int, max_retries: int = 3, delay: float = 0.5
+) -> T:
+    """Retry a function call if it raises UnexpectedStatusCodeError with 404 status code.
+
+    Args:
+        func: The function to retry
+        http_error_code: The HTTP error code to retry on
+        max_retries: Maximum number of retries (default: 3)
+        delay: Initial delay between retries in seconds (default: 0.5)
+
+    Returns:
+        The result of the function call
+
+    Raises:
+        The last exception if all retries are exhausted
+    """
+    last_exception = None
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except UnexpectedStatusCodeError as e:
+            last_exception = e
+            if e.status_code == http_error_code and attempt < max_retries:
+                time.sleep(delay * (2**attempt))  # Exponential backoff
+                continue
+            raise
+    # This should never be reached, but satisfies the type checker
+    raise last_exception  # type: ignore
