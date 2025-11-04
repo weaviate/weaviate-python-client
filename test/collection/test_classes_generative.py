@@ -422,6 +422,7 @@ def test_generative_parameters_images_parsing(
                 top_p=0.9,
                 system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
                 avoid_commentary=False,
+                knowledge=["knowledge1", "knowledge2"],
             )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True)),
             generative_pb2.GenerativeProvider(
                 return_metadata=True,
@@ -432,6 +433,7 @@ def test_generative_parameters_images_parsing(
                     top_p=0.9,
                     system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
                     avoid_commentary=False,
+                    knowledge=base_pb2.TextArray(values=["knowledge1", "knowledge2"]),
                 ),
             ),
         ),

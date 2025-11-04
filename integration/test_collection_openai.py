@@ -787,6 +787,51 @@ def test_contextualai_generative_search_single(
     assert res.generated is None
 
 
+def test_contextualai_generative_with_knowledge_parameter(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Test Contextual AI generative search with knowledge parameter override."""
+    api_key = os.environ.get("CONTEXTUAL_API_KEY")
+    if api_key is None:
+        pytest.skip("No Contextual AI API key found.")
+
+    collection = collection_factory(
+        name="TestContextualAIGenerativeKnowledge",
+        generative_config=Configure.Generative.contextualai(
+            model="v2",
+            max_tokens=100,
+            temperature=0.1,
+            system_prompt="You are a helpful assistant.",
+            avoid_commentary=False,
+        ),
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        headers={"X-Contextual-Api-Key": api_key},
+        ports=(8086, 50057),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
+        pytest.skip("Generative search requires Weaviate 1.23.1 or higher")
+
+    collection.data.insert_many(
+        [
+            DataObject(properties={"text": "base knowledge"}),
+        ]
+    )
+
+    # Test with knowledge parameter override
+    res = collection.generate.fetch_objects(
+        single_prompt="What is the custom knowledge?",
+        config=GenerativeConfig.contextualai(
+            knowledge=["Custom knowledge override", "Additional context"],
+        ),
+    )
+    for obj in res.objects:
+        assert obj.generated is not None
+        assert isinstance(obj.generated, str)
+
+
 def test_contextualai_generative_and_rerank_combined(collection_factory: CollectionFactory) -> None:
     """Test Contextual AI generative search combined with reranking."""
     contextual_api_key = os.environ.get("CONTEXTUAL_API_KEY")

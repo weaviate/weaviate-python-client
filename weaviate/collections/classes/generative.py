@@ -455,6 +455,7 @@ class _GenerativeContextualAI(_GenerativeConfigRuntime):
     top_p: Optional[float]
     system_prompt: Optional[str]
     avoid_commentary: Optional[bool]
+    knowledge: Optional[List[str]]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         self._validate_multi_modal(opts)
@@ -467,6 +468,7 @@ class _GenerativeContextualAI(_GenerativeConfigRuntime):
                 top_p=self.top_p,
                 system_prompt=self.system_prompt,
                 avoid_commentary=self.avoid_commentary or False,
+                knowledge=_to_text_array(self.knowledge),
             ),
         )
 
@@ -615,6 +617,7 @@ class GenerativeConfig:
         top_p: Optional[float] = None,
         system_prompt: Optional[str] = None,
         avoid_commentary: Optional[bool] = None,
+        knowledge: Optional[List[str]] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeContextualAI` object for use with the `generative-contextualai` module.
 
@@ -625,6 +628,7 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
             system_prompt: The system prompt to prepend to the conversation
             avoid_commentary: Whether to avoid model commentary in responses
+            knowledge: Optional knowledge array to override the default knowledge from retrieved objects
         """
         return _GenerativeContextualAI(
             model=model,
@@ -633,6 +637,7 @@ class GenerativeConfig:
             top_p=top_p,
             system_prompt=system_prompt,
             avoid_commentary=avoid_commentary,
+            knowledge=knowledge,
         )
 
     @staticmethod
