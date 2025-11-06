@@ -877,7 +877,7 @@ class _BatchBaseNew:
         self.__objs_cache_lock = threading.Lock()
         self.__refs_cache_lock = threading.Lock()
         self.__objs_cache: dict[str, BatchObject] = {}
-        self.__refs_cache: dict[int, BatchReference] = {}
+        self.__refs_cache: dict[str, BatchReference] = {}
 
         # maxsize=1 so that __batch_send does not run faster than generator for __batch_recv
         # thereby using too much buffer in case of server-side shutdown
@@ -1093,7 +1093,7 @@ class _BatchBaseNew:
                     )
             if message.HasField("results"):
                 result_objs = BatchObjectReturn()
-                # result_refs = BatchReferenceReturn()
+                result_refs = BatchReferenceReturn()
                 failed_objs: List[ErrorObject] = []
                 failed_refs: List[ErrorReference] = []
                 for error in message.results.errors:
@@ -1119,12 +1119,18 @@ class _BatchBaseNew:
                             }
                         )
                     if error.HasField("beacon"):
-                        # TODO: get cached ref from beacon
+                        try:
+                            cached = self.__refs_cache.pop(error.beacon)
+                        except KeyError:
+                            continue
                         err = ErrorReference(
                             message=error.error,
                             reference=error.beacon,  # pyright: ignore
                         )
                         failed_refs.append(err)
+                        result_refs += BatchReferenceReturn(
+                            errors={cached.index: err},
+                        )
                         logger.warning(
                             {
                                 "error": error.error,
@@ -1144,11 +1150,13 @@ class _BatchBaseNew:
                             uuids={cached.index: uuid},
                         )
                     if success.HasField("beacon"):
-                        # TODO: remove cached ref using beacon
-                        # self.__refs_cache.pop(success.beacon, None)
-                        pass
+                        try:
+                            self.__refs_cache.pop(success.beacon, None)
+                        except KeyError:
+                            continue
                 with self.__results_lock:
                     self.__results_for_wrapper.results.objs += result_objs
+                    self.__results_for_wrapper.results.refs += result_refs
                     self.__results_for_wrapper.failed_objects.extend(failed_objs)
                     self.__results_for_wrapper.failed_references.extend(failed_refs)
             elif message.HasField("shutting_down"):
@@ -1338,7 +1346,7 @@ class _BatchBaseNew:
                 self.__batch_grpc.grpc_reference(batch_reference._to_internal())
             )
             with self.__refs_cache_lock:
-                self.__refs_cache[self.__refs_count] = batch_reference
+                self.__refs_cache[batch_reference._to_beacon()] = batch_reference
                 self.__refs_count += 1
 
     def __check_bg_threads_alive(self) -> None:
