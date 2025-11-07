@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Generic, List, Optional, Type, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
-    _BatchBaseNew,
     _BatchDataWrapper,
     _BatchMode,
     _DynamicBatching,
@@ -16,6 +15,7 @@ from weaviate.collections.batch.batch_wrapper import (
     _BatchWrapper,
     _ContextManagerWrapper,
 )
+from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.types import Properties
@@ -78,7 +78,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         )
 
 
-class _BatchCollectionNew(Generic[Properties], _BatchBaseNew):
+class _BatchCollectionSync(Generic[Properties], _BatchBaseSync):
     def __init__(
         self,
         executor: ThreadPoolExecutor,
@@ -161,9 +161,9 @@ class _BatchCollectionNew(Generic[Properties], _BatchBaseNew):
 
 
 BatchCollection = _BatchCollection
-BatchCollectionNew = _BatchCollectionNew
+BatchCollectionSync = _BatchCollectionSync
 CollectionBatchingContextManager = _ContextManagerWrapper[
-    Union[BatchCollection[Properties], BatchCollectionNew[Properties]],
+    Union[BatchCollection[Properties], BatchCollectionSync[Properties]],
     BatchCollectionProtocol[Properties],
 ]
 
@@ -177,7 +177,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         tenant: Optional[str],
         config: "_ConfigCollection",
         batch_client: Union[
-            Type[_BatchCollection[Properties]], Type[_BatchCollectionNew[Properties]]
+            Type[_BatchCollection[Properties]], Type[_BatchCollectionSync[Properties]]
         ],
     ) -> None:
         super().__init__(connection, consistency_level)
@@ -192,7 +192,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
     def __create_batch_and_reset(
         self,
         batch_client: Union[
-            Type[_BatchCollection[Properties]], Type[_BatchCollectionNew[Properties]]
+            Type[_BatchCollection[Properties]], Type[_BatchCollectionSync[Properties]]
         ],
     ):
         if self._vectorizer_batching is None:
@@ -278,4 +278,4 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             # else len(self._cluster.get_nodes_status())
             concurrency=1,  # hard-code until client-side multi-threading is fixed
         )
-        return self.__create_batch_and_reset(_BatchCollectionNew)
+        return self.__create_batch_and_reset(_BatchCollectionSync)
