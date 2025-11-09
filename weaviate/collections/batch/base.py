@@ -1173,6 +1173,16 @@ class _BatchBaseNew:
             return
 
     def __reconnect(self, retry: int = 0) -> None:
+        if self.__consistency_level == ConsistencyLevel.ALL:
+            # check that all nodes are available before reconnecting
+            cluster = _ClusterBatch(self.__connection)
+            while len(nodes := cluster.get_nodes_status()) != 3 or any(
+                node["status"] != "HEALTHY" for node in nodes
+            ):
+                logger.warning(
+                    "Waiting for all nodes to be HEALTHY before reconnecting to batch stream due to CL=ALL..."
+                )
+                time.sleep(5)
         try:
             logger.warning(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
             self.__connection.close("sync")
