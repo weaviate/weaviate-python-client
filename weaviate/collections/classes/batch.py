@@ -171,6 +171,9 @@ class BatchReference(BaseModel):
             index=ref.index,
         )
 
+    def _to_beacon(self) -> str:
+        return f"{BEACON}{self.from_object_collection}/{self.from_object_uuid}/{self.from_property_name}"
+
 
 @dataclass
 class ErrorObject:
