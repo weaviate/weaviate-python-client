@@ -145,7 +145,11 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         self.alias = _Alias(
             self._connection,
         )
-        self.batch = _BatchClientWrapper(self._connection, config=collections)
+        self.batch = _BatchClientWrapper(
+            self._connection,
+            config=collections,
+            consistency_level=None,
+        )
         self.backup = _Backup(self._connection)
         self.cluster = _Cluster(self._connection)
         self.collections = collections

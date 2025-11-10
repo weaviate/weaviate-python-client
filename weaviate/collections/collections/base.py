@@ -50,7 +50,7 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
             weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
             weaviate.exceptions.InvalidDataModelException: If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
-        return self.use(
+        return self._use(
             name=name,
             data_model_properties=data_model_properties,
             data_model_references=data_model_references,
