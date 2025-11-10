@@ -164,6 +164,7 @@ class Tokenization(str, BaseEnum):
         TRIGRAM: Tokenize into trigrams.
         KAGOME_JA: Tokenize using the 'Kagome' tokenizer (for Japanese).
         KAGOME_KR: Tokenize using the 'Kagome' tokenizer and a Korean MeCab dictionary (for Korean).
+        GSE_CH: Tokenize using GSE (for Chinese).
     """
 
     WORD = "word"
@@ -174,6 +175,7 @@ class Tokenization(str, BaseEnum):
     TRIGRAM = "trigram"
     KAGOME_JA = "kagome_ja"
     KAGOME_KR = "kagome_kr"
+    GSE_CH = "gse_ch"
 
 
 class GenerativeSearches(str, BaseEnum):
