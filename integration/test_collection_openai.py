@@ -755,7 +755,7 @@ def test_contextualai_generative_search_single(
         name="TestContextualAIGenerativeSingle",
         generative_config=Configure.Generative.contextualai(
             model="v2",
-            max_tokens=100,
+            max_new_tokens=100,
             temperature=0.1,
             system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context. Answer with yes or no only.",
             avoid_commentary=False,
@@ -799,7 +799,7 @@ def test_contextualai_generative_with_knowledge_parameter(
         name="TestContextualAIGenerativeKnowledge",
         generative_config=Configure.Generative.contextualai(
             model="v2",
-            max_tokens=100,
+            max_new_tokens=100,
             temperature=0.1,
             system_prompt="You are a helpful assistant.",
             avoid_commentary=False,
@@ -842,7 +842,7 @@ def test_contextualai_generative_and_rerank_combined(collection_factory: Collect
         name="TestContextualAIGenerativeAndRerank",
         generative_config=Configure.Generative.contextualai(
             model="v2",
-            max_tokens=100,
+            max_new_tokens=100,
             temperature=0.1,
             system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
             avoid_commentary=False,

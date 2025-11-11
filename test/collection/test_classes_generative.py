@@ -417,7 +417,7 @@ def test_generative_parameters_images_parsing(
         (
             GenerativeConfig.contextualai(
                 model="v2",
-                max_tokens=100,
+                max_new_tokens=100,
                 temperature=0.5,
                 top_p=0.9,
                 system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
@@ -428,7 +428,7 @@ def test_generative_parameters_images_parsing(
                 return_metadata=True,
                 contextualai=generative_pb2.GenerativeContextualAI(
                     model="v2",
-                    max_tokens=100,
+                    max_new_tokens=100,
                     temperature=0.5,
                     top_p=0.9,
                     system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",

@@ -450,7 +450,7 @@ class _GenerativeContextualAI(_GenerativeConfigRuntime):
         default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
     )
     model: Optional[str]
-    max_tokens: Optional[int]
+    max_new_tokens: Optional[int]
     temperature: Optional[float]
     top_p: Optional[float]
     system_prompt: Optional[str]
@@ -463,7 +463,7 @@ class _GenerativeContextualAI(_GenerativeConfigRuntime):
             return_metadata=opts.return_metadata,
             contextualai=generative_pb2.GenerativeContextualAI(
                 model=self.model,
-                max_tokens=self.max_tokens,
+                max_new_tokens=self.max_new_tokens,
                 temperature=self.temperature,
                 top_p=self.top_p,
                 system_prompt=self.system_prompt,
@@ -612,7 +612,7 @@ class GenerativeConfig:
     def contextualai(
         *,
         model: Optional[str] = None,
-        max_tokens: Optional[int] = None,
+        max_new_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         system_prompt: Optional[str] = None,
@@ -623,7 +623,7 @@ class GenerativeConfig:
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default
-            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            max_new_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
             system_prompt: The system prompt to prepend to the conversation
@@ -632,7 +632,7 @@ class GenerativeConfig:
         """
         return _GenerativeContextualAI(
             model=model,
-            max_tokens=max_tokens,
+            max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
             system_prompt=system_prompt,
