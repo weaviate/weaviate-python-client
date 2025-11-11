@@ -468,7 +468,7 @@ class _GenerativeContextualAIConfig(_GenerativeProvider):
         default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
     )
     model: Optional[str]
-    maxTokensProperty: Optional[int]
+    maxNewTokensProperty: Optional[int]
     temperatureProperty: Optional[float]
     topPProperty: Optional[float]
     systemPromptProperty: Optional[str]
@@ -866,7 +866,7 @@ class _Generative:
     @staticmethod
     def contextualai(
         model: Optional[str] = None,
-        max_tokens: Optional[int] = None,
+        max_new_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         system_prompt: Optional[str] = None,
@@ -879,14 +879,14 @@ class _Generative:
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default
-            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            max_new_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_p: Nucleus sampling parameter (0 < x <= 1). Defaults to `None`, which uses the server-defined default
             system_prompt: System instructions the model follows. Defaults to `None`, which uses the server-defined default
             avoid_commentary: If `True`, reduce conversational commentary in responses. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeContextualAIConfig(
-            maxTokensProperty=max_tokens,
+            maxNewTokensProperty=max_new_tokens,
             model=model,
             temperatureProperty=temperature,
             topPProperty=top_p,
