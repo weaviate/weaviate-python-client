@@ -139,12 +139,17 @@ def weaviate_client(
     yield client
     client.close()
 
+
 @pytest.fixture(scope="function")
 def weaviate_client_retry_timeout(
-        weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC,
-                                       additional_config=AdditionalConfig(retry=RetryConfig(timeout_ms=500)))
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+        additional_config=AdditionalConfig(retry=RetryConfig(timeout_ms=500)),
+    )
     yield client
     client.close()
 
@@ -159,7 +164,7 @@ def weaviate_timeouts_client(
         grpc_port=MOCK_PORT_GRPC,
         additional_config=weaviate.classes.init.AdditionalConfig(
             timeout=weaviate.classes.init.Timeout(query=0.5, insert=1.5),
-            retry=weaviate.config.RetryConfig(request_retry_count=5, request_retry_backoff_ms=0)
+            retry=weaviate.config.RetryConfig(request_retry_count=5, request_retry_backoff_ms=0),
         ),
     )
     yield client
@@ -268,7 +273,7 @@ class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
     batch_count = 0
 
     def BatchObjects(
-            self, request: batch_pb2.BatchObjectsRequest, context: grpc.ServicerContext
+        self, request: batch_pb2.BatchObjectsRequest, context: grpc.ServicerContext
     ) -> batch_pb2.BatchObjectsReply:
         if self.batch_count == 0:
             self.batch_count += 1
@@ -284,9 +289,8 @@ class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
             errors=[],
         )
 
-
     def BatchDelete(
-            self, request: batch_delete_pb2.BatchDeleteRequest, context: grpc.ServicerContext
+        self, request: batch_delete_pb2.BatchDeleteRequest, context: grpc.ServicerContext
     ) -> batch_delete_pb2.BatchDeleteReply:
         if self.delete_count == 0:
             self.delete_count += 1
@@ -298,13 +302,7 @@ class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
             context.set_code(grpc.StatusCode.UNAVAILABLE)
             context.set_details("Service is unavailable")
             return batch_delete_pb2.BatchDeleteReply()
-        return batch_delete_pb2.BatchDeleteReply(
-            matches=1,
-            failed=0,
-            successful=1,
-            objects=[]
-        )
-
+        return batch_delete_pb2.BatchDeleteReply(matches=1, failed=0, successful=1, objects=[])
 
     def Search(
         self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
@@ -361,14 +359,14 @@ def retries(
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
     return weaviate_client.collections.use("RetriesCollection"), service
 
+
 @pytest.fixture(scope="function")
 def no_retries(
-        weaviate_client_retry_timeout: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+    weaviate_client_retry_timeout: weaviate.WeaviateClient, start_grpc_server: grpc.Server
 ) -> tuple[weaviate.collections.Collection, MockRetriesWeaviateService]:
     service = MockRetriesWeaviateService()
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
     return weaviate_client_retry_timeout.collections.use("RetriesCollection"), service
-
 
 
 class MockForbiddenWeaviateService(weaviate_pb2_grpc.WeaviateServicer):

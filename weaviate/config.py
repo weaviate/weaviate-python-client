@@ -83,10 +83,7 @@ class RetryConfig:
             )
 
         if not isinstance(self.timeout_ms, int):
-            raise TypeError(
-                f"timeout_ms must be {int}, received {type(self.timeout_ms)}"
-            )
-
+            raise TypeError(f"timeout_ms must be {int}, received {type(self.timeout_ms)}")
 
 
 class AdditionalConfig(BaseModel):
@@ -111,4 +108,3 @@ class AdditionalConfig(BaseModel):
         if isinstance(self.timeout_, tuple):
             return Timeout(query=self.timeout_[0], insert=self.timeout_[1])
         return self.timeout_
-

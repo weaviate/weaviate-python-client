@@ -1018,10 +1018,13 @@ class ConnectionSync(_ConnectionBase):
     ) -> Dict[int, str]:
         try:
             assert self.grpc_stub is not None
-            res = _Retry(RetryConfig(request_retry_count=int(max_retries),
-                                     request_retry_backoff_ms=self.retry_config.request_retry_backoff_ms,
-                                     timeout_ms=self.retry_config.timeout_ms,
-                                     )).with_exponential_backoff(
+            res = _Retry(
+                RetryConfig(
+                    request_retry_count=int(max_retries),
+                    request_retry_backoff_ms=self.retry_config.request_retry_backoff_ms,
+                    timeout_ms=self.retry_config.timeout_ms,
+                )
+            ).with_exponential_backoff(
                 count=0,
                 start_time=datetime.datetime.now(),
                 error="Batch objects",
@@ -1070,11 +1073,12 @@ class ConnectionSync(_ConnectionBase):
             res = _Retry(self.retry_config).with_exponential_backoff(
                 0,
                 datetime.datetime.now(),
-                f"Batch Delete",
+                "Batch Delete",
                 self.grpc_stub.BatchDelete,
                 request,
                 metadata=self.grpc_headers(),
-                timeout=self.timeout_config.insert)
+                timeout=self.timeout_config.insert,
+            )
             return cast(
                 batch_delete_pb2.BatchDeleteReply,
                 res,
@@ -1236,10 +1240,13 @@ class ConnectionAsync(_ConnectionBase):
     ) -> Dict[int, str]:
         try:
             assert self.grpc_stub is not None
-            res = await _Retry(RetryConfig(request_retry_count=int(max_retries),
-                                           request_retry_backoff_ms=self.retry_config.request_retry_backoff_ms,
-                                           timeout_ms=self.retry_config.timeout_ms,
-                                           )).awith_exponential_backoff(
+            res = await _Retry(
+                RetryConfig(
+                    request_retry_count=int(max_retries),
+                    request_retry_backoff_ms=self.retry_config.request_retry_backoff_ms,
+                    timeout_ms=self.retry_config.timeout_ms,
+                )
+            ).awith_exponential_backoff(
                 count=0,
                 start_time=datetime.datetime.now(),
                 error="Batch objects",

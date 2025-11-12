@@ -22,8 +22,15 @@ class _Retry:
     def is_retriable(self, e: Exception) -> bool:
         if isinstance(e, AioRpcError) or isinstance(e, RpcError):
             err = cast(Call, e)
-            return err.code() in [StatusCode.UNAVAILABLE, StatusCode.NOT_FOUND, StatusCode.DEADLINE_EXCEEDED,
-                            StatusCode.ABORTED, StatusCode.INTERNAL, StatusCode.CANCELLED, StatusCode.ABORTED]
+            return err.code() in [
+                StatusCode.UNAVAILABLE,
+                StatusCode.NOT_FOUND,
+                StatusCode.DEADLINE_EXCEEDED,
+                StatusCode.ABORTED,
+                StatusCode.INTERNAL,
+                StatusCode.CANCELLED,
+                StatusCode.ABORTED,
+            ]
         return False
 
     async def awith_exponential_backoff(
@@ -40,15 +47,19 @@ class _Retry:
         except AioRpcError as e:
             if not self.is_retriable(e):
                 raise e
-            if ((datetime.datetime.now() - start_time).total_seconds() * 1000) > self.config.timeout_ms:
+            if (
+                (datetime.datetime.now() - start_time).total_seconds() * 1000
+            ) > self.config.timeout_ms:
                 raise WeaviateRetryError(str(e), count) from e
             if count > self.config.request_retry_count:
                 raise WeaviateRetryError(str(e), count) from e
             logger.info(
                 f"{error} received exception: {e}. Retrying with exponential backoff in {2**count} seconds"
             )
-            await asyncio.sleep((self.config.request_retry_backoff_ms / 1000.0)**count)
-            return await self.awith_exponential_backoff(count + 1, start_time, error, f, *args, **kwargs)
+            await asyncio.sleep((self.config.request_retry_backoff_ms / 1000.0) ** count)
+            return await self.awith_exponential_backoff(
+                count + 1, start_time, error, f, *args, **kwargs
+            )
 
     def with_exponential_backoff(
         self,
@@ -64,12 +75,14 @@ class _Retry:
         except Exception as e:
             if not self.is_retriable(e):
                 raise e
-            if ((datetime.datetime.now() - start_time).total_seconds() * 1000) > self.config.timeout_ms:
+            if (
+                (datetime.datetime.now() - start_time).total_seconds() * 1000
+            ) > self.config.timeout_ms:
                 raise WeaviateRetryError(str(e), count) from e
             if count > self.config.request_retry_count:
                 raise WeaviateRetryError(str(e), count) from e
             logger.info(
                 f"{error} received exception: {e}. Retrying with exponential backoff in {2**count} seconds"
             )
-            time.sleep((self.config.request_retry_backoff_ms / 1000.0)**count)
+            time.sleep((self.config.request_retry_backoff_ms / 1000.0) ** count)
             return self.with_exponential_backoff(count + 1, start_time, error, f, *args, **kwargs)

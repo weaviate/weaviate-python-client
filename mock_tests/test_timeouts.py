@@ -1,7 +1,7 @@
 import pytest
 
 import weaviate
-from weaviate.exceptions import WeaviateQueryError, WeaviateTimeoutError, WeaviateRetryError, WeaviateBatchError
+from weaviate.exceptions import WeaviateQueryError, WeaviateTimeoutError, WeaviateBatchError
 
 
 def test_timeout_rest_query(timeouts_collection: weaviate.collections.Collection):

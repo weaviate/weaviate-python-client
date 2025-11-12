@@ -29,7 +29,6 @@ from weaviate.collections.classes.config import (
     VectorIndexType,
     Vectorizers,
 )
-from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import Filter
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
@@ -37,7 +36,10 @@ from weaviate.exceptions import (
     BackupCanceledError,
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
-    WeaviateStartUpError, WeaviateRetryError, WeaviateQueryError, WeaviateBatchError, WeaviateDeleteManyError,
+    WeaviateStartUpError,
+    WeaviateQueryError,
+    WeaviateBatchError,
+    WeaviateDeleteManyError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -387,10 +389,7 @@ def test_grpc_retry_logic(
     assert service.tenants_count == 2
 
     # Should perform two retry and then succeed subsequently
-    collection.data.insert_many(
-        objects=[{"Hello": "World"}]
-    )
-
+    collection.data.insert_many(objects=[{"Hello": "World"}])
 
     # should perform two retries and then succeed subsequently
     deleted = collection.data.delete_many(where=Filter.by_id().equal(objs[0].uuid))
@@ -398,19 +397,17 @@ def test_grpc_retry_logic(
 
 
 def test_grpc_retry_timeout_logic(
-        no_retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
+    no_retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
 ) -> None:
-    collection, service = no_retries[0], no_retries[1]
+    collection, _ = no_retries[0], no_retries[1]
 
     # timeout after 1 retry
     with pytest.raises(WeaviateQueryError):
-        objs = collection.query.fetch_objects().objects
+        collection.query.fetch_objects().objects
 
     # timeout after 1 retry
     with pytest.raises(WeaviateBatchError):
-        collection.data.insert_many(
-            objects=[{"Hello": "World"}]
-        )
+        collection.data.insert_many(objects=[{"Hello": "World"}])
 
     # timeout after 1 retry
     with pytest.raises(WeaviateDeleteManyError):
