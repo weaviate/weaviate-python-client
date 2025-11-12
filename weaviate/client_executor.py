@@ -76,6 +76,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             additional_headers=additional_headers,
             embedded_db=embedded_db,
             connection_config=config.connection,
+            retry_config=config.retry,
             proxies=config.proxies,
             trust_env=config.trust_env,
             skip_init_checks=skip_init_checks,
