@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -50,7 +51,7 @@ from httpx import (
 
 from weaviate import __version__ as client_version
 from weaviate.auth import AuthApiKey, AuthClientCredentials, AuthCredentials
-from weaviate.config import ConnectionConfig, Proxies
+from weaviate.config import ConnectionConfig, Proxies, RetryConfig
 from weaviate.config import Timeout as TimeoutConfig
 from weaviate.connect import executor
 from weaviate.connect.authentication import _Auth
@@ -130,6 +131,7 @@ class _ConnectionBase:
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
+        retry_config: RetryConfig,
         embedded_db: Optional[EmbeddedV4] = None,
         skip_init_checks: bool = False,
     ):
@@ -143,6 +145,7 @@ class _ConnectionBase:
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Union[AsyncChannel, SyncChannel, None] = None
         self.timeout_config = timeout_config
+        self.retry_config = retry_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
         self._weaviate_version = _ServerVersion.from_string("")
@@ -323,7 +326,11 @@ class _ConnectionBase:
         assert self._grpc_channel is not None
 
         try:
-            res = self._grpc_channel.unary_unary(
+            res = _Retry(self.retry_config).with_exponential_backoff(
+                0,
+                datetime.datetime.now(),
+                "",
+                self._grpc_channel.unary_unary,
                 "/grpc.health.v1.Health/Check",
                 request_serializer=health_weaviate_pb2.WeaviateHealthCheckRequest.SerializeToString,
                 response_deserializer=health_weaviate_pb2.WeaviateHealthCheckResponse.FromString,
@@ -985,8 +992,9 @@ class ConnectionSync(_ConnectionBase):
     def grpc_search(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
         try:
             assert self.grpc_stub is not None
-            res = _Retry(4).with_exponential_backoff(
+            res = _Retry(self.retry_config).with_exponential_backoff(
                 0,
+                datetime.datetime.now(),
                 f"Searching in collection {request.collection}",
                 self.grpc_stub.Search,
                 request,
@@ -1010,8 +1018,12 @@ class ConnectionSync(_ConnectionBase):
     ) -> Dict[int, str]:
         try:
             assert self.grpc_stub is not None
-            res = _Retry(max_retries).with_exponential_backoff(
+            res = _Retry(RetryConfig(request_retry_count=int(max_retries),
+                                     request_retry_backoff_ms=self.retry_config.request_retry_backoff_ms,
+                                     timeout_ms=self.retry_config.timeout_ms,
+                                     )).with_exponential_backoff(
                 count=0,
+                start_time=datetime.datetime.now(),
                 error="Batch objects",
                 f=self.grpc_stub.BatchObjects,
                 request=request,
@@ -1024,6 +1036,8 @@ class ConnectionSync(_ConnectionBase):
             for err in res.errors:
                 objects[err.index] = err.error
             return objects
+        except WeaviateRetryError as e:
+            raise WeaviateBatchError(str(e)) from e
         except RpcError as e:
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
@@ -1053,14 +1067,20 @@ class ConnectionSync(_ConnectionBase):
     ) -> batch_delete_pb2.BatchDeleteReply:
         try:
             assert self.grpc_stub is not None
+            res = _Retry(self.retry_config).with_exponential_backoff(
+                0,
+                datetime.datetime.now(),
+                f"Batch Delete",
+                self.grpc_stub.BatchDelete,
+                request,
+                metadata=self.grpc_headers(),
+                timeout=self.timeout_config.insert)
             return cast(
                 batch_delete_pb2.BatchDeleteReply,
-                self.grpc_stub.BatchDelete(
-                    request,
-                    metadata=self.grpc_headers(),
-                    timeout=self.timeout_config.insert,
-                ),
+                res,
             )
+        except WeaviateRetryError as e:
+            raise WeaviateDeleteManyError(str(e)) from e
         except RpcError as e:
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
@@ -1072,8 +1092,9 @@ class ConnectionSync(_ConnectionBase):
     ) -> tenants_pb2.TenantsGetReply:
         try:
             assert self.grpc_stub is not None
-            res = _Retry().with_exponential_backoff(
+            res = _Retry(self.retry_config).with_exponential_backoff(
                 0,
+                datetime.datetime.now(),
                 f"Get tenants for collection {request.collection}",
                 self.grpc_stub.TenantsGet,
                 request,
@@ -1093,8 +1114,9 @@ class ConnectionSync(_ConnectionBase):
     ) -> aggregate_pb2.AggregateReply:
         try:
             assert self.grpc_stub is not None
-            res = _Retry(4).with_exponential_backoff(
+            res = _Retry(self.retry_config).with_exponential_backoff(
                 0,
+                datetime.datetime.now(),
                 f"Searching in collection {request.collection}",
                 self.grpc_stub.Aggregate,
                 request,
@@ -1189,8 +1211,9 @@ class ConnectionAsync(_ConnectionBase):
     ) -> search_get_pb2.SearchReply:
         try:
             assert self.grpc_stub is not None
-            res = await _Retry(4).awith_exponential_backoff(
+            res = await _Retry(self.retry_config).awith_exponential_backoff(
                 0,
+                datetime.datetime.now(),
                 f"Searching in collection {request.collection}",
                 self.grpc_stub.Search,
                 request,
@@ -1213,8 +1236,12 @@ class ConnectionAsync(_ConnectionBase):
     ) -> Dict[int, str]:
         try:
             assert self.grpc_stub is not None
-            res = await _Retry(max_retries).awith_exponential_backoff(
+            res = await _Retry(RetryConfig(request_retry_count=int(max_retries),
+                                           request_retry_backoff_ms=self.retry_config.request_retry_backoff_ms,
+                                           timeout_ms=self.retry_config.timeout_ms,
+                                           )).awith_exponential_backoff(
                 count=0,
+                start_time=datetime.datetime.now(),
                 error="Batch objects",
                 f=self.grpc_stub.BatchObjects,
                 request=request,
@@ -1227,6 +1254,8 @@ class ConnectionAsync(_ConnectionBase):
             for err in res.errors:
                 objects[err.index] = err.error
             return objects
+        except WeaviateRetryError as e:
+            raise WeaviateBatchError(str(e)) from e
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
@@ -1242,6 +1271,8 @@ class ConnectionAsync(_ConnectionBase):
                 metadata=self.grpc_headers(),
                 timeout=self.timeout_config.insert,
             )
+        except WeaviateRetryError as e:
+            raise WeaviateDeleteManyError(str(e)) from e
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
@@ -1252,14 +1283,17 @@ class ConnectionAsync(_ConnectionBase):
     ) -> tenants_pb2.TenantsGetReply:
         try:
             assert self.grpc_stub is not None
-            res = await _Retry().awith_exponential_backoff(
+            res = await _Retry(self.retry_config).awith_exponential_backoff(
                 0,
+                datetime.datetime.now(),
                 f"Get tenants for collection {request.collection}",
                 self.grpc_stub.TenantsGet,
                 request,
                 metadata=self.grpc_headers(),
                 timeout=self.timeout_config.query,
             )
+        except WeaviateRetryError as e:
+            raise WeaviateTenantGetError(str(e)) from e
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
@@ -1272,8 +1306,9 @@ class ConnectionAsync(_ConnectionBase):
     ) -> aggregate_pb2.AggregateReply:
         try:
             assert self.grpc_stub is not None
-            res = await _Retry(4).awith_exponential_backoff(
+            res = await _Retry(self.retry_config).awith_exponential_backoff(
                 0,
+                datetime.datetime.now(),
                 f"Searching in collection {request.collection}",
                 self.grpc_stub.Aggregate,
                 request,

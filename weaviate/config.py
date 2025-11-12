@@ -66,6 +66,29 @@ class Proxies(BaseModel):
     grpc: Optional[str] = Field(default=None)
 
 
+@dataclass
+class RetryConfig:
+    request_retry_count: int = 20
+    request_retry_backoff_ms: int = 100
+    timeout_ms: int = 30000
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.request_retry_count, int):
+            raise TypeError(
+                f"request_retry_count must be {int}, received {type(self.request_retry_count)}"
+            )
+        if not isinstance(self.request_retry_backoff_ms, int):
+            raise TypeError(
+                f"request_retry_backoff_ms must be {int}, received {type(self.request_retry_backoff_ms)}"
+            )
+
+        if not isinstance(self.timeout_ms, int):
+            raise TypeError(
+                f"timeout_ms must be {int}, received {type(self.timeout_ms)}"
+            )
+
+
+
 class AdditionalConfig(BaseModel):
     """Use this class to specify the connection and proxy settings for your client when connecting to Weaviate.
 
@@ -80,6 +103,7 @@ class AdditionalConfig(BaseModel):
     connection: ConnectionConfig = Field(default_factory=ConnectionConfig)
     proxies: Union[str, Proxies, None] = Field(default=None)
     timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
+    retry: RetryConfig = Field(default_factory=RetryConfig)
     trust_env: bool = Field(default=False)
 
     @property
@@ -87,3 +111,4 @@ class AdditionalConfig(BaseModel):
         if isinstance(self.timeout_, tuple):
             return Timeout(query=self.timeout_[0], insert=self.timeout_[1])
         return self.timeout_
+

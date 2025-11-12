@@ -29,13 +29,15 @@ from weaviate.collections.classes.config import (
     VectorIndexType,
     Vectorizers,
 )
+from weaviate.collections.classes.data import DataObject
+from weaviate.collections.classes.filters import Filter
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.exceptions import (
     BackupCanceledError,
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
-    WeaviateStartUpError,
+    WeaviateStartUpError, WeaviateRetryError, WeaviateQueryError, WeaviateBatchError, WeaviateDeleteManyError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -372,25 +374,47 @@ def test_grpc_retry_logic(
     collection = retries[0]
     service = retries[1]
 
-    with pytest.raises(weaviate.exceptions.WeaviateQueryError):
-        # checks first call correctly handles INTERNAL error
-        collection.query.fetch_objects()
-
     # should perform one retry and then succeed subsequently
     objs = collection.query.fetch_objects().objects
     assert len(objs) == 1
     assert objs[0].properties["name"] == "test"
     assert service.search_count == 2
 
-    with pytest.raises(weaviate.exceptions.WeaviateTenantGetError):
-        # checks first call correctly handles error that isn't UNAVAILABLE
-        collection.tenants.get()
-
     # should perform one retry and then succeed subsequently
     tenants = list(collection.tenants.get().values())
     assert len(tenants) == 1
     assert tenants[0].name == "tenant1"
     assert service.tenants_count == 2
+
+    # Should perform two retry and then succeed subsequently
+    collection.data.insert_many(
+        objects=[{"Hello": "World"}]
+    )
+
+
+    # should perform two retries and then succeed subsequently
+    deleted = collection.data.delete_many(where=Filter.by_id().equal(objs[0].uuid))
+    assert deleted.matches == 1
+
+
+def test_grpc_retry_timeout_logic(
+        no_retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
+) -> None:
+    collection, service = no_retries[0], no_retries[1]
+
+    # timeout after 1 retry
+    with pytest.raises(WeaviateQueryError):
+        objs = collection.query.fetch_objects().objects
+
+    # timeout after 1 retry
+    with pytest.raises(WeaviateBatchError):
+        collection.data.insert_many(
+            objects=[{"Hello": "World"}]
+        )
+
+    # timeout after 1 retry
+    with pytest.raises(WeaviateDeleteManyError):
+        collection.data.delete_many(where=Filter.by_property("Hello").equal("World"))
 
 
 def test_grpc_forbidden_exception(forbidden: weaviate.collections.Collection) -> None:
