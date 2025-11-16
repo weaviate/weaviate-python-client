@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, cast
 
@@ -88,3 +89,6 @@ class BackupListReturn(BaseModel):
     collections: List[str] = Field(default_factory=list, alias="classes")
     status: BackupStatus
     backup_id: str = Field(alias="id")
+    started_at: Optional[datetime] = Field(alias="startedAt", default=None)
+    completed_at: Optional[datetime] = Field(alias="completedAt", default=None)
+    size: float = Field(default=0)

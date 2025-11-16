@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 4.18.0
+--------------
+This minor version includes:
+    - Support for new 1.34 features:
+        - 1-bit rotational quantization (RQ) for hnsw indices
+        - 1-bit and 8-bit RQ for flat indices
+        - Support for latest preview release of Server-side Batching (SSB)
+    - Allow sorting backups by creation time
+    - Add support for ``gse_ch`` tokenizer
+
 Version 4.17.0
 --------------
 This minor version includes:

@@ -1,15 +1,18 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Generic, List, Optional, Union
+from typing import TYPE_CHECKING, Generic, List, Optional, Type, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
+    _BatchBaseNew,
     _BatchDataWrapper,
     _BatchMode,
     _DynamicBatching,
     _FixedSizeBatching,
     _RateLimitedBatching,
+    _ServerSideBatching,
 )
 from weaviate.collections.batch.batch_wrapper import (
+    BatchCollectionProtocol,
     _BatchWrapper,
     _ContextManagerWrapper,
 )
@@ -17,7 +20,7 @@ from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.types import Properties
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
 from weaviate.types import UUID, VECTORS
 
 if TYPE_CHECKING:
@@ -25,6 +28,57 @@ if TYPE_CHECKING:
 
 
 class _BatchCollection(Generic[Properties], _BatchBase):
+    def __init__(
+        self,
+        executor: ThreadPoolExecutor,
+        connection: ConnectionSync,
+        consistency_level: Optional[ConsistencyLevel],
+        results: _BatchDataWrapper,
+        batch_mode: _BatchMode,
+        name: str,
+        tenant: Optional[str],
+        vectorizer_batching: bool,
+    ) -> None:
+        super().__init__(
+            connection=connection,
+            consistency_level=consistency_level,
+            results=results,
+            batch_mode=batch_mode,
+            executor=executor,
+            vectorizer_batching=vectorizer_batching,
+        )
+        self.__name = name
+        self.__tenant = tenant
+
+    def add_object(
+        self,
+        properties: Optional[Properties] = None,
+        references: Optional[ReferenceInputs] = None,
+        uuid: Optional[UUID] = None,
+        vector: Optional[VECTORS] = None,
+    ) -> UUID:
+        return self._add_object(
+            collection=self.__name,
+            properties=properties,
+            references=references,
+            uuid=uuid,
+            vector=vector,
+            tenant=self.__tenant,
+        )
+
+    def add_reference(
+        self, from_uuid: UUID, from_property: str, to: Union[ReferenceInput, List[UUID]]
+    ) -> None:
+        self._add_reference(
+            from_uuid,
+            self.__name,
+            from_property,
+            to,
+            self.__tenant,
+        )
+
+
+class _BatchCollectionNew(Generic[Properties], _BatchBaseNew):
     def __init__(
         self,
         executor: ThreadPoolExecutor,
@@ -106,8 +160,12 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         )
 
 
-BatchCollection = _BatchCollection[Properties]
-CollectionBatchingContextManager = _ContextManagerWrapper[BatchCollection[Properties]]
+BatchCollection = _BatchCollection
+BatchCollectionNew = _BatchCollectionNew
+CollectionBatchingContextManager = _ContextManagerWrapper[
+    Union[BatchCollection[Properties], BatchCollectionNew[Properties]],
+    BatchCollectionProtocol[Properties],
+]
 
 
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
@@ -118,6 +176,9 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         name: str,
         tenant: Optional[str],
         config: "_ConfigCollection",
+        batch_client: Union[
+            Type[_BatchCollection[Properties]], Type[_BatchCollectionNew[Properties]]
+        ],
     ) -> None:
         super().__init__(connection, consistency_level)
         self.__name = name
@@ -126,10 +187,14 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self._vectorizer_batching: Optional[bool] = None
         self.__executor = ThreadPoolExecutor()
         # define one executor per client with it shared between all child batch contexts
+        self.__batch_client = batch_client
 
     def __create_batch_and_reset(
         self,
-    ) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+        batch_client: Union[
+            Type[_BatchCollection[Properties]], Type[_BatchCollectionNew[Properties]]
+        ],
+    ):
         if self._vectorizer_batching is None:
             try:
                 config = self.__config.get(simple=True)
@@ -150,7 +215,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
-            _BatchCollection[Properties](
+            batch_client(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
@@ -168,7 +233,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         When you exit the context manager, the final batch will be sent automatically.
         """
         self._batch_mode: _BatchMode = _DynamicBatching()
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchCollection)
 
     def fixed_size(
         self, batch_size: int = 100, concurrent_requests: int = 2
@@ -183,7 +248,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 made to Weaviate and not the speed of batch creation within Python.
         """
         self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchCollection)
 
     def rate_limit(self, requests_per_minute: int) -> CollectionBatchingContextManager[Properties]:
         """Configure batches with a rate limited vectorizer.
@@ -194,4 +259,23 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             requests_per_minute: The number of requests that the vectorizer can process per minute.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)
-        return self.__create_batch_and_reset()
+        return self.__create_batch_and_reset(_BatchCollection)
+
+    def experimental(
+        self,
+    ) -> CollectionBatchingContextManager[Properties]:
+        """Configure the batching context manager using the experimental server-side batching mode.
+
+        When you exit the context manager, the final batch will be sent automatically.
+        """
+        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+            )
+        self._batch_mode = _ServerSideBatching(
+            # concurrency=concurrency
+            # if concurrency is not None
+            # else len(self._cluster.get_nodes_status())
+            concurrency=1,  # hard-code until client-side multi-threading is fixed
+        )
+        return self.__create_batch_and_reset(_BatchCollectionNew)

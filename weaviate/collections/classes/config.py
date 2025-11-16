@@ -164,6 +164,7 @@ class Tokenization(str, BaseEnum):
         TRIGRAM: Tokenize into trigrams.
         KAGOME_JA: Tokenize using the 'Kagome' tokenizer (for Japanese).
         KAGOME_KR: Tokenize using the 'Kagome' tokenizer and a Korean MeCab dictionary (for Korean).
+        GSE_CH: Tokenize using GSE (for Chinese).
     """
 
     WORD = "word"
@@ -174,6 +175,7 @@ class Tokenization(str, BaseEnum):
     TRIGRAM = "trigram"
     KAGOME_JA = "kagome_ja"
     KAGOME_KR = "kagome_kr"
+    GSE_CH = "gse_ch"
 
 
 class GenerativeSearches(str, BaseEnum):
@@ -1606,6 +1608,7 @@ class _SQConfig(_ConfigBase):
 
 @dataclass
 class _RQConfig(_ConfigBase):
+    cache: Optional[bool]
     bits: Optional[int]
     rescore_limit: int
 
@@ -2378,7 +2381,7 @@ class _VectorIndexUpdate:
     @staticmethod
     def flat(
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[_BQConfigUpdate] = None,
+        quantizer: Optional[Union[_BQConfigUpdate, _RQConfigUpdate]] = None,
     ) -> _VectorIndexConfigFlatUpdate:
         """Create an `_VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
 
