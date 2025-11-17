@@ -227,6 +227,7 @@ def __get_spfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigSPFresh:
             else VectorCentroidsIndexType.HNSW
         ),
         quantizer=quantizer,
+        multi_vector=__get_multivector(config),
     )
 
 def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
@@ -241,7 +242,7 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
 
 def __get_vector_index_config(
     schema: Dict[str, Any],
-) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None]:
+) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, _VectorIndexConfigSPFresh, None]:
     if "vectorIndexConfig" not in schema:
         return None
     if schema["vectorIndexType"] == "hnsw":
