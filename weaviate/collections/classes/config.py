@@ -46,7 +46,6 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigSPFreshUpdate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
