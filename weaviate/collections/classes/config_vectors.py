@@ -131,7 +131,6 @@ class _IndexWrappers:
     @staticmethod
     def __spfresh(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigSPFreshCreate:
         return _VectorIndexConfigSPFreshCreate(
-            distance_metric=None,
             maxPostingSize=None,
             minPostingSize=None,
             replicas=None,
@@ -139,6 +138,8 @@ class _IndexWrappers:
             searchProbe=None,
             centroidsIndexType=None,
             quantizer=quantizer,
+            multivector=None,
+            distance=None,
         )
 
     @staticmethod
