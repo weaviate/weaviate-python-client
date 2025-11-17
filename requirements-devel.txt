@@ -20,7 +20,7 @@ importlib_metadata==8.7.0
 tomli==2.2.1
 types-protobuf==6.30.2.20250703
 types-urllib3==1.26.25.14
-typing_extensions==4.14.1
+typing_extensions==4.15.0
 
 pre-commit
 flake8
