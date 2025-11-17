@@ -439,6 +439,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             model="voyage-large-2",
             truncate=False,
             base_url="https://voyage.made-up.com",
+            dimensions=512,
         ),
         {
             "text2vec-voyageai": {
@@ -446,6 +447,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "voyage-large-2",
                 "baseURL": "https://voyage.made-up.com",
                 "truncate": False,
+                "dimensions": 512,
             }
         },
     ),
@@ -1710,7 +1712,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     (
         [
             Configure.NamedVectors.text2vec_voyageai(
-                name="test", source_properties=["prop"], truncate=True
+                name="test", source_properties=["prop"], truncate=True, dimensions=384
             )
         ],
         {
@@ -1720,6 +1722,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,
+                        "dimensions": 384,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2273,7 +2276,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     (
         [
             Configure.Vectors.text2vec_voyageai(
-                name="test", source_properties=["prop"], truncate=True
+                name="test", source_properties=["prop"], truncate=True, dimensions=256
             )
         ],
         {
@@ -2283,6 +2286,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,
+                        "dimensions": 256,
                     }
                 },
                 "vectorIndexType": "hnsw",
