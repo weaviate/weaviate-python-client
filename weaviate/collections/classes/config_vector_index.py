@@ -613,6 +613,7 @@ class _VectorIndex:
         search_probe: Optional[int] = None,
         centroids_index_type: Optional[VectorCentroidsIndexType] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector: Optional[_MultiVectorConfigCreate] = None,
     ) -> _VectorIndexConfigSPFreshCreate:
         """Create a `_VectorIndexConfigSPFreshCreate` object to be used when defining the SPFresh vector index configuration of Weaviate.
 
@@ -630,7 +631,7 @@ class _VectorIndex:
             searchProbe=search_probe,
             centroidsIndexType=centroids_index_type,
             quantizer=quantizer,
-            multivector=None,
+            multivector=multi_vector,
         )
 
     @staticmethod
