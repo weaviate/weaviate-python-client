@@ -384,6 +384,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
     )
+    dimensions: Optional[int]
     model: Optional[str]
     baseURL: Optional[str]
     truncate: Optional[bool]
@@ -1398,8 +1399,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     @staticmethod
     def text2vec_voyageai(
         *,
-        model: Optional[Union[VoyageModel, str]] = None,
         base_url: Optional[str] = None,
+        dimensions: Optional[int] = None,
+        model: Optional[Union[VoyageModel, str]] = None,
         truncate: Optional[bool] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
@@ -1409,10 +1411,11 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         for detailed usage.
 
         Args:
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
-            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
@@ -1421,6 +1424,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             baseURL=base_url,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
+            dimensions=dimensions,
         )
 
     @staticmethod

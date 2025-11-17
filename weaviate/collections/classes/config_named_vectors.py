@@ -1196,8 +1196,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         model: Optional[Union[VoyageModel, str]] = None,
         base_url: Optional[str] = None,
-        truncate: Optional[bool] = None,
+        dimensions: Optional[int] = None,
         source_properties: Optional[List[str]] = None,
+        truncate: Optional[bool] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -1208,14 +1209,15 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             name: The name of the named vector.
-            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
-            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
-            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1225,6 +1227,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 truncate=truncate,
+                dimensions=dimensions,
             ),
             vector_index_config=vector_index_config,
         )
