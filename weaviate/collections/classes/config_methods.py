@@ -227,7 +227,7 @@ def __get_spfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigSPFresh:
             else VectorCentroidsIndexType.HNSW
         ),
         quantizer=quantizer,
-        multi_vector=__get_multivector(config),
+        multi_vector=None,
     )
 
 def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:

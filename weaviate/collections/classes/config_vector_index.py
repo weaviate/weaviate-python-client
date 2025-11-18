@@ -614,6 +614,7 @@ class _VectorIndex:
         centroids_index_type: Optional[VectorCentroidsIndexType] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector: Optional[_MultiVectorConfigCreate] = None,
+
     ) -> _VectorIndexConfigSPFreshCreate:
         """Create a `_VectorIndexConfigSPFreshCreate` object to be used when defining the SPFresh vector index configuration of Weaviate.
 
