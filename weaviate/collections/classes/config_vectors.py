@@ -321,8 +321,7 @@ class _MultiVectors:
                 baseURL=base_url,
                 model=model,
                 imageFields=_map_multi2vec_fields(image_fields),
-                # TODO: figure out how to workaround not supporting text fields
-                textFields=_map_multi2vec_fields(None),
+                textFields=None,
             ),
             vector_index_config=_IndexWrappers.multi(
                 vector_index_config, quantizer, multi_vector_config, encoding
