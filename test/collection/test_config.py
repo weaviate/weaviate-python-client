@@ -2273,7 +2273,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     (
         [
             Configure.Vectors.text2vec_voyageai(
-                name="test", source_properties=["prop"], truncate=True
+                name="test", source_properties=["prop"], truncate=True, dimensions=256
             )
         ],
         {
@@ -2283,6 +2283,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,
+                        "dimensions": 256,
                     }
                 },
                 "vectorIndexType": "hnsw",

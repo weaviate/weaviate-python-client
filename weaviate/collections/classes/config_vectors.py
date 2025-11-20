@@ -1393,11 +1393,12 @@ class _Vectors:
     def text2vec_voyageai(
         *,
         name: Optional[str] = None,
-        quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[str] = None,
+        dimensions: Optional[int] = None,
         model: Optional[Union[VoyageModel, str]] = None,
-        truncate: Optional[bool] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
+        truncate: Optional[bool] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1408,13 +1409,14 @@ class _Vectors:
 
         Args:
             name: The name of the vector.
-            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
-            truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
@@ -1426,6 +1428,7 @@ class _Vectors:
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 truncate=truncate,
+                dimensions=dimensions,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )

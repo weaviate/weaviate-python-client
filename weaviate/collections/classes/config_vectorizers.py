@@ -384,6 +384,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
     )
+    dimensions: Optional[int]
     model: Optional[str]
     baseURL: Optional[str]
     truncate: Optional[bool]
@@ -1421,6 +1422,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             baseURL=base_url,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
+            dimensions=None,
         )
 
     @staticmethod

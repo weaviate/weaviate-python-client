@@ -1225,6 +1225,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 truncate=truncate,
+                dimensions=None,
             ),
             vector_index_config=vector_index_config,
         )
