@@ -329,6 +329,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
     truncate: Optional[CohereTruncation]
     vectorizeClassName: bool
 
@@ -460,6 +461,7 @@ class _Multi2VecCohereConfig(_Multi2VecBase):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
     truncate: Optional[CohereTruncation]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -830,6 +832,7 @@ class _Vectorizer:
         return _Text2VecCohereConfig(
             baseURL=base_url,
             model=model,
+            dimensions=None,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
         )
@@ -863,6 +866,7 @@ class _Vectorizer:
         return _Multi2VecCohereConfig(
             baseURL=base_url,
             model=model,
+            dimensions=None,
             truncate=truncate,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),

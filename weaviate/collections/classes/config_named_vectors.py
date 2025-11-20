@@ -211,6 +211,7 @@ class _NamedVectors:
             vectorizer=_Text2VecCohereConfig(
                 baseURL=base_url,
                 model=model,
+                dimensions=None,
                 truncate=truncate,
                 vectorizeClassName=vectorize_collection_name,
             ),
@@ -252,6 +253,7 @@ class _NamedVectors:
             vectorizer=_Multi2VecCohereConfig(
                 baseURL=base_url,
                 model=model,
+                dimensions=None,
                 truncate=truncate,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
