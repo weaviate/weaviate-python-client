@@ -1,4 +1,3 @@
-import asyncio
 import concurrent.futures
 import uuid
 from dataclasses import dataclass
@@ -819,11 +818,34 @@ def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
     client.collections.delete(["target", "source"])
 
 
+def test_ingest_one_hundred_thousand_data_objects(
+    client_factory: ClientFactory,
+) -> None:
+    client, name = client_factory()
+    if client._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+    nr_objects = 100000
+    import time
+
+    start = time.time()
+    results = client.collections.use(name).data.ingest(
+        {"name": "test" + str(i)} for i in range(nr_objects)
+    )
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    assert len(results.errors) == 0
+    assert len(results.all_responses) == nr_objects
+    assert len(results.uuids) == nr_objects
+    assert len(client.collections.use(name)) == nr_objects
+    assert results.has_errors is False
+    assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]
+    client.collections.delete(name)
+
+
 @pytest.mark.asyncio
-async def test_add_ten_thousand_data_objects_async(
+async def test_ingest_one_hundred_thousand_data_objects_async(
     async_client_factory: AsyncClientFactory,
 ) -> None:
-    """Test adding ten thousand data objects."""
     client, name = await async_client_factory()
     if client._connection._weaviate_version.is_lower_than(1, 34, 0):
         pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
@@ -831,26 +853,15 @@ async def test_add_ten_thousand_data_objects_async(
     import time
 
     start = time.time()
-    async with client.batch.experimental(concurrency=1) as batch:
-        async for i in arange(nr_objects):
-            await batch.add_object(
-                collection=name,
-                properties={"name": "test" + str(i)},
-            )
+    results = await client.collections.use(name).data.ingest(
+        {"name": "test" + str(i)} for i in range(nr_objects)
+    )
     end = time.time()
     print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
-    assert len(client.batch.results.objs.errors) == 0
-    assert len(client.batch.results.objs.all_responses) == nr_objects
-    assert len(client.batch.results.objs.uuids) == nr_objects
+    assert len(results.errors) == 0
+    assert len(results.all_responses) == nr_objects
+    assert len(results.uuids) == nr_objects
     assert await client.collections.use(name).length() == nr_objects
-    assert client.batch.results.objs.has_errors is False
-    assert len(client.batch.failed_objects) == 0, [
-        obj.message for obj in client.batch.failed_objects
-    ]
+    assert results.has_errors is False
+    assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]
     await client.collections.delete(name)
-
-
-async def arange(count):
-    for i in range(count):
-        yield i
-        await asyncio.sleep(0.0)

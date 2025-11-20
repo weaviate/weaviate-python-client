@@ -5,6 +5,7 @@ from typing import (
     Any,
     Dict,
     Generic,
+    Iterable,
     List,
     Literal,
     Mapping,
@@ -19,10 +20,13 @@ from typing import (
 
 from httpx import Response
 
-from weaviate.collections.batch.collection import _BatchCollectionWrapper
+from weaviate.collections.batch.async_ import _BatchBaseAsync
+from weaviate.collections.batch.base import _BatchDataWrapper
+from weaviate.collections.batch.batch_wrapper import _ContextManagerAsync, _ContextManagerSync
 from weaviate.collections.batch.grpc_batch import _BatchGRPC
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 from weaviate.collections.batch.rest import _BatchREST
+from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.collections.classes.batch import (
     BatchObjectReturn,
     BatchReferenceReturn,
@@ -61,7 +65,6 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
     __batch_delete: _BatchDeleteGRPC
     __batch_grpc: _BatchGRPC
     __batch_rest: _BatchREST
-    __batch: _BatchCollectionWrapper[Properties]
 
     def __init__(
         self,
@@ -704,3 +707,82 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
         else:
             obj["vector"] = _get_vector_v4(vector)
         return obj
+
+    def ingest(
+        self, objs: Iterable[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]]
+    ) -> executor.Result[BatchObjectReturn]:
+        """Ingest multiple objects into the collection in batches. The batching is handled automatically for you by Weaviate.
+
+        This is different from `insert_many` which sends all objects in a single batch request. Use this method when you want to insert a large number of objects without worrying about batch sizes
+        and whether they will fit into the maximum allowed batch size of your Weaviate instance. In addition, use this instead of `client.batch.dynamic()` or `collection.batch.dynamic()` for a more
+        performant dynamic batching algorithm that utilizes server-side batching.
+
+        Args:
+            objs: An iterable of objects to insert. This can be either a sequence of `Properties` or `DataObject[Properties, ReferenceInputs]`
+                If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
+        """
+        if isinstance(self._connection, ConnectionAsync):
+            con = self._connection
+
+            async def execute() -> BatchObjectReturn:
+                results = _BatchDataWrapper()
+                ctx = _ContextManagerAsync(
+                    _BatchBaseAsync(
+                        connection=con,
+                        results=results,
+                        consistency_level=self._consistency_level,
+                    )
+                )
+                async with ctx as batch:
+                    for obj in objs:
+                        if isinstance(obj, DataObject):
+                            await batch._add_object(
+                                collection=self.name,
+                                properties=cast(dict, obj.properties),
+                                references=obj.references,
+                                uuid=obj.uuid,
+                                vector=obj.vector,
+                                tenant=self._tenant,
+                            )
+                        else:
+                            await batch._add_object(
+                                collection=self.name,
+                                properties=cast(dict, obj),
+                                references=None,
+                                uuid=None,
+                                vector=None,
+                                tenant=self._tenant,
+                            )
+                return results.results.objs
+
+            return execute()
+
+        results = _BatchDataWrapper()
+        ctx = _ContextManagerSync(
+            _BatchBaseSync(
+                connection=self._connection,
+                results=results,
+                consistency_level=self._consistency_level,
+            )
+        )
+        with ctx as batch:
+            for obj in objs:
+                if isinstance(obj, DataObject):
+                    batch._add_object(
+                        collection=self.name,
+                        properties=cast(dict, obj.properties),
+                        references=obj.references,
+                        uuid=obj.uuid,
+                        vector=obj.vector,
+                        tenant=self._tenant,
+                    )
+                else:
+                    batch._add_object(
+                        collection=self.name,
+                        properties=cast(dict, obj),
+                        references=None,
+                        uuid=None,
+                        vector=None,
+                        tenant=self._tenant,
+                    )
+        return results.results.objs

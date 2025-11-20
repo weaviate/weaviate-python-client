@@ -3,6 +3,8 @@ import time
 import uuid as uuid_package
 from typing import (
     AsyncGenerator,
+    Awaitable,
+    Callable,
     List,
     Optional,
     Set,
@@ -15,8 +17,6 @@ from weaviate.collections.batch.base import (
     ObjectsBatchRequest,
     ReferencesBatchRequest,
     _BatchDataWrapper,
-    _BatchMode,
-    _ServerSideBatching,
 )
 from weaviate.collections.batch.grpc_batch import _BatchGRPC
 from weaviate.collections.classes.batch import (
@@ -36,6 +36,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect.v4 import ConnectionAsync
 from weaviate.exceptions import (
+    WeaviateBatchStreamError,
     WeaviateBatchValidationError,
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
@@ -57,7 +58,6 @@ class _BatchBaseAsync:
         connection: ConnectionAsync,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        batch_mode: _BatchMode,
         objects: Optional[ObjectsBatchRequest[batch_pb2.BatchObject]] = None,
         references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
@@ -95,8 +95,6 @@ class _BatchBaseAsync:
 
         self.__stop = False
 
-        self.__batch_mode = batch_mode
-
     @property
     def number_errors(self) -> int:
         """Return the number of errors in the batch."""
@@ -104,12 +102,50 @@ class _BatchBaseAsync:
             self.__results_for_wrapper.failed_references
         )
 
+    async def __wrap(self, fn: Callable[[], Awaitable[None]]):
+        try:
+            await fn()
+        except Exception as e:
+            socket_hung_up = False
+            if isinstance(e, WeaviateBatchStreamError) and (
+                "Socket closed" in e.message or "context canceled" in e.message
+            ):
+                socket_hung_up = True
+            else:
+                logger.error(e)
+                logger.error(type(e))
+                self.__bg_thread_exception = e
+            if socket_hung_up:
+                # this happens during ungraceful shutdown of the coordinator
+                # lets restart the stream and add the cached objects again
+                logger.warning("Stream closed unexpectedly, restarting...")
+                await self.__reconnect()
+                # server sets this whenever it restarts, gracefully or unexpectedly, so need to clear it now
+                self.__is_shutting_down.clear()
+                with self.__objs_cache_lock:
+                    logger.warning(
+                        f"Re-adding {len(self.__objs_cache)} cached objects to the batch"
+                    )
+                    await self.__batch_objects.aprepend(
+                        [
+                            self.__batch_grpc.grpc_object(o._to_internal())
+                            for o in self.__objs_cache.values()
+                        ]
+                    )
+                with self.__refs_cache_lock:
+                    await self.__batch_references.aprepend(
+                        [
+                            self.__batch_grpc.grpc_reference(o._to_internal())
+                            for o in self.__refs_cache.values()
+                        ]
+                    )
+                # start a new fn with a newly reconnected channel
+                return await fn()
+
     async def _start(self):
-        assert isinstance(self.__batch_mode, _ServerSideBatching), (
-            "Only server-side batching is supported in this mode"
-        )
         return _BgTasks(
-            send=asyncio.create_task(self.__send()), recv=asyncio.create_task(self.__recv())
+            send=asyncio.create_task(self.__wrap(self.__send)),
+            recv=asyncio.create_task(self.__wrap(self.__recv)),
         )
 
     async def _shutdown(self) -> None:
@@ -331,74 +367,6 @@ class _BatchBaseAsync:
             else:
                 logger.error("Failed to reconnect after 5 attempts")
                 self.__bg_thread_exception = e
-
-    # def __start_bg_threads(self) -> _BgThreads:
-    #     """Create a background thread that periodically checks how congested the batch queue is."""
-    #     self.__shut_background_thread_down = threading.Event()
-
-    #     def batch_send_wrapper() -> None:
-    #         try:
-    #             self.__batch_send()
-    #             logger.warning("exited batch send thread")
-    #         except Exception as e:
-    #             logger.error(e)
-    #             self.__bg_thread_exception = e
-
-    #     def batch_recv_wrapper() -> None:
-    #         socket_hung_up = False
-    #         try:
-    #             self.__batch_recv()
-    #             logger.warning("exited batch receive thread")
-    #         except Exception as e:
-    #             if isinstance(e, WeaviateBatchStreamError) and (
-    #                 "Socket closed" in e.message or "context canceled" in e.message
-    #             ):
-    #                 socket_hung_up = True
-    #             else:
-    #                 logger.error(e)
-    #                 logger.error(type(e))
-    #                 self.__bg_thread_exception = e
-    #         if socket_hung_up:
-    #             # this happens during ungraceful shutdown of the coordinator
-    #             # lets restart the stream and add the cached objects again
-    #             logger.warning("Stream closed unexpectedly, restarting...")
-    #             self.__reconnect()
-    #             # server sets this whenever it restarts, gracefully or unexpectedly, so need to clear it now
-    #             self.__is_shutting_down.clear()
-    #             with self.__objs_cache_lock:
-    #                 logger.warning(
-    #                     f"Re-adding {len(self.__objs_cache)} cached objects to the batch"
-    #                 )
-    #                 self.__batch_objects.prepend(
-    #                     [
-    #                         self.__batch_grpc.grpc_object(o._to_internal())
-    #                         for o in self.__objs_cache.values()
-    #                     ]
-    #                 )
-    #             with self.__refs_cache_lock:
-    #                 self.__batch_references.prepend(
-    #                     [
-    #                         self.__batch_grpc.grpc_reference(o._to_internal())
-    #                         for o in self.__refs_cache.values()
-    #                     ]
-    #                 )
-    #             # start a new stream with a newly reconnected channel
-    #             return batch_recv_wrapper()
-
-    #     threads = _BgThreads(
-    #         send=threading.Thread(
-    #             target=batch_send_wrapper,
-    #             daemon=True,
-    #             name="BgBatchSend",
-    #         ),
-    #         recv=threading.Thread(
-    #             target=batch_recv_wrapper,
-    #             daemon=True,
-    #             name="BgBatchRecv",
-    #         ),
-    #     )
-    #     threads.start_recv()
-    #     return threads
 
     async def flush(self) -> None:
         """Flush the batch queue and wait for all requests to be finished."""
