@@ -1973,13 +1973,18 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
-        [Configure.Vectors.text2vec_cohere(name="test", source_properties=["prop"])],
+        [
+            Configure.Vectors.text2vec_cohere(
+                name="test", source_properties=["prop"], dimensions=512
+            )
+        ],
         {
             "test": {
                 "vectorizer": {
                     "text2vec-cohere": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
+                        "dimensions": 512,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1987,12 +1992,13 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
-        [Configure.Vectors.multi2vec_cohere(name="test", text_fields=["prop"])],
+        [Configure.Vectors.multi2vec_cohere(name="test", text_fields=["prop"], dimensions=512)],
         {
             "test": {
                 "vectorizer": {
                     "multi2vec-cohere": {
                         "textFields": ["prop"],
+                        "dimensions": 512,
                     }
                 },
                 "vectorIndexType": "hnsw",
