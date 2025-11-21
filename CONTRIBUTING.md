@@ -1,18 +1,12 @@
 ### Setup
 
-We recommend that you use a virtual environment to contribute to the client.
-
-To create a virtual environment, activate it, and install dependencies, run the following shell code:
+The development requirements are listed in the `requirements-devel.txt` file. Install them to your virtual environment with:
 
 ```shell
-python3 -m venv .venv
-source .venv/bin/activate
 pip install -r requirements-devel.txt
 ```
 
-To activate your virtual environment, run `source .venv/bin/activate`.
-
-The newest client versions sometimes require upcoming Weaviate core features. We recommend using Docker (see https://weaviate.io/developers/weaviate/installation/docker-compose) to run a local instance of the `latest Weaviate core <https://hub.docker.com/r/semitechnologies/weaviate/tags>`_ for client development.
+The newest client versions sometimes require upcoming Weaviate core features. We recommend using Docker (see https://docs.weaviate.io/deploy/installation-guides/docker-installation) to run a local instance of the `latest Weaviate core <https://hub.docker.com/r/semitechnologies/weaviate/tags>`_ for client development.
 
 #### Installation
 
@@ -34,6 +28,8 @@ You can install a particular branch directly from GitHub with:
 pip install git+https://github.com/weaviate/weaviate-python-client.git@BRANCH_NAME
 ```
 
+If any static analysis tools such as Pylance fail, try installing the package with:
+`--config-settings editable_mode=compat` suffix. (e.g. `pip install -e . --config-settings editable_mode=compat`)
 
 ### Testing
 
@@ -68,8 +64,9 @@ pytest test
 
 We use the following tools to ensure a high code quality:
 - black (formatter), run with `black $FOLDER_WITH_CHANGES`
-- flake8 with plugins. Run with `flake8 $FOLDER_WITH_CHANGES`. Note that all plugins are listed in the `requirements.txt` file and are installed in the first step.
+- flake8 with plugins. Run with `flake8 $FOLDER_WITH_CHANGES`.
 
+Note that all plugins are listed in the `requirements-devel.txt` file and are installed in the first step.
 
 ### Creating a Pull Request
 
