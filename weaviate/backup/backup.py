@@ -20,6 +20,10 @@ class BackupCompressionLevel(str, Enum):
     DEFAULT = "DefaultCompression"
     BEST_SPEED = "BestSpeed"
     BEST_COMPRESSION = "BestCompression"
+    ZSTD_BEST_SPEED = "ZstdBestSpeed"
+    ZSTD_DEFAULT = "ZstdDefaultCompression"
+    ZSTD_BEST_COMPRESSION = "ZstdBestCompression"
+    NO_COMPRESSION = "NoCompression"
 
 
 class BackupStorage(str, Enum):
