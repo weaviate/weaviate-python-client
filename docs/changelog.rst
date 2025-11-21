@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.18.1
+--------------
+This patch version includes:
+    - Add 'dimensions' param to cohere vectorizers  (feat/cohere-dimensions-param)
+    - Add dimensions parameter to text2vec-voyageai methods (feat/t2v-voyage-add-dimensions)
+
 Version 4.18.0
 --------------
 This minor version includes:
