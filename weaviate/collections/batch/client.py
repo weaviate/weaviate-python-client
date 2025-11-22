@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Optional, Type, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
-    _BatchBaseNew,
     _BatchDataWrapper,
     _DynamicBatching,
     _FixedSizeBatching,
@@ -11,16 +10,20 @@ from weaviate.collections.batch.base import (
     _ServerSideBatching,
 )
 from weaviate.collections.batch.batch_wrapper import (
+    BatchClientAsync,
     BatchClientProtocol,
     _BatchMode,
     _BatchWrapper,
+    _BatchWrapperAsync,
     _ContextManagerWrapper,
+    _ContextManagerWrapperAsync,
 )
+from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.connect.v4 import ConnectionSync
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
 from weaviate.types import UUID, VECTORS
 
@@ -102,7 +105,7 @@ class _BatchClient(_BatchBase):
         )
 
 
-class _BatchClientNew(_BatchBaseNew):
+class _BatchClientSync(_BatchBaseSync):
     def add_object(
         self,
         collection: str,
@@ -177,10 +180,11 @@ class _BatchClientNew(_BatchBaseNew):
 
 
 BatchClient = _BatchClient
-BatchClientNew = _BatchClientNew
+BatchClientSync = _BatchClientSync
 ClientBatchingContextManager = _ContextManagerWrapper[
-    Union[BatchClient, BatchClientNew], BatchClientProtocol
+    Union[BatchClient, BatchClientSync], BatchClientProtocol
 ]
+AsyncClientBatchingContextManager = _ContextManagerWrapperAsync
 
 
 class _BatchClientWrapper(_BatchWrapper):
@@ -197,7 +201,7 @@ class _BatchClientWrapper(_BatchWrapper):
         # define one executor per client with it shared between all child batch contexts
 
     def __create_batch_and_reset(
-        self, batch_client: Union[Type[_BatchClient], Type[_BatchClientNew]]
+        self, batch_client: Union[Type[_BatchClient], Type[_BatchClientSync]]
     ):
         if self._vectorizer_batching is None or not self._vectorizer_batching:
             try:
@@ -311,4 +315,47 @@ class _BatchClientWrapper(_BatchWrapper):
             concurrency=1,  # hard-code until client-side multi-threading is fixed
         )
         self._consistency_level = consistency_level
-        return self.__create_batch_and_reset(_BatchClientNew)
+        return self.__create_batch_and_reset(_BatchClientSync)
+
+
+class _BatchClientWrapperAsync(_BatchWrapperAsync):
+    def __init__(
+        self,
+        connection: ConnectionAsync,
+    ):
+        super().__init__(connection, None)
+        self._vectorizer_batching: Optional[bool] = None
+
+    def __create_batch_and_reset(self):
+        self._batch_data = _BatchDataWrapper()  # clear old data
+        return _ContextManagerWrapperAsync(
+            BatchClientAsync(
+                connection=self._connection,
+                consistency_level=self._consistency_level,
+                results=self._batch_data,
+                batch_mode=self._batch_mode,
+            )
+        )
+
+    def experimental(
+        self,
+        *,
+        concurrency: Optional[int] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ) -> AsyncClientBatchingContextManager:
+        """Configure the batching context manager using the experimental server-side batching mode.
+
+        When you exit the context manager, the final batch will be sent automatically.
+        """
+        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+            )
+        self._batch_mode = _ServerSideBatching(
+            # concurrency=concurrency
+            # if concurrency is not None
+            # else len(self._cluster.get_nodes_status())
+            concurrency=1,  # hard-code until client-side multi-threading is fixed
+        )
+        self._consistency_level = consistency_level
+        return self.__create_batch_and_reset()

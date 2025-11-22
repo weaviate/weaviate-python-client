@@ -19,6 +19,7 @@ from typing import (
 
 from httpx import Response
 
+from weaviate.collections.batch.collection import _BatchCollectionWrapper
 from weaviate.collections.batch.grpc_batch import _BatchGRPC
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 from weaviate.collections.batch.rest import _BatchREST
@@ -57,6 +58,11 @@ from weaviate.validator import _validate_input, _ValidateArgument
 
 
 class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
+    __batch_delete: _BatchDeleteGRPC
+    __batch_grpc: _BatchGRPC
+    __batch_rest: _BatchREST
+    __batch: _BatchCollectionWrapper[Properties]
+
     def __init__(
         self,
         connection: ConnectionType,
