@@ -2642,6 +2642,29 @@ class _VectorIndexUpdate:
             quantizer=quantizer,
         )
 
+    @staticmethod
+    def spfresh(
+        max_posting_size: Optional[int] = None,
+        min_posting_size: Optional[int] = None,
+        rng_factor: Optional[int] = None,
+        search_probe: Optional[int] = None,
+        quantizer: Optional[_RQConfigUpdate] = None,
+    ) -> _VectorIndexConfigSPFreshUpdate:
+        """Create an `_VectorIndexConfigSPFreshUpdate` object to update the configuration of the SPFresh vector index.
+        
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
+        
+        Args:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigSPFreshUpdate(
+            maxPostingSize=max_posting_size,
+            minPostingSize=min_posting_size,
+            rngFactor=rng_factor,
+            searchProbe=search_probe,
+            quantizer=quantizer,
+        )
+
 
 class Reconfigure:
     """Use this factory class to generate the correct `xxxConfig` object for use when using the `collection.update()` method.
