@@ -291,26 +291,23 @@ class _MultiVectors:
     @staticmethod
     def multi2vec_weaviate(
         *,
+        image_field: str,
         name: Optional[str] = None,
         encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         model: Optional[Union[JinaMultimodalModel, str]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2multivec-weaviate` module.
 
-        See the [documentation](TODO)
-        for detailed usage.
-
         Args:
+            image_field: The image field to use in vectorization.
             name: The name of the vector.
             encoding: The type of multi-vector encoding to use in the vector index. Defaults to `None`, which uses the server-defined default.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            image_fields: The image fields to use in vectorization.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             multi_vector_config: The configuration for the multi-vector index. Use `wvc.config.Configure.VectorIndex.MultiVector` to create a multi-vector configuration. None by default
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
@@ -320,7 +317,7 @@ class _MultiVectors:
             vectorizer=_Multi2MultiVecWeaviateConfig(
                 baseURL=base_url,
                 model=model,
-                imageFields=_map_multi2vec_fields(image_fields),
+                imageFields=_map_multi2vec_fields([image_field]),
                 textFields=None,
             ),
             vector_index_config=_IndexWrappers.multi(
