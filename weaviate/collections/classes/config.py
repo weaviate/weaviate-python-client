@@ -416,11 +416,11 @@ class _GenerativeOpenAIConfigBase(_GenerativeProvider):
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
-    frequencyPenaltyProperty: Optional[float]
-    presencePenaltyProperty: Optional[float]
-    maxTokensProperty: Optional[int]
-    temperatureProperty: Optional[float]
-    topPProperty: Optional[float]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
+    maxTokens: Optional[int]
+    temperature: Optional[float]
+    topP: Optional[float]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -445,12 +445,12 @@ class _GenerativeCohereConfig(_GenerativeProvider):
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
-    kProperty: Optional[int]
+    k: Optional[int]
     model: Optional[str]
-    maxTokensProperty: Optional[int]
-    returnLikelihoodsProperty: Optional[str]
-    stopSequencesProperty: Optional[List[str]]
-    temperatureProperty: Optional[float]
+    maxTokens: Optional[int]
+    # returnLikelihoods: Optional[str]  # Not implemented server-side
+    stopSequences: Optional[List[str]]
+    temperature: Optional[float]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -481,6 +481,9 @@ class _GenerativeAWSConfig(_GenerativeProvider):
     model: Optional[str]
     endpoint: Optional[str]
     maxTokens: Optional[int]
+    temperature: Optional[float]
+    targetModel: Optional[str]
+    targetVariant: Optional[str]
 
 
 class _GenerativeAnthropicConfig(_GenerativeProvider):
@@ -750,12 +753,12 @@ class _Generative:
         """
         return _GenerativeOpenAIConfig(
             baseURL=base_url,
-            frequencyPenaltyProperty=frequency_penalty,
-            maxTokensProperty=max_tokens,
+            frequencyPenalty=frequency_penalty,
+            maxTokens=max_tokens,
             model=model,
-            presencePenaltyProperty=presence_penalty,
-            temperatureProperty=temperature,
-            topPProperty=top_p,
+            presencePenalty=presence_penalty,
+            temperature=temperature,
+            topP=top_p,
             verbosity=verbosity,
             reasoningEffort=reasoning_effort,
         )
@@ -789,12 +792,12 @@ class _Generative:
         return _GenerativeAzureOpenAIConfig(
             baseURL=base_url,
             deploymentId=deployment_id,
-            frequencyPenaltyProperty=frequency_penalty,
-            maxTokensProperty=max_tokens,
-            presencePenaltyProperty=presence_penalty,
+            frequencyPenalty=frequency_penalty,
+            maxTokens=max_tokens,
+            presencePenalty=presence_penalty,
             resourceName=resource_name,
-            temperatureProperty=temperature,
-            topPProperty=top_p,
+            temperature=temperature,
+            topP=top_p,
         )
 
     @staticmethod
@@ -816,19 +819,18 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             k: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            return_likelihoods: Whether to return the likelihoods. Defaults to `None`, which uses the server-defined default
+            return_likelihoods: The return likelihoods setting to use. Defaults to `None`, which uses the server-defined default
             stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeCohereConfig(
             baseURL=base_url,
-            kProperty=k,
-            maxTokensProperty=max_tokens,
+            k=k,
+            maxTokens=max_tokens,
             model=model,
-            returnLikelihoodsProperty=return_likelihoods,
-            stopSequencesProperty=stop_sequences,
-            temperatureProperty=temperature,
+            stopSequences=stop_sequences,
+            temperature=temperature,
         )
 
     @staticmethod
@@ -916,6 +918,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
         max_tokens: Optional[int] = None,
+        target_model: Optional[str] = None,
+        target_variant: Optional[str] = None,
+        temperature: Optional[float] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
@@ -928,9 +933,19 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             region: The AWS region to run the model from, REQUIRED.
             endpoint: The model to use, REQUIRED for service "sagemaker".
             service: The AWS service to use, options are "bedrock" and "sagemaker".
+            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
+            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAWSConfig(
-            model=model, region=region, service=service, endpoint=endpoint, maxTokens=max_tokens
+            model=model,
+            region=region,
+            service=service,
+            endpoint=endpoint,
+            maxTokens=max_tokens,
+            temperature=temperature,
+            targetModel=target_model,
+            targetVariant=target_variant,
         )
 
     @staticmethod
