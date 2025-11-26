@@ -391,6 +391,7 @@ class _GenerativeXai(_GenerativeProvider):
     model: Optional[str]
     maxTokens: Optional[int]
     baseURL: Optional[str]
+    topP: Optional[float]
 
 
 class _GenerativeFriendliai(_GenerativeProvider):
@@ -694,6 +695,7 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeXai` object for use when performing AI generation using the `generative-xai` module.
 
@@ -702,9 +704,10 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeXai(
-            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+            model=model, temperature=temperature, maxTokens=max_tokens, topP=top_p, baseURL=base_url
         )
 
     @staticmethod
