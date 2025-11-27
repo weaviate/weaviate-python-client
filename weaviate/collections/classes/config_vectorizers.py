@@ -329,6 +329,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
     truncate: Optional[CohereTruncation]
     vectorizeClassName: bool
 
@@ -384,6 +385,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
     )
+    dimensions: Optional[int]
     model: Optional[str]
     baseURL: Optional[str]
     truncate: Optional[bool]
@@ -459,6 +461,7 @@ class _Multi2VecCohereConfig(_Multi2VecBase):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
     truncate: Optional[CohereTruncation]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -829,6 +832,7 @@ class _Vectorizer:
         return _Text2VecCohereConfig(
             baseURL=base_url,
             model=model,
+            dimensions=None,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
         )
@@ -862,6 +866,7 @@ class _Vectorizer:
         return _Multi2VecCohereConfig(
             baseURL=base_url,
             model=model,
+            dimensions=None,
             truncate=truncate,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
@@ -1421,6 +1426,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             baseURL=base_url,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
+            dimensions=None,
         )
 
     @staticmethod

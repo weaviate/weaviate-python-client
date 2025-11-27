@@ -345,6 +345,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[Union[CohereModel, str]] = None,
+        dimensions: Optional[int] = None,
         truncate: Optional[CohereTruncation] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
@@ -360,6 +361,7 @@ class _Vectors:
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
+            dimensions: Number of output dimensions. Defaults to `None`, which uses the server-defined default.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
@@ -374,6 +376,7 @@ class _Vectors:
             vectorizer=_Text2VecCohereConfig(
                 baseURL=base_url,
                 model=model,
+                dimensions=dimensions,
                 truncate=truncate,
                 vectorizeClassName=vectorize_collection_name,
             ),
@@ -388,6 +391,7 @@ class _Vectors:
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         model: Optional[Union[CohereMultimodalModel, str]] = None,
+        dimensions: Optional[int] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         truncate: Optional[CohereTruncation] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
@@ -404,6 +408,7 @@ class _Vectors:
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
+            dimensions: Number of output dimensions. Defaults to `None`, which uses the server-defined default.
             text_fields: The text fields to use in vectorization.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
@@ -416,6 +421,7 @@ class _Vectors:
             vectorizer=_Multi2VecCohereConfig(
                 baseURL=base_url,
                 model=model,
+                dimensions=dimensions,
                 truncate=truncate,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
@@ -1393,11 +1399,12 @@ class _Vectors:
     def text2vec_voyageai(
         *,
         name: Optional[str] = None,
-        quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[str] = None,
+        dimensions: Optional[int] = None,
         model: Optional[Union[VoyageModel, str]] = None,
-        truncate: Optional[bool] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
+        truncate: Optional[bool] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorConfigCreate:
@@ -1408,13 +1415,14 @@ class _Vectors:
 
         Args:
             name: The name of the vector.
-            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
-            truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
@@ -1426,6 +1434,7 @@ class _Vectors:
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 truncate=truncate,
+                dimensions=dimensions,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
