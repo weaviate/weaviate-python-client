@@ -591,16 +591,16 @@ class _ConnectionBase:
 
     def __get_latest_headers(self) -> Dict[str, str]:
         if "authorization" in self._headers:
-            return self._headers
+            return {k: str(v) for k, v in self._headers.items()}
 
         auth_token = self.get_current_bearer_token()
         if auth_token == "":
-            return self._headers
+            return {k: str(v) for k, v in self._headers.items()}
 
         # bearer token can change over time (OIDC) so we need to get the current one for each request
         copied_headers = copy(self._headers)
-        copied_headers.update({"authorization": str(self.get_current_bearer_token())})
-        return copied_headers
+        copied_headers.update({"authorization": str(auth_token)})
+        return {k: str(v) for k, v in copied_headers.items()}
 
     def __get_timeout(
         self,
