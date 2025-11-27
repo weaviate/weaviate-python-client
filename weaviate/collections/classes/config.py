@@ -1129,11 +1129,7 @@ class _Reranker:
             instruction: Custom instructions for reranking. Defaults to `None`.
             top_n: Number of top results to return. Defaults to `None`, which uses the server-defined default.
         """
-        return _RerankerContextualAIConfig(
-            model=model, 
-            instruction=instruction,
-            topN=top_n
-        )
+        return _RerankerContextualAIConfig(model=model, instruction=instruction, topN=top_n)
 
 
 class _CollectionConfigCreateBase(_ConfigCreateModel):
