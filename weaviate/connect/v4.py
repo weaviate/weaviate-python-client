@@ -154,13 +154,13 @@ class _ConnectionBase:
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:
             _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
-            self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 if value is None:
                     raise WeaviateInvalidInputError(
                         f"Value for key '{key}' in headers cannot be None."
                     )
-                self._headers[key.lower()] = value
+                self.__additional_headers[key] = str(value)
+                self._headers[key.lower()] = str(value)
 
         self._proxies: Dict[str, str] = _get_proxies(proxies, trust_env)
 
@@ -599,7 +599,7 @@ class _ConnectionBase:
 
         # bearer token can change over time (OIDC) so we need to get the current one for each request
         copied_headers = copy(self._headers)
-        copied_headers.update({"authorization": self.get_current_bearer_token()})
+        copied_headers.update({"authorization": str(self.get_current_bearer_token())})
         return copied_headers
 
     def __get_timeout(
