@@ -62,7 +62,12 @@ class _BackupConfigBase(BaseModel):
 class BackupConfigCreate(_BackupConfigBase):
     """Options to configure the backup when creating a backup."""
 
-    ChunkSize: Optional[int] = Field(default=None, alias="chunk_size")
+    ChunkSize: Optional[int] = Field(
+        default=None,
+        alias="chunk_size",
+        description="DEPRECATED: This parameter no longer has any effect.",
+        exclude=True,
+    )
     CompressionLevel: Optional[BackupCompressionLevel] = Field(
         default=None, alias="compression_level"
     )
