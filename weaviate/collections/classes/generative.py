@@ -450,9 +450,9 @@ class _GenerativeContextualAI(_GenerativeConfigRuntime):
         default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
     )
     model: Optional[str]
-    max_new_tokens: Optional[int]
     temperature: Optional[float]
     top_p: Optional[float]
+    max_new_tokens: Optional[int]
     system_prompt: Optional[str]
     avoid_commentary: Optional[bool]
     knowledge: Optional[List[str]]
@@ -463,9 +463,9 @@ class _GenerativeContextualAI(_GenerativeConfigRuntime):
             return_metadata=opts.return_metadata,
             contextualai=generative_pb2.GenerativeContextualAI(
                 model=self.model,
-                max_new_tokens=self.max_new_tokens,
                 temperature=self.temperature,
                 top_p=self.top_p,
+                max_new_tokens=self.max_new_tokens,
                 system_prompt=self.system_prompt,
                 avoid_commentary=self.avoid_commentary or False,
                 knowledge=_to_text_array(self.knowledge),
@@ -632,9 +632,9 @@ class GenerativeConfig:
         """
         return _GenerativeContextualAI(
             model=model,
-            max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
+            max_new_tokens=max_new_tokens,
             system_prompt=system_prompt,
             avoid_commentary=avoid_commentary,
             knowledge=knowledge,

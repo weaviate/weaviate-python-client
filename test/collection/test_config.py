@@ -1052,20 +1052,20 @@ TEST_CONFIG_WITH_GENERATIVE = [
     (
         Configure.Generative.contextualai(
             model="v2",
-            max_new_tokens=512,
             temperature=0.7,
             top_p=0.9,
+            max_new_tokens=512,
             system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
             avoid_commentary=False,
         ),
         {
             "generative-contextualai": {
                 "model": "v2",
-                "maxNewTokensProperty": 512,
-                "temperatureProperty": 0.7,
-                "topPProperty": 0.9,
-                "systemPromptProperty": "You are a helpful assistant that provides accurate and informative responses based on the given context.",
-                "avoidCommentaryProperty": False,
+                "temperature": 0.7,
+                "topP": 0.9,
+                "maxNewTokens": 512,
+                "systemPrompt": "You are a helpful assistant that provides accurate and informative responses based on the given context.",
+                "avoidCommentary": False,
             }
         },
     ),

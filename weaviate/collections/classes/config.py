@@ -468,11 +468,11 @@ class _GenerativeContextualAIConfig(_GenerativeProvider):
         default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
     )
     model: Optional[str]
-    maxNewTokensProperty: Optional[int]
-    temperatureProperty: Optional[float]
-    topPProperty: Optional[float]
-    systemPromptProperty: Optional[str]
-    avoidCommentaryProperty: Optional[bool]
+    temperature: Optional[float]
+    topP: Optional[float]
+    maxNewTokens: Optional[int]
+    systemPrompt: Optional[str]
+    avoidCommentary: Optional[bool]
 
 
 class _GenerativeGoogleConfig(_GenerativeProvider):
@@ -886,12 +886,12 @@ class _Generative:
             avoid_commentary: If `True`, reduce conversational commentary in responses. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeContextualAIConfig(
-            maxNewTokensProperty=max_new_tokens,
             model=model,
-            temperatureProperty=temperature,
-            topPProperty=top_p,
-            systemPromptProperty=system_prompt,
-            avoidCommentaryProperty=avoid_commentary,
+            temperature=temperature,
+            topP=top_p,
+            maxNewTokens=max_new_tokens,
+            systemPrompt=system_prompt,
+            avoidCommentary=avoid_commentary,
         )
 
     @staticmethod
