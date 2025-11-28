@@ -138,3 +138,61 @@ def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory)
         ].rerank_score > [group for prop, group in ret.groups.items() if "another" not in prop][
             0
         ].rerank_score
+
+
+def test_queries_with_rerank_contextualai(collection_factory: CollectionFactory) -> None:
+    """Test Contextual AI reranker with various query types."""
+    api_key = os.environ.get("CONTEXTUAL_API_KEY")
+    if api_key is None:
+        pytest.skip("No Contextual AI API key found.")
+
+    collection = collection_factory(
+        name="Test_test_queries_with_rerank_contextualai",
+        reranker_config=wvc.config.Configure.Reranker.contextualai(
+            model="ctxl-rerank-v2-instruct-multilingual",
+            instruction="Prioritize documents that contain the query term",
+        ),
+        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(),
+        properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
+        headers={"X-Contextual-Api-Key": api_key},
+        ports=(8086, 50057),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
+        pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
+
+    insert = collection.data.insert_many(
+        [{"text": "This is a test"}, {"text": "This is another test"}]
+    )
+    uuid1 = insert.uuids[0]
+    vector1 = collection.query.fetch_object_by_id(uuid1, include_vector=True).vector
+    assert vector1 is not None
+
+    for _idx, query in enumerate(
+        [
+            lambda: collection.query.bm25(
+                "test", rerank=wvc.query.Rerank(prop="text", query="another")
+            ),
+            lambda: collection.query.hybrid(
+                "test", rerank=wvc.query.Rerank(prop="text", query="another")
+            ),
+            lambda: collection.query.near_object(
+                uuid1, rerank=wvc.query.Rerank(prop="text", query="another")
+            ),
+            lambda: collection.query.near_vector(
+                vector1["default"], rerank=wvc.query.Rerank(prop="text", query="another")
+            ),
+            lambda: collection.query.near_text(
+                "test", rerank=wvc.query.Rerank(prop="text", query="another")
+            ),
+        ]
+    ):
+        objects = query().objects
+        assert len(objects) == 2
+        assert objects[0].metadata.rerank_score is not None
+        assert objects[1].metadata.rerank_score is not None
+
+        assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
+            0
+        ].metadata.rerank_score > [
+            obj for obj in objects if "another" not in obj.properties["text"]
+        ][0].metadata.rerank_score
