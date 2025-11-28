@@ -473,6 +473,7 @@ class _GenerativeContextualAIConfig(_GenerativeProvider):
     maxNewTokens: Optional[int]
     systemPrompt: Optional[str]
     avoidCommentary: Optional[bool]
+    knowledge: Optional[List[str]]
 
 
 class _GenerativeGoogleConfig(_GenerativeProvider):
@@ -871,6 +872,7 @@ class _Generative:
         top_p: Optional[float] = None,
         system_prompt: Optional[str] = None,
         avoid_commentary: Optional[bool] = None,
+        knowledge: Optional[List[str]] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeContextualAIConfig` object for use when performing AI generation using the `generative-contextualai` module.
 
@@ -884,6 +886,7 @@ class _Generative:
             top_p: Nucleus sampling parameter (0 < x <= 1). Defaults to `None`, which uses the server-defined default
             system_prompt: System instructions the model follows. Defaults to `None`, which uses the server-defined default
             avoid_commentary: If `True`, reduce conversational commentary in responses. Defaults to `None`, which uses the server-defined default
+            knowledge: Additional detailed knowledge sources with varied information. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeContextualAIConfig(
             model=model,
@@ -892,6 +895,7 @@ class _Generative:
             maxNewTokens=max_new_tokens,
             systemPrompt=system_prompt,
             avoidCommentary=avoid_commentary,
+            knowledge=knowledge,
         )
 
     @staticmethod

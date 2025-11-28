@@ -1057,6 +1057,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             max_new_tokens=512,
             system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
             avoid_commentary=False,
+            knowledge=["fact1", "fact2"],
         ),
         {
             "generative-contextualai": {
@@ -1066,6 +1067,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "maxNewTokens": 512,
                 "systemPrompt": "You are a helpful assistant that provides accurate and informative responses based on the given context.",
                 "avoidCommentary": False,
+                "knowledge": ["fact1", "fact2"],
             }
         },
     ),
