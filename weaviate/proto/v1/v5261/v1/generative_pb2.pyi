@@ -42,7 +42,7 @@ class GenerativeSearch(_message.Message):
     def __init__(self, single_response_prompt: _Optional[str] = ..., grouped_response_task: _Optional[str] = ..., grouped_properties: _Optional[_Iterable[str]] = ..., single: _Optional[_Union[GenerativeSearch.Single, _Mapping]] = ..., grouped: _Optional[_Union[GenerativeSearch.Grouped, _Mapping]] = ...) -> None: ...
 
 class GenerativeProvider(_message.Message):
-    __slots__ = ("return_metadata", "anthropic", "anyscale", "aws", "cohere", "dummy", "mistral", "ollama", "openai", "google", "databricks", "friendliai", "nvidia", "xai")
+    __slots__ = ("return_metadata", "anthropic", "anyscale", "aws", "cohere", "dummy", "mistral", "ollama", "openai", "google", "databricks", "friendliai", "nvidia", "xai", "contextualai")
     RETURN_METADATA_FIELD_NUMBER: _ClassVar[int]
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
     ANYSCALE_FIELD_NUMBER: _ClassVar[int]
@@ -57,6 +57,7 @@ class GenerativeProvider(_message.Message):
     FRIENDLIAI_FIELD_NUMBER: _ClassVar[int]
     NVIDIA_FIELD_NUMBER: _ClassVar[int]
     XAI_FIELD_NUMBER: _ClassVar[int]
+    CONTEXTUALAI_FIELD_NUMBER: _ClassVar[int]
     return_metadata: bool
     anthropic: GenerativeAnthropic
     anyscale: GenerativeAnyscale
@@ -71,7 +72,8 @@ class GenerativeProvider(_message.Message):
     friendliai: GenerativeFriendliAI
     nvidia: GenerativeNvidia
     xai: GenerativeXAI
-    def __init__(self, return_metadata: bool = ..., anthropic: _Optional[_Union[GenerativeAnthropic, _Mapping]] = ..., anyscale: _Optional[_Union[GenerativeAnyscale, _Mapping]] = ..., aws: _Optional[_Union[GenerativeAWS, _Mapping]] = ..., cohere: _Optional[_Union[GenerativeCohere, _Mapping]] = ..., dummy: _Optional[_Union[GenerativeDummy, _Mapping]] = ..., mistral: _Optional[_Union[GenerativeMistral, _Mapping]] = ..., ollama: _Optional[_Union[GenerativeOllama, _Mapping]] = ..., openai: _Optional[_Union[GenerativeOpenAI, _Mapping]] = ..., google: _Optional[_Union[GenerativeGoogle, _Mapping]] = ..., databricks: _Optional[_Union[GenerativeDatabricks, _Mapping]] = ..., friendliai: _Optional[_Union[GenerativeFriendliAI, _Mapping]] = ..., nvidia: _Optional[_Union[GenerativeNvidia, _Mapping]] = ..., xai: _Optional[_Union[GenerativeXAI, _Mapping]] = ...) -> None: ...
+    contextualai: GenerativeContextualAI
+    def __init__(self, return_metadata: bool = ..., anthropic: _Optional[_Union[GenerativeAnthropic, _Mapping]] = ..., anyscale: _Optional[_Union[GenerativeAnyscale, _Mapping]] = ..., aws: _Optional[_Union[GenerativeAWS, _Mapping]] = ..., cohere: _Optional[_Union[GenerativeCohere, _Mapping]] = ..., dummy: _Optional[_Union[GenerativeDummy, _Mapping]] = ..., mistral: _Optional[_Union[GenerativeMistral, _Mapping]] = ..., ollama: _Optional[_Union[GenerativeOllama, _Mapping]] = ..., openai: _Optional[_Union[GenerativeOpenAI, _Mapping]] = ..., google: _Optional[_Union[GenerativeGoogle, _Mapping]] = ..., databricks: _Optional[_Union[GenerativeDatabricks, _Mapping]] = ..., friendliai: _Optional[_Union[GenerativeFriendliAI, _Mapping]] = ..., nvidia: _Optional[_Union[GenerativeNvidia, _Mapping]] = ..., xai: _Optional[_Union[GenerativeXAI, _Mapping]] = ..., contextualai: _Optional[_Union[GenerativeContextualAI, _Mapping]] = ...) -> None: ...
 
 class GenerativeAnthropic(_message.Message):
     __slots__ = ("base_url", "max_tokens", "model", "temperature", "top_k", "top_p", "stop_sequences", "images", "image_properties")
@@ -353,6 +355,24 @@ class GenerativeXAI(_message.Message):
     image_properties: _base_pb2.TextArray
     def __init__(self, base_url: _Optional[str] = ..., model: _Optional[str] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., max_tokens: _Optional[int] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
 
+class GenerativeContextualAI(_message.Message):
+    __slots__ = ("model", "max_new_tokens", "temperature", "top_p", "system_prompt", "avoid_commentary", "knowledge")
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    MAX_NEW_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    TOP_P_FIELD_NUMBER: _ClassVar[int]
+    SYSTEM_PROMPT_FIELD_NUMBER: _ClassVar[int]
+    AVOID_COMMENTARY_FIELD_NUMBER: _ClassVar[int]
+    KNOWLEDGE_FIELD_NUMBER: _ClassVar[int]
+    model: str
+    max_new_tokens: int
+    temperature: float
+    top_p: float
+    system_prompt: str
+    avoid_commentary: bool
+    knowledge: _base_pb2.TextArray
+    def __init__(self, model: _Optional[str] = ..., max_new_tokens: _Optional[int] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., system_prompt: _Optional[str] = ..., avoid_commentary: bool = ..., knowledge: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
+
 class GenerativeAnthropicMetadata(_message.Message):
     __slots__ = ("usage",)
     class Usage(_message.Message):
@@ -547,8 +567,12 @@ class GenerativeXAIMetadata(_message.Message):
     usage: GenerativeXAIMetadata.Usage
     def __init__(self, usage: _Optional[_Union[GenerativeXAIMetadata.Usage, _Mapping]] = ...) -> None: ...
 
+class GenerativeContextualAIMetadata(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
 class GenerativeMetadata(_message.Message):
-    __slots__ = ("anthropic", "anyscale", "aws", "cohere", "dummy", "mistral", "ollama", "openai", "google", "databricks", "friendliai", "nvidia", "xai")
+    __slots__ = ("anthropic", "anyscale", "aws", "cohere", "dummy", "mistral", "ollama", "openai", "google", "databricks", "friendliai", "nvidia", "xai", "contextualai")
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
     ANYSCALE_FIELD_NUMBER: _ClassVar[int]
     AWS_FIELD_NUMBER: _ClassVar[int]
@@ -562,6 +586,7 @@ class GenerativeMetadata(_message.Message):
     FRIENDLIAI_FIELD_NUMBER: _ClassVar[int]
     NVIDIA_FIELD_NUMBER: _ClassVar[int]
     XAI_FIELD_NUMBER: _ClassVar[int]
+    CONTEXTUALAI_FIELD_NUMBER: _ClassVar[int]
     anthropic: GenerativeAnthropicMetadata
     anyscale: GenerativeAnyscaleMetadata
     aws: GenerativeAWSMetadata
@@ -575,7 +600,8 @@ class GenerativeMetadata(_message.Message):
     friendliai: GenerativeFriendliAIMetadata
     nvidia: GenerativeNvidiaMetadata
     xai: GenerativeXAIMetadata
-    def __init__(self, anthropic: _Optional[_Union[GenerativeAnthropicMetadata, _Mapping]] = ..., anyscale: _Optional[_Union[GenerativeAnyscaleMetadata, _Mapping]] = ..., aws: _Optional[_Union[GenerativeAWSMetadata, _Mapping]] = ..., cohere: _Optional[_Union[GenerativeCohereMetadata, _Mapping]] = ..., dummy: _Optional[_Union[GenerativeDummyMetadata, _Mapping]] = ..., mistral: _Optional[_Union[GenerativeMistralMetadata, _Mapping]] = ..., ollama: _Optional[_Union[GenerativeOllamaMetadata, _Mapping]] = ..., openai: _Optional[_Union[GenerativeOpenAIMetadata, _Mapping]] = ..., google: _Optional[_Union[GenerativeGoogleMetadata, _Mapping]] = ..., databricks: _Optional[_Union[GenerativeDatabricksMetadata, _Mapping]] = ..., friendliai: _Optional[_Union[GenerativeFriendliAIMetadata, _Mapping]] = ..., nvidia: _Optional[_Union[GenerativeNvidiaMetadata, _Mapping]] = ..., xai: _Optional[_Union[GenerativeXAIMetadata, _Mapping]] = ...) -> None: ...
+    contextualai: GenerativeContextualAIMetadata
+    def __init__(self, anthropic: _Optional[_Union[GenerativeAnthropicMetadata, _Mapping]] = ..., anyscale: _Optional[_Union[GenerativeAnyscaleMetadata, _Mapping]] = ..., aws: _Optional[_Union[GenerativeAWSMetadata, _Mapping]] = ..., cohere: _Optional[_Union[GenerativeCohereMetadata, _Mapping]] = ..., dummy: _Optional[_Union[GenerativeDummyMetadata, _Mapping]] = ..., mistral: _Optional[_Union[GenerativeMistralMetadata, _Mapping]] = ..., ollama: _Optional[_Union[GenerativeOllamaMetadata, _Mapping]] = ..., openai: _Optional[_Union[GenerativeOpenAIMetadata, _Mapping]] = ..., google: _Optional[_Union[GenerativeGoogleMetadata, _Mapping]] = ..., databricks: _Optional[_Union[GenerativeDatabricksMetadata, _Mapping]] = ..., friendliai: _Optional[_Union[GenerativeFriendliAIMetadata, _Mapping]] = ..., nvidia: _Optional[_Union[GenerativeNvidiaMetadata, _Mapping]] = ..., xai: _Optional[_Union[GenerativeXAIMetadata, _Mapping]] = ..., contextualai: _Optional[_Union[GenerativeContextualAIMetadata, _Mapping]] = ...) -> None: ...
 
 class GenerativeReply(_message.Message):
     __slots__ = ("result", "debug", "metadata")
