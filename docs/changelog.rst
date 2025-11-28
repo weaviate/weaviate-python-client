@@ -1,11 +1,17 @@
 Changelog
 =========
 
+Version 4.18.2
+--------------
+This patch version includes:
+    - Add support for contextual generative and reranker modules
+    - Add support for ZSTD compression in backups
+
 Version 4.18.1
 --------------
 This patch version includes:
     - Add 'dimensions' param to cohere vectorizers  (feat/cohere-dimensions-param)
-    - Add dimensions parameter to text2vec-voyageai methods (feat/t2v-voyage-add-dimensions)
+    - Add 'dimensions' parameter to text2vec-voyageai methods (feat/t2v-voyage-add-dimensions)
 
 Version 4.18.0
 --------------
