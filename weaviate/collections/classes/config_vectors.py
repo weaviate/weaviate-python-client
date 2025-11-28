@@ -137,7 +137,6 @@ class _IndexWrappers:
             replicas=None,
             rngFactor=None,
             searchProbe=None,
-            centroidsIndexType=None,
             quantizer=quantizer,
             multivector=None,
             distance=None,
