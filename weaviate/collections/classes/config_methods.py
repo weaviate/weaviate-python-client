@@ -12,7 +12,6 @@ from weaviate.collections.classes.config import (
     VectorDistances,
     VectorFilterStrategy,
     VectorIndexType,
-    VectorCentroidsIndexType,
     Vectorizers,
     _BM25Config,
     _BQConfig,
@@ -221,11 +220,6 @@ def __get_spfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigSPFresh:
         replicas=config["replicas"],
         rng_factor=config["rngFactor"],
         search_probe=config["searchProbe"],
-        centroids_index_type=(
-            VectorCentroidsIndexType(config["centroidsIndexType"])
-            if "centroidsIndexType" in config
-            else VectorCentroidsIndexType.HNSW
-        ),
         quantizer=quantizer,
         multi_vector=None,
     )

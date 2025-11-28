@@ -35,7 +35,6 @@ from weaviate.collections.classes.config_vector_index import (
     PQEncoderDistribution,
     PQEncoderType,
     VectorFilterStrategy,
-    VectorCentroidsIndexType,
     _BQConfigUpdate,
     _PQConfigUpdate,
     _PQEncoderConfigUpdate,
@@ -1896,7 +1895,6 @@ class _VectorIndexConfigSPFresh(_VectorIndexConfig):
     replicas: int
     rng_factor: int
     search_probe: int
-    centroids_index_type: VectorCentroidsIndexType
 
     @staticmethod
     def vector_index_type() -> str:
