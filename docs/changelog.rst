@@ -6,6 +6,7 @@ Version 4.18.2
 This patch version includes:
     - Add support for contextual generative and reranker modules
     - Add support for ZSTD compression in backups
+    - Add support for VoyageAI's voyage-3-large model
 
 Version 4.18.1
 --------------
