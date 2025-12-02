@@ -861,7 +861,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
             model="model",
             k=10,
             max_tokens=100,
-            return_likelihoods="ALL",
             stop_sequences=["stop"],
             temperature=0.5,
             base_url="https://api.cohere.ai",
@@ -869,11 +868,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {
             "generative-cohere": {
                 "model": "model",
-                "kProperty": 10,
-                "maxTokensProperty": 100,
-                "returnLikelihoodsProperty": "ALL",
-                "stopSequencesProperty": ["stop"],
-                "temperatureProperty": 0.5,
+                "k": 10,
+                "maxTokens": 100,
+                "stopSequences": ["stop"],
+                "temperature": 0.5,
                 "baseURL": "https://api.cohere.ai/",
             }
         },
