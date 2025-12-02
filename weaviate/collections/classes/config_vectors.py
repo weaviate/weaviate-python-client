@@ -37,6 +37,7 @@ from weaviate.collections.classes.config_vectorizers import (
     VoyageModel,
     VoyageMultimodalModel,
     WeaviateModel,
+    WeaviateMultimodalModel,
     _Img2VecNeuralConfig,
     _map_multi2vec_fields,
     _Multi2MultiVecJinaConfig,
@@ -296,7 +297,7 @@ class _MultiVectors:
         encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[Union[JinaMultimodalModel, str]] = None,
+        model: Optional[Union[WeaviateMultimodalModel, str]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:

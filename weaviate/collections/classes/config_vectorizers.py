@@ -75,6 +75,7 @@ AWSService: TypeAlias = Literal[
 WeaviateModel: TypeAlias = Literal[
     "Snowflake/snowflake-arctic-embed-l-v2.0", "Snowflake/snowflake-arctic-embed-m-v1.5"
 ]
+WeaviateMultimodalModel: TypeAlias = Literal["ModernVBERT/colmodernvbert"]
 
 
 class Vectorizers(str, Enum):
