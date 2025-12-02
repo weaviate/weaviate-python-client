@@ -822,7 +822,7 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             k: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            return_likelihoods: The return likelihoods setting to use. Defaults to `None`, which uses the server-defined default
+            return_likelihoods: (Deprecated) The return likelihoods setting to use. No longer has any effect.
             stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
