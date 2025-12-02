@@ -733,7 +733,130 @@ class _Vectors:
         )
 
     @staticmethod
+    def text2vec_aws_bedrock(
+        *,
+        name: Optional[str] = None,
+        model: Union[AWSModel, str],
+        region: str,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `text2vec-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            model: The model to use, REQUIRED.
+            region: The AWS region to run the model from, REQUIRED.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecAWSConfig(
+                model=model,
+                endpoint=None,
+                region=region,
+                service="bedrock",
+                vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
+    def text2vec_aws_sagemaker(
+        *,
+        name: Optional[str] = None,
+        endpoint: str,
+        region: str,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `text2vec-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            endpoint: The endpoint to use, REQUIRED.
+            region: The AWS region to run the model from, REQUIRED.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecAWSConfig(
+                model=None,
+                endpoint=endpoint,
+                region=region,
+                service="sagemaker",
+                vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
+    @typing_deprecated(
+        "`multi2vec_aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `multi2vec_aws_bedrock`."
+    )
     def multi2vec_aws(
+        *,
+        name: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        dimensions: Optional[int] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        model: Optional[str] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        region: Optional[str] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `multi2vec-aws` module.
+
+        Note: `multi2vec_aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `multi2vec_aws_bedrock`.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            text_fields: The text fields to use in vectorization.
+            region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined defau
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+
+        Raises:
+            pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecAWSConfig(
+                region=region,
+                model=model,
+                dimensions=dimensions,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
+    def multi2vec_aws_bedrock(
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
