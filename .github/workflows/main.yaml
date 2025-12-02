@@ -156,7 +156,7 @@ jobs:
           { py: "3.10", weaviate: $WEAVIATE_132, grpc: "1.66.0"},
           { py: "3.11", weaviate: $WEAVIATE_132, grpc: "1.70.0"},
           { py: "3.12", weaviate: $WEAVIATE_132, grpc: "1.72.1"},
-          { py: "3.13", weaviate: $WEAVIATE_132, grpc: "1.74.0"}
+          { py: "3.13", weaviate: $WEAVIATE_132, grpc: "1.74.0"},
           { py: "3.14", weaviate: $WEAVIATE_132, grpc: "1.76.0"}
         ]
         optional_dependencies: [false]
@@ -211,7 +211,7 @@ jobs:
           { py: "3.10", weaviate: $WEAVIATE_132},
           { py: "3.11", weaviate: $WEAVIATE_132},
           { py: "3.12", weaviate: $WEAVIATE_132},
-          { py: "3.13", weaviate: $WEAVIATE_132}
+          { py: "3.13", weaviate: $WEAVIATE_132},
           { py: "3.14", weaviate: $WEAVIATE_132}
         ]
         optional_dependencies: [false]
