@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
@@ -25,6 +26,7 @@ from weaviate.collections.classes.config import (
     _NamedVectorConfig,
     _NamedVectorizerConfig,
     _NestedProperty,
+    _ObjectTTLConfig,
     _PQConfig,
     _PQEncoderConfig,
     _Property,
@@ -293,6 +295,7 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
         name=schema["class"],
         description=schema.get("description"),
         generative_config=__get_generative_config(schema),
+        object_ttl_config=_get_object_ttl_config(schema),
         properties=(
             _properties_from_config(schema) if schema.get("properties") is not None else []
         ),
@@ -340,6 +343,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 "autoTenantActivation", False
             ),
         ),
+        object_ttl_config=_get_object_ttl_config(schema),
         properties=(
             _properties_from_config(schema) if schema.get("properties") is not None else []
         ),
@@ -376,6 +380,27 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         vectorizer=__get_vectorizer(schema),
         vector_config=__get_vector_config(schema, simple=False),
     )
+
+
+def _get_object_ttl_config(schema: Dict[str, Any]) -> Optional[_ObjectTTLConfig]:
+    if "objectTtlConfig" in schema and schema["objectTtlConfig"].get("enabled", False):
+        time_to_live = schema["objectTtlConfig"].get("defaultTtl")
+        if time_to_live is not None and isinstance(time_to_live, int):
+            time_to_live = datetime.timedelta(seconds=time_to_live)
+        delete_on = schema["objectTtlConfig"]["deleteOn"]
+        if delete_on == "_lastUpdateTimeUnix":
+            delete_on = "updateTime"
+        elif delete_on == "_creationTimeUnix":
+            delete_on = "creationTime"
+
+        return _ObjectTTLConfig(
+            enabled=True,
+            delete_on=delete_on,
+            post_search_filter=schema["objectTtlConfig"]["postSearchFilter"],
+            time_to_live=time_to_live,
+        )
+    else:
+        return None
 
 
 def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _CollectionConfig]:

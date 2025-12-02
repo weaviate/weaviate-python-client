@@ -1,3 +1,4 @@
+import datetime
 from typing import Generator, List, Optional, Union
 
 import pytest as pytest
@@ -1831,3 +1832,63 @@ def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config is not None
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.quantizer is None
+
+
+def test_object_ttl_creation(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_creation_time(
+            time_to_live=datetime.timedelta(days=30),
+            post_search_filter=True,
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "creationTime"
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(days=30)
+
+
+def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_update_time(
+            time_to_live=datetime.timedelta(days=30),
+            post_search_filter=True,
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "updateTime"
+    assert config.object_ttl_config.post_search_filter
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(days=30)
+
+
+def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        properties=[wvc.config.Property(name="customDate", data_type=DataType.DATE)],
+        object_ttl=Configure.ObjectTTL.delete_by_date_property(
+            date_property="customDate",
+            post_search_filter=False,
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "customDate"
+    # assert config.object_ttl_config.time_to_live is None
+    assert not config.object_ttl_config.post_search_filter

@@ -21,6 +21,7 @@ from typing import Callable, TypeVar
 import weaviate
 from weaviate.collections import Collection, CollectionAsync
 from weaviate.collections.classes.config import (
+    _ObjectTTLCreate,
     Configure,
     DataType,
     Property,
@@ -66,6 +67,7 @@ class CollectionFactory(Protocol):
         vector_config: Optional[
             Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
         ] = None,
+        object_ttl: Optional[_ObjectTTLCreate] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -140,6 +142,7 @@ def collection_factory(
         vector_config: Optional[
             Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
         ] = None,
+        object_ttl: Optional[_ObjectTTLCreate] = None,
     ) -> Collection[Any, Any]:
         try:
             nonlocal client_fixture, name_fixtures, call_counter  # noqa: F824
@@ -172,6 +175,7 @@ def collection_factory(
                 vector_index_config=vector_index_config,
                 reranker_config=reranker_config,
                 vector_config=vector_config,
+                object_ttl_config=object_ttl,
             )
             return collection
         except Exception as e:
