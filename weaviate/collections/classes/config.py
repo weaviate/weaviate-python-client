@@ -481,10 +481,14 @@ class _GenerativeAWSConfig(_GenerativeProvider):
     service: str
     model: Optional[str]
     endpoint: Optional[str]
-    maxTokens: Optional[int]
+    maxTokenCount: Optional[int]
+    maxTokensToSample: Optional[int]
     temperature: Optional[float]
     targetModel: Optional[str]
     targetVariant: Optional[str]
+    topK: Optional[int]
+    topP: Optional[float]
+    stopSequences: Optional[List[str]]
 
 
 class _GenerativeAnthropicConfig(_GenerativeProvider):
@@ -945,10 +949,98 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             region=region,
             service=service,
             endpoint=endpoint,
-            maxTokens=max_tokens,
+            maxTokenCount=max_tokens,
+            maxTokensToSample=max_tokens,
             temperature=temperature,
             targetModel=target_model,
             targetVariant=target_variant,
+            topK=None,
+            topP=None,
+            stopSequences=None,
+        )
+
+    @staticmethod
+    def aws_bedrock(
+        model: str,
+        region: str,
+        max_token_count: Optional[int] = None,
+        max_tokens_to_sample: Optional[int] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Args:
+            model: The model to use, REQUIRED
+            region: The AWS region to run the model from, REQUIRED.
+            max_token_count: The maximum token count to generate. Defaults to `None`, which uses the server-defined default.
+            max_tokens_to_sample: The maximum token count to generate (Anthropic models only). Defaults to `None`, which uses the server-defined default.
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAWSConfig(
+            model=model,
+            region=region,
+            service="bedrock",
+            endpoint=None,
+            maxTokenCount=max_token_count,
+            maxTokensToSample=max_tokens_to_sample,
+            temperature=temperature,
+            targetModel=None,
+            targetVariant=None,
+            topK=top_k,
+            topP=top_p,
+            stopSequences=stop_sequences,
+        )
+
+    @staticmethod
+    def aws_sagemaker(
+        region: str,
+        endpoint: str,
+        max_tokens_count: Optional[int] = None,
+        target_model: Optional[str] = None,
+        target_variant: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Args:
+            region: The AWS region to run the model from, REQUIRED.
+            endpoint: The model to use, REQUIRED.
+            max_tokens_count: The maximum token count to generate. Defaults to `None`, which uses the server-defined default.
+            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
+            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAWSConfig(
+            model=None,
+            region=region,
+            service="sagemaker",
+            endpoint=endpoint,
+            maxTokenCount=max_tokens_count,
+            maxTokensToSample=None,
+            temperature=temperature,
+            targetModel=target_model,
+            targetVariant=target_variant,
+            topK=top_k,
+            topP=top_p,
+            stopSequences=stop_sequences,
         )
 
     @staticmethod
