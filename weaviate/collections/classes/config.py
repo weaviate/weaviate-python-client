@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -31,6 +32,7 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectors,
     _NamedVectorsUpdate,
 )
+from weaviate.collections.classes.config_object_ttl import _ObjectTTL, _ObjectTTLCreate
 from weaviate.collections.classes.config_vector_index import (
     PQEncoderDistribution,
     PQEncoderType,
@@ -1136,64 +1138,6 @@ class _Reranker:
         return _RerankerContextualAIConfig(model=model, instruction=instruction, topN=top_n)
 
 
-class _CollectionConfigCreateBase(_ConfigCreateModel):
-    description: Optional[str] = Field(default=None)
-    invertedIndexConfig: Optional[_InvertedIndexConfigCreate] = Field(
-        default=None, alias="inverted_index_config"
-    )
-    multiTenancyConfig: Optional[_MultiTenancyConfigCreate] = Field(
-        default=None, alias="multi_tenancy_config"
-    )
-    replicationConfig: Optional[_ReplicationConfigCreate] = Field(
-        default=None, alias="replication_config"
-    )
-    shardingConfig: Optional[_ShardingConfigCreate] = Field(default=None, alias="sharding_config")
-    vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
-        default=None, alias="vector_index_config"
-    )
-    moduleConfig: _VectorizerConfigCreate = Field(
-        default=_Vectorizer.none(), alias="vectorizer_config"
-    )
-    generativeSearch: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
-    rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict: Dict[str, Any] = {}
-
-        for cls_field in type(self).model_fields:
-            val = getattr(self, cls_field)
-            if cls_field in ["name", "model", "properties", "references"] or val is None:
-                continue
-            elif isinstance(val, (bool, float, str, int)):
-                ret_dict[cls_field] = str(val)
-            elif isinstance(val, _GenerativeProvider):
-                self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
-            elif isinstance(val, _RerankerProvider):
-                self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
-            elif isinstance(val, _VectorizerConfigCreate):
-                ret_dict["vectorizer"] = val.vectorizer.value
-                if val.vectorizer != Vectorizers.NONE:
-                    self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
-            elif isinstance(val, _VectorIndexConfigCreate):
-                ret_dict["vectorIndexType"] = val.vector_index_type()
-                ret_dict[cls_field] = val._to_dict()
-            else:
-                assert isinstance(val, _ConfigCreateModel)
-                ret_dict[cls_field] = val._to_dict()
-        if self.vectorIndexConfig is None:
-            ret_dict["vectorIndexType"] = VectorIndexType.HNSW.value
-        return ret_dict
-
-    @staticmethod
-    def __add_to_module_config(
-        return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
-    ) -> None:
-        if "moduleConfig" not in return_dict:
-            return_dict["moduleConfig"] = {addition_key: addition_val}
-        else:
-            return_dict["moduleConfig"][addition_key] = addition_val
-
-
 class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
     property_descriptions: Optional[Dict[str, str]] = Field(default=None)
@@ -1765,12 +1709,24 @@ NamedVectorConfig = _NamedVectorConfig
 
 
 @dataclass
+class _ObjectTTLConfig(_ConfigBase):
+    enabled: bool
+    time_to_live: Optional[datetime.timedelta]
+    post_search_filter: bool
+    delete_on: Union[str, Literal["updateTime"], Literal["creationTime"]]
+
+
+ObjectTTLConfig = _ObjectTTLConfig
+
+
+@dataclass
 class _CollectionConfig(_ConfigBase):
     name: str
     description: Optional[str]
     generative_config: Optional[GenerativeConfig]
     inverted_index_config: InvertedIndexConfig
     multi_tenancy_config: MultiTenancyConfig
+    object_ttl_config: Optional[ObjectTTLConfig]
     properties: List[PropertyConfig]
     references: List[ReferencePropertyConfig]
     replication_config: ReplicationConfig
@@ -1841,6 +1797,7 @@ class _CollectionConfigSimple(_ConfigBase):
     vectorizer_config: Optional[VectorizerConfig]
     vectorizer: Optional[Union[Vectorizers, str]]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
+    object_ttl_config: Optional[ObjectTTLConfig]
 
 
 CollectionConfigSimple = _CollectionConfigSimple
@@ -1992,6 +1949,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     multiTenancyConfig: Optional[_MultiTenancyConfigCreate] = Field(
         default=None, alias="multi_tenancy_config"
     )
+    objectTtlConfig: Optional[_ObjectTTLCreate] = Field(default=None, alias="object_ttl_config")
     replicationConfig: Optional[_ReplicationConfigCreate] = Field(
         default=None, alias="replication_config"
     )
@@ -2155,6 +2113,7 @@ class Configure:
     NamedVectors = _NamedVectors
     Vectors = _Vectors
     MultiVectors = _MultiVectors
+    ObjectTTL = _ObjectTTL
 
     @staticmethod
     def inverted_index(

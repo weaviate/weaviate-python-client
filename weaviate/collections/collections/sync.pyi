@@ -18,6 +18,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigCreate,
     _VectorizerConfigCreate,
 )
+from weaviate.collections.classes.config_object_ttl import _ObjectTTLCreate
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
     Properties,
@@ -36,6 +37,7 @@ class _Collections(_CollectionsBase[ConnectionSync]):
         generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[_ObjectTTLCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -62,6 +64,7 @@ class _Collections(_CollectionsBase[ConnectionSync]):
         generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[_ObjectTTLCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -88,6 +91,7 @@ class _Collections(_CollectionsBase[ConnectionSync]):
         generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[_ObjectTTLCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
