@@ -175,6 +175,7 @@ class _IndexWrappers:
         return _IndexWrappers.single(vector_index_config, quantizer)
 
 
+# TODO: Consider refactoring to move the default values to the pydantic classes themselves (e.g. _VectorConfigCreate, _Text2VecCohereConfig, etc.)
 class _MultiVectors:
     @staticmethod
     def self_provided(
