@@ -52,7 +52,7 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
     ) -> CollectionAsync[Properties, References]: ...
     @overload
     @deprecated(
-        'Using the "vector_index_config" argument is deprecated. Instead, define the vector index for each specific vectorizer supplied to the "vectorizers_config" argument.'
+        'Using the "vectorizer_config" argument is deprecated. Instead, use the "vector_config" argument.'
     )
     async def create(
         self,
@@ -78,7 +78,7 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
     ) -> CollectionAsync[Properties, References]: ...
     @overload
     @deprecated(
-        'Using the "vectorizer_config" argument is deprecated. Instead, use the "vectorizers_config" argument.'
+        'Using the "vectorizer_config" argument is deprecated. Instead, use the "vector_config" argument.'
     )
     async def create(
         self,
