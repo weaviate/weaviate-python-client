@@ -1881,8 +1881,7 @@ def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[wvc.config.Property(name="customDate", data_type=DataType.DATE)],
         object_ttl=Configure.ObjectTTL.delete_by_date_property(
-            date_property="customDate",
-            post_search_filter=False,
+            date_property="customDate", post_search_filter=False, time_to_live_after_date=-1
         ),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
@@ -1890,5 +1889,5 @@ def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
     config = collection.config.get()
     assert config.object_ttl_config is not None
     assert config.object_ttl_config.delete_on == "customDate"
-    # assert config.object_ttl_config.time_to_live is None
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(seconds=-1)
     assert not config.object_ttl_config.post_search_filter
