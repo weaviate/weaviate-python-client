@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.18.3
+--------------
+This patch version includes:
+    - Fixes wrong deprecation warning in PyCharm when creating a collection without vectorizers
+    - Fixes warnings with boolean filters
+
 Version 4.18.2
 --------------
 This patch version includes:
