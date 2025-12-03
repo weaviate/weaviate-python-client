@@ -52,7 +52,7 @@ class _FilterToGRPC:
             )
 
         return base_pb2.Filters(
-            operator=weav_filter.operator._to_grpc(),
+            operator=operator,
             value_text=_FilterToGRPC.__filter_to_text(weav_filter.value),
             value_int=weav_filter.value
             if isinstance(weav_filter.value, int) and not isinstance(weav_filter.value, bool)
