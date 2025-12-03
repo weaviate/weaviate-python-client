@@ -446,6 +446,34 @@ class _GenerativeXAI(_GenerativeConfigRuntime):
         )
 
 
+class _GenerativeContextualAI(_GenerativeConfigRuntime):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    temperature: Optional[float]
+    top_p: Optional[float]
+    max_new_tokens: Optional[int]
+    system_prompt: Optional[str]
+    avoid_commentary: Optional[bool]
+    knowledge: Optional[List[str]]
+
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        self._validate_multi_modal(opts)
+        return generative_pb2.GenerativeProvider(
+            return_metadata=opts.return_metadata,
+            contextualai=generative_pb2.GenerativeContextualAI(
+                model=self.model,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                max_new_tokens=self.max_new_tokens,
+                system_prompt=self.system_prompt,
+                avoid_commentary=self.avoid_commentary or False,
+                knowledge=_to_text_array(self.knowledge),
+            ),
+        )
+
+
 class GenerativeConfig:
     """Use this factory class to create the correct object for the `generative_provider` argument in the search methods of the `.generate` namespace.
 
@@ -620,6 +648,38 @@ class GenerativeConfig:
             presence_penalty=presence_penalty,
             stop_sequences=stop_sequences,
             temperature=temperature,
+        )
+
+    @staticmethod
+    def contextualai(
+        *,
+        model: Optional[str] = None,
+        max_new_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        system_prompt: Optional[str] = None,
+        avoid_commentary: Optional[bool] = None,
+        knowledge: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeContextualAI` object for use with the `generative-contextualai` module.
+
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            max_new_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            system_prompt: The system prompt to prepend to the conversation
+            avoid_commentary: Whether to avoid model commentary in responses
+            knowledge: Optional knowledge array to override the default knowledge from retrieved objects
+        """
+        return _GenerativeContextualAI(
+            model=model,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+            system_prompt=system_prompt,
+            avoid_commentary=avoid_commentary,
+            knowledge=knowledge,
         )
 
     @staticmethod

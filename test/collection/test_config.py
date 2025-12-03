@@ -1055,6 +1055,34 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.contextualai(),
+        {
+            "generative-contextualai": {},
+        },
+    ),
+    (
+        Configure.Generative.contextualai(
+            model="v2",
+            temperature=0.7,
+            top_p=0.9,
+            max_new_tokens=512,
+            system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
+            avoid_commentary=False,
+            knowledge=["fact1", "fact2"],
+        ),
+        {
+            "generative-contextualai": {
+                "model": "v2",
+                "temperature": 0.7,
+                "topP": 0.9,
+                "maxNewTokens": 512,
+                "systemPrompt": "You are a helpful assistant that provides accurate and informative responses based on the given context.",
+                "avoidCommentary": False,
+                "knowledge": ["fact1", "fact2"],
+            }
+        },
+    ),
 ]
 
 
@@ -1135,6 +1163,26 @@ TEST_CONFIG_WITH_RERANKER = [
         Configure.Reranker.transformers(),
         {
             "reranker-transformers": {},
+        },
+    ),
+    (
+        Configure.Reranker.contextualai(),
+        {
+            "reranker-contextualai": {},
+        },
+    ),
+    (
+        Configure.Reranker.contextualai(
+            model="ctxl-rerank-v2-instruct-multilingual",
+            instruction="Prioritize recent documents",
+            top_n=5,
+        ),
+        {
+            "reranker-contextualai": {
+                "model": "ctxl-rerank-v2-instruct-multilingual",
+                "instruction": "Prioritize recent documents",
+                "topN": 5,
+            }
         },
     ),
 ]
