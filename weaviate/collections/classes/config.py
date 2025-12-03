@@ -919,6 +919,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `aws_bedrock`."
+    )
     def aws(
         model: Optional[str] = None,
         region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC

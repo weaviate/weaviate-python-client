@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config import (
     AWSService,
@@ -505,7 +506,48 @@ class GenerativeConfig:
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `aws_bedrock`."
+    )
     def aws(
+        *,
+        endpoint: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        region: Optional[str] = None,
+        service: Optional[Union[AWSService, str]] = None,
+        target_model: Optional[str] = None,
+        target_variant: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Args:
+            endpoint: The endpoint to use when requesting the generation. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined default
+            service: The AWS service to use. Defaults to `None`, which uses the server-defined default
+            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
+            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAWS(
+            model=model,
+            max_tokens=max_tokens,
+            region=region,
+            service=service,
+            endpoint=AnyUrl(endpoint) if endpoint is not None else None,
+            target_model=target_model,
+            target_variant=target_variant,
+            temperature=temperature,
+        )
+
+    @staticmethod
+    def aws_bedrock(
         *,
         endpoint: Optional[str] = None,
         max_tokens: Optional[int] = None,

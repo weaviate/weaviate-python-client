@@ -691,6 +691,9 @@ class _Vectors:
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`text2vec_aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `text2vec_aws_bedrock`."
+    )
     def text2vec_aws(
         *,
         name: Optional[str] = None,
