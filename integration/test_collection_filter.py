@@ -381,7 +381,7 @@ def test_filters_contains(
     uuids = [uuids[result] for result in results]
     assert all(obj.uuid in uuids for obj in objects)
 
-    # Check for warnings to make sure booleans are handled as their correct type and are not send as ints
+    # Check for warnings to make sure booleans are handled as their correct type and are not sent as ints
     if len(recwarn) != 0:
         for rwarning in recwarn.list:
             print(rwarning.message)
