@@ -63,7 +63,7 @@ class _FilterToGRPC:
             value_number_array=_FilterToGRPC.__filter_to_float_list(weav_filter.value),
             value_text_array=_FilterToGRPC.__filter_to_text_list(weav_filter.value),
             value_geo=_FilterToGRPC.__filter_to_geo(weav_filter.value),
-            target=_FilterToGRPC.__to_target(weav_filter.target),
+            target=target,
         )
 
     @staticmethod
