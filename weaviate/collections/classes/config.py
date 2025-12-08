@@ -498,14 +498,13 @@ class _GenerativeAWSConfig(_GenerativeProvider):
     service: str
     model: Optional[str]
     endpoint: Optional[str]
-    maxTokenCount: Optional[int]
-    maxTokensToSample: Optional[int]
     temperature: Optional[float]
     targetModel: Optional[str]
     targetVariant: Optional[str]
     topK: Optional[int]
     topP: Optional[float]
     stopSequences: Optional[List[str]]
+    maxTokens: Optional[int]
 
 
 class _GenerativeAnthropicConfig(_GenerativeProvider):
@@ -1019,9 +1018,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             region=region,
             service=service,
             endpoint=endpoint,
-            maxTokenCount=max_tokens,
-            maxTokensToSample=max_tokens,
             temperature=temperature,
+            maxTokens=max_tokens,
             targetModel=target_model,
             targetVariant=target_variant,
             topK=None,
@@ -1033,9 +1031,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def aws_bedrock(
         model: str,
         region: str,
-        max_token_count: Optional[int] = None,
-        max_tokens_to_sample: Optional[int] = None,
         temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
         stop_sequences: Optional[List[str]] = None,
@@ -1048,9 +1045,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Args:
             model: The model to use, REQUIRED
             region: The AWS region to run the model from, REQUIRED.
-            max_token_count: The maximum token count to generate. Defaults to `None`, which uses the server-defined default.
-            max_tokens_to_sample: The maximum token count to generate (Anthropic models only). Defaults to `None`, which uses the server-defined default.
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default.
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
             stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
@@ -1060,9 +1056,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             region=region,
             service="bedrock",
             endpoint=None,
-            maxTokenCount=max_token_count,
-            maxTokensToSample=max_tokens_to_sample,
             temperature=temperature,
+            maxTokens=max_tokens,
             targetModel=None,
             targetVariant=None,
             topK=top_k,
@@ -1074,7 +1069,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
     def aws_sagemaker(
         region: str,
         endpoint: str,
-        max_tokens_count: Optional[int] = None,
+        max_tokens: Optional[int] = None,
         target_model: Optional[str] = None,
         target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
@@ -1090,7 +1085,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Args:
             region: The AWS region to run the model from, REQUIRED.
             endpoint: The model to use, REQUIRED.
-            max_tokens_count: The maximum token count to generate. Defaults to `None`, which uses the server-defined default.
+            max_tokens: The maximum token count to generate. Defaults to `None`, which uses the server-defined default.
             target_model: The target model to use. Defaults to `None`, which uses the server-defined default
             target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
@@ -1103,9 +1098,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             region=region,
             service="sagemaker",
             endpoint=endpoint,
-            maxTokenCount=max_tokens_count,
-            maxTokensToSample=None,
             temperature=temperature,
+            maxTokens=max_tokens,
             targetModel=target_model,
             targetVariant=target_variant,
             topK=top_k,

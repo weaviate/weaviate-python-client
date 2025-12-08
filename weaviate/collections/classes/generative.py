@@ -114,6 +114,9 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
     target_model: Optional[str]
     target_variant: Optional[str]
     temperature: Optional[float]
+    top_k: Optional[int]
+    top_p: Optional[float]
+    stop_sequences: Optional[List[str]]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         return generative_pb2.GenerativeProvider(
@@ -126,9 +129,11 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
                 target_model=self.target_model,
                 target_variant=self.target_variant,
                 temperature=self.temperature,
-                # max_tokens=self.max_tokens,
+                max_tokens=self.max_tokens,
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
+                # TODO - add top_k, top_p & stop_sequences here when added to server-side proto
+                # Check the latest availble version of `grpc/proto/v1/generative.proto` (see GenerativeAWS) in the server repo
             ),
         )
 
@@ -547,6 +552,9 @@ class GenerativeConfig:
         target_model: Optional[str] = None,
         target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
 
@@ -562,6 +570,9 @@ class GenerativeConfig:
             target_model: The target model to use. Defaults to `None`, which uses the server-defined default
             target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAWS(
             model=model,
@@ -572,6 +583,9 @@ class GenerativeConfig:
             target_model=target_model,
             target_variant=target_variant,
             temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            stop_sequences=stop_sequences,
         )
 
     @staticmethod
@@ -581,10 +595,10 @@ class GenerativeConfig:
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
         region: Optional[str] = None,
-        service: Optional[Union[AWSService, str]] = None,
-        target_model: Optional[str] = None,
-        target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
 
@@ -596,20 +610,66 @@ class GenerativeConfig:
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
             region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined default
-            service: The AWS service to use. Defaults to `None`, which uses the server-defined default
-            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
-            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAWS(
             model=model,
             max_tokens=max_tokens,
             region=region,
-            service=service,
+            service="bedrock",
+            endpoint=AnyUrl(endpoint) if endpoint is not None else None,
+            target_model=None,
+            target_variant=None,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            stop_sequences=stop_sequences,
+        )
+
+    @staticmethod
+    def aws_sagemaker(
+        *,
+        endpoint: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        region: Optional[str] = None,
+        target_model: Optional[str] = None,
+        target_variant: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Args:
+            endpoint: The endpoint to use when requesting the generation. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined default
+            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
+            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAWS(
+            model=None,
+            max_tokens=max_tokens,
+            region=region,
+            service="sagemaker",
             endpoint=AnyUrl(endpoint) if endpoint is not None else None,
             target_model=target_model,
             target_variant=target_variant,
             temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            stop_sequences=stop_sequences,
         )
 
     @staticmethod
