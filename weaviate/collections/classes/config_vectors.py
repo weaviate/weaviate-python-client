@@ -1416,6 +1416,7 @@ class _Vectors:
         model: Optional[str] = None,
         project_id: str,
         title_property: Optional[str] = None,
+        task_type: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -1433,6 +1434,7 @@ class _Vectors:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             project_id: The project ID to use, REQUIRED.
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+            task_type: The task type to use (e.g. `RETRIEVAL_QUERY`, `RETRIEVAL_DOCUMENT`). Defaults to `None`, which uses the server-defined default.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
@@ -1450,6 +1452,7 @@ class _Vectors:
                 modelId=model,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
+                taskType=task_type,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
