@@ -951,6 +951,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`google()` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `google_vertex` or `google_ai_studio`."
+    )
     def google(
         project_id: str,
         api_endpoint: Optional[str] = None,
