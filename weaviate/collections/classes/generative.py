@@ -941,14 +941,10 @@ class GenerativeConfig:
         for detailed usage.
 
         Args:
-            api_endpoint: The API endpoint to use. Defaults to `None`, which uses the server-defined default
-            endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
             frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model ID to use. Defaults to `None`, which uses the server-defined default
             presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
-            project_id: The project ID to use. Defaults to `None`, which uses the server-defined default
-            region: The region to use. Defaults to `None`, which uses the server-defined default
             stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default

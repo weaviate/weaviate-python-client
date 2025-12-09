@@ -482,6 +482,7 @@ class _GenerativeGoogleConfig(_GenerativeProvider):
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
     apiEndpoint: Optional[str]
+    endpointId: Optional[str]
     region: Optional[str]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
@@ -951,6 +952,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
+            endpointId=None,
             temperature=temperature,
             topK=top_k,
             topP=top_p,
@@ -992,6 +994,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
+            endpointId=None,
             temperature=temperature,
             topK=top_k,
             topP=top_p,
@@ -1007,6 +1010,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         region: Optional[str] = None,
         max_output_tokens: Optional[int] = None,
         model_id: Optional[str] = None,
+        endpoint_id: Optional[str] = None,
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -1022,6 +1026,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             region: The region to use. Defaults to `None`, which uses the server-defined default
             max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
+            endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
@@ -1032,6 +1037,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
+            endpointId=endpoint_id,
             temperature=temperature,
             topK=top_k,
             topP=top_p,
@@ -1066,6 +1072,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             maxOutputTokens=max_output_tokens,
             modelId=model,
             projectId="",
+            endpointId=None,
             temperature=temperature,
             topK=top_k,
             topP=top_p,
