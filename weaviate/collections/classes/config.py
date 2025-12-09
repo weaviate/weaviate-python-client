@@ -489,6 +489,10 @@ class _GenerativeGoogleConfig(_GenerativeProvider):
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
+    # TODO - implement passing `stopSequences`, `frequencyPenalty`, `presencePenalty` parameters from collection config once added server side
+    stopSequences: Optional[list[str]]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
 
 
 class _GenerativeAWSConfig(_GenerativeProvider):
@@ -950,11 +954,14 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            stopSequences=None,
+            frequencyPenalty=None,
+            presencePenalty=None,
         )
 
     @staticmethod
     @typing_deprecated(
-        "`google()` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `google_vertex` or `google_ai_studio`."
+        "`google()` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `google_vertex` or `google_gemini`."
     )
     def google(
         project_id: str,
@@ -988,6 +995,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            stopSequences=None,
+            frequencyPenalty=None,
+            presencePenalty=None,
         )
 
     @staticmethod
@@ -1025,6 +1035,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            stopSequences=None,
+            frequencyPenalty=None,
+            presencePenalty=None,
         )
 
     @staticmethod
@@ -1056,6 +1069,9 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            stopSequences=None,
+            frequencyPenalty=None,
+            presencePenalty=None,
         )
 
     @staticmethod

@@ -821,6 +821,9 @@ class GenerativeConfig:
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`google()` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `google_vertex` or `google_gemini`."
+    )
     def google(
         *,
         api_endpoint: Optional[str] = None,
@@ -864,6 +867,102 @@ class GenerativeConfig:
             presence_penalty=presence_penalty,
             project_id=project_id,
             region=region,
+            stop_sequences=stop_sequences,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+        )
+
+    @staticmethod
+    def google_vertex(
+        *,
+        api_endpoint: Optional[str] = None,
+        project_id: Optional[str] = None,
+        endpoint_id: Optional[str] = None,
+        region: Optional[str] = None,
+        frequency_penalty: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        presence_penalty: Optional[float] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Args:
+            api_endpoint: The API endpoint to use. Defaults to `None`, which uses the server-defined default
+            endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model ID to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            project_id: The project ID to use. Defaults to `None`, which uses the server-defined default
+            region: The region to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogle(
+            api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
+            endpoint_id=endpoint_id,
+            frequency_penalty=frequency_penalty,
+            max_tokens=max_tokens,
+            model=model,
+            presence_penalty=presence_penalty,
+            project_id=project_id,
+            region=region,
+            stop_sequences=stop_sequences,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+        )
+
+    @staticmethod
+    def google_gemini(
+        *,
+        frequency_penalty: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        presence_penalty: Optional[float] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Args:
+            api_endpoint: The API endpoint to use. Defaults to `None`, which uses the server-defined default
+            endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model ID to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            project_id: The project ID to use. Defaults to `None`, which uses the server-defined default
+            region: The region to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogle(
+            api_endpoint=None,
+            endpoint_id=None,
+            frequency_penalty=frequency_penalty,
+            max_tokens=max_tokens,
+            model=model,
+            presence_penalty=presence_penalty,
+            project_id=None,
+            region=None,
             stop_sequences=stop_sequences,
             temperature=temperature,
             top_k=top_k,

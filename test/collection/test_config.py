@@ -2287,7 +2287,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
-            Configure.Vectors.text2vec_google_aistudio(
+            Configure.Vectors.text2vec_google_gemini(
                 name="test",
                 source_properties=["prop"],
                 dimensions=768,
