@@ -1359,10 +1359,10 @@ class _Vectors:
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
 
+    @staticmethod
     @typing_deprecated(
         "`text2vec_google_aistudio` is deprecated and will be removed in a future release. Use `text2vec_google_gemini`."
     )
-    @staticmethod
     def text2vec_google_aistudio(
         *,
         name: Optional[str] = None,
