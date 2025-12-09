@@ -482,6 +482,7 @@ class _GenerativeGoogleConfig(_GenerativeProvider):
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
     apiEndpoint: Optional[str]
+    region: Optional[str]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
     projectId: str
@@ -942,6 +943,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         _Warnings.palm_to_google_gen()
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
+            region=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -979,9 +981,78 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         """
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
+            region=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
+        )
+
+    @staticmethod
+    def google_vertex(
+        project_id: str,
+        api_endpoint: Optional[str] = None,
+        region: Optional[str] = None,
+        max_output_tokens: Optional[int] = None,
+        model_id: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Args:
+            project_id: The Google Vertex project ID to use.
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            region: The region to use. Defaults to `None`, which uses the server-defined default
+            max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogleConfig(
+            apiEndpoint=api_endpoint,
+            region=region,
+            maxOutputTokens=max_output_tokens,
+            modelId=model_id,
+            projectId=project_id,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
+        )
+
+    @staticmethod
+    def google_gemini(
+        max_output_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module with the Gemini API.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Args:
+            max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogleConfig(
+            apiEndpoint=None,
+            region=None,
+            maxOutputTokens=max_output_tokens,
+            modelId=model,
+            projectId="",
             temperature=temperature,
             topK=top_k,
             topP=top_p,
