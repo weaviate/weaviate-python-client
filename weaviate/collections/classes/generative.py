@@ -951,7 +951,7 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeGoogle(
-            api_endpoint=None,
+            api_endpoint=AnyUrl("generativelanguage.googleapis.com"),
             endpoint_id=None,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
