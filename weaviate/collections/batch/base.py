@@ -934,7 +934,7 @@ class _BatchBaseNew:
         # self.__batch_stream will set the shutdown event when it receives
         # the stop message from the server
         while self.__any_threads_alive():
-            time.sleep(1)
+            time.sleep(.05)
         logger.warning("Send & receive threads finished.")
 
         # copy the results to the public results
