@@ -6,7 +6,7 @@ from weaviate.collections.classes.config_base import _ConfigCreateModel
 
 class _ObjectTTLCreate(_ConfigCreateModel):
     enabled: bool = True
-    postSearchFilter: Optional[bool]
+    filterExpiredObjects: Optional[bool]
     deleteOn: Optional[str]
     defaultTtl: Optional[int]
 
@@ -29,7 +29,7 @@ class _ObjectTTL:
             time_to_live = int(time_to_live.total_seconds())
         return _ObjectTTLCreate(
             deleteOn="_lastUpdateTimeUnix",
-            postSearchFilter=filter_expired_objects,
+            filterExpiredObjects=filter_expired_objects,
             defaultTtl=time_to_live,
         )
 
@@ -48,7 +48,7 @@ class _ObjectTTL:
             time_to_live = int(time_to_live.total_seconds())
         return _ObjectTTLCreate(
             deleteOn="_creationTimeUnix",
-            postSearchFilter=filter_expired_objects,
+            filterExpiredObjects=filter_expired_objects,
             defaultTtl=time_to_live,
         )
 
@@ -71,6 +71,6 @@ class _ObjectTTL:
             ttl_offset = 0
         return _ObjectTTLCreate(
             deleteOn=property_name,
-            postSearchFilter=filter_expired_objects,
+            filterExpiredObjects=filter_expired_objects,
             defaultTtl=ttl_offset,
         )

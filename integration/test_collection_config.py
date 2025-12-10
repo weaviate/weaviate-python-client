@@ -1842,7 +1842,7 @@ def test_object_ttl_creation(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         object_ttl=Configure.ObjectTTL.delete_by_creation_time(
             time_to_live=datetime.timedelta(days=30),
-            post_search_filter=True,
+            filter_expired_objects=True,
         ),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
@@ -1861,7 +1861,7 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         object_ttl=Configure.ObjectTTL.delete_by_update_time(
             time_to_live=datetime.timedelta(days=30),
-            post_search_filter=True,
+            filter_expired_objects=True,
         ),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
@@ -1869,7 +1869,7 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
     config = collection.config.get()
     assert config.object_ttl_config is not None
     assert config.object_ttl_config.delete_on == "updateTime"
-    assert config.object_ttl_config.post_search_filter
+    assert config.object_ttl_config.filter_expired_objects
     assert config.object_ttl_config.time_to_live == datetime.timedelta(days=30)
 
 
@@ -1881,7 +1881,7 @@ def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[wvc.config.Property(name="customDate", data_type=DataType.DATE)],
         object_ttl=Configure.ObjectTTL.delete_by_date_property(
-            date_property="customDate", post_search_filter=False, time_to_live_after_date=-1
+            property_name="customDate", filter_expired_objects=False, ttl_offset=-1
         ),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
@@ -1890,4 +1890,4 @@ def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
     assert config.object_ttl_config is not None
     assert config.object_ttl_config.delete_on == "customDate"
     assert config.object_ttl_config.time_to_live == datetime.timedelta(seconds=-1)
-    assert not config.object_ttl_config.post_search_filter
+    assert not config.object_ttl_config.filter_expired_objects
