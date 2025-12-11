@@ -23,7 +23,7 @@ from weaviate.collections.classes.config import (
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
     _NamedVectorConfigCreate,
-    _ObjectTTLCreate,
+    _ObjectTTLConfigCreate,
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
     _RerankerProvider,
@@ -153,7 +153,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        object_ttl_config: Optional[_ObjectTTLCreate] = None,
+        object_ttl_config: Optional[_ObjectTTLConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -191,7 +191,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             generative_config: The configuration for Weaviate's generative capabilities.
             inverted_index_config: The configuration for Weaviate's inverted index.
             multi_tenancy_config: The configuration for Weaviate's multi-tenancy capabilities.
-            object_time_to_live: The configuration for Weaviate's object time-to-live (TTL) feature.
+            object_ttl_config: The configuration for Weaviate's object time-to-live (TTL) feature.
             properties: The properties of the objects in the collection.
             references: The references of the objects in the collection.
             replication_config: The configuration for Weaviate's replication strategy.

@@ -32,7 +32,12 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectors,
     _NamedVectorsUpdate,
 )
-from weaviate.collections.classes.config_object_ttl import _ObjectTTL, _ObjectTTLCreate
+from weaviate.collections.classes.config_object_ttl import (
+    _ObjectTTL,
+    _ObjectTTLConfigCreate,
+    _ObjectTTLConfigUpdate,
+    _ObjectTTLUpdate,
+)
 from weaviate.collections.classes.config_vector_index import (
     PQEncoderDistribution,
     PQEncoderType,
@@ -999,7 +1004,11 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             service: The AWS service to use, options are "bedrock" and "sagemaker".
         """
         return _GenerativeAWSConfig(
-            model=model, region=region, service=service, endpoint=endpoint, maxTokens=max_tokens
+            model=model,
+            region=region,
+            service=service,
+            endpoint=endpoint,
+            maxTokens=max_tokens,
         )
 
     @staticmethod
@@ -1144,6 +1153,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     invertedIndexConfig: Optional[_InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
     )
+    objectTTLConfig: Optional[_ObjectTTLConfigUpdate] = Field(
+        default=None, alias="object_ttl_config"
+    )
     replicationConfig: Optional[_ReplicationConfigUpdate] = Field(
         default=None, alias="replication_config"
     )
@@ -1250,6 +1262,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         if self.multiTenancyConfig is not None:
             schema["multiTenancyConfig"] = self.multiTenancyConfig.merge_with_existing(
                 schema["multiTenancyConfig"]
+            )
+        if self.objectTTLConfig is not None:
+            schema["objectTTLConfig"] = self.objectTTLConfig.merge_with_existing(
+                schema.get("objectTTLConfig", {})
             )
         if self.vectorIndexConfig is not None:
             self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
@@ -1949,7 +1965,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     multiTenancyConfig: Optional[_MultiTenancyConfigCreate] = Field(
         default=None, alias="multi_tenancy_config"
     )
-    objectTtlConfig: Optional[_ObjectTTLCreate] = Field(default=None, alias="object_ttl_config")
+    objectTtlConfig: Optional[_ObjectTTLConfigCreate] = Field(
+        default=None, alias="object_ttl_config"
+    )
     replicationConfig: Optional[_ReplicationConfigCreate] = Field(
         default=None, alias="replication_config"
     )
@@ -1975,9 +1993,17 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     @classmethod
     def validate_vector_names(
         cls,
-        v: Union[_VectorizerConfigCreate, _NamedVectorConfigCreate, List[_NamedVectorConfigCreate]],
+        v: Union[
+            _VectorizerConfigCreate,
+            _NamedVectorConfigCreate,
+            List[_NamedVectorConfigCreate],
+        ],
         info: ValidationInfo,
-    ) -> Union[_VectorizerConfigCreate, _NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]:
+    ) -> Union[
+        _VectorizerConfigCreate,
+        _NamedVectorConfigCreate,
+        List[_NamedVectorConfigCreate],
+    ]:
         if isinstance(v, list):
             names = [vc.name for vc in v]
             if len(names) != len(set(names)):
@@ -1998,7 +2024,8 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             and info.data["vectorIndexConfig"] is None
         ):
             return _VectorConfigCreate(
-                name="default", vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
+                name="default",
+                vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             )
         return v
 
@@ -2391,6 +2418,7 @@ class Reconfigure:
     VectorIndex = _VectorIndexUpdate
     Generative = _Generative  # config is the same for create and update
     Reranker = _Reranker  # config is the same for create and update
+    ObjectTTL = _ObjectTTLUpdate
 
     @staticmethod
     def inverted_index(

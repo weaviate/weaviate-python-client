@@ -1,4 +1,5 @@
 import os
+import time
 from typing import (
     Any,
     AsyncGenerator,
@@ -11,17 +12,16 @@ from typing import (
     Type,
     Union,
 )
+from typing import Callable, TypeVar
 
 import pytest
 import pytest_asyncio
 from _pytest.fixtures import SubRequest
-import time
-from typing import Callable, TypeVar
 
 import weaviate
 from weaviate.collections import Collection, CollectionAsync
 from weaviate.collections.classes.config import (
-    _ObjectTTLCreate,
+    _ObjectTTLConfigCreate,
     Configure,
     DataType,
     Property,
@@ -38,7 +38,6 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties
 from weaviate.config import AdditionalConfig
-
 from weaviate.exceptions import UnexpectedStatusCodeError
 
 
@@ -67,7 +66,7 @@ class CollectionFactory(Protocol):
         vector_config: Optional[
             Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
         ] = None,
-        object_ttl: Optional[_ObjectTTLCreate] = None,
+        object_ttl: Optional[_ObjectTTLConfigCreate] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -142,7 +141,7 @@ def collection_factory(
         vector_config: Optional[
             Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
         ] = None,
-        object_ttl: Optional[_ObjectTTLCreate] = None,
+        object_ttl: Optional[_ObjectTTLConfigCreate] = None,
     ) -> Collection[Any, Any]:
         try:
             nonlocal client_fixture, name_fixtures, call_counter  # noqa: F824
