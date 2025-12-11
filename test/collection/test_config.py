@@ -1092,11 +1092,11 @@ def test_config_with_generative(
 
 TEST_CONFIG_WITH_RERANKER = [
     (
-        Configure.Reranker.cohere(model="model", base_url="https://some.base.url"),
+        Configure.Reranker.cohere(model="model", base_url="https://some.base.url/"),
         {
             "reranker-cohere": {
                 "model": "model",
-                "baseURL": "https://some.base.url",
+                "baseURL": "https://some.base.url/",
             },
         },
     ),
