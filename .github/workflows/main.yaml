@@ -26,6 +26,7 @@ env:
   WEAVIATE_132: 1.32.16
   WEAVIATE_133: 1.33.4
   WEAVIATE_134: 1.34.1
+  WEAVIATE_135: 1.35.0-dev-0b0bd3d
 
 jobs:
   lint-and-format:
@@ -305,6 +306,7 @@ jobs:
           $WEAVIATE_132,
           $WEAVIATE_133,
           $WEAVIATE_134
+          $WEAVIATE_135
         ]
     steps:
       - name: Checkout
