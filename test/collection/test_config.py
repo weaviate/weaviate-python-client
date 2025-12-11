@@ -943,9 +943,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
             service="bedrock",
             endpoint="custom-endpoint",
             max_tokens=100,
-            temperature=0.5,
-            target_model="target-model",
-            target_variant="target-variant",
         ),
         {
             "generative-aws": {
@@ -954,9 +951,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "service": "bedrock",
                 "endpoint": "custom-endpoint",
                 "maxTokens": 100,
-                "temperature": 0.5,
-                "targetModel": "target-model",
-                "targetVariant": "target-variant",
             }
         },
     ),
