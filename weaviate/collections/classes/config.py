@@ -1712,7 +1712,7 @@ NamedVectorConfig = _NamedVectorConfig
 class _ObjectTTLConfig(_ConfigBase):
     enabled: bool
     time_to_live: Optional[datetime.timedelta]
-    post_search_filter: bool
+    filter_expired_objects: bool
     delete_on: Union[str, Literal["updateTime"], Literal["creationTime"]]
 
 

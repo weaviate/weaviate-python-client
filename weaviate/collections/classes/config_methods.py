@@ -396,7 +396,7 @@ def _get_object_ttl_config(schema: Dict[str, Any]) -> Optional[_ObjectTTLConfig]
         return _ObjectTTLConfig(
             enabled=True,
             delete_on=delete_on,
-            post_search_filter=schema["objectTtlConfig"]["postSearchFilter"],
+            filter_expired_objects=schema["objectTtlConfig"]["filterExpiredObjects"],
             time_to_live=time_to_live,
         )
     else:

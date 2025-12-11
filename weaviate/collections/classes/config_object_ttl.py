@@ -6,7 +6,7 @@ from weaviate.collections.classes.config_base import _ConfigCreateModel
 
 class _ObjectTTLCreate(_ConfigCreateModel):
     enabled: bool = True
-    postSearchFilter: Optional[bool]
+    filterExpiredObjects: Optional[bool]
     deleteOn: Optional[str]
     defaultTtl: Optional[int]
 
@@ -17,60 +17,60 @@ class _ObjectTTL:
     @staticmethod
     def delete_by_update_time(
         time_to_live: int | datetime.timedelta,
-        post_search_filter: Optional[bool] = None,
+        filter_expired_objects: Optional[bool] = None,
     ) -> _ObjectTTLCreate:
         """Create an `ObjectTimeToLiveConfig` object to be used when defining the object time-to-live configuration of Weaviate.
 
         Args:
-            time_to_live: The time-to-live for objects in seconds.
-            post_search_filter: If enabled search results will be filtered to remove expired objects that have not yet been deleted.
+            time_to_live: The time-to-live for objects in relation to their last update time (seconds). Must be positive.
+            filter_expired_objects: If enabled, exclude expired but not deleted objects from search results.
         """
         if isinstance(time_to_live, datetime.timedelta):
             time_to_live = int(time_to_live.total_seconds())
         return _ObjectTTLCreate(
             deleteOn="_lastUpdateTimeUnix",
-            postSearchFilter=post_search_filter,
+            filterExpiredObjects=filter_expired_objects,
             defaultTtl=time_to_live,
         )
 
     @staticmethod
     def delete_by_creation_time(
         time_to_live: int | datetime.timedelta,
-        post_search_filter: Optional[bool] = None,
+        filter_expired_objects: Optional[bool] = None,
     ) -> _ObjectTTLCreate:
         """Create an `ObjectTimeToLiveConfig` object to be used when defining the object time-to-live configuration of Weaviate.
 
         Args:
-            time_to_live: The time-to-live for objects in seconds. Must be a positive value.
-            post_search_filter: If enabled search results will be filtered to remove expired objects that have not yet been deleted.
+            time_to_live: The time-to-live for objects in relation to their creation time (seconds). Must be positive.
+            filter_expired_objects: If enabled, exclude expired but not deleted objects from search results.
         """
         if isinstance(time_to_live, datetime.timedelta):
             time_to_live = int(time_to_live.total_seconds())
         return _ObjectTTLCreate(
             deleteOn="_creationTimeUnix",
-            postSearchFilter=post_search_filter,
+            filterExpiredObjects=filter_expired_objects,
             defaultTtl=time_to_live,
         )
 
     @staticmethod
     def delete_by_date_property(
-        date_property: str,
-        time_to_live_after_date: Optional[int | datetime.timedelta] = None,
-        post_search_filter: Optional[bool] = None,
+        property_name: str,
+        ttl_offset: Optional[int | datetime.timedelta] = None,
+        filter_expired_objects: Optional[bool] = None,
     ) -> _ObjectTTLCreate:
         """Create an Object ttl config for a custom date property.
 
         Args:
-            date_property: The name of the date property to use for object expiration.
-            time_to_live_after_date: The time-to-live for objects in seconds after the date property value. Can be negative
-            post_search_filter: If enabled search results will be filtered to remove expired objects that have not yet been deleted.
+            property_name: The name of the date property to use for object expiration.
+            ttl_offset: The time-to-live for objects relative to the date (seconds if integer). Can be negative for indicating that objects should expire before the date property value.
+            filter_expired_objects: If enabled, exclude expired but not deleted objects from search results.
         """
-        if isinstance(time_to_live_after_date, datetime.timedelta):
-            time_to_live_after_date = int(time_to_live_after_date.total_seconds())
-        if time_to_live_after_date is None:
-            time_to_live_after_date = 0
+        if isinstance(ttl_offset, datetime.timedelta):
+            ttl_offset = int(ttl_offset.total_seconds())
+        if ttl_offset is None:
+            ttl_offset = 0
         return _ObjectTTLCreate(
-            deleteOn=date_property,
-            postSearchFilter=post_search_filter,
-            defaultTtl=time_to_live_after_date,
+            deleteOn=property_name,
+            filterExpiredObjects=filter_expired_objects,
+            defaultTtl=ttl_offset,
         )
