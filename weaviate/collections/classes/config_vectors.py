@@ -693,7 +693,7 @@ class _Vectors:
 
     @staticmethod
     @typing_deprecated(
-        "`text2vec_aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `text2vec_aws_bedrock`."
+        "`text2vec_aws` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `text2vec_aws_bedrock`."
     )
     def text2vec_aws(
         *,
@@ -814,7 +814,7 @@ class _Vectors:
 
     @staticmethod
     @typing_deprecated(
-        "`multi2vec_aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `multi2vec_aws_bedrock`."
+        "`multi2vec_aws` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `multi2vec_aws_bedrock`."
     )
     def multi2vec_aws(
         *,
@@ -829,7 +829,7 @@ class _Vectors:
     ) -> _VectorConfigCreate:
         """Create a vector using the `multi2vec-aws` module.
 
-        Note: `multi2vec_aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `multi2vec_aws_bedrock`.
+        Note: `multi2vec_aws` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `multi2vec_aws_bedrock`.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
         for detailed usage.
@@ -1218,7 +1218,7 @@ class _Vectors:
 
     @staticmethod
     @typing_deprecated(
-        "The `text2vec-gpt4all` vectorizer is deprecated and will be removed in a future release. See the docs (https://docs.weaviate.io/weaviate/model-providers) for alternatives."
+        "The `text2vec-gpt4all` vectorizer is deprecated and will be removed after Q3 '26. See the docs (https://docs.weaviate.io/weaviate/model-providers) for alternatives."
     )
     def text2vec_gpt4all(
         *,
@@ -1307,7 +1307,7 @@ class _Vectors:
 
     @staticmethod
     @typing_deprecated(
-        "`text2vec_google` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `text2vec_google_vertex` or `text2vec_google_gemini`."
+        "`text2vec_google` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `text2vec_google_vertex` or `text2vec_google_gemini`."
     )
     def text2vec_google(
         *,
@@ -1361,7 +1361,7 @@ class _Vectors:
 
     @staticmethod
     @typing_deprecated(
-        "`text2vec_google_aistudio` is deprecated and will be removed in a future release. Use `text2vec_google_gemini`."
+        "`text2vec_google_aistudio` is deprecated and will be removed after Q3 '26. Use `text2vec_google_gemini` instead."
     )
     def text2vec_google_aistudio(
         *,

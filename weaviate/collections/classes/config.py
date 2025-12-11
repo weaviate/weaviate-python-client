@@ -453,7 +453,6 @@ class _GenerativeCohereConfig(_GenerativeProvider):
     k: Optional[int]
     model: Optional[str]
     maxTokens: Optional[int]
-    # returnLikelihoods: Optional[str]  # Not implemented server-side
     stopSequences: Optional[List[str]]
     temperature: Optional[float]
 
@@ -963,7 +962,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     @typing_deprecated(
-        "`google()` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `google_vertex` or `google_gemini`."
+        "`google()`  is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `google_vertex` or `google_gemini`."
     )
     def google(
         project_id: str,
@@ -1083,7 +1082,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     @typing_deprecated(
-        "`aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `aws_bedrock`."
+        "`aws` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `aws_bedrock`."
     )
     def aws(
         model: Optional[str] = None,
@@ -1091,9 +1090,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
         max_tokens: Optional[int] = None,
-        target_model: Optional[str] = None,
-        target_variant: Optional[str] = None,
-        temperature: Optional[float] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
@@ -1106,19 +1102,16 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             region: The AWS region to run the model from, REQUIRED.
             endpoint: The model to use, REQUIRED for service "sagemaker".
             service: The AWS service to use, options are "bedrock" and "sagemaker".
-            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
-            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
-            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAWSConfig(
             model=model,
             region=region,
             service=service,
             endpoint=endpoint,
-            temperature=temperature,
+            temperature=None,
             maxTokens=max_tokens,
-            targetModel=target_model,
-            targetVariant=target_variant,
+            targetModel=None,
+            targetVariant=None,
             topK=None,
             topP=None,
             stopSequences=None,

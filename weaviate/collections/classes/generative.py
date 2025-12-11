@@ -540,7 +540,7 @@ class GenerativeConfig:
 
     @staticmethod
     @typing_deprecated(
-        "`aws` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `aws_bedrock`."
+        "`aws` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `aws_bedrock`."
     )
     def aws(
         *,
@@ -552,9 +552,6 @@ class GenerativeConfig:
         target_model: Optional[str] = None,
         target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
-        top_k: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[List[str]] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
 
@@ -570,9 +567,6 @@ class GenerativeConfig:
             target_model: The target model to use. Defaults to `None`, which uses the server-defined default
             target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
-            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
-            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
-            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAWS(
             model=model,
@@ -583,9 +577,9 @@ class GenerativeConfig:
             target_model=target_model,
             target_variant=target_variant,
             temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-            stop_sequences=stop_sequences,
+            top_k=None,
+            top_p=None,
+            stop_sequences=None,
         )
 
     @staticmethod
@@ -822,7 +816,7 @@ class GenerativeConfig:
 
     @staticmethod
     @typing_deprecated(
-        "`google()` is deprecated and will be removed in a future release. Use a service-specific method instead, such as `google_vertex` or `google_gemini`."
+        "`google()` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `google_vertex` or `google_gemini`."
     )
     def google(
         *,
