@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from queue import Queue
 from typing import Any, Dict, Generator, Generic, List, Optional, Set, TypeVar, Union, cast
 
-from httpx import ConnectError
 from pydantic import ValidationError
 from typing_extensions import TypeAlias
 
@@ -42,7 +41,7 @@ from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import (
-    EmptyResponseException,
+    WeaviateBatchFailedToReestablishStreamError,
     WeaviateBatchStreamError,
     WeaviateBatchValidationError,
     WeaviateGRPCUnavailableError,
@@ -857,6 +856,8 @@ class _BatchBaseNew:
         self.__batch_grpc = _BatchGRPC(
             connection._weaviate_version, self.__consistency_level, connection._grpc_max_msg_size
         )
+        self.__cluster = _ClusterBatch(self.__connection)
+        self.__number_of_nodes = self.__cluster.get_number_of_nodes()
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
         self.__uuid_lookup: Set[str] = set()
@@ -872,6 +873,7 @@ class _BatchBaseNew:
         self.__results_lock = threading.Lock()
 
         self.__bg_thread_exception: Optional[Exception] = None
+        self.__is_oom = threading.Event()
         self.__is_shutting_down = threading.Event()
         self.__is_shutdown = threading.Event()
 
@@ -990,7 +992,12 @@ class _BatchBaseNew:
 
                 for req in self.__generate_stream_requests(objs, refs):
                     logged = False
-                    while self.__is_shutting_down.is_set() or self.__is_shutdown.is_set():
+                    start = time.time()
+                    while (
+                        self.__is_oom.is_set()
+                        or self.__is_shutting_down.is_set()
+                        or self.__is_shutdown.is_set()
+                    ):
                         # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
                         # so that the connection is refreshed to a new node where the objects can be accepted
                         # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
@@ -1000,6 +1007,10 @@ class _BatchBaseNew:
                             # put sentinel into our queue to signal the end of the current stream
                             self.__reqs.put(None)
                         time.sleep(1)
+                        if time.time() - start > 300:
+                            raise WeaviateBatchFailedToReestablishStreamError(
+                                "Batch stream was not re-established within 5 minutes. Terminating batch."
+                            )
                     if logged:
                         logger.warning("Stream re-established, resuming sending batches")
                     self.__reqs.put(req)
@@ -1026,6 +1037,8 @@ class _BatchBaseNew:
         request = request_maker()
         total_size = request.ByteSize()
 
+        inflight_objs = set()
+        inflight_refs = set()
         for object_ in objects:
             obj = self.__batch_grpc.grpc_object(object_._to_internal())
             obj_size = obj.ByteSize() + per_object_overhead
@@ -1038,8 +1051,7 @@ class _BatchBaseNew:
             request.data.objects.values.append(obj)
             total_size += obj_size
             if self.__connection._weaviate_version.is_at_least(1, 35, 0):
-                with self.__acks_lock:
-                    self.__inflight_objs.add(obj.uuid)
+                inflight_objs.add(obj.uuid)
 
         for reference in references:
             ref = self.__batch_grpc.grpc_reference(reference._to_internal())
@@ -1053,8 +1065,11 @@ class _BatchBaseNew:
             request.data.references.values.append(ref)
             total_size += ref_size
             if self.__connection._weaviate_version.is_at_least(1, 35, 0):
-                with self.__acks_lock:
-                    self.__inflight_refs.add(reference._to_beacon())
+                inflight_refs.add(reference._to_beacon())
+
+        with self.__acks_lock:
+            self.__inflight_objs.update(inflight_objs)
+            self.__inflight_refs.update(inflight_refs)
 
         if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
             yield request
@@ -1084,6 +1099,9 @@ class _BatchBaseNew:
                 return
             if self.__is_shutting_down.is_set():
                 logger.warning("Server shutting down, closing the client-side of the stream")
+                return
+            if self.__is_oom.is_set():
+                logger.warning("Server out-of-memory, closing the client-side of the stream")
                 return
             logger.warning("Received sentinel, but not stopping, continuing...")
 
@@ -1179,11 +1197,23 @@ class _BatchBaseNew:
                     self.__results_for_wrapper.results.refs += result_refs
                     self.__results_for_wrapper.failed_objects.extend(failed_objs)
                     self.__results_for_wrapper.failed_references.extend(failed_refs)
+            elif message.HasField("out_of_memory"):
+                logger.warning(
+                    "Server reported out-of-memory error. Batching will wait at most 10 minutes for the server to scale-up. If the server does not recover within this time, the batch will terminate with an error."
+                )
+                self.__is_oom.set()
+                self.__batch_objects.prepend(
+                    [self.__objs_cache[uuid] for uuid in message.out_of_memory.uuids]
+                )
+                self.__batch_references.prepend(
+                    [self.__refs_cache[beacon] for beacon in message.out_of_memory.beacons]
+                )
             elif message.HasField("shutting_down"):
                 logger.warning(
                     "Received shutting down message from server, pausing sending until stream is re-established"
                 )
                 self.__is_shutting_down.set()
+                self.__is_oom.clear()
             elif message.HasField("shutdown"):
                 logger.warning("Received shutdown finished message from server")
                 self.__is_shutdown.set()
@@ -1201,16 +1231,17 @@ class _BatchBaseNew:
             return
 
     def __reconnect(self, retry: int = 0) -> None:
-        if self.__consistency_level == ConsistencyLevel.ALL:
+        if self.__consistency_level == ConsistencyLevel.ALL or self.__number_of_nodes == 1:
             # check that all nodes are available before reconnecting
-            cluster = _ClusterBatch(self.__connection)
-            while len(nodes := cluster.get_nodes_status()) != 3 or any(
-                node["status"] != "HEALTHY" for node in nodes
+            up_nodes = self.__cluster.get_nodes_status()
+            while len(up_nodes) != self.__number_of_nodes or any(
+                node["status"] != "HEALTHY" for node in up_nodes
             ):
                 logger.warning(
-                    "Waiting for all nodes to be HEALTHY before reconnecting to batch stream due to CL=ALL..."
+                    "Waiting for all nodes to be HEALTHY before reconnecting to batch stream..."
                 )
                 time.sleep(5)
+                up_nodes = self.__cluster.get_nodes_status()
         try:
             logger.warning(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
             self.__connection.close("sync")
@@ -1243,8 +1274,12 @@ class _BatchBaseNew:
                 logger.warning("exited batch receive thread")
             except Exception as e:
                 if isinstance(e, WeaviateBatchStreamError) and (
-                    "Socket closed" in e.message or "context canceled" in e.message
+                    "Socket closed" in e.message
+                    or "context canceled" in e.message
+                    or "Connection reset" in e.message
+                    or "Received RST_STREAM with error code 2" in e.message
                 ):
+                    logger.error(f"Socket hung up detected in batch receive thread: {e.message}")
                     socket_hung_up = True
                 else:
                     logger.error(e)
@@ -1324,7 +1359,7 @@ class _BatchBaseNew:
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
         # not need a long queue
-        while len(self.__inflight_objs) >= self.__batch_size * 2:
+        while len(self.__inflight_objs) >= self.__batch_size:
             self.__check_bg_threads_alive()
             time.sleep(0.01)
 
@@ -1386,12 +1421,15 @@ class _ClusterBatch:
     ) -> List[Node]:
         try:
             response = executor.result(self._connection.get(path="/nodes"))
-        except ConnectError as conn_err:
-            raise ConnectError("Get nodes status failed due to connection error") from conn_err
+        except Exception:
+            return []
 
         response_typed = _decode_json_response_dict(response, "Nodes status")
         assert response_typed is not None
         nodes = response_typed.get("nodes")
-        if nodes is None or nodes == []:
-            raise EmptyResponseException("Nodes status response returned empty")
+        if nodes is None:
+            return []
         return cast(List[Node], nodes)
+
+    def get_number_of_nodes(self) -> int:
+        return len(self.get_nodes_status())
