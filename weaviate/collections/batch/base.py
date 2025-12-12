@@ -927,9 +927,9 @@ class _BatchBaseNew:
         while not self.__all_threads_alive():
             # wait for the stream to be started by __batch_stream
             time.sleep(0.01)
-            if time.time() - now > 10:
-                raise WeaviateBatchValidationError(
-                    "Batch stream was not started within 10 seconds. Please check your connection."
+            if time.time() - now > 60:
+                raise WeaviateBatchStreamError(
+                    "Batch stream was not started within 60 seconds. Please check your connection."
                 )
 
     def _shutdown(self) -> None:
