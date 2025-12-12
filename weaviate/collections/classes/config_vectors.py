@@ -37,9 +37,11 @@ from weaviate.collections.classes.config_vectorizers import (
     VoyageModel,
     VoyageMultimodalModel,
     WeaviateModel,
+    WeaviateMultimodalModel,
     _Img2VecNeuralConfig,
     _map_multi2vec_fields,
     _Multi2MultiVecJinaConfig,
+    _Multi2MultiVecWeaviateConfig,
     _Multi2VecAWSConfig,
     _Multi2VecBindConfig,
     _Multi2VecClipConfig,
@@ -282,6 +284,43 @@ class _MultiVectors:
                 model=model,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
+            ),
+            vector_index_config=_IndexWrappers.multi(
+                vector_index_config, quantizer, multi_vector_config, encoding
+            ),
+        )
+
+    @staticmethod
+    def multi2vec_weaviate(
+        *,
+        image_field: str,
+        name: Optional[str] = None,
+        encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+        model: Optional[Union[WeaviateMultimodalModel, str]] = None,
+        multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `multi2multivec-weaviate` module.
+
+        Args:
+            image_field: The image field to use in vectorization.
+            name: The name of the vector.
+            encoding: The type of multi-vector encoding to use in the vector index. Defaults to `None`, which uses the server-defined default.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            multi_vector_config: The configuration for the multi-vector index. Use `wvc.config.Configure.VectorIndex.MultiVector` to create a multi-vector configuration. None by default
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2MultiVecWeaviateConfig(
+                baseURL=base_url,
+                model=model,
+                imageFields=_map_multi2vec_fields([image_field]),
+                textFields=None,
             ),
             vector_index_config=_IndexWrappers.multi(
                 vector_index_config, quantizer, multi_vector_config, encoding
