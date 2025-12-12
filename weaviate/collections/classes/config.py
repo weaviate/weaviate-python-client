@@ -14,7 +14,7 @@ from typing import (
 )
 
 from deprecation import deprecated as docstring_deprecated
-from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
+from pydantic import AnyHttpUrl, AnyUrl, Field, ValidationInfo, field_validator
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
@@ -536,6 +536,13 @@ class _RerankerCohereConfig(_RerankerProvider):
         default=Rerankers.COHERE, frozen=True, exclude=True
     )
     model: Optional[Union[RerankerCohereModel, str]] = Field(default=None)
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
 
 class _RerankerCustomConfig(_RerankerProvider):
@@ -1259,6 +1266,7 @@ class _Reranker:
     @staticmethod
     def cohere(
         model: Optional[Union[RerankerCohereModel, str]] = None,
+        base_url: Optional[str] = None,
     ) -> _RerankerProvider:
         """Create a `_RerankerCohereConfig` object for use when reranking using the `reranker-cohere` module.
 
@@ -1267,8 +1275,11 @@ class _Reranker:
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
         """
-        return _RerankerCohereConfig(model=model)
+        return _RerankerCohereConfig(
+            model=model, baseURL=AnyUrl(base_url) if base_url is not None else None
+        )
 
     @staticmethod
     def jinaai(
