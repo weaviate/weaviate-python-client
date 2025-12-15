@@ -204,6 +204,8 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     endpoint: Optional[str]
     region: str
     service: str
+    targetModel: Optional[str]
+    targetVariant: Optional[str]
     vectorizeClassName: bool
 
     @field_validator("region")
@@ -744,6 +746,8 @@ class _Vectorizer:
             vectorizeClassName=vectorize_collection_name,
             service=service,
             endpoint=endpoint,
+            targetModel=None,
+            targetVariant=None,
         )
 
     @staticmethod
