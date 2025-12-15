@@ -740,3 +740,170 @@ def test_near_text_generate_with_dynamic_rag(
             assert g0.debug is None
             assert g0.metadata is None
             assert g1.metadata is None
+
+
+@pytest.mark.parametrize("parameter,answer", [("text", "yes"), ("content", "no")])
+def test_contextualai_generative_search_single(
+    collection_factory: CollectionFactory, parameter: str, answer: str
+) -> None:
+    """Test Contextual AI generative search with single prompt."""
+    api_key = os.environ.get("CONTEXTUAL_API_KEY")
+    if api_key is None:
+        pytest.skip("No Contextual AI API key found.")
+
+    collection = collection_factory(
+        name="TestContextualAIGenerativeSingle",
+        generative_config=Configure.Generative.contextualai(
+            model="v2",
+            max_new_tokens=100,
+            temperature=0.1,
+            system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context. Answer with yes or no only.",
+            avoid_commentary=False,
+        ),
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+        ],
+        headers={"X-Contextual-Api-Key": api_key},
+        ports=(8086, 50057),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
+        pytest.skip("Generative search requires Weaviate 1.23.1 or higher")
+
+    collection.data.insert_many(
+        [
+            DataObject(properties={"text": "bananas are great", "content": "bananas are bad"}),
+            DataObject(properties={"text": "apples are great", "content": "apples are bad"}),
+        ]
+    )
+
+    res = collection.generate.fetch_objects(
+        single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation",
+    )
+    for obj in res.objects:
+        assert obj.generated is not None
+        assert obj.generated.lower() == answer
+    assert res.generated is None
+
+
+def test_contextualai_generative_with_knowledge_parameter(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Test Contextual AI generative search with knowledge parameter override."""
+    api_key = os.environ.get("CONTEXTUAL_API_KEY")
+    if api_key is None:
+        pytest.skip("No Contextual AI API key found.")
+
+    collection = collection_factory(
+        name="TestContextualAIGenerativeKnowledge",
+        generative_config=Configure.Generative.contextualai(
+            model="v2",
+            max_new_tokens=100,
+            temperature=0.1,
+            system_prompt="You are a helpful assistant.",
+            avoid_commentary=False,
+        ),
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        headers={"X-Contextual-Api-Key": api_key},
+        ports=(8086, 50057),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
+        pytest.skip("Generative search requires Weaviate 1.23.1 or higher")
+
+    collection.data.insert_many(
+        [
+            DataObject(properties={"text": "base knowledge"}),
+        ]
+    )
+
+    # Test with knowledge parameter override
+    res = collection.generate.fetch_objects(
+        single_prompt="What is the custom knowledge?",
+        config=GenerativeConfig.contextualai(
+            knowledge=["Custom knowledge override", "Additional context"],
+        ),
+    )
+    for obj in res.objects:
+        assert obj.generated is not None
+        assert isinstance(obj.generated, str)
+
+
+def test_contextualai_generative_and_rerank_combined(collection_factory: CollectionFactory) -> None:
+    """Test Contextual AI generative search combined with reranking."""
+    contextual_api_key = os.environ.get("CONTEXTUAL_API_KEY")
+    if contextual_api_key is None:
+        pytest.skip("No Contextual AI API key found.")
+
+    collection = collection_factory(
+        name="TestContextualAIGenerativeAndRerank",
+        generative_config=Configure.Generative.contextualai(
+            model="v2",
+            max_new_tokens=100,
+            temperature=0.1,
+            system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
+            avoid_commentary=False,
+        ),
+        reranker_config=Configure.Reranker.contextualai(
+            model="ctxl-rerank-v2-instruct-multilingual",
+            instruction="Prioritize documents that contain the query term",
+        ),
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(),
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        headers={"X-Contextual-Api-Key": contextual_api_key},
+        ports=(8086, 50057),
+    )
+    if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
+        pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")
+
+    insert = collection.data.insert_many(
+        [{"text": "This is a test"}, {"text": "This is another test"}]
+    )
+    uuid1 = insert.uuids[0]
+    vector1 = collection.query.fetch_object_by_id(uuid1, include_vector=True).vector
+    assert vector1 is not None
+
+    for _idx, query in enumerate(
+        [
+            lambda: collection.generate.bm25(
+                "test",
+                rerank=Rerank(prop="text", query="another"),
+                single_prompt="What is it? {text}",
+            ),
+            lambda: collection.generate.hybrid(
+                "test",
+                rerank=Rerank(prop="text", query="another"),
+                single_prompt="What is it? {text}",
+            ),
+            lambda: collection.generate.near_object(
+                uuid1,
+                rerank=Rerank(prop="text", query="another"),
+                single_prompt="What is it? {text}",
+            ),
+            lambda: collection.generate.near_vector(
+                vector1["default"],
+                rerank=Rerank(prop="text", query="another"),
+                single_prompt="What is it? {text}",
+            ),
+            lambda: collection.generate.near_text(
+                "test",
+                rerank=Rerank(prop="text", query="another"),
+                single_prompt="What is it? {text}",
+            ),
+        ]
+    ):
+        objects = query().objects
+        assert len(objects) == 2
+        assert objects[0].metadata.rerank_score is not None
+        assert objects[0].generated is not None
+        assert objects[1].metadata.rerank_score is not None
+        assert objects[1].generated is not None
+
+        assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
+            0
+        ].metadata.rerank_score > [
+            obj for obj in objects if "another" not in obj.properties["text"]
+        ][0].metadata.rerank_score

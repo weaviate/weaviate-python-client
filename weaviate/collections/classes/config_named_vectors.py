@@ -981,6 +981,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
+                taskType=None,
             ),
             vector_index_config=vector_index_config,
         )
@@ -1026,6 +1027,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
+                taskType=None,
             ),
             vector_index_config=vector_index_config,
         )
@@ -1067,6 +1069,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
+                taskType=None,
             ),
             vector_index_config=vector_index_config,
         )

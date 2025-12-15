@@ -464,7 +464,6 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
         wait_for_completion=True,
         config=BackupConfigCreate(
             cpu_percentage=60,
-            chunk_size=256,
             compression_level=BackupCompressionLevel.BEST_SPEED,
         ),
     )
