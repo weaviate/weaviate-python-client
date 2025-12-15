@@ -732,6 +732,8 @@ class _Vectors:
                 region=region,
                 service=service,
                 vectorizeClassName=vectorize_collection_name,
+                targetModel=None,
+                targetVariant=None,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -770,6 +772,8 @@ class _Vectors:
                 region=region,
                 service="bedrock",
                 vectorizeClassName=vectorize_collection_name,
+                targetModel=None,
+                targetVariant=None,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -780,6 +784,8 @@ class _Vectors:
         name: Optional[str] = None,
         endpoint: str,
         region: str,
+        target_model: Optional[str] = None,
+        target_variant: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
@@ -794,6 +800,8 @@ class _Vectors:
             name: The name of the vector.
             endpoint: The endpoint to use, REQUIRED.
             region: The AWS region to run the model from, REQUIRED.
+            target_model: The target model to use. Defaults to `None`, which uses the server-defined default.
+            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
@@ -806,6 +814,8 @@ class _Vectors:
                 model=None,
                 endpoint=endpoint,
                 region=region,
+                targetModel=target_model,
+                targetVariant=target_variant,
                 service="sagemaker",
                 vectorizeClassName=vectorize_collection_name,
             ),

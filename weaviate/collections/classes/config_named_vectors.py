@@ -477,6 +477,8 @@ class _NamedVectors:
                 region=region,
                 service=service,
                 vectorizeClassName=vectorize_collection_name,
+                targetModel=None,
+                targetVariant=None,
             ),
             vector_index_config=vector_index_config,
         )
