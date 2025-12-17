@@ -21,7 +21,7 @@ from weaviate.collections.classes.config import (
     _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigSPFreshUpdate,
+    _VectorIndexConfigHFreshUpdate,
 )
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.connect.v4 import ConnectionSync
@@ -44,14 +44,14 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate, _VectorIndexConfigSPFreshUpdate]
+            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate, _VectorIndexConfigHFreshUpdate]
         ] = None,
         vectorizer_config: Optional[
             Union[
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
                 _VectorIndexConfigDynamicUpdate,
-                _VectorIndexConfigSPFreshUpdate,
+                _VectorIndexConfigHFreshUpdate,
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,

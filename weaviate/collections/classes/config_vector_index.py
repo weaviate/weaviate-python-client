@@ -35,13 +35,13 @@ class VectorIndexType(str, Enum):
         HNSW: Hierarchical Navigable Small World (HNSW) index.
         FLAT: Flat index.
         DYNAMIC: Dynamic index.
-        SPFRESH: SPFRESH index.
+        HFRESH: HFRESH index.
     """
 
     HNSW = "hnsw"
     FLAT = "flat"
     DYNAMIC = "dynamic"
-    SPFRESH = "spfresh"
+    HFRESH = "hfresh"
 
 
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):
@@ -130,7 +130,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
         return VectorIndexType.HNSW
 
 
-class _VectorIndexConfigSPFreshCreate(_VectorIndexConfigCreate):
+class _VectorIndexConfigHFreshCreate(_VectorIndexConfigCreate):
     maxPostingSize: Optional[int]
     minPostingSize: Optional[int]
     replicas: Optional[int]
@@ -139,7 +139,7 @@ class _VectorIndexConfigSPFreshCreate(_VectorIndexConfigCreate):
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
-        return VectorIndexType.SPFRESH
+        return VectorIndexType.HFRESH
 
 
 class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
@@ -164,7 +164,7 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
         return VectorIndexType.HNSW
 
 
-class _VectorIndexConfigSPFreshUpdate(_VectorIndexConfigUpdate):
+class _VectorIndexConfigHFreshUpdate(_VectorIndexConfigUpdate):
     maxPostingSize: Optional[int]
     minPostingSize: Optional[int]
     rngFactor: Optional[int]
@@ -172,7 +172,7 @@ class _VectorIndexConfigSPFreshUpdate(_VectorIndexConfigUpdate):
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
-        return VectorIndexType.SPFRESH
+        return VectorIndexType.HFRESH
 
 
 class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
@@ -591,7 +591,7 @@ class _VectorIndex:
         )
 
     @staticmethod
-    def spfresh(
+    def hfresh(
         distance_metric: Optional[VectorDistances] = None,
         max_posting_size: Optional[int] = None,
         min_posting_size: Optional[int] = None,
@@ -601,15 +601,15 @@ class _VectorIndex:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector: Optional[_MultiVectorConfigCreate] = None,
 
-    ) -> _VectorIndexConfigSPFreshCreate:
-        """Create a `_VectorIndexConfigSPFreshCreate` object to be used when defining the SPFresh vector index configuration of Weaviate.
+    ) -> _VectorIndexConfigHFreshCreate:
+        """Create a `_VectorIndexConfigHFreshCreate` object to be used when defining the HFresh vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
         Args:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-spfresh) for a more detailed view!
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hfresh) for a more detailed view!
         """
-        return _VectorIndexConfigSPFreshCreate(
+        return _VectorIndexConfigHFreshCreate(
             distance=distance_metric,
             maxPostingSize=max_posting_size,
             minPostingSize=min_posting_size,

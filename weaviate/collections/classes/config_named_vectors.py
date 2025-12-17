@@ -15,7 +15,7 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigSPFreshUpdate,
+    _VectorIndexConfigHFreshUpdate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vectorizers import (
@@ -1339,7 +1339,7 @@ class _NamedVectorsUpdate:
         *,
         vector_index_config: Union[
             _VectorIndexConfigHNSWUpdate,
-            _VectorIndexConfigSPFreshUpdate,
+            _VectorIndexConfigHFreshUpdate,
             _VectorIndexConfigFlatUpdate,
             _VectorIndexConfigDynamicUpdate,
         ],
