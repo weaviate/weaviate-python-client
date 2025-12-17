@@ -15,7 +15,7 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigSPFreshUpdate,
+    _VectorIndexConfigHFreshUpdate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vectorizers import (
@@ -212,6 +212,7 @@ class _NamedVectors:
             vectorizer=_Text2VecCohereConfig(
                 baseURL=base_url,
                 model=model,
+                dimensions=None,
                 truncate=truncate,
                 vectorizeClassName=vectorize_collection_name,
             ),
@@ -253,6 +254,7 @@ class _NamedVectors:
             vectorizer=_Multi2VecCohereConfig(
                 baseURL=base_url,
                 model=model,
+                dimensions=None,
                 truncate=truncate,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
@@ -476,6 +478,8 @@ class _NamedVectors:
                 region=region,
                 service=service,
                 vectorizeClassName=vectorize_collection_name,
+                targetModel=None,
+                targetVariant=None,
             ),
             vector_index_config=vector_index_config,
         )
@@ -980,6 +984,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
+                taskType=None,
             ),
             vector_index_config=vector_index_config,
         )
@@ -1025,6 +1030,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
+                taskType=None,
             ),
             vector_index_config=vector_index_config,
         )
@@ -1066,6 +1072,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
+                taskType=None,
             ),
             vector_index_config=vector_index_config,
         )
@@ -1226,6 +1233,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 truncate=truncate,
+                dimensions=None,
             ),
             vector_index_config=vector_index_config,
         )
@@ -1331,7 +1339,7 @@ class _NamedVectorsUpdate:
         *,
         vector_index_config: Union[
             _VectorIndexConfigHNSWUpdate,
-            _VectorIndexConfigSPFreshUpdate,
+            _VectorIndexConfigHFreshUpdate,
             _VectorIndexConfigFlatUpdate,
             _VectorIndexConfigDynamicUpdate,
         ],

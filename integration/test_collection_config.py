@@ -913,9 +913,11 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
     [
         (Configure.Reranker.cohere(), Rerankers.COHERE, {}),
         (
-            Configure.Reranker.cohere(model="rerank-english-v2.0"),
+            Configure.Reranker.cohere(
+                model="rerank-english-v2.0", base_url="https://some-cohere-baseurl.ai/"
+            ),
             Rerankers.COHERE,
-            {"model": "rerank-english-v2.0"},
+            {"model": "rerank-english-v2.0", "baseURL": "https://some-cohere-baseurl.ai/"},
         ),
         (Configure.Reranker.transformers(), Rerankers.TRANSFORMERS, {}),
     ],

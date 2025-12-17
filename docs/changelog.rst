@@ -1,6 +1,25 @@
 Changelog
 =========
 
+Version 4.18.3
+--------------
+This patch version includes:
+    - Fixes wrong deprecation warning in PyCharm when creating a collection without vectorizers
+    - Fixes warnings with boolean filters
+
+Version 4.18.2
+--------------
+This patch version includes:
+    - Add support for contextual generative and reranker modules
+    - Add support for ZSTD compression in backups
+    - Add support for VoyageAI's voyage-3-large model
+
+Version 4.18.1
+--------------
+This patch version includes:
+    - Add 'dimensions' param to cohere vectorizers  (feat/cohere-dimensions-param)
+    - Add 'dimensions' parameter to text2vec-voyageai methods (feat/t2v-voyage-add-dimensions)
+
 Version 4.18.0
 --------------
 This minor version includes:
