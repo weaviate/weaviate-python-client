@@ -17,7 +17,6 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.config_vector_index import (
     MultiVectorAggregation,
     VectorFilterStrategy,
-    VectorCentroidsIndexType
 )
 from weaviate.collections.classes.config_vectorizers import Multi2VecField, Vectorizers
 from weaviate.connect.integrations import Integrations
@@ -42,5 +41,4 @@ __all__ = [
     "Vectorizers",
     "VectorDistances",
     "VectorFilterStrategy",
-    "VectorCentroidsIndexType",
 ]
