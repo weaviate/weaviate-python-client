@@ -150,7 +150,10 @@ class _ConnectionBase:
         self._connected = False
         self._skip_init_checks = skip_init_checks
 
-        self._headers = {"content-type": "application/json"}
+        self._headers = {
+            "content-type": "application/json",
+            "X-Weaviate-Client": f"weaviate-client-python/{client_version}",
+        }
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:
             _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
