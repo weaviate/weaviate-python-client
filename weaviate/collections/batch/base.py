@@ -28,8 +28,6 @@ from weaviate.collections.classes.batch import (
     ErrorObject,
     ErrorReference,
     Shard,
-    _BatchObject,
-    _BatchReference,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import (
@@ -210,11 +208,11 @@ class _BatchBase:
         batch_mode: _BatchMode,
         executor: ThreadPoolExecutor,
         vectorizer_batching: bool,
-        objects: Optional[ObjectsBatchRequest] = None,
-        references: Optional[ReferencesBatchRequest] = None,
+        objects: Optional[ObjectsBatchRequest[BatchObject]] = None,
+        references: Optional[ReferencesBatchRequest[BatchReference]] = None,
     ) -> None:
-        self.__batch_objects = objects or ObjectsBatchRequest()
-        self.__batch_references = references or ReferencesBatchRequest()
+        self.__batch_objects = objects or ObjectsBatchRequest[BatchObject]()
+        self.__batch_references = references or ReferencesBatchRequest[BatchReference]()
 
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
@@ -530,8 +528,8 @@ class _BatchBase:
 
     def __send_batch(
         self,
-        objs: List[_BatchObject],
-        refs: List[_BatchReference],
+        objs: List[BatchObject],
+        refs: List[BatchReference],
         readd_rate_limit: bool,
     ) -> None:
         if (n_objs := len(objs)) > 0:
@@ -540,7 +538,7 @@ class _BatchBase:
                 response_obj = executor.result(
                     self.__batch_grpc.objects(
                         connection=self.__connection,
-                        objects=objs,
+                        objects=[obj._to_internal() for obj in objs],
                         timeout=DEFAULT_REQUEST_TIMEOUT,
                         max_retries=MAX_RETRIES,
                     )
@@ -554,8 +552,7 @@ class _BatchBase:
                     )
             except Exception as e:
                 errors_obj = {
-                    idx: ErrorObject(message=repr(e), object_=BatchObject._from_internal(obj))
-                    for idx, obj in enumerate(objs)
+                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
                 logger.error(
                     {
@@ -609,9 +606,7 @@ class _BatchBase:
                 )
 
                 readd_objects = [
-                    err.object_._to_internal()
-                    for i, err in response_obj.errors.items()
-                    if i in readded_objects
+                    err.object_ for i, err in response_obj.errors.items() if i in readded_objects
                 ]
                 readded_uuids = {obj.uuid for obj in readd_objects}
 
@@ -671,13 +666,14 @@ class _BatchBase:
             start = time.time()
             try:
                 response_ref = executor.result(
-                    self.__batch_rest.references(connection=self.__connection, references=refs)
+                    self.__batch_rest.references(
+                        connection=self.__connection,
+                        references=[ref._to_internal() for ref in refs],
+                    )
                 )
             except Exception as e:
                 errors_ref = {
-                    idx: ErrorReference(
-                        message=repr(e), reference=BatchReference._from_internal(ref)
-                    )
+                    idx: ErrorReference(message=repr(e), reference=ref)
                     for idx, ref in enumerate(refs)
                 }
                 response_ref = BatchReferenceReturn(
@@ -744,7 +740,7 @@ class _BatchBase:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__uuid_lookup.add(str(batch_object.uuid))
-        self.__batch_objects.add(batch_object._to_internal())
+        self.__batch_objects.add(batch_object)
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
         # not need a long queue
@@ -790,7 +786,7 @@ class _BatchBase:
                 self.__refs_count += 1
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))
-            self.__batch_references.add(batch_reference._to_internal())
+            self.__batch_references.add(batch_reference)
 
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
