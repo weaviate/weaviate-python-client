@@ -33,7 +33,11 @@ If any static analysis tools such as Pylance fail, try installing the package wi
 
 ### Testing
 
-> Note: We use [pytest](https://docs.pytest.org) to write tests for new client code. However, many older tests use [unittest](https://docs.python.org/3/library/unittest.html). These commands run the `pytest` and `unittest` tests.
+To set up the testing environment, install the test requirements with:
+
+```shell
+pip install -r requirements-test.txt
+```
 
 There are three kinds of tests:
 - Unit tests test individual client components.
@@ -63,7 +67,7 @@ pytest test
 > We strongly recommend using [pre-commit](https://pre-commit.com/) to automatically run all linters locally on each commit. Install `pre-commit` on your system, and then enable it with `pre-commit install`.
 
 We use the following tools to ensure a high code quality:
-- black (formatter), run with `black $FOLDER_WITH_CHANGES`
+- ruff (formatter), run with `ruff format $FOLDER_WITH_CHANGES`
 - flake8 with plugins. Run with `flake8 $FOLDER_WITH_CHANGES`.
 
 Note that all plugins are listed in the `requirements-devel.txt` file and are installed in the first step.
