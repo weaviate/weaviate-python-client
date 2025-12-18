@@ -278,13 +278,14 @@ def test_filters_comparison(
     ],
 )
 def test_filters_contains(
+    recwarn: pytest.WarningsRecorder,
     collection_factory: CollectionFactory,
     weaviate_filter: _FilterValue,
     results: List[int],
     require_version: Optional[tuple[int, int, int]],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
@@ -379,6 +380,12 @@ def test_filters_contains(
 
     uuids = [uuids[result] for result in results]
     assert all(obj.uuid in uuids for obj in objects)
+
+    # Check for warnings to make sure booleans are handled as their correct type and are not sent as ints
+    if len(recwarn) != 0:
+        for rwarning in recwarn.list:
+            print(rwarning.message)
+    assert len(recwarn) == 0
 
 
 @pytest.mark.parametrize(

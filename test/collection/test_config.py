@@ -844,11 +844,11 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {
             "generative-openai": {
                 "model": "gpt-4",
-                "frequencyPenaltyProperty": 0.5,
-                "maxTokensProperty": 100,
-                "presencePenaltyProperty": 0.5,
-                "temperatureProperty": 0.5,
-                "topPProperty": 0.5,
+                "frequencyPenalty": 0.5,
+                "maxTokens": 100,
+                "presencePenalty": 0.5,
+                "temperature": 0.5,
+                "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
                 "reasoningEffort": "high",
                 "verbosity": "verbose",
@@ -861,7 +861,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
             model="model",
             k=10,
             max_tokens=100,
-            return_likelihoods="ALL",
             stop_sequences=["stop"],
             temperature=0.5,
             base_url="https://api.cohere.ai",
@@ -869,11 +868,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {
             "generative-cohere": {
                 "model": "model",
-                "kProperty": 10,
-                "maxTokensProperty": 100,
-                "returnLikelihoodsProperty": "ALL",
-                "stopSequencesProperty": ["stop"],
-                "temperatureProperty": 0.5,
+                "k": 10,
+                "maxTokens": 100,
+                "stopSequences": ["stop"],
+                "temperature": 0.5,
                 "baseURL": "https://api.cohere.ai/",
             }
         },
@@ -939,12 +937,20 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
-        Configure.Generative.aws(model="cohere.command-light-text-v14", region="us-east-1"),
+        Configure.Generative.aws(
+            model="cohere.command-light-text-v14",
+            region="us-east-1",
+            service="bedrock",
+            endpoint="custom-endpoint",
+            max_tokens=100,
+        ),
         {
             "generative-aws": {
                 "model": "cohere.command-light-text-v14",
                 "region": "us-east-1",
                 "service": "bedrock",
+                "endpoint": "custom-endpoint",
+                "maxTokens": 100,
             }
         },
     ),
@@ -970,13 +976,13 @@ TEST_CONFIG_WITH_GENERATIVE = [
         ),
         {
             "generative-openai": {
-                "deploymentId": "id",
                 "resourceName": "name",
-                "frequencyPenaltyProperty": 0.5,
-                "maxTokensProperty": 100,
-                "presencePenaltyProperty": 0.5,
-                "temperatureProperty": 0.5,
-                "topPProperty": 0.5,
+                "deploymentId": "id",
+                "frequencyPenalty": 0.5,
+                "maxTokens": 100,
+                "presencePenalty": 0.5,
+                "temperature": 0.5,
+                "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
             }
         },
@@ -1092,10 +1098,11 @@ def test_config_with_generative(
 
 TEST_CONFIG_WITH_RERANKER = [
     (
-        Configure.Reranker.cohere(model="model"),
+        Configure.Reranker.cohere(model="model", base_url="https://some.base.url/"),
         {
             "reranker-cohere": {
                 "model": "model",
+                "baseURL": "https://some.base.url/",
             },
         },
     ),
@@ -1998,7 +2005,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
-            Configure.Vectors.multi2vec_aws(
+            Configure.Vectors.multi2vec_aws_bedrock(
                 name="test",
                 dimensions=512,
                 model="model",
@@ -2275,7 +2282,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
-            Configure.Vectors.text2vec_google_aistudio(
+            Configure.Vectors.text2vec_google_gemini(
                 name="test",
                 source_properties=["prop"],
                 dimensions=768,
