@@ -153,6 +153,8 @@ class _ConnectionBase:
         self._headers = {
             "content-type": "application/json",
             "X-Weaviate-Client": f"weaviate-client-python/{client_version}",
+            "X-Weaviate-Client-Type": "sync" if isinstance(self, ConnectionSync) else "async",
+            "X-Weaviate-Client-IsEmbedded": "true" if self.embedded_db is not None else "false",
         }
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:
