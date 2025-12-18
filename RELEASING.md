@@ -2,6 +2,7 @@
 
 ### Step 1: Prepare for release
 1. Pull latest main
+	- Merge any pending PRs
 2. Determine what the next version should be, following semantic versioning
 3. Create a new branch for the changelog
 4. Add a changelog entry to `docs/changelog.rst`
