@@ -34,11 +34,14 @@ class VectorIndexType(str, Enum):
     Attributes:
         HNSW: Hierarchical Navigable Small World (HNSW) index.
         FLAT: Flat index.
+        DYNAMIC: Dynamic index.
+        HFRESH: HFRESH index.
     """
 
     HNSW = "hnsw"
     FLAT = "flat"
     DYNAMIC = "dynamic"
+    HFRESH = "hfresh"
 
 
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):
@@ -127,6 +130,18 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
         return VectorIndexType.HNSW
 
 
+class _VectorIndexConfigHFreshCreate(_VectorIndexConfigCreate):
+    maxPostingSize: Optional[int]
+    minPostingSize: Optional[int]
+    replicas: Optional[int]
+    rngFactor: Optional[int]
+    searchProbe: Optional[int]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.HFRESH
+
+
 class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
     vectorCacheMaxObjects: Optional[int]
 
@@ -147,6 +162,17 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.HNSW
+
+
+class _VectorIndexConfigHFreshUpdate(_VectorIndexConfigUpdate):
+    maxPostingSize: Optional[int]
+    minPostingSize: Optional[int]
+    rngFactor: Optional[int]
+    searchProbe: Optional[int]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.HFRESH
 
 
 class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
@@ -560,6 +586,36 @@ class _VectorIndex:
             flatSearchCutoff=flat_search_cutoff,
             maxConnections=max_connections,
             vectorCacheMaxObjects=vector_cache_max_objects,
+            quantizer=quantizer,
+            multivector=multi_vector,
+        )
+
+    @staticmethod
+    def hfresh(
+        distance_metric: Optional[VectorDistances] = None,
+        max_posting_size: Optional[int] = None,
+        min_posting_size: Optional[int] = None,
+        replicas: Optional[int] = None,
+        rng_factor: Optional[int] = None,
+        search_probe: Optional[int] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector: Optional[_MultiVectorConfigCreate] = None,
+
+    ) -> _VectorIndexConfigHFreshCreate:
+        """Create a `_VectorIndexConfigHFreshCreate` object to be used when defining the HFresh vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collections.create()`.
+
+        Args:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hfresh) for a more detailed view!
+        """
+        return _VectorIndexConfigHFreshCreate(
+            distance=distance_metric,
+            maxPostingSize=max_posting_size,
+            minPostingSize=min_posting_size,
+            replicas=replicas,
+            rngFactor=rng_factor,
+            searchProbe=search_probe,
             quantizer=quantizer,
             multivector=multi_vector,
         )
