@@ -50,6 +50,7 @@ JinaMultimodalModel: TypeAlias = Literal["jina-clip-v1", "jina-clip-v2", "jina-e
 VoyageModel: TypeAlias = Literal[
     "voyage-3.5",
     "voyage-3.5-lite",
+    "voyage-3-large",
     "voyage-3",
     "voyage-3-lite",
     "voyage-context-3",
@@ -203,6 +204,8 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     endpoint: Optional[str]
     region: str
     service: str
+    targetModel: Optional[str]
+    targetVariant: Optional[str]
     vectorizeClassName: bool
 
     @field_validator("region")
@@ -350,6 +353,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     modelId: Optional[str]
     vectorizeClassName: bool
     titleProperty: Optional[str]
+    taskType: Optional[str]
 
 
 class _Text2VecTransformersConfig(_VectorizerConfigCreate):
@@ -742,6 +746,8 @@ class _Vectorizer:
             vectorizeClassName=vectorize_collection_name,
             service=service,
             endpoint=endpoint,
+            targetModel=None,
+            targetVariant=None,
         )
 
     @staticmethod
@@ -1148,6 +1154,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
@@ -1176,6 +1183,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
@@ -1209,6 +1217,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
