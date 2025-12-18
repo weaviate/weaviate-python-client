@@ -391,7 +391,7 @@ class _ConnectionBase:
             async def get_oidc() -> None:
                 async with self._make_client("async") as client:
                     try:
-                        response = await client.get(oidc_url)
+                        response = await client.get(oidc_url, timeout=self.timeout_config.init)
                     except Exception as e:
                         raise WeaviateConnectionError(
                             f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -406,7 +406,7 @@ class _ConnectionBase:
 
         with self._make_client("sync") as client:
             try:
-                response = client.get(oidc_url)
+                response = client.get(oidc_url, timeout=self.timeout_config.init)
             except Exception as e:
                 raise WeaviateConnectionError(
                     f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -1013,7 +1013,7 @@ class ConnectionSync(_ConnectionBase):
                 raise InsufficientPermissionsError(error)
             if error.code() == StatusCode.ABORTED:
                 raise _BatchStreamShutdownError()
-            raise WeaviateBatchStreamError(str(error.details()))
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest
