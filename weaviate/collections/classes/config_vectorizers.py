@@ -62,7 +62,10 @@ VoyageModel: TypeAlias = Literal[
     "voyage-finance-2",
     "voyage-multilingual-2",
 ]
-VoyageMultimodalModel: TypeAlias = Literal["voyage-multimodal-3",]
+VoyageMultimodalModel: TypeAlias = Literal[
+    "voyage-multimodal-3",
+    "voyage-multimodal-3.5",
+]
 AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
