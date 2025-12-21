@@ -2005,7 +2005,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
-            Configure.Vectors.multi2vec_aws(
+            Configure.Vectors.multi2vec_aws_bedrock(
                 name="test",
                 dimensions=512,
                 model="model",
