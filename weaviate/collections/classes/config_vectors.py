@@ -1075,6 +1075,8 @@ class _Vectors:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         model: Optional[Union[VoyageMultimodalModel, str]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        dimensions: Optional[int] = None,
         truncation: Optional[bool] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
@@ -1089,8 +1091,9 @@ class _Vectors:
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
-            output_encoding: The output encoding to use. Defaults to `None`, which uses the server-defined default.
             text_fields: The text fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            dimensions: The number of dimensions for the output embeddings. Defaults to `None`, which uses the model's default.
             truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
 
@@ -1103,8 +1106,10 @@ class _Vectors:
                 baseURL=base_url,
                 model=model,
                 truncation=truncation,
+                dimensions=dimensions,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
+                videoFields=_map_multi2vec_fields(video_fields),
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )

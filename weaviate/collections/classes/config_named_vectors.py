@@ -700,9 +700,11 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[Union[VoyageMultimodalModel, str]] = None,
         truncation: Optional[bool] = None,
+        dimensions: Optional[int] = None,
         output_encoding: Optional[str] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
@@ -717,9 +719,11 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the output embeddings. Defaults to `None`, which uses the model's default.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
 
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `VoyageaiMultimodalModel` type.
@@ -730,8 +734,10 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 baseURL=base_url,
                 model=model,
                 truncation=truncation,
+                dimensions=dimensions,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
+                videoFields=_map_multi2vec_fields(video_fields),
             ),
             vector_index_config=vector_index_config,
         )
