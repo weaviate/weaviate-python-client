@@ -1278,7 +1278,7 @@ class _Reranker:
             base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
         """
         return _RerankerCohereConfig(
-            model=model, baseURL=AnyUrl(base_url) if base_url is not None else None
+            model=model, baseURL=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None
         )
 
     @staticmethod

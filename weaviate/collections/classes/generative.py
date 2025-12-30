@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from io import BufferedReader
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 
 from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
 from typing_extensions import deprecated as typing_deprecated
@@ -509,7 +509,7 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnthropic(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             model=model,
             max_tokens=max_tokens,
             stop_sequences=stop_sequences,
@@ -533,7 +533,7 @@ class GenerativeConfig:
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnyscale(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             model=model,
             temperature=temperature,
         )
@@ -573,7 +573,7 @@ class GenerativeConfig:
             max_tokens=max_tokens,
             region=region,
             service=service,
-            endpoint=AnyUrl(endpoint) if endpoint is not None else None,
+            endpoint=cast(AnyHttpUrl, AnyUrl(endpoint)) if endpoint is not None else None,
             target_model=target_model,
             target_variant=target_variant,
             temperature=temperature,
@@ -614,7 +614,7 @@ class GenerativeConfig:
             max_tokens=max_tokens,
             region=region,
             service="bedrock",
-            endpoint=AnyUrl(endpoint) if endpoint is not None else None,
+            endpoint=cast(AnyHttpUrl, AnyUrl(endpoint)) if endpoint is not None else None,
             target_model=None,
             target_variant=None,
             temperature=temperature,
@@ -657,7 +657,7 @@ class GenerativeConfig:
             max_tokens=max_tokens,
             region=region,
             service="sagemaker",
-            endpoint=AnyUrl(endpoint) if endpoint is not None else None,
+            endpoint=cast(AnyHttpUrl, AnyUrl(endpoint)) if endpoint is not None else None,
             target_model=target_model,
             target_variant=target_variant,
             temperature=temperature,
@@ -694,7 +694,7 @@ class GenerativeConfig:
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeCohere(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             k=k,
             max_tokens=max_tokens,
             model=model,
@@ -767,7 +767,7 @@ class GenerativeConfig:
             top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeDatabricks(
-            endpoint=AnyUrl(endpoint),
+            endpoint=cast(AnyHttpUrl, AnyUrl(endpoint)),
             frequency_penalty=frequency_penalty,
             log_probs=log_probs,
             max_tokens=max_tokens,
@@ -806,7 +806,7 @@ class GenerativeConfig:
             top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeFriendliai(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             max_tokens=max_tokens,
             model=model,
             n=n,
@@ -853,7 +853,7 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeGoogle(
-            api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
+            api_endpoint=cast(AnyHttpUrl, AnyUrl(api_endpoint)) if api_endpoint is not None else None,
             endpoint_id=endpoint_id,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
@@ -903,7 +903,7 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeGoogle(
-            api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
+            api_endpoint=cast(AnyHttpUrl, AnyUrl(api_endpoint)) if api_endpoint is not None else None,
             endpoint_id=endpoint_id,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
@@ -945,7 +945,7 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeGoogle(
-            api_endpoint=AnyUrl("generativelanguage.googleapis.com"),
+            api_endpoint=cast(AnyHttpUrl, AnyUrl("generativelanguage.googleapis.com")),
             endpoint_id=None,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
@@ -978,7 +978,7 @@ class GenerativeConfig:
             top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeMistral(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             max_tokens=max_tokens,
             model=model,
             temperature=temperature,
@@ -1004,7 +1004,7 @@ class GenerativeConfig:
             top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeNvidia(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             max_tokens=max_tokens,
             model=model,
             temperature=temperature,
@@ -1031,7 +1031,7 @@ class GenerativeConfig:
                 The number of images passed to the prompt will match the value of `limit` in the search query.
         """
         return _GenerativeOllama(
-            api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
+            api_endpoint=cast(AnyHttpUrl, AnyUrl(api_endpoint)) if api_endpoint is not None else None,
             model=model,
             temperature=temperature,
         )
@@ -1075,7 +1075,7 @@ class GenerativeConfig:
         """
         return _GenerativeOpenAI(
             api_version=api_version,
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             deployment_id=deployment_id,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
@@ -1125,7 +1125,7 @@ class GenerativeConfig:
         """
         return _GenerativeOpenAI(
             api_version=api_version,
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             deployment_id=deployment_id,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
@@ -1162,7 +1162,7 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeXAI(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=cast(AnyHttpUrl, AnyUrl(base_url)) if base_url is not None else None,
             max_tokens=max_tokens,
             model=model,
             temperature=temperature,
