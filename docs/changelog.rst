@@ -1,6 +1,13 @@
 Changelog
 =========
 
+
+Version 4.19.2
+--------------
+This patch version includes:
+- Revert merging #1915; not yet merged into Weaviate server
+
+
 Version 4.19.1
 --------------
 This patch version includes:
