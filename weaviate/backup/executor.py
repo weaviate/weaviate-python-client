@@ -28,7 +28,6 @@ from weaviate.exceptions import (
     BackupCanceledError,
     BackupFailedException,
     EmptyResponseException,
-    WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import (
@@ -93,16 +92,6 @@ class _BackupExecutor(Generic[ConnectionType]):
         }
 
         if config is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCreate",
-                    str(self._connection._weaviate_version),
-                    "1.25.0",
-                )
-            if not isinstance(config, BackupConfigCreate):
-                raise WeaviateInvalidInputError(
-                    f"Expected 'config' to be of type 'BackupConfigCreate', but got {type(config)}."
-                )
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
@@ -290,13 +279,6 @@ class _BackupExecutor(Generic[ConnectionType]):
         }
         configPayload = {}
         if config is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigRestore",
-                    str(self._connection._weaviate_version),
-                    "1.25.0",
-                )
-
             configPayload = config._to_dict()
 
         if backup_location is not None:
@@ -492,9 +474,14 @@ class _BackupExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="cancel backup"),
         )
 
-    def list_backups(self, backend: BackupStorage) -> executor.Result[List[BackupListReturn]]:
+    def list_backups(
+        self, backend: BackupStorage, sort_by_starting_time_asc: Optional[bool] = None
+    ) -> executor.Result[List[BackupListReturn]]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
         path = f"/backups/{backend.value}"
+        params = {}
+        if sort_by_starting_time_asc:
+            params["order"] = "asc"
 
         def resp(res: Response) -> List[BackupListReturn]:
             typed_response = _decode_json_response_list(res, "Backup list")
@@ -505,6 +492,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         return executor.execute(
             response_callback=resp,
             method=self._connection.get,
+            params=params,
             path=path,
             error_msg="Backup listing failed due to connection error.",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="list backup"),

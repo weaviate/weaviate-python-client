@@ -322,6 +322,8 @@ def test_generative_parameters_images_parsing(
                 stop=["\n"],
                 temperature=0.5,
                 top_p=50,
+                reasoning_effort="high",
+                verbosity="low",
             )._to_grpc(
                 _GenerativeConfigRuntimeOptions(
                     return_metadata=True, images=[LOGO_ENCODED], image_properties=["image"]
@@ -344,6 +346,8 @@ def test_generative_parameters_images_parsing(
                     images=base_pb2.TextArray(values=[LOGO_ENCODED]),
                     image_properties=base_pb2.TextArray(values=["image"]),
                     is_azure=False,
+                    reasoning_effort=generative_pb2.GenerativeOpenAI.ReasoningEffort.REASONING_EFFORT_HIGH,
+                    verbosity=generative_pb2.GenerativeOpenAI.Verbosity.VERBOSITY_LOW,
                 ),
             ),
         ),
@@ -407,6 +411,29 @@ def test_generative_parameters_images_parsing(
                     top_p=50,
                     images=base_pb2.TextArray(values=[LOGO_ENCODED]),
                     image_properties=base_pb2.TextArray(values=["image"]),
+                ),
+            ),
+        ),
+        (
+            GenerativeConfig.contextualai(
+                model="v2",
+                max_new_tokens=100,
+                temperature=0.5,
+                top_p=0.9,
+                system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
+                avoid_commentary=False,
+                knowledge=["knowledge1", "knowledge2"],
+            )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True)),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                contextualai=generative_pb2.GenerativeContextualAI(
+                    model="v2",
+                    max_new_tokens=100,
+                    temperature=0.5,
+                    top_p=0.9,
+                    system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
+                    avoid_commentary=False,
+                    knowledge=base_pb2.TextArray(values=["knowledge1", "knowledge2"]),
                 ),
             ),
         ),

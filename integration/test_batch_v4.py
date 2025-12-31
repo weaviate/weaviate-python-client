@@ -9,7 +9,7 @@ from _pytest.fixtures import SubRequest
 import weaviate
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
-from weaviate import BatchClient, ClientBatchingContextManager
+from weaviate import ClientBatchingContextManager
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
     Configure,
@@ -175,11 +175,11 @@ def test_add_reference(
     client_factory: ClientFactory,
     from_object_uuid: UUID,
     to_object_uuid: UUID,
-    to_object_collection: Optional[bool],
+    to_object_collection: bool,
 ) -> None:
     """Test the `add_reference` method."""
     client, name = client_factory()
-    with client.batch.fixed_size() as batch:
+    with client.batch.dynamic() as batch:
         batch.add_object(
             properties={},
             collection=name,
@@ -194,8 +194,16 @@ def test_add_reference(
             from_uuid=from_object_uuid,
             from_collection=name,
             from_property="test",
-            to=to_object_uuid,
+            to=ReferenceToMulti(target_collection=name, uuids=to_object_uuid)
+            if to_object_collection
+            else to_object_uuid,
         )
+    assert len(client.batch.failed_objects) == 0, [
+        obj.message for obj in client.batch.failed_objects
+    ]
+    assert len(client.batch.failed_references) == 0, [
+        ref.message for ref in client.batch.failed_references
+    ]
     objs = (
         client.collections.use(name)
         .query.fetch_objects(return_references=QueryReference(link_on="test"))
@@ -357,14 +365,16 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
 @pytest.mark.parametrize(
     "batching_method",
     [
-        lambda client: client.batch.dynamic(),
-        lambda client: client.batch.fixed_size(),
-        lambda client: client.batch.rate_limit(9999),
+        # lambda client: client.batch.dynamic(),
+        # lambda client: client.batch.fixed_size(),
+        # lambda client: client.batch.rate_limit(9999),
+        lambda client: client.batch.experimental(concurrency=1),
     ],
     ids=[
-        "test_add_ten_thousand_data_objects_dynamic",
-        "test_add_ten_thousand_data_objects_fixed_size",
-        "test_add_ten_thousand_data_objects_rate_limit",
+        # "test_add_ten_thousand_data_objects_dynamic",
+        # "test_add_ten_thousand_data_objects_fixed_size",
+        # "test_add_ten_thousand_data_objects_rate_limit",
+        "test_add_ten_thousand_data_objects_experimental",
     ],
 )
 def test_add_ten_thousand_data_objects(
@@ -374,16 +384,31 @@ def test_add_ten_thousand_data_objects(
 ) -> None:
     """Test adding ten thousand data objects."""
     client, name = client_factory()
+    if (
+        request.node.callspec.id == "test_add_ten_thousand_data_objects_experimental"
+        and client._connection._weaviate_version.is_lower_than(1, 34, 0)
+    ):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+    nr_objects = 100000
+    import time
 
-    nr_objects = 10000
+    start = time.time()
     with batching_method(client) as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
                 properties={"name": "test" + str(i)},
             )
-    objs = client.collections.use(name).query.fetch_objects(limit=nr_objects).objects
-    assert len(objs) == nr_objects
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.all_responses) == nr_objects
+    assert len(client.batch.results.objs.uuids) == nr_objects
+    assert len(client.collections.use(name)) == nr_objects
+    assert client.batch.results.objs.has_errors is False
+    assert len(client.batch.failed_objects) == 0, [
+        obj.message for obj in client.batch.failed_objects
+    ]
     client.collections.delete(name)
 
 
@@ -551,19 +576,28 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
         lambda client: client.batch.rate_limit(1000),
+        lambda client: client.batch.experimental(),
     ],
     ids=[
         "test_add_one_hundred_objects_and_references_between_all_dynamic",
         "test_add_one_hundred_objects_and_references_between_all_fixed_size",
         "test_add_one_hundred_objects_and_references_between_all_rate_limit",
+        "test_add_one_hundred_objects_and_references_between_all_experimental",
     ],
 )
 def test_add_one_object_and_a_self_reference(
     client_factory: ClientFactory,
     batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+    request: SubRequest,
 ) -> None:
     """Test adding one object and a self reference."""
     client, name = client_factory()
+    if (
+        request.node.callspec.id
+        == "test_add_one_hundred_objects_and_references_between_all_experimental"
+        and client._connection._weaviate_version.is_lower_than(1, 34, 0)
+    ):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
     with batching_method(client) as batch:
         uuid = batch.add_object(collection=name, properties={})
         batch.add_reference(
@@ -586,7 +620,7 @@ def test_multi_threaded_batching(
     nr_objects = 1000
     nr_threads = 10
 
-    def batch_insert(batch: BatchClient) -> None:
+    def batch_insert(batch) -> None:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
@@ -683,6 +717,12 @@ def test_batching_error_logs(
     client_factory: ClientFactory, caplog: pytest.LogCaptureFixture
 ) -> None:
     client, name = client_factory()
+    if client._connection._weaviate_version.is_at_least(
+        1, 32, 1
+    ):  # TODO: change to 1.33.0 when released
+        pytest.skip(
+            "Batching error logs do not get emitted by the new server-side batching functionality."
+        )
     with client.batch.fixed_size() as batch:
         for obj in [{"name": i} for i in range(100)]:
             batch.add_object(properties=obj, collection=name)

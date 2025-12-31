@@ -417,42 +417,24 @@ class _MultiTargetVectorJoin:
             assert combination == _MultiTargetVectorJoinEnum.MINIMUM
             combination_grpc = base_search_pb2.COMBINATION_METHOD_TYPE_MIN
 
-        if version.is_lower_than(1, 27, 0):
-            if self.weights is not None and any(isinstance(w, list) for w in self.weights.values()):
-                raise ValueError(
-                    "Multiple weights per target are not supported in this Weaviate version. Please upgrade to at least Weaviate 1.27.0."
-                )
-            # mypy does not seem to understand the type narrowing right above
-            weights_typed = cast(Optional[Dict[str, float]], self.weights)
-
-            return base_search_pb2.Targets(
-                target_vectors=self.target_vectors,
-                weights=weights_typed,
-                combination=combination_grpc,
-            )
-        else:
-            weights: List[base_search_pb2.WeightsForTarget] = []
-            target_vectors: List[str] = self.target_vectors
-            if self.weights is not None:
-                target_vectors = []
-                for target, weight in self.weights.items():
-                    if isinstance(weight, list):
-                        for w in weight:
-                            weights.append(
-                                base_search_pb2.WeightsForTarget(target=target, weight=w)
-                            )
-                            target_vectors.append(target)
-                    else:
-                        weights.append(
-                            base_search_pb2.WeightsForTarget(target=target, weight=weight)
-                        )
+        weights: List[base_search_pb2.WeightsForTarget] = []
+        target_vectors: List[str] = self.target_vectors
+        if self.weights is not None:
+            target_vectors = []
+            for target, weight in self.weights.items():
+                if isinstance(weight, list):
+                    for w in weight:
+                        weights.append(base_search_pb2.WeightsForTarget(target=target, weight=w))
                         target_vectors.append(target)
+                else:
+                    weights.append(base_search_pb2.WeightsForTarget(target=target, weight=weight))
+                    target_vectors.append(target)
 
-            return base_search_pb2.Targets(
-                target_vectors=target_vectors,
-                weights_for_targets=weights,
-                combination=combination_grpc,
-            )
+        return base_search_pb2.Targets(
+            target_vectors=target_vectors,
+            weights_for_targets=weights,
+            combination=combination_grpc,
+        )
 
 
 TargetVectorJoinType = Union[str, List[str], _MultiTargetVectorJoin]

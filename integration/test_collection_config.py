@@ -1,3 +1,4 @@
+import datetime
 from typing import Generator, List, Optional, Union
 
 import pytest as pytest
@@ -41,6 +42,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
+from integration.conftest import retry_on_http_error
 
 
 @pytest.fixture(scope="module")
@@ -405,7 +407,8 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             enabled=True, auto_tenant_creation=False, auto_tenant_activation=False
         ),
     )
-    config = collection.config.get()
+
+    config = retry_on_http_error(lambda: collection.config.get(), 404)
 
     assert config.replication_config.factor == 1
     assert config.replication_config.async_enabled is False
@@ -413,7 +416,13 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.multi_tenancy_config.auto_tenant_activation is False
     assert config.multi_tenancy_config.auto_tenant_creation is False
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
-    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+
+    if collection._connection._weaviate_version.is_lower_than(1, 34, 0):
+        assert (
+            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        )
+    else:
+        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
 
     collection.config.update(
         description="Test",
@@ -659,7 +668,7 @@ def test_update_from_pq_with_hnsw(
         collection.config.update(vector_index_config=vector_index_config)
 
 
-def test_update_flat(collection_factory: CollectionFactory) -> None:
+def test_update_flat_bq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
@@ -695,6 +704,58 @@ def test_update_flat(collection_factory: CollectionFactory) -> None:
         collection.config.update(
             vectorizer_config=Reconfigure.VectorIndex.flat(
                 quantizer=Reconfigure.VectorIndex.Quantizer.bq(enabled=False),
+            )
+        )
+
+
+def test_update_flat_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("RQ in flat index is not supported in Weaviate versions lower than 1.34.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.rq(rescore_limit=10),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.FLAT
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigFlat)
+    assert config.vector_index_config.vector_cache_max_objects == 5
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer.rescore_limit == 10
+
+    collection.config.update(
+        vectorizer_config=Reconfigure.VectorIndex.flat(
+            vector_cache_max_objects=10,
+            quantizer=Reconfigure.VectorIndex.Quantizer.rq(rescore_limit=20),
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.FLAT
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigFlat)
+    assert config.vector_index_config.vector_cache_max_objects == 10
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer.rescore_limit == 20
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        # cannot disable RQ after it was enabled
+        collection.config.update(
+            vectorizer_config=Reconfigure.VectorIndex.flat(
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(enabled=False),
+            )
+        )
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        # cannot change bits afteradding data
+        # must only do this on creation
+        collection.config.update(
+            vectorizer_config=Reconfigure.VectorIndex.flat(
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(bits=1),
             )
         )
 
@@ -785,6 +846,50 @@ def test_config_vector_index_flat_and_quantizer_bq(collection_factory: Collectio
     assert conf.vector_index_config.quantizer.rescore_limit == 456
 
 
+def test_config_vector_index_flat_and_quantizer_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("RQ in flat index is not supported in Weaviate versions lower than 1.34.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=234,
+            quantizer=Configure.VectorIndex.Quantizer.rq(bits=8),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.vector_index_type == VectorIndexType.FLAT
+    assert conf.vector_index_config is not None
+    assert isinstance(conf.vector_index_config, _VectorIndexConfigFlat)
+    assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert isinstance(conf.vector_index_config.quantizer, _RQConfig)
+    assert conf.vector_index_config.quantizer.bits == 8
+
+
+def test_config_vector_index_hnsw_and_quantizer_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 32, 0):
+        pytest.skip("RQ in HNSW index is not supported in Weaviate versions lower than 1.32.0")
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=234,
+            ef_construction=789,
+            quantizer=Configure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=123),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.vector_index_type == VectorIndexType.HNSW
+    assert conf.vector_index_config is not None
+    assert isinstance(conf.vector_index_config, _VectorIndexConfigHNSW)
+    assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert conf.vector_index_config.ef_construction == 789
+    assert isinstance(conf.vector_index_config.quantizer, _RQConfig)
+    assert conf.vector_index_config.quantizer.bits == 8
+    assert conf.vector_index_config.quantizer.rescore_limit == 123
+
+
 def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
@@ -809,9 +914,11 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
     [
         (Configure.Reranker.cohere(), Rerankers.COHERE, {}),
         (
-            Configure.Reranker.cohere(model="rerank-english-v2.0"),
+            Configure.Reranker.cohere(
+                model="rerank-english-v2.0", base_url="https://some-cohere-baseurl.ai/"
+            ),
             Rerankers.COHERE,
-            {"model": "rerank-english-v2.0"},
+            {"model": "rerank-english-v2.0", "baseURL": "https://some-cohere-baseurl.ai/"},
         ),
         (Configure.Reranker.transformers(), Rerankers.TRANSFORMERS, {}),
     ],
@@ -1105,6 +1212,78 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.flat.vector_cache_max_objects == 9876
     assert isinstance(config.vector_index_config.flat.quantizer, _BQConfig)
     assert config.vector_index_config.flat.quantizer.rescore_limit == 11
+
+
+def test_dynamic_collection_rq(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy", ports=(8090, 50061))
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("Dynamic index with RQ is not supported in Weaviate versions lower than 1.34.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.dynamic(
+            distance_metric=VectorDistances.COSINE,
+            threshold=1000,
+            hnsw=Configure.VectorIndex.hnsw(
+                cleanup_interval_seconds=123,
+                flat_search_cutoff=1234,
+                vector_cache_max_objects=789,
+                quantizer=Configure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=123),
+            ),
+            flat=Configure.VectorIndex.flat(
+                vector_cache_max_objects=7643,
+                quantizer=Configure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=10),
+            ),
+        ),
+        ports=(8090, 50061),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
+    assert config.vector_index_config.threshold == 1000
+    assert isinstance(config.vector_index_config.hnsw, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
+    assert config.vector_index_config.hnsw.flat_search_cutoff == 1234
+    assert config.vector_index_config.hnsw.vector_cache_max_objects == 789
+    assert isinstance(config.vector_index_config.hnsw.quantizer, _RQConfig)
+    assert config.vector_index_config.hnsw.quantizer.bits == 8
+    assert config.vector_index_config.hnsw.quantizer.rescore_limit == 123
+    assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
+    assert config.vector_index_config.flat.vector_cache_max_objects == 7643
+    assert isinstance(config.vector_index_config.flat.quantizer, _RQConfig)
+    assert config.vector_index_config.flat.quantizer.bits == 8
+    assert config.vector_index_config.flat.quantizer.rescore_limit == 10
+
+    collection.config.update(
+        vectorizer_config=Reconfigure.VectorIndex.dynamic(
+            threshold=2000,
+            hnsw=Reconfigure.VectorIndex.hnsw(
+                flat_search_cutoff=4567,
+                vector_cache_max_objects=678,
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=200),
+            ),
+            flat=Reconfigure.VectorIndex.flat(
+                vector_cache_max_objects=9876,
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(bits=8, rescore_limit=20),
+            ),
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
+    assert config.vector_index_config.threshold == 2000
+    assert isinstance(config.vector_index_config.hnsw, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
+    assert config.vector_index_config.hnsw.flat_search_cutoff == 4567
+    assert config.vector_index_config.hnsw.vector_cache_max_objects == 678
+    assert isinstance(config.vector_index_config.hnsw.quantizer, _RQConfig)
+    assert config.vector_index_config.hnsw.quantizer.bits == 8
+    assert config.vector_index_config.hnsw.quantizer.rescore_limit == 200
+    assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
+    assert config.vector_index_config.flat.vector_cache_max_objects == 9876
+    assert isinstance(config.vector_index_config.flat.quantizer, _RQConfig)
+    assert config.vector_index_config.flat.quantizer.bits == 8
+    assert config.vector_index_config.flat.quantizer.rescore_limit == 20
 
 
 def test_config_unknown_module(request: SubRequest) -> None:
@@ -1655,3 +1834,119 @@ def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config is not None
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.quantizer is None
+
+
+def test_object_ttl_creation(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_creation_time(
+            time_to_live=datetime.timedelta(days=30),
+            filter_expired_objects=True,
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "creationTime"
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(days=30)
+
+
+def test_object_ttl_update_time(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_update_time(
+            time_to_live=datetime.timedelta(days=30),
+            filter_expired_objects=True,
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "updateTime"
+    assert config.object_ttl_config.filter_expired_objects
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(days=30)
+
+
+def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        properties=[wvc.config.Property(name="customDate", data_type=DataType.DATE)],
+        object_ttl=Configure.ObjectTTL.delete_by_date_property(
+            property_name="customDate", filter_expired_objects=False, ttl_offset=-1
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "customDate"
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(seconds=-1)
+    assert not config.object_ttl_config.filter_expired_objects
+
+
+def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="customDate", data_type=DataType.DATE),
+            wvc.config.Property(name="customDate2", data_type=DataType.DATE),
+        ],
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    conf = collection.config.get()
+    assert conf.object_ttl_config is None
+
+    collection.config.update(
+        object_ttl_config=Reconfigure.ObjectTTL.delete_by_date_property(
+            property_name="customDate", filter_expired_objects=True, ttl_offset=3600
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.object_ttl_config is not None
+    assert conf.object_ttl_config.delete_on == "customDate"
+    assert conf.object_ttl_config.time_to_live == datetime.timedelta(seconds=3600)
+    assert conf.object_ttl_config.filter_expired_objects
+
+    collection.config.update(
+        object_ttl_config=Reconfigure.ObjectTTL.delete_by_update_time(filter_expired_objects=False),
+    )
+
+    conf = collection.config.get()
+    assert conf.object_ttl_config is not None
+    assert conf.object_ttl_config.delete_on == "updateTime"
+    assert conf.object_ttl_config.time_to_live == datetime.timedelta(seconds=3600)
+    assert not conf.object_ttl_config.filter_expired_objects
+
+    collection.config.update(
+        object_ttl_config=Reconfigure.ObjectTTL.delete_by_creation_time(
+            time_to_live=datetime.timedelta(seconds=600),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.object_ttl_config is not None
+    assert conf.object_ttl_config.delete_on == "creationTime"
+    assert conf.object_ttl_config.time_to_live == datetime.timedelta(seconds=600)
+    assert not conf.object_ttl_config.filter_expired_objects
+
+    collection.config.update(
+        object_ttl_config=Reconfigure.ObjectTTL.disable(),
+    )
+    conf = collection.config.get()
+    assert conf.object_ttl_config is None

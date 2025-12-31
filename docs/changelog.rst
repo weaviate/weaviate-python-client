@@ -1,6 +1,73 @@
 Changelog
 =========
 
+Version 4.19.0
+--------------
+This minor version includes:
+    - Support for new 1.35 features:
+        - Add support for time-to-live (TTL) on objects
+        - Add support for new ``multi2multivec-weaviate`` module
+        - Enhance model integration helper functions
+            - Add separate service-specific helpers for aws sagemaker vs bedrock, or google gemini vs vertex
+            - Add BaseURL support for Cohere rerankers
+            - Fix model provider parameters
+    - Improve batch performance by optimizing checks for live threads
+    - Update authlib
+
+
+Version 4.18.3
+--------------
+This patch version includes:
+    - Fixes wrong deprecation warning in PyCharm when creating a collection without vectorizers
+    - Fixes warnings with boolean filters
+
+Version 4.18.2
+--------------
+This patch version includes:
+    - Add support for contextual generative and reranker modules
+    - Add support for ZSTD compression in backups
+    - Add support for VoyageAI's voyage-3-large model
+
+Version 4.18.1
+--------------
+This patch version includes:
+    - Add 'dimensions' param to cohere vectorizers  (feat/cohere-dimensions-param)
+    - Add 'dimensions' parameter to text2vec-voyageai methods (feat/t2v-voyage-add-dimensions)
+
+Version 4.18.0
+--------------
+This minor version includes:
+    - Support for new 1.34 features:
+        - 1-bit rotational quantization (RQ) for hnsw indices
+        - 1-bit and 8-bit RQ for flat indices
+        - Support for latest preview release of Server-side Batching (SSB)
+    - Allow sorting backups by creation time
+    - Add support for ``gse_ch`` tokenizer
+
+Version 4.17.0
+--------------
+This minor version includes:
+    - Remove support for Weaviate versions < 1.27. Please update your Weaviate instances
+    - Support for new 1.33 features:
+        - OIDC group support in RBAC
+        - Uncompressed quantizer
+        - ContainsNone and Not filter operators
+    - Add support for ``verbosity`` and ``reasoning effort`` for generative-openai module
+    - Add alias.exists method
+    - Add multi2vec-aws and text2vec-morph modules
+    - Add support for max_tokens for generative-aws module
+    - Fix weaviate client installation with other packages depending on grpc-health-checking
+
+Version 4.16.10
+--------------
+This patch version includes:
+    - Addition of helper to create an uncompressed quantizer for use when not using default compression
+    - Support for ``overwrite_alias`` option to backup create/restore
+    - Support for OIDC groups
+    - Addition of ``multi2vec-aws`` and ``text2vec-morph`` modules
+    - Support for ``alias.exists`` method
+    - Update to ``weaviate-agents-client`` dependency for GA release of agents
+
 Version 4.16.9
 --------------
 This patch version includes:

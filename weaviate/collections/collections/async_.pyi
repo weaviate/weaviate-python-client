@@ -18,6 +18,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigCreate,
     _VectorizerConfigCreate,
 )
+from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigCreate
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
     Properties,
@@ -28,8 +29,32 @@ from weaviate.connect.v4 import ConnectionAsync
 
 class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
     @overload
+    async def create(
+        self,
+        name: str,
+        *,
+        description: Optional[str] = None,
+        generative_config: Optional[_GenerativeProvider] = None,
+        inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
+        multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[_ObjectTTLConfigCreate] = None,
+        properties: Optional[Sequence[Property]] = None,
+        references: Optional[List[_ReferencePropertyBase]] = None,
+        replication_config: Optional[_ReplicationConfigCreate] = None,
+        reranker_config: Optional[_RerankerProvider] = None,
+        sharding_config: Optional[_ShardingConfigCreate] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorizer_config: Optional[
+            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+        ] = None,
+        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
+        data_model_properties: Optional[Type[Properties]] = None,
+        data_model_references: Optional[Type[References]] = None,
+        skip_argument_validation: bool = False,
+    ) -> CollectionAsync[Properties, References]: ...
+    @overload
     @deprecated(
-        'Using the "vector_index_config" argument is deprecated. Instead, define the vector index for each specific vectorizer supplied to the "vectorizers_config" argument.'
+        'Using the "vectorizer_config" argument is deprecated. Instead, use the "vector_config" argument.'
     )
     async def create(
         self,
@@ -39,6 +64,7 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
         generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[_ObjectTTLConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -55,7 +81,7 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
     ) -> CollectionAsync[Properties, References]: ...
     @overload
     @deprecated(
-        'Using the "vectorizer_config" argument is deprecated. Instead, use the "vectorizers_config" argument.'
+        'Using the "vectorizer_config" argument is deprecated. Instead, use the "vector_config" argument.'
     )
     async def create(
         self,
@@ -65,6 +91,7 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
         generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[_ObjectTTLConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -72,29 +99,6 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorizer_config: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]],
-        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
-        data_model_properties: Optional[Type[Properties]] = None,
-        data_model_references: Optional[Type[References]] = None,
-        skip_argument_validation: bool = False,
-    ) -> CollectionAsync[Properties, References]: ...
-    @overload
-    async def create(
-        self,
-        name: str,
-        *,
-        description: Optional[str] = None,
-        generative_config: Optional[_GenerativeProvider] = None,
-        inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
-        multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        properties: Optional[Sequence[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
-        replication_config: Optional[_ReplicationConfigCreate] = None,
-        reranker_config: Optional[_RerankerProvider] = None,
-        sharding_config: Optional[_ShardingConfigCreate] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorizer_config: Optional[
-            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
-        ] = None,
         vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,

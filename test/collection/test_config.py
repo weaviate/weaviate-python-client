@@ -407,13 +407,13 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_jinaai(
-            model="jina-embeddings-v3",
+            model="jina-embeddings-v4",
             vectorize_collection_name=False,
             dimensions=512,
         ),
         {
             "text2vec-jinaai": {
-                "model": "jina-embeddings-v3",
+                "model": "jina-embeddings-v4",
                 "vectorizeClassName": False,
                 "dimensions": 512,
             }
@@ -421,13 +421,13 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.multi2vec_jinaai(
-            model="jina-clip-v2",
+            model="jina-embeddings-v4",
             dimensions=512,
             vectorize_collection_name=False,
         ),
         {
             "multi2vec-jinaai": {
-                "model": "jina-clip-v2",
+                "model": "jina-embeddings-v4",
                 "dimensions": 512,
             }
         },
@@ -837,16 +837,20 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_p=0.5,
             base_url="https://api.openai.com",
+            reasoning_effort="high",
+            verbosity="verbose",
         ),
         {
             "generative-openai": {
                 "model": "gpt-4",
-                "frequencyPenaltyProperty": 0.5,
-                "maxTokensProperty": 100,
-                "presencePenaltyProperty": 0.5,
-                "temperatureProperty": 0.5,
-                "topPProperty": 0.5,
+                "frequencyPenalty": 0.5,
+                "maxTokens": 100,
+                "presencePenalty": 0.5,
+                "temperature": 0.5,
+                "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
+                "reasoningEffort": "high",
+                "verbosity": "verbose",
             }
         },
     ),
@@ -856,7 +860,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
             model="model",
             k=10,
             max_tokens=100,
-            return_likelihoods="ALL",
             stop_sequences=["stop"],
             temperature=0.5,
             base_url="https://api.cohere.ai",
@@ -864,11 +867,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {
             "generative-cohere": {
                 "model": "model",
-                "kProperty": 10,
-                "maxTokensProperty": 100,
-                "returnLikelihoodsProperty": "ALL",
-                "stopSequencesProperty": ["stop"],
-                "temperatureProperty": 0.5,
+                "k": 10,
+                "maxTokens": 100,
+                "stopSequences": ["stop"],
+                "temperature": 0.5,
                 "baseURL": "https://api.cohere.ai/",
             }
         },
@@ -934,12 +936,20 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
-        Configure.Generative.aws(model="cohere.command-light-text-v14", region="us-east-1"),
+        Configure.Generative.aws(
+            model="cohere.command-light-text-v14",
+            region="us-east-1",
+            service="bedrock",
+            endpoint="custom-endpoint",
+            max_tokens=100,
+        ),
         {
             "generative-aws": {
                 "model": "cohere.command-light-text-v14",
                 "region": "us-east-1",
                 "service": "bedrock",
+                "endpoint": "custom-endpoint",
+                "maxTokens": 100,
             }
         },
     ),
@@ -965,13 +975,13 @@ TEST_CONFIG_WITH_GENERATIVE = [
         ),
         {
             "generative-openai": {
-                "deploymentId": "id",
                 "resourceName": "name",
-                "frequencyPenaltyProperty": 0.5,
-                "maxTokensProperty": 100,
-                "presencePenaltyProperty": 0.5,
-                "temperatureProperty": 0.5,
-                "topPProperty": 0.5,
+                "deploymentId": "id",
+                "frequencyPenalty": 0.5,
+                "maxTokens": 100,
+                "presencePenalty": 0.5,
+                "temperature": 0.5,
+                "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
             }
         },
@@ -1038,6 +1048,34 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.contextualai(),
+        {
+            "generative-contextualai": {},
+        },
+    ),
+    (
+        Configure.Generative.contextualai(
+            model="v2",
+            temperature=0.7,
+            top_p=0.9,
+            max_new_tokens=512,
+            system_prompt="You are a helpful assistant that provides accurate and informative responses based on the given context.",
+            avoid_commentary=False,
+            knowledge=["fact1", "fact2"],
+        ),
+        {
+            "generative-contextualai": {
+                "model": "v2",
+                "temperature": 0.7,
+                "topP": 0.9,
+                "maxNewTokens": 512,
+                "systemPrompt": "You are a helpful assistant that provides accurate and informative responses based on the given context.",
+                "avoidCommentary": False,
+                "knowledge": ["fact1", "fact2"],
+            }
+        },
+    ),
 ]
 
 
@@ -1059,10 +1097,11 @@ def test_config_with_generative(
 
 TEST_CONFIG_WITH_RERANKER = [
     (
-        Configure.Reranker.cohere(model="model"),
+        Configure.Reranker.cohere(model="model", base_url="https://some.base.url/"),
         {
             "reranker-cohere": {
                 "model": "model",
+                "baseURL": "https://some.base.url/",
             },
         },
     ),
@@ -1118,6 +1157,26 @@ TEST_CONFIG_WITH_RERANKER = [
         Configure.Reranker.transformers(),
         {
             "reranker-transformers": {},
+        },
+    ),
+    (
+        Configure.Reranker.contextualai(),
+        {
+            "reranker-contextualai": {},
+        },
+    ),
+    (
+        Configure.Reranker.contextualai(
+            model="ctxl-rerank-v2-instruct-multilingual",
+            instruction="Prioritize recent documents",
+            top_n=5,
+        ),
+        {
+            "reranker-contextualai": {
+                "model": "ctxl-rerank-v2-instruct-multilingual",
+                "instruction": "Prioritize recent documents",
+                "topN": 5,
+            }
         },
     ),
 ]
@@ -1945,7 +2004,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
-            Configure.Vectors.multi2vec_aws(
+            Configure.Vectors.multi2vec_aws_bedrock(
                 name="test",
                 dimensions=512,
                 model="model",
@@ -1968,13 +2027,18 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
-        [Configure.Vectors.text2vec_cohere(name="test", source_properties=["prop"])],
+        [
+            Configure.Vectors.text2vec_cohere(
+                name="test", source_properties=["prop"], dimensions=512
+            )
+        ],
         {
             "test": {
                 "vectorizer": {
                     "text2vec-cohere": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
+                        "dimensions": 512,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1982,12 +2046,13 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
-        [Configure.Vectors.multi2vec_cohere(name="test", text_fields=["prop"])],
+        [Configure.Vectors.multi2vec_cohere(name="test", text_fields=["prop"], dimensions=512)],
         {
             "test": {
                 "vectorizer": {
                     "multi2vec-cohere": {
                         "textFields": ["prop"],
+                        "dimensions": 512,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2101,7 +2166,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     (
         [
             Configure.Vectors.text2vec_aws(
-                name="test", region="us-east-1", source_properties=["prop"]
+                name="test", region="us-east-1", source_properties=["prop"], model="model"
             )
         ],
         {
@@ -2112,6 +2177,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "vectorizeClassName": True,
                         "region": "us-east-1",
                         "service": "bedrock",
+                        "model": "model",
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2233,7 +2299,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
-            Configure.Vectors.text2vec_google_aistudio(
+            Configure.Vectors.text2vec_google_gemini(
                 name="test",
                 source_properties=["prop"],
                 dimensions=768,
@@ -2285,7 +2351,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     (
         [
             Configure.Vectors.text2vec_voyageai(
-                name="test", source_properties=["prop"], truncate=True
+                name="test", source_properties=["prop"], truncate=True, dimensions=256
             )
         ],
         {
@@ -2295,6 +2361,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,
+                        "dimensions": 256,
                     }
                 },
                 "vectorIndexType": "hnsw",

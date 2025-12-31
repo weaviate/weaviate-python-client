@@ -15,13 +15,13 @@ from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import (
     batch_delete_pb2,
     batch_pb2,
-    health_pb2,
-    health_pb2_grpc,
     properties_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,
 )
+
+from grpc_health.v1 import health_pb2, health_pb2_grpc
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
@@ -55,7 +55,7 @@ def ready_mock(httpserver: HTTPServer):
 
 @pytest.fixture(scope="function")
 def weaviate_mock(ready_mock: HTTPServer):
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
     ready_mock.expect_request("/v1/nodes").respond_with_json({"nodes": [{"gitHash": "ABC"}]})
 
     yield ready_mock
@@ -63,7 +63,7 @@ def weaviate_mock(ready_mock: HTTPServer):
 
 @pytest.fixture(scope="function")
 def weaviate_no_auth_mock(weaviate_mock: HTTPServer):
-    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
+    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
     weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
         Response(json.dumps({}), status=404)
     )

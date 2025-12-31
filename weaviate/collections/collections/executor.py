@@ -23,6 +23,7 @@ from weaviate.collections.classes.config import (
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
     _NamedVectorConfigCreate,
+    _ObjectTTLConfigCreate,
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
     _RerankerProvider,
@@ -152,6 +153,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[_ObjectTTLConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -189,6 +191,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             generative_config: The configuration for Weaviate's generative capabilities.
             inverted_index_config: The configuration for Weaviate's inverted index.
             multi_tenancy_config: The configuration for Weaviate's multi-tenancy capabilities.
+            object_ttl_config: The configuration for Weaviate's object time-to-live (TTL) feature.
             properties: The properties of the objects in the collection.
             references: The references of the objects in the collection.
             replication_config: The configuration for Weaviate's replication strategy.
@@ -206,12 +209,6 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-        if isinstance(vectorizer_config, list) and self._connection._weaviate_version.is_lower_than(
-            1, 24, 0
-        ):
-            raise WeaviateInvalidInputError(
-                "Named vectorizers are only supported in Weaviate v1.24.0 and higher"
-            )
         if vectorizer_config is not None:
             _Warnings.vectorizer_config_in_config_create()
         if vector_index_config is not None:
@@ -225,6 +222,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
                 name=name,
                 properties=properties,
                 references=references,
+                object_ttl_config=object_ttl_config,
                 replication_config=replication_config,
                 reranker_config=reranker_config,
                 sharding_config=sharding_config,

@@ -5,6 +5,7 @@ from weaviate.collections.classes.filters import (
     FilterValues,
     _CountRef,
     _FilterAnd,
+    _FilterNot,
     _FilterOr,
     _Filters,
     _FilterTargets,
@@ -35,22 +36,34 @@ class _FilterToGRPC:
         elif isinstance(weav_filter, _FilterValue):
             return _FilterToGRPC.__value_filter(weav_filter)
         else:
-            return _FilterToGRPC.__and_or_filter(weav_filter)
+            return _FilterToGRPC.__and_or_not_filter(weav_filter)
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> base_pb2.Filters:
+        operator = weav_filter.operator._to_grpc()
+        target = _FilterToGRPC.__to_target(weav_filter.target)
+        if isinstance(weav_filter.value, bool):
+            # bool is a subclass of int in Python, so we need to handle it before the int check. Also for whatever reason
+            # the generated code from the proto files does not accept None for value_boolean, while it does for all other types.
+            return base_pb2.Filters(
+                operator=operator,
+                value_boolean=weav_filter.value,
+                target=target,
+            )
+
         return base_pb2.Filters(
-            operator=weav_filter.operator._to_grpc(),
+            operator=operator,
             value_text=_FilterToGRPC.__filter_to_text(weav_filter.value),
-            value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
-            value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,  # type: ignore
+            value_int=weav_filter.value
+            if isinstance(weav_filter.value, int) and not isinstance(weav_filter.value, bool)
+            else None,
             value_number=(weav_filter.value if isinstance(weav_filter.value, float) else None),
+            value_boolean_array=_FilterToGRPC.__filter_to_bool_list(weav_filter.value),
             value_int_array=_FilterToGRPC.__filter_to_int_list(weav_filter.value),
             value_number_array=_FilterToGRPC.__filter_to_float_list(weav_filter.value),
             value_text_array=_FilterToGRPC.__filter_to_text_list(weav_filter.value),
-            value_boolean_array=_FilterToGRPC.__filter_to_bool_list(weav_filter.value),
             value_geo=_FilterToGRPC.__filter_to_geo(weav_filter.value),
-            target=_FilterToGRPC.__to_target(weav_filter.target),
+            target=target,
         )
 
     @staticmethod
@@ -136,14 +149,23 @@ class _FilterToGRPC:
 
     @staticmethod
     def __filter_to_int_list(value: FilterValues) -> Optional[base_pb2.IntArray]:
-        if not isinstance(value, list) or not isinstance(value[0], int):
+        # bool is a subclass of int in Python, so the check must ensure it's not a bool
+        if (
+            not isinstance(value, list)
+            or not isinstance(value[0], int)
+            or isinstance(value[0], bool)
+        ):
             return None
 
         return base_pb2.IntArray(values=cast(List[int], value))
 
     @staticmethod
-    def __and_or_filter(weav_filter: _Filters) -> Optional[base_pb2.Filters]:
-        assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
+    def __and_or_not_filter(weav_filter: _Filters) -> Optional[base_pb2.Filters]:
+        assert (
+            isinstance(weav_filter, _FilterAnd)
+            or isinstance(weav_filter, _FilterOr)
+            or isinstance(weav_filter, _FilterNot)
+        )
         return base_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
             filters=[
@@ -160,7 +182,7 @@ class _FilterToREST:
         if isinstance(weav_filter, _FilterValue):
             return _FilterToREST.__value_filter(weav_filter)
         else:
-            return _FilterToREST.__and_or_filter(weav_filter)
+            return _FilterToREST.__and_or_not_filter(weav_filter)
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> Dict[str, Any]:
@@ -217,8 +239,12 @@ class _FilterToREST:
         raise ValueError(f"Unknown filter value type: {type(value)}")
 
     @staticmethod
-    def __and_or_filter(weav_filter: _Filters) -> Dict[str, Any]:
-        assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
+    def __and_or_not_filter(weav_filter: _Filters) -> Dict[str, Any]:
+        assert (
+            isinstance(weav_filter, _FilterAnd)
+            or isinstance(weav_filter, _FilterOr)
+            or isinstance(weav_filter, _FilterNot)
+        )
         return {
             "operator": weav_filter.operator.value,
             "operands": [

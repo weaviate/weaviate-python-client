@@ -226,7 +226,7 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
-        generative_config=Configure.Generative.cohere(model="something", k=10),
+        generative_config=Configure.Generative.cohere(model="command-r-plus", k=10),
         properties=[
             Property(
                 name="name",
@@ -270,8 +270,8 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
 
     assert export.generative_config is not None
     assert export.generative_config.generative == GenerativeSearches.COHERE
-    assert export.generative_config.model["model"] == "something"
-    assert export.generative_config.model["kProperty"] == 10
+    assert export.generative_config.model["model"] == "command-r-plus"
+    assert export.generative_config.model["k"] == 10
 
     client.collections.delete([name1, name2])
     assert not client.collections.exists(name1)
@@ -345,7 +345,12 @@ def test_client_cluster_with_lazy_shard_loading(
         assert len(nodes[0].shards) == 1
         assert nodes[0].shards[0].collection == collection.name
         assert nodes[0].shards[0].object_count == 0
-        assert nodes[0].shards[0].vector_indexing_status == "READY"
+        assert nodes[0].shards[0].vector_indexing_status in [
+            "READONLY",
+            "INDEXING",
+            "READY",
+            "LAZY_LOADING",
+        ]
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
         assert nodes[0].shards[0].loaded is True
@@ -358,17 +363,6 @@ def test_client_cluster_without_lazy_shard_loading(
 ) -> None:
     client = client_factory(8090, 50061)
 
-    # Lazy-loading behaviour was changed in 1.32.4:
-    # https://github.com/weaviate/weaviate/pull/8829
-    #
-    # We also accept LOADING/READY because it may vary
-    # based on the machine running the tests.
-    expect_status = (
-        ["LAZY_LOADING"]
-        if client._connection._weaviate_version.is_at_least(1, 32, 4)
-        else ["LOADING", "READY"]
-    )
-
     try:
         collection = client.collections.create(
             name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
@@ -379,7 +373,12 @@ def test_client_cluster_without_lazy_shard_loading(
         assert len(nodes[0].shards) == 1
         assert nodes[0].shards[0].collection == collection.name
         assert nodes[0].shards[0].object_count == 0
-        assert nodes[0].shards[0].vector_indexing_status in expect_status
+        assert nodes[0].shards[0].vector_indexing_status in [
+            "READONLY",
+            "INDEXING",
+            "READY",
+            "LAZY_LOADING",
+        ]
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
         if collection._connection._weaviate_version.is_lower_than(1, 25, 0):

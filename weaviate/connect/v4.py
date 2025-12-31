@@ -9,6 +9,7 @@ from typing import (
     Any,
     Awaitable,
     Dict,
+    Generator,
     List,
     Literal,
     Optional,
@@ -66,6 +67,7 @@ from weaviate.exceptions import (
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
     WeaviateBatchError,
+    WeaviateBatchStreamError,
     WeaviateClosedClientError,
     WeaviateConnectionError,
     WeaviateDeleteManyError,
@@ -76,12 +78,13 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     WeaviateTenantGetError,
     WeaviateTimeoutError,
+    _BatchStreamShutdownError,
 )
 from weaviate.proto.v1 import (
     aggregate_pb2,
     batch_delete_pb2,
     batch_pb2,
-    health_pb2,
+    health_weaviate_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,
@@ -174,13 +177,8 @@ class _ConnectionBase:
         self._prepare_grpc_headers()
 
     def __add_weaviate_embedding_service_header(self, wcd_host: str) -> None:
-        if not is_weaviate_domain(wcd_host):
-            return
-
-        self._headers["X-Weaviate-Cluster-URL"] = "https://" + wcd_host
-        if isinstance(self._auth, AuthApiKey):
-            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-            self._headers["X-Weaviate-Api-Key"] = self._auth.api_key
+        if is_weaviate_domain(wcd_host):
+            self._headers["X-Weaviate-Cluster-URL"] = "https://" + wcd_host
 
     def set_integrations(self, integrations_config: List[_IntegrationConfig]) -> None:
         for integration in integrations_config:
@@ -269,14 +267,8 @@ class _ConnectionBase:
                 )
 
             if isinstance(self._auth, AuthApiKey):
-                if "X-Weaviate-Api-Key" in self._headers:
-                    # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-                    self.__metadata_list.append(
-                        ("x-weaviate-api-key", self._headers["X-Weaviate-Api-Key"])
-                    )
                 self.__metadata_list.append(("authorization", "Bearer " + self._auth.api_key))
             else:
-                self.__add_weaviate_embedding_service_auth_grpc_header()
                 self.__metadata_list.append(
                     ("authorization", "dummy_will_be_refreshed_for_each_call")
                 )
@@ -286,34 +278,18 @@ class _ConnectionBase:
         else:
             self.__grpc_headers = None
 
-    def __add_weaviate_embedding_service_auth_grpc_header(self) -> None:
-        if is_weaviate_domain(self._connection_params.http.host):
-            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-            self.__metadata_list.append(
-                ("x-weaviate-api-key", "dummy_will_be_refreshed_for_each_call")
-            )
-
     def grpc_headers(self) -> Optional[Tuple[Tuple[str, str], ...]]:
         if self._auth is None or isinstance(self._auth, AuthApiKey):
             return self.__grpc_headers
 
         assert self.__grpc_headers is not None
         access_token = self.get_current_bearer_token()
-        self.__refresh_weaviate_embedding_service_auth_grpc_header()
         # auth is last entry in list, rest is static
         self.__metadata_list[len(self.__metadata_list) - 1] = (
             "authorization",
             access_token,
         )
         return tuple(self.__metadata_list)
-
-    def __refresh_weaviate_embedding_service_auth_grpc_header(self) -> None:
-        if is_weaviate_domain(self._connection_params.http.host):
-            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-            self.__metadata_list[len(self.__metadata_list) - 2] = (
-                "x-weaviate-api-key",
-                self.get_current_bearer_token(),
-            )
 
     def _ping_grpc(self, colour: executor.Colour) -> Union[None, Awaitable[None]]:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
@@ -322,30 +298,31 @@ class _ConnectionBase:
         try:
             res = self._grpc_channel.unary_unary(
                 "/grpc.health.v1.Health/Check",
-                request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
-                response_deserializer=health_pb2.HealthCheckResponse.FromString,
-            )(health_pb2.HealthCheckRequest(), timeout=self.timeout_config.init)
+                request_serializer=health_weaviate_pb2.WeaviateHealthCheckRequest.SerializeToString,
+                response_deserializer=health_weaviate_pb2.WeaviateHealthCheckResponse.FromString,
+            )(health_weaviate_pb2.WeaviateHealthCheckRequest(), timeout=self.timeout_config.init)
             if colour == "async":
 
                 async def execute():
                     assert isinstance(res, Awaitable)
                     try:
                         return self.__handle_ping_response(
-                            cast(health_pb2.HealthCheckResponse, await res)
+                            cast(health_weaviate_pb2.WeaviateHealthCheckResponse, await res)
                         )
                     except Exception as e:
                         self.__handle_ping_exception(e)
 
                 return execute()
             assert not isinstance(res, Awaitable)
-            return self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, res))
+            self.__handle_ping_response(cast(health_weaviate_pb2.WeaviateHealthCheckResponse, res))
+            return None
 
         except Exception as e:
             self.__handle_ping_exception(e)
         return None
 
-    def __handle_ping_response(self, res: health_pb2.HealthCheckResponse) -> None:
-        if res.status != health_pb2.HealthCheckResponse.SERVING:
+    def __handle_ping_response(self, res: health_weaviate_pb2.WeaviateHealthCheckResponse) -> None:
+        if res.status != health_weaviate_pb2.WeaviateHealthCheckResponse.SERVING:
             raise WeaviateGRPCUnavailableError(
                 f"v{self.server_version}", self._connection_params._grpc_address
             )
@@ -623,13 +600,7 @@ class _ConnectionBase:
         # bearer token can change over time (OIDC) so we need to get the current one for each request
         copied_headers = copy(self._headers)
         copied_headers.update({"authorization": self.get_current_bearer_token()})
-        self.__refresh_weaviate_embedding_service_auth_header(copied_headers)
         return copied_headers
-
-    def __refresh_weaviate_embedding_service_auth_header(self, headers: dict[str, str]) -> None:
-        if is_weaviate_domain(self._connection_params.http.host):
-            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-            headers.update({"x-weaviate-api-key": self.get_current_bearer_token()})
 
     def __get_timeout(
         self,
@@ -775,9 +746,6 @@ class _ConnectionBase:
         except RequestError:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
-    def supports_groupby_in_bm25_and_hybrid(self) -> bool:
-        return self._weaviate_version.is_at_least(1, 25, 0)
-
     def delete(
         self,
         path: str,
@@ -911,8 +879,8 @@ class _ConnectionBase:
 class ConnectionSync(_ConnectionBase):
     """Connection class used to communicate to a weaviate instance."""
 
-    def connect(self) -> None:
-        if self._connected:
+    def connect(self, force: bool = False) -> None:
+        if self._connected and not force:
             return None
 
         self._open_connections_rest(self._auth, "sync")
@@ -945,10 +913,10 @@ class ConnectionSync(_ConnectionBase):
                 raise e
 
         # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 23, 7):
+        if self._weaviate_version.is_lower_than(1, 27, patch=0):
             self._connected = False
             raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
             )
 
         if not self._skip_init_checks:
@@ -1028,6 +996,24 @@ class ConnectionSync(_ConnectionBase):
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
             raise WeaviateBatchError(str(error.details()))
+
+    def grpc_batch_stream(
+        self,
+        requests: Generator[batch_pb2.BatchStreamRequest, None, None],
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        try:
+            assert self.grpc_stub is not None
+            for msg in self.grpc_stub.BatchStream(
+                request_iterator=requests, metadata=self.grpc_headers()
+            ):
+                yield msg
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(str(error.details()))
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest
@@ -1129,10 +1115,10 @@ class ConnectionAsync(_ConnectionBase):
                 raise e
 
         # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 23, 7):
+        if self._weaviate_version.is_lower_than(1, 27, 0):
             self._connected = False
             raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
             )
 
         if not self._skip_init_checks:

@@ -12,7 +12,6 @@ from weaviate.collections.classes.grpc import BM25OperatorOptions
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import aggregate_pb2
 from weaviate.types import NUMBER
 
@@ -108,10 +107,6 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             weaviate.exceptions.WeaviateQueryError: If an error occurs while performing the query against Weaviate.
             weaviate.exceptions.WeaviateInvalidInputError: If any of the input arguments are of the wrong type.
         """
-        if group_by is not None and self._connection._weaviate_version.is_lower_than(1, 25, 0):
-            raise WeaviateUnsupportedFeatureError(
-                "Hybrid aggregation", self._connection.server_version, "1.25.0"
-            )
         return_metrics = (
             return_metrics
             if (return_metrics is None or isinstance(return_metrics, list))

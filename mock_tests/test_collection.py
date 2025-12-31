@@ -106,6 +106,7 @@ def test_missing_multi_tenancy_config(
         reranker_config=None,
         vectorizer_config=None,
         vector_config=None,
+        object_ttl_config=None,
         inverted_index_config=InvertedIndexConfig(
             bm25=BM25Config(b=0, k1=0),
             cleanup_interval_seconds=0,
@@ -295,7 +296,7 @@ def test_node_with_timeout(
     httpserver: HTTPServer, start_grpc_server: grpc.Server, output: Literal["minimal", "verbose"]
 ) -> None:
     httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
-    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
 
     httpserver.expect_request("/v1/nodes").respond_with_json(
         status=200,
