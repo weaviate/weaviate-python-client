@@ -128,61 +128,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        Configure.Vectorizer.multi2vec_voyageai(
-            model="voyage-multimodal-3.5",
-            truncation=True,
-            output_encoding="base64",
-            vectorize_collection_name=True,
-            base_url="https://api.voyageai.com",
-        ),
-        {
-            "multi2vec-voyageai": {
-                "model": "voyage-multimodal-3.5",
-                "truncation": True,
-                "baseURL": "https://api.voyageai.com/",
-            }
-        },
-    ),
-    (
-        Configure.Vectorizer.multi2vec_voyageai(
-            model="voyage-multimodal-3.5",
-            truncation=True,
-            text_fields=[Multi2VecField(name="text", weight=0.2)],
-            image_fields=[Multi2VecField(name="image", weight=0.3)],
-            video_fields=[Multi2VecField(name="video", weight=0.5)],
-        ),
-        {
-            "multi2vec-voyageai": {
-                "model": "voyage-multimodal-3.5",
-                "truncation": True,
-                "textFields": ["text"],
-                "imageFields": ["image"],
-                "videoFields": ["video"],
-                "weights": {
-                    "textFields": [0.2],
-                    "imageFields": [0.3],
-                    "videoFields": [0.5],
-                },
-            }
-        },
-    ),
-    (
-        Configure.Vectorizer.multi2vec_voyageai(
-            model="voyage-multimodal-3.5",
-            dimensions=512,
-            text_fields=["text"],
-            video_fields=["video"],
-        ),
-        {
-            "multi2vec-voyageai": {
-                "model": "voyage-multimodal-3.5",
-                "dimensions": 512,
-                "textFields": ["text"],
-                "videoFields": ["video"],
-            }
-        },
-    ),
-    (
         Configure.Vectorizer.multi2vec_nvidia(
             model="nvidia/nvclip",
             truncation=False,
@@ -2476,6 +2421,59 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     }
                 },
                 "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        Configure.Vectors.multi2vec_voyageai(
+            model="voyage-multimodal-3.5",
+            truncation=True,
+            base_url="https://api.voyageai.com",
+        ),
+        {
+            "multi2vec-voyageai": {
+                "model": "voyage-multimodal-3.5",
+                "truncation": True,
+                "baseURL": "https://api.voyageai.com/",
+            }
+        },
+    ),
+    (
+        Configure.Vectors.multi2vec_voyageai(
+            model="voyage-multimodal-3.5",
+            truncation=True,
+            text_fields=[Multi2VecField(name="text", weight=0.2)],
+            image_fields=[Multi2VecField(name="image", weight=0.3)],
+            video_fields=[Multi2VecField(name="video", weight=0.5)],
+        ),
+        {
+            "multi2vec-voyageai": {
+                "model": "voyage-multimodal-3.5",
+                "truncation": True,
+                "textFields": ["text"],
+                "imageFields": ["image"],
+                "videoFields": ["video"],
+                "weights": {
+                    "textFields": [0.2],
+                    "imageFields": [0.3],
+                    "videoFields": [0.5],
+                },
+            }
+        },
+    ),
+    (
+        Configure.Vectors.multi2vec_voyageai(
+            model="voyage-multimodal-3.5",
+            dimensions=512,
+            text_fields=["text"],
+            video_fields=["video"],
+        ),
+        {
+            "multi2vec-voyageai": {
+                "model": "voyage-multimodal-3.5",
+                "dimensions": 512,
+                "textFields": ["text"],
+                "videoFields": ["video"],
             }
         },
     ),
