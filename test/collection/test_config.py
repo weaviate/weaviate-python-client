@@ -19,7 +19,6 @@ from weaviate.collections.classes.config_vectorizers import (
     Multi2VecField,
     VectorDistances,
 )
-
 from weaviate.collections.classes.config_vectors import _VectorConfigCreate
 
 DEFAULTS = {
@@ -2005,7 +2004,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
-            Configure.Vectors.multi2vec_aws(
+            Configure.Vectors.multi2vec_aws_bedrock(
                 name="test",
                 dimensions=512,
                 model="model",
@@ -2107,6 +2106,24 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "multi2multivec-jinaai": {
                         "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexConfig": {
+                    "multivector": {
+                        "enabled": True,
+                    },
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.MultiVectors.multi2vec_weaviate(name="test", image_field="prop")],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2multivec-weaviate": {
+                        "imageFields": ["prop"],
                     }
                 },
                 "vectorIndexConfig": {
