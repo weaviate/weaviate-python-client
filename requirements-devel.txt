@@ -1,6 +1,6 @@
 httpx==0.26.0
 validators==0.34.0
-authlib==1.6.5
+authlib==1.6.6
 grpcio==1.75.1
 grpcio-tools==1.75.1
 grpcio-health-checking==1.75.1
