@@ -84,6 +84,7 @@ class BackupStatusReturn(BaseModel):
     status: BackupStatus
     path: str
     backup_id: str = Field(alias="id")
+    size: float = Field(default=0)
 
 
 class BackupReturn(BackupStatusReturn):
