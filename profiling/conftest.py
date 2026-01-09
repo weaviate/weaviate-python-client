@@ -10,6 +10,7 @@ from weaviate.collections.classes.config import (
     Property,
     _InvertedIndexConfigCreate,
     _VectorizerConfigCreate,
+    _ReplicationConfigCreate,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.config import AdditionalConfig
@@ -36,6 +37,7 @@ class CollectionFactory(Protocol):
         headers: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         integration_config: Optional[Union[_IntegrationConfig, List[_IntegrationConfig]]] = None,
+        replication_config: Optional[_ReplicationConfigCreate] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -54,6 +56,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         headers: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         integration_config: Optional[Union[_IntegrationConfig, List[_IntegrationConfig]]] = None,
+        replication_config: Optional[_ReplicationConfigCreate] = None,
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name)
@@ -61,7 +64,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
             headers=headers,
             additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
         )
-        client_fixture.collections.delete(name_fixture)
+        # client_fixture.collections.delete(name_fixture)
         if integration_config is not None:
             client_fixture.integrations.configure(integration_config)
 
@@ -70,6 +73,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
             vectorizer_config=vectorizer_config,
             properties=properties,
             inverted_index_config=inverted_index_config,
+            replication_config=replication_config,
         )
         return collection
 
@@ -77,7 +81,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         yield _factory
     finally:
         if client_fixture is not None and name_fixture is not None:
-            client_fixture.collections.delete(name_fixture)
+            # client_fixture.collections.delete(name_fixture)
             client_fixture.close()
 
 
