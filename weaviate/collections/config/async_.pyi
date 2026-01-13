@@ -23,6 +23,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigHFreshUpdate,
 )
+from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.connect.v4 import ConnectionAsync
 
@@ -44,6 +45,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         property_descriptions: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
+        object_ttl_config: Optional[_ObjectTTLConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
             Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate, _VectorIndexConfigHFreshUpdate]

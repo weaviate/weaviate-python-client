@@ -44,6 +44,7 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
+from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
 )
@@ -130,6 +131,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         property_descriptions: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
+        object_ttl_config: Optional[_ObjectTTLConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
             Union[
@@ -158,6 +160,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         Args:
             description: A description of the collection.
             inverted_index_config: Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
+            multi_tenancy_config: Configuration for multi-tenancy settings. Use `Reconfigure.multi_tenancy` to generate one.
+                Only `auto_tenant_creation` is supported.
+            object_ttl_config: Configuration for object TTL settings. Use `Reconfigure.object_ttl` to generate one.
             replication_config: Configuration for the replication. Use `Reconfigure.replication` to generate one.
             reranker_config: Configuration for the reranker. Use `Reconfigure.replication` to generate one.
             vector_index_config (DEPRECATED use `vector_config`): Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
@@ -166,8 +171,6 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 Using this argument with a list of `Reconfigure.NamedVectors` is **DEPRECATED**. Use the `vector_config` argument instead in such a case.
             vector_config: Configuration for the vector index (or indices) of your collection.
                 Use `Reconfigure.Vectors` for both single and multiple vectorizers. Supply a list to update many vectorizers at once.
-            multi_tenancy_config: Configuration for multi-tenancy settings. Use `Reconfigure.multi_tenancy` to generate one.
-                Only `auto_tenant_creation` is supported.
 
         Raises:
             weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
@@ -199,6 +202,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 replication_config=replication_config,
                 vector_index_config=vector_index_config,
                 vectorizer_config=vectorizer_config,
+                object_ttl_config=object_ttl_config,
                 multi_tenancy_config=multi_tenancy_config,
                 generative_config=generative_config,
                 reranker_config=reranker_config,

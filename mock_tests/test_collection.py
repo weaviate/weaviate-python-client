@@ -106,6 +106,7 @@ def test_missing_multi_tenancy_config(
         reranker_config=None,
         vectorizer_config=None,
         vector_config=None,
+        object_ttl_config=None,
         inverted_index_config=InvertedIndexConfig(
             bm25=BM25Config(b=0, k1=0),
             cleanup_interval_seconds=0,
