@@ -131,8 +131,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
 
 
 class _VectorIndexConfigHFreshCreate(_VectorIndexConfigCreate):
-    maxPostingSize: Optional[int]
-    minPostingSize: Optional[int]
+    maxPostingSizeKB: Optional[int]
     replicas: Optional[int]
     rngFactor: Optional[int]
     searchProbe: Optional[int]
@@ -165,8 +164,7 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
 
 
 class _VectorIndexConfigHFreshUpdate(_VectorIndexConfigUpdate):
-    maxPostingSize: Optional[int]
-    minPostingSize: Optional[int]
+    maxPostingSizeKB: Optional[int]
     rngFactor: Optional[int]
     searchProbe: Optional[int]
 
@@ -593,8 +591,7 @@ class _VectorIndex:
     @staticmethod
     def hfresh(
         distance_metric: Optional[VectorDistances] = None,
-        max_posting_size: Optional[int] = None,
-        min_posting_size: Optional[int] = None,
+        max_posting_size_kb: Optional[int] = None,
         replicas: Optional[int] = None,
         rng_factor: Optional[int] = None,
         search_probe: Optional[int] = None,
@@ -611,8 +608,7 @@ class _VectorIndex:
         """
         return _VectorIndexConfigHFreshCreate(
             distance=distance_metric,
-            maxPostingSize=max_posting_size,
-            minPostingSize=min_posting_size,
+            maxPostingSizeKB=max_posting_size_kb,
             replicas=replicas,
             rngFactor=rng_factor,
             searchProbe=search_probe,

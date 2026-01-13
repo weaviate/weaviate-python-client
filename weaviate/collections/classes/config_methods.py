@@ -217,8 +217,7 @@ def __get_hfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigHFresh:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigHFresh(
         distance_metric=VectorDistances(config.get("distance")),
-        max_posting_size=config["maxPostingSize"],
-        min_posting_size=config["minPostingSize"],
+        max_posting_size_kb=config["maxPostingSizeKB"],
         replicas=config["replicas"],
         rng_factor=config["rngFactor"],
         search_probe=config["searchProbe"],

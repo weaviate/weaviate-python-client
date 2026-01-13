@@ -134,8 +134,7 @@ class _IndexWrappers:
     def __hfresh(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigHFreshCreate:
         return _VectorIndexConfigHFreshCreate(
             distance_metric=None,
-            maxPostingSize=None,
-            minPostingSize=None,
+            maxPostingSizeKB=None,
             replicas=None,
             rngFactor=None,
             searchProbe=None,
