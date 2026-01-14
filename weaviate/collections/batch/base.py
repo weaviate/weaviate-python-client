@@ -1124,6 +1124,7 @@ class _BatchBaseNew:
             if message.HasField("acks"):
                 with self.__acks_lock:
                     self.__inflight_objs.difference_update(message.acks.uuids)
+                    self.__uuid_lookup.difference_update(message.acks.uuids)
                     self.__inflight_refs.difference_update(message.acks.beacons)
             if message.HasField("results"):
                 result_objs = BatchObjectReturn()
