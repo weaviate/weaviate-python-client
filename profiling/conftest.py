@@ -61,10 +61,6 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
             headers=headers,
             additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
         )
-        # client_fixture = weaviate.connect_to_weaviate_cloud(
-        #     cluster_url="flnyoj61teuw1mxfwf1fsa.c0.europe-west3.gcp.weaviate.cloud",
-        #     auth_credentials=weaviate.auth.Auth.api_key("QnVtdnlnM2RYeUh3NVlFNF82V3pqVEtoYnloMlo0MHV2R2hYMU9BUFFsR3cvUUlkUG9CTFRiQXNjam1nPV92MjAw"),
-        # )
         client_fixture.collections.delete(name_fixture)
         if integration_config is not None:
             client_fixture.integrations.configure(integration_config)
