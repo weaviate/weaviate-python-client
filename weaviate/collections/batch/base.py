@@ -641,7 +641,7 @@ class _BatchBase:
                     time.sleep(2**highest_retry_count)
             with self.__uuid_lookup_lock:
                 self.__uuid_lookup.difference_update(
-                    obj.uuid for obj in objs if obj.uuid not in readded_uuids
+                    str(obj.uuid) for obj in objs if obj.uuid not in readded_uuids
                 )
 
             if (n_obj_errs := len(response_obj.errors)) > 0 and self.__objs_logs_count < 30:
