@@ -1851,7 +1851,6 @@ class _VectorIndexConfigHFresh(_VectorIndexConfig):
     distance_metric: VectorDistances
     max_posting_size_kb: int
     replicas: int
-    rng_factor: int
     search_probe: int
 
     @staticmethod
@@ -2627,7 +2626,6 @@ class _VectorIndexUpdate:
     @staticmethod
     def hfresh(
         max_posting_size_kb: Optional[int] = None,
-        rng_factor: Optional[int] = None,
         search_probe: Optional[int] = None,
         quantizer: Optional[_RQConfigUpdate] = None,
     ) -> _VectorIndexConfigHFreshUpdate:
@@ -2640,7 +2638,6 @@ class _VectorIndexUpdate:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigHFreshUpdate(
             maxPostingSizeKB=max_posting_size_kb,
-            rngFactor=rng_factor,
             searchProbe=search_probe,
             quantizer=quantizer,
         )

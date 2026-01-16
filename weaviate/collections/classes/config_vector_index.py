@@ -133,7 +133,6 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
 class _VectorIndexConfigHFreshCreate(_VectorIndexConfigCreate):
     maxPostingSizeKB: Optional[int]
     replicas: Optional[int]
-    rngFactor: Optional[int]
     searchProbe: Optional[int]
 
     @staticmethod
@@ -165,7 +164,6 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
 
 class _VectorIndexConfigHFreshUpdate(_VectorIndexConfigUpdate):
     maxPostingSizeKB: Optional[int]
-    rngFactor: Optional[int]
     searchProbe: Optional[int]
 
     @staticmethod
@@ -593,7 +591,6 @@ class _VectorIndex:
         distance_metric: Optional[VectorDistances] = None,
         max_posting_size_kb: Optional[int] = None,
         replicas: Optional[int] = None,
-        rng_factor: Optional[int] = None,
         search_probe: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector: Optional[_MultiVectorConfigCreate] = None,
@@ -610,7 +607,6 @@ class _VectorIndex:
             distance=distance_metric,
             maxPostingSizeKB=max_posting_size_kb,
             replicas=replicas,
-            rngFactor=rng_factor,
             searchProbe=search_probe,
             quantizer=quantizer,
             multivector=multi_vector,

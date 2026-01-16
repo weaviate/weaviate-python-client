@@ -136,7 +136,6 @@ class _IndexWrappers:
             distance_metric=None,
             maxPostingSizeKB=None,
             replicas=None,
-            rngFactor=None,
             searchProbe=None,
             quantizer=quantizer,
             multivector=None,

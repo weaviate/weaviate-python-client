@@ -219,7 +219,6 @@ def __get_hfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigHFresh:
         distance_metric=VectorDistances(config.get("distance")),
         max_posting_size_kb=config["maxPostingSizeKB"],
         replicas=config["replicas"],
-        rng_factor=config["rngFactor"],
         search_probe=config["searchProbe"],
         quantizer=quantizer,
         multi_vector=None,
