@@ -1,6 +1,22 @@
 Changelog
 =========
 
+
+Version 4.19.2
+--------------
+This patch version includes:
+- Revert merging #1915; not yet merged into Weaviate server
+
+
+Version 4.19.1
+--------------
+This patch version includes:
+
+- Voyage-multimodal-3.5 support in #1915 by @fzowl
+- multi2multivec-weaviate support in #1859 by @augustas1
+- Internal repo documentation improvements in #1879 by @databyjp
+
+
 Version 4.19.0
 --------------
 This minor version includes:

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import List, Union
 
 import pytest
@@ -11,6 +12,7 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     _CollectionConfigCreate,
     _GenerativeProvider,
+    _ObjectTTLConfig,
     _RerankerProvider,
     _VectorizerConfigCreate,
 )
@@ -19,7 +21,6 @@ from weaviate.collections.classes.config_vectorizers import (
     Multi2VecField,
     VectorDistances,
 )
-
 from weaviate.collections.classes.config_vectors import _VectorConfigCreate
 
 DEFAULTS = {
@@ -2119,6 +2120,24 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [Configure.MultiVectors.multi2vec_weaviate(name="test", image_field="prop")],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2multivec-weaviate": {
+                        "imageFields": ["prop"],
+                    }
+                },
+                "vectorIndexConfig": {
+                    "multivector": {
+                        "enabled": True,
+                    },
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.text2vec_gpt4all(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -2502,3 +2521,87 @@ def test_config_with_vectors(vector_config: List[_VectorConfigCreate], expected:
         "class": "Test",
         "vectorConfig": expected,
     }
+
+
+TEST_OBJECT_TTL_CONFIG_TO_DICT_PARAMETERS = [
+    # delete_by_creation_time
+    (
+        _ObjectTTLConfig(
+            enabled=True,
+            time_to_live=timedelta(hours=24),
+            filter_expired_objects=True,
+            delete_on="creationTime",
+        ),
+        {
+            "enabled": True,
+            "timeToLive": 86400,
+            "filterExpiredObjects": True,
+            "deleteOn": "creationTime",
+        },
+    ),
+    # delete_by_update_time
+    (
+        _ObjectTTLConfig(
+            enabled=True,
+            time_to_live=timedelta(days=7),
+            filter_expired_objects=False,
+            delete_on="updateTime",
+        ),
+        {
+            "enabled": True,
+            "timeToLive": 604800,
+            "filterExpiredObjects": False,
+            "deleteOn": "updateTime",
+        },
+    ),
+    # delete_by_date_property
+    (
+        _ObjectTTLConfig(
+            enabled=True,
+            time_to_live=timedelta(hours=1, minutes=30),
+            filter_expired_objects=True,
+            delete_on="releaseDate",
+        ),
+        {
+            "enabled": True,
+            "timeToLive": 5400,
+            "filterExpiredObjects": True,
+            "deleteOn": "releaseDate",
+        },
+    ),
+    # None time_to_live
+    (
+        _ObjectTTLConfig(
+            enabled=True,
+            time_to_live=None,
+            filter_expired_objects=False,
+            delete_on="creationTime",
+        ),
+        {
+            "enabled": True,
+            "filterExpiredObjects": False,
+            "deleteOn": "creationTime",
+        },
+    ),
+    # negative offset (delete_by_date_property with offset before date)
+    (
+        _ObjectTTLConfig(
+            enabled=True,
+            time_to_live=timedelta(seconds=-3600),
+            filter_expired_objects=True,
+            delete_on="eventDate",
+        ),
+        {
+            "enabled": True,
+            "timeToLive": -3600,
+            "filterExpiredObjects": True,
+            "deleteOn": "eventDate",
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize("ttl_config,expected", TEST_OBJECT_TTL_CONFIG_TO_DICT_PARAMETERS)
+def test_object_ttl_config_to_dict(ttl_config: _ObjectTTLConfig, expected: dict) -> None:
+    """Test that _ObjectTTLConfig.to_dict() properly converts timedelta to seconds."""
+    assert ttl_config.to_dict() == expected
