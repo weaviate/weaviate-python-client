@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -14,7 +15,7 @@ from typing import (
 )
 
 from deprecation import deprecated as docstring_deprecated
-from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
+from pydantic import AnyHttpUrl, Field, TypeAdapter, ValidationInfo, field_validator
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
@@ -30,6 +31,12 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorConfigUpdate,
     _NamedVectors,
     _NamedVectorsUpdate,
+)
+from weaviate.collections.classes.config_object_ttl import (
+    _ObjectTTL,
+    _ObjectTTLConfigCreate,
+    _ObjectTTLConfigUpdate,
+    _ObjectTTLUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
     PQEncoderDistribution,
@@ -395,6 +402,7 @@ class _GenerativeXai(_GenerativeProvider):
     model: Optional[str]
     maxTokens: Optional[int]
     baseURL: Optional[str]
+    topP: Optional[float]
 
 
 class _GenerativeFriendliai(_GenerativeProvider):
@@ -420,11 +428,11 @@ class _GenerativeOpenAIConfigBase(_GenerativeProvider):
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
-    frequencyPenaltyProperty: Optional[float]
-    presencePenaltyProperty: Optional[float]
-    maxTokensProperty: Optional[int]
-    temperatureProperty: Optional[float]
-    topPProperty: Optional[float]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
+    maxTokens: Optional[int]
+    temperature: Optional[float]
+    topP: Optional[float]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -449,12 +457,11 @@ class _GenerativeCohereConfig(_GenerativeProvider):
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
-    kProperty: Optional[int]
+    k: Optional[int]
     model: Optional[str]
-    maxTokensProperty: Optional[int]
-    returnLikelihoodsProperty: Optional[str]
-    stopSequencesProperty: Optional[List[str]]
-    temperatureProperty: Optional[float]
+    maxTokens: Optional[int]
+    stopSequences: Optional[List[str]]
+    temperature: Optional[float]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -481,12 +488,18 @@ class _GenerativeGoogleConfig(_GenerativeProvider):
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
     apiEndpoint: Optional[str]
+    endpointId: Optional[str]
+    region: Optional[str]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
     projectId: str
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
+    # TODO - implement passing `stopSequences`, `frequencyPenalty`, `presencePenalty` parameters from collection config once added server side
+    stopSequences: Optional[list[str]]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
 
 
 class _GenerativeAWSConfig(_GenerativeProvider):
@@ -497,6 +510,12 @@ class _GenerativeAWSConfig(_GenerativeProvider):
     service: str
     model: Optional[str]
     endpoint: Optional[str]
+    temperature: Optional[float]
+    targetModel: Optional[str]
+    targetVariant: Optional[str]
+    topK: Optional[int]
+    topP: Optional[float]
+    stopSequences: Optional[List[str]]
     maxTokens: Optional[int]
 
 
@@ -524,6 +543,13 @@ class _RerankerCohereConfig(_RerankerProvider):
         default=Rerankers.COHERE, frozen=True, exclude=True
     )
     model: Optional[Union[RerankerCohereModel, str]] = Field(default=None)
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
 
 class _RerankerCustomConfig(_RerankerProvider):
@@ -724,6 +750,7 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeXai` object for use when performing AI generation using the `generative-xai` module.
 
@@ -732,9 +759,10 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeXai(
-            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+            model=model, temperature=temperature, maxTokens=max_tokens, topP=top_p, baseURL=base_url
         )
 
     @staticmethod
@@ -783,12 +811,12 @@ class _Generative:
         """
         return _GenerativeOpenAIConfig(
             baseURL=base_url,
-            frequencyPenaltyProperty=frequency_penalty,
-            maxTokensProperty=max_tokens,
+            frequencyPenalty=frequency_penalty,
+            maxTokens=max_tokens,
             model=model,
-            presencePenaltyProperty=presence_penalty,
-            temperatureProperty=temperature,
-            topPProperty=top_p,
+            presencePenalty=presence_penalty,
+            temperature=temperature,
+            topP=top_p,
             verbosity=verbosity,
             reasoningEffort=reasoning_effort,
         )
@@ -822,12 +850,12 @@ class _Generative:
         return _GenerativeAzureOpenAIConfig(
             baseURL=base_url,
             deploymentId=deployment_id,
-            frequencyPenaltyProperty=frequency_penalty,
-            maxTokensProperty=max_tokens,
-            presencePenaltyProperty=presence_penalty,
+            frequencyPenalty=frequency_penalty,
+            maxTokens=max_tokens,
+            presencePenalty=presence_penalty,
             resourceName=resource_name,
-            temperatureProperty=temperature,
-            topPProperty=top_p,
+            temperature=temperature,
+            topP=top_p,
         )
 
     @staticmethod
@@ -849,19 +877,18 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             k: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            return_likelihoods: Whether to return the likelihoods. Defaults to `None`, which uses the server-defined default
+            return_likelihoods: (Deprecated) The return likelihoods setting to use. No longer has any effect.
             stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeCohereConfig(
             baseURL=base_url,
-            kProperty=k,
-            maxTokensProperty=max_tokens,
+            k=k,
+            maxTokens=max_tokens,
             model=model,
-            returnLikelihoodsProperty=return_likelihoods,
-            stopSequencesProperty=stop_sequences,
-            temperatureProperty=temperature,
+            stopSequences=stop_sequences,
+            temperature=temperature,
         )
 
     @staticmethod
@@ -934,15 +961,23 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         _Warnings.palm_to_google_gen()
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
+            region=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
+            endpointId=None,
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            stopSequences=None,
+            frequencyPenalty=None,
+            presencePenalty=None,
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`google()`  is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `google_vertex` or `google_gemini`."
+    )
     def google(
         project_id: str,
         api_endpoint: Optional[str] = None,
@@ -968,15 +1003,101 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         """
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
+            region=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
+            endpointId=None,
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            stopSequences=None,
+            frequencyPenalty=None,
+            presencePenalty=None,
         )
 
     @staticmethod
+    def google_vertex(
+        project_id: str,
+        api_endpoint: Optional[str] = None,
+        region: Optional[str] = None,
+        max_output_tokens: Optional[int] = None,
+        model_id: Optional[str] = None,
+        endpoint_id: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Args:
+            project_id: The Google Vertex project ID to use.
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            region: The region to use. Defaults to `None`, which uses the server-defined default
+            max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
+            endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogleConfig(
+            apiEndpoint=api_endpoint,
+            region=region,
+            maxOutputTokens=max_output_tokens,
+            modelId=model_id,
+            projectId=project_id,
+            endpointId=endpoint_id,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
+            stopSequences=None,
+            frequencyPenalty=None,
+            presencePenalty=None,
+        )
+
+    @staticmethod
+    def google_gemini(
+        max_output_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module with the Gemini API.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Args:
+            max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogleConfig(
+            apiEndpoint=None,
+            region=None,
+            maxOutputTokens=max_output_tokens,
+            modelId=model,
+            projectId="",
+            endpointId=None,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
+            stopSequences=None,
+            frequencyPenalty=None,
+            presencePenalty=None,
+        )
+
+    @staticmethod
+    @typing_deprecated(
+        "`aws` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `aws_bedrock`."
+    )
     def aws(
         model: Optional[str] = None,
         region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC
@@ -997,7 +1118,97 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             service: The AWS service to use, options are "bedrock" and "sagemaker".
         """
         return _GenerativeAWSConfig(
-            model=model, region=region, service=service, endpoint=endpoint, maxTokens=max_tokens
+            model=model,
+            region=region,
+            service=service,
+            endpoint=endpoint,
+            temperature=None,
+            maxTokens=max_tokens,
+            targetModel=None,
+            targetVariant=None,
+            topK=None,
+            topP=None,
+            stopSequences=None,
+        )
+
+    @staticmethod
+    def aws_bedrock(
+        model: str,
+        region: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Args:
+            model: The model to use, REQUIRED
+            region: The AWS region to run the model from, REQUIRED.
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default.
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAWSConfig(
+            model=model,
+            region=region,
+            service="bedrock",
+            endpoint=None,
+            temperature=temperature,
+            maxTokens=max_tokens,
+            targetModel=None,
+            targetVariant=None,
+            topK=top_k,
+            topP=top_p,
+            stopSequences=stop_sequences,
+        )
+
+    @staticmethod
+    def aws_sagemaker(
+        region: str,
+        endpoint: str,
+        max_tokens: Optional[int] = None,
+        target_model: Optional[str] = None,
+        target_variant: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Args:
+            region: The AWS region to run the model from, REQUIRED.
+            endpoint: The model to use, REQUIRED.
+            max_tokens: The maximum token count to generate. Defaults to `None`, which uses the server-defined default.
+            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
+            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAWSConfig(
+            model=None,
+            region=region,
+            service="sagemaker",
+            endpoint=endpoint,
+            temperature=temperature,
+            maxTokens=max_tokens,
+            targetModel=target_model,
+            targetVariant=target_variant,
+            topK=top_k,
+            topP=top_p,
+            stopSequences=stop_sequences,
         )
 
     @staticmethod
@@ -1062,6 +1273,7 @@ class _Reranker:
     @staticmethod
     def cohere(
         model: Optional[Union[RerankerCohereModel, str]] = None,
+        base_url: Optional[str] = None,
     ) -> _RerankerProvider:
         """Create a `_RerankerCohereConfig` object for use when reranking using the `reranker-cohere` module.
 
@@ -1070,8 +1282,14 @@ class _Reranker:
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
         """
-        return _RerankerCohereConfig(model=model)
+        return _RerankerCohereConfig(
+            model=model,
+            baseURL=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
+        )
 
     @staticmethod
     def jinaai(
@@ -1136,69 +1354,14 @@ class _Reranker:
         return _RerankerContextualAIConfig(model=model, instruction=instruction, topN=top_n)
 
 
-class _CollectionConfigCreateBase(_ConfigCreateModel):
-    description: Optional[str] = Field(default=None)
-    invertedIndexConfig: Optional[_InvertedIndexConfigCreate] = Field(
-        default=None, alias="inverted_index_config"
-    )
-    multiTenancyConfig: Optional[_MultiTenancyConfigCreate] = Field(
-        default=None, alias="multi_tenancy_config"
-    )
-    replicationConfig: Optional[_ReplicationConfigCreate] = Field(
-        default=None, alias="replication_config"
-    )
-    shardingConfig: Optional[_ShardingConfigCreate] = Field(default=None, alias="sharding_config")
-    vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
-        default=None, alias="vector_index_config"
-    )
-    moduleConfig: _VectorizerConfigCreate = Field(
-        default=_Vectorizer.none(), alias="vectorizer_config"
-    )
-    generativeSearch: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
-    rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict: Dict[str, Any] = {}
-
-        for cls_field in type(self).model_fields:
-            val = getattr(self, cls_field)
-            if cls_field in ["name", "model", "properties", "references"] or val is None:
-                continue
-            elif isinstance(val, (bool, float, str, int)):
-                ret_dict[cls_field] = str(val)
-            elif isinstance(val, _GenerativeProvider):
-                self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
-            elif isinstance(val, _RerankerProvider):
-                self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
-            elif isinstance(val, _VectorizerConfigCreate):
-                ret_dict["vectorizer"] = val.vectorizer.value
-                if val.vectorizer != Vectorizers.NONE:
-                    self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
-            elif isinstance(val, _VectorIndexConfigCreate):
-                ret_dict["vectorIndexType"] = val.vector_index_type()
-                ret_dict[cls_field] = val._to_dict()
-            else:
-                assert isinstance(val, _ConfigCreateModel)
-                ret_dict[cls_field] = val._to_dict()
-        if self.vectorIndexConfig is None:
-            ret_dict["vectorIndexType"] = VectorIndexType.HNSW.value
-        return ret_dict
-
-    @staticmethod
-    def __add_to_module_config(
-        return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
-    ) -> None:
-        if "moduleConfig" not in return_dict:
-            return_dict["moduleConfig"] = {addition_key: addition_val}
-        else:
-            return_dict["moduleConfig"][addition_key] = addition_val
-
-
 class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
     property_descriptions: Optional[Dict[str, str]] = Field(default=None)
     invertedIndexConfig: Optional[_InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
+    )
+    objectTTLConfig: Optional[_ObjectTTLConfigUpdate] = Field(
+        default=None, alias="object_ttl_config"
     )
     replicationConfig: Optional[_ReplicationConfigUpdate] = Field(
         default=None, alias="replication_config"
@@ -1306,6 +1469,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         if self.multiTenancyConfig is not None:
             schema["multiTenancyConfig"] = self.multiTenancyConfig.merge_with_existing(
                 schema["multiTenancyConfig"]
+            )
+        if self.objectTTLConfig is not None:
+            schema["objectTTLConfig"] = self.objectTTLConfig.merge_with_existing(
+                schema.get("objectTTLConfig", {})
             )
         if self.vectorIndexConfig is not None:
             self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
@@ -1765,12 +1932,24 @@ NamedVectorConfig = _NamedVectorConfig
 
 
 @dataclass
+class _ObjectTTLConfig(_ConfigBase):
+    enabled: bool
+    time_to_live: Optional[datetime.timedelta]
+    filter_expired_objects: bool
+    delete_on: Union[str, Literal["updateTime"], Literal["creationTime"]]
+
+
+ObjectTTLConfig = _ObjectTTLConfig
+
+
+@dataclass
 class _CollectionConfig(_ConfigBase):
     name: str
     description: Optional[str]
     generative_config: Optional[GenerativeConfig]
     inverted_index_config: InvertedIndexConfig
     multi_tenancy_config: MultiTenancyConfig
+    object_ttl_config: Optional[ObjectTTLConfig]
     properties: List[PropertyConfig]
     references: List[ReferencePropertyConfig]
     replication_config: ReplicationConfig
@@ -1841,6 +2020,7 @@ class _CollectionConfigSimple(_ConfigBase):
     vectorizer_config: Optional[VectorizerConfig]
     vectorizer: Optional[Union[Vectorizers, str]]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
+    object_ttl_config: Optional[ObjectTTLConfig]
 
 
 CollectionConfigSimple = _CollectionConfigSimple
@@ -1992,6 +2172,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     multiTenancyConfig: Optional[_MultiTenancyConfigCreate] = Field(
         default=None, alias="multi_tenancy_config"
     )
+    objectTtlConfig: Optional[_ObjectTTLConfigCreate] = Field(
+        default=None, alias="object_ttl_config"
+    )
     replicationConfig: Optional[_ReplicationConfigCreate] = Field(
         default=None, alias="replication_config"
     )
@@ -2017,9 +2200,17 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     @classmethod
     def validate_vector_names(
         cls,
-        v: Union[_VectorizerConfigCreate, _NamedVectorConfigCreate, List[_NamedVectorConfigCreate]],
+        v: Union[
+            _VectorizerConfigCreate,
+            _NamedVectorConfigCreate,
+            List[_NamedVectorConfigCreate],
+        ],
         info: ValidationInfo,
-    ) -> Union[_VectorizerConfigCreate, _NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]:
+    ) -> Union[
+        _VectorizerConfigCreate,
+        _NamedVectorConfigCreate,
+        List[_NamedVectorConfigCreate],
+    ]:
         if isinstance(v, list):
             names = [vc.name for vc in v]
             if len(names) != len(set(names)):
@@ -2040,7 +2231,8 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             and info.data["vectorIndexConfig"] is None
         ):
             return _VectorConfigCreate(
-                name="default", vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
+                name="default",
+                vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             )
         return v
 
@@ -2155,6 +2347,7 @@ class Configure:
     NamedVectors = _NamedVectors
     Vectors = _Vectors
     MultiVectors = _MultiVectors
+    ObjectTTL = _ObjectTTL
 
     @staticmethod
     def inverted_index(
@@ -2432,6 +2625,7 @@ class Reconfigure:
     VectorIndex = _VectorIndexUpdate
     Generative = _Generative  # config is the same for create and update
     Reranker = _Reranker  # config is the same for create and update
+    ObjectTTL = _ObjectTTLUpdate
 
     @staticmethod
     def inverted_index(
