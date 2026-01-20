@@ -824,8 +824,8 @@ async def test_add_one_hundred_thousand_data_objects_async(
 ) -> None:
     """Test adding one hundred thousand data objects."""
     client, name = await async_client_factory()
-    if client._connection._weaviate_version.is_lower_than(1, 34, 0):
-        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 
