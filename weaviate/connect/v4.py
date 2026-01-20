@@ -151,7 +151,14 @@ class _ConnectionBase:
         self._connected = False
         self._skip_init_checks = skip_init_checks
 
-        self._headers = {"content-type": "application/json"}
+        client_type = "sync" if isinstance(self, ConnectionSync) else "async"
+        embedded_suffix = "-embedded" if self.embedded_db is not None else ""
+        client_header = f"weaviate-client-python/{client_version}-{client_type}{embedded_suffix}"
+
+        self._headers = {
+            "content-type": "application/json",
+            "X-Weaviate-Client": client_header,
+        }
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:
             _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
@@ -178,13 +185,8 @@ class _ConnectionBase:
         self._prepare_grpc_headers()
 
     def __add_weaviate_embedding_service_header(self, wcd_host: str) -> None:
-        if not is_weaviate_domain(wcd_host):
-            return
-
-        self._headers["X-Weaviate-Cluster-URL"] = "https://" + wcd_host
-        if isinstance(self._auth, AuthApiKey):
-            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-            self._headers["X-Weaviate-Api-Key"] = self._auth.api_key
+        if is_weaviate_domain(wcd_host):
+            self._headers["X-Weaviate-Cluster-URL"] = "https://" + wcd_host
 
     def set_integrations(self, integrations_config: List[_IntegrationConfig]) -> None:
         for integration in integrations_config:
@@ -273,14 +275,8 @@ class _ConnectionBase:
                 )
 
             if isinstance(self._auth, AuthApiKey):
-                if "X-Weaviate-Api-Key" in self._headers:
-                    # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-                    self.__metadata_list.append(
-                        ("x-weaviate-api-key", self._headers["X-Weaviate-Api-Key"])
-                    )
                 self.__metadata_list.append(("authorization", "Bearer " + self._auth.api_key))
             else:
-                self.__add_weaviate_embedding_service_auth_grpc_header()
                 self.__metadata_list.append(
                     ("authorization", "dummy_will_be_refreshed_for_each_call")
                 )
@@ -290,34 +286,18 @@ class _ConnectionBase:
         else:
             self.__grpc_headers = None
 
-    def __add_weaviate_embedding_service_auth_grpc_header(self) -> None:
-        if is_weaviate_domain(self._connection_params.http.host):
-            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-            self.__metadata_list.append(
-                ("x-weaviate-api-key", "dummy_will_be_refreshed_for_each_call")
-            )
-
     def grpc_headers(self) -> Optional[Tuple[Tuple[str, str], ...]]:
         if self._auth is None or isinstance(self._auth, AuthApiKey):
             return self.__grpc_headers
 
         assert self.__grpc_headers is not None
         access_token = self.get_current_bearer_token()
-        self.__refresh_weaviate_embedding_service_auth_grpc_header()
         # auth is last entry in list, rest is static
         self.__metadata_list[len(self.__metadata_list) - 1] = (
             "authorization",
             access_token,
         )
         return tuple(self.__metadata_list)
-
-    def __refresh_weaviate_embedding_service_auth_grpc_header(self) -> None:
-        if is_weaviate_domain(self._connection_params.http.host):
-            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-            self.__metadata_list[len(self.__metadata_list) - 2] = (
-                "x-weaviate-api-key",
-                self.get_current_bearer_token(),
-            )
 
     def _ping_grpc(self, colour: executor.Colour) -> Union[None, Awaitable[None]]:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
@@ -419,7 +399,7 @@ class _ConnectionBase:
             async def get_oidc() -> None:
                 async with self._make_client("async") as client:
                     try:
-                        response = await client.get(oidc_url)
+                        response = await client.get(oidc_url, timeout=self.timeout_config.init)
                     except Exception as e:
                         raise WeaviateConnectionError(
                             f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -434,7 +414,7 @@ class _ConnectionBase:
 
         with self._make_client("sync") as client:
             try:
-                response = client.get(oidc_url)
+                response = client.get(oidc_url, timeout=self.timeout_config.init)
             except Exception as e:
                 raise WeaviateConnectionError(
                     f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -628,13 +608,7 @@ class _ConnectionBase:
         # bearer token can change over time (OIDC) so we need to get the current one for each request
         copied_headers = copy(self._headers)
         copied_headers.update({"authorization": self.get_current_bearer_token()})
-        self.__refresh_weaviate_embedding_service_auth_header(copied_headers)
         return copied_headers
-
-    def __refresh_weaviate_embedding_service_auth_header(self, headers: dict[str, str]) -> None:
-        if is_weaviate_domain(self._connection_params.http.host):
-            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
-            headers.update({"x-weaviate-api-key": self.get_current_bearer_token()})
 
     def __get_timeout(
         self,
@@ -1047,7 +1021,7 @@ class ConnectionSync(_ConnectionBase):
                 raise InsufficientPermissionsError(error)
             if error.code() == StatusCode.ABORTED:
                 raise _BatchStreamShutdownError()
-            raise WeaviateBatchStreamError(str(error.details()))
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest

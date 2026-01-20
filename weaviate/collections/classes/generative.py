@@ -4,7 +4,8 @@ from io import BufferedReader
 from pathlib import Path
 from typing import List, Optional, Union
 
-from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field, TypeAdapter
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config import (
     AWSService,
@@ -113,6 +114,9 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
     target_model: Optional[str]
     target_variant: Optional[str]
     temperature: Optional[float]
+    top_k: Optional[int]
+    top_p: Optional[float]
+    stop_sequences: Optional[List[str]]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
         return generative_pb2.GenerativeProvider(
@@ -125,9 +129,11 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
                 target_model=self.target_model,
                 target_variant=self.target_variant,
                 temperature=self.temperature,
-                # max_tokens=self.max_tokens,
+                max_tokens=self.max_tokens,
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
+                # TODO - add top_k, top_p & stop_sequences here when added to server-side proto
+                # Check the latest availble version of `grpc/proto/v1/generative.proto` (see GenerativeAWS) in the server repo
             ),
         )
 
@@ -445,6 +451,34 @@ class _GenerativeXAI(_GenerativeConfigRuntime):
         )
 
 
+class _GenerativeContextualAI(_GenerativeConfigRuntime):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    temperature: Optional[float]
+    top_p: Optional[float]
+    max_new_tokens: Optional[int]
+    system_prompt: Optional[str]
+    avoid_commentary: Optional[bool]
+    knowledge: Optional[List[str]]
+
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        self._validate_multi_modal(opts)
+        return generative_pb2.GenerativeProvider(
+            return_metadata=opts.return_metadata,
+            contextualai=generative_pb2.GenerativeContextualAI(
+                model=self.model,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                max_new_tokens=self.max_new_tokens,
+                system_prompt=self.system_prompt,
+                avoid_commentary=self.avoid_commentary or False,
+                knowledge=_to_text_array(self.knowledge),
+            ),
+        )
+
+
 class GenerativeConfig:
     """Use this factory class to create the correct object for the `generative_provider` argument in the search methods of the `.generate` namespace.
 
@@ -475,7 +509,9 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnthropic(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             model=model,
             max_tokens=max_tokens,
             stop_sequences=stop_sequences,
@@ -499,12 +535,17 @@ class GenerativeConfig:
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnyscale(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             model=model,
             temperature=temperature,
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`aws` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `aws_bedrock`."
+    )
     def aws(
         *,
         endpoint: Optional[str] = None,
@@ -536,10 +577,103 @@ class GenerativeConfig:
             max_tokens=max_tokens,
             region=region,
             service=service,
-            endpoint=AnyUrl(endpoint) if endpoint is not None else None,
+            endpoint=TypeAdapter(AnyHttpUrl).validate_python(endpoint)
+            if endpoint is not None
+            else None,
             target_model=target_model,
             target_variant=target_variant,
             temperature=temperature,
+            top_k=None,
+            top_p=None,
+            stop_sequences=None,
+        )
+
+    @staticmethod
+    def aws_bedrock(
+        *,
+        endpoint: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        region: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Args:
+            endpoint: The endpoint to use when requesting the generation. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAWS(
+            model=model,
+            max_tokens=max_tokens,
+            region=region,
+            service="bedrock",
+            endpoint=TypeAdapter(AnyHttpUrl).validate_python(endpoint)
+            if endpoint is not None
+            else None,
+            target_model=None,
+            target_variant=None,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            stop_sequences=stop_sequences,
+        )
+
+    @staticmethod
+    def aws_sagemaker(
+        *,
+        endpoint: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        region: Optional[str] = None,
+        target_model: Optional[str] = None,
+        target_variant: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Args:
+            endpoint: The endpoint to use when requesting the generation. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined default
+            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
+            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAWS(
+            model=None,
+            max_tokens=max_tokens,
+            region=region,
+            service="sagemaker",
+            endpoint=TypeAdapter(AnyHttpUrl).validate_python(endpoint)
+            if endpoint is not None
+            else None,
+            target_model=target_model,
+            target_variant=target_variant,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            stop_sequences=stop_sequences,
         )
 
     @staticmethod
@@ -570,7 +704,9 @@ class GenerativeConfig:
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeCohere(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             k=k,
             max_tokens=max_tokens,
             model=model,
@@ -578,6 +714,38 @@ class GenerativeConfig:
             presence_penalty=presence_penalty,
             stop_sequences=stop_sequences,
             temperature=temperature,
+        )
+
+    @staticmethod
+    def contextualai(
+        *,
+        model: Optional[str] = None,
+        max_new_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        system_prompt: Optional[str] = None,
+        avoid_commentary: Optional[bool] = None,
+        knowledge: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeContextualAI` object for use with the `generative-contextualai` module.
+
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            max_new_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            system_prompt: The system prompt to prepend to the conversation
+            avoid_commentary: Whether to avoid model commentary in responses
+            knowledge: Optional knowledge array to override the default knowledge from retrieved objects
+        """
+        return _GenerativeContextualAI(
+            model=model,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+            system_prompt=system_prompt,
+            avoid_commentary=avoid_commentary,
+            knowledge=knowledge,
         )
 
     @staticmethod
@@ -611,7 +779,7 @@ class GenerativeConfig:
             top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeDatabricks(
-            endpoint=AnyUrl(endpoint),
+            endpoint=TypeAdapter(AnyHttpUrl).validate_python(endpoint),
             frequency_penalty=frequency_penalty,
             log_probs=log_probs,
             max_tokens=max_tokens,
@@ -650,7 +818,9 @@ class GenerativeConfig:
             top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeFriendliai(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             max_tokens=max_tokens,
             model=model,
             n=n,
@@ -659,6 +829,9 @@ class GenerativeConfig:
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`google()` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `google_vertex` or `google_gemini`."
+    )
     def google(
         *,
         api_endpoint: Optional[str] = None,
@@ -694,7 +867,9 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeGoogle(
-            api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
+            api_endpoint=TypeAdapter(AnyHttpUrl).validate_python(api_endpoint)
+            if api_endpoint is not None
+            else None,
             endpoint_id=endpoint_id,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
@@ -702,6 +877,102 @@ class GenerativeConfig:
             presence_penalty=presence_penalty,
             project_id=project_id,
             region=region,
+            stop_sequences=stop_sequences,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+        )
+
+    @staticmethod
+    def google_vertex(
+        *,
+        api_endpoint: Optional[str] = None,
+        project_id: Optional[str] = None,
+        endpoint_id: Optional[str] = None,
+        region: Optional[str] = None,
+        frequency_penalty: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        presence_penalty: Optional[float] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Args:
+            api_endpoint: The API endpoint to use. Defaults to `None`, which uses the server-defined default
+            endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model ID to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            project_id: The project ID to use. Defaults to `None`, which uses the server-defined default
+            region: The region to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogle(
+            api_endpoint=TypeAdapter(AnyHttpUrl).validate_python(api_endpoint)
+            if api_endpoint is not None
+            else None,
+            endpoint_id=endpoint_id,
+            frequency_penalty=frequency_penalty,
+            max_tokens=max_tokens,
+            model=model,
+            presence_penalty=presence_penalty,
+            project_id=project_id,
+            region=region,
+            stop_sequences=stop_sequences,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+        )
+
+    @staticmethod
+    def google_gemini(
+        *,
+        frequency_penalty: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        presence_penalty: Optional[float] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Args:
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model ID to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogle(
+            api_endpoint=TypeAdapter(AnyHttpUrl).validate_python(
+                "https://generativelanguage.googleapis.com"
+            ),
+            endpoint_id=None,
+            frequency_penalty=frequency_penalty,
+            max_tokens=max_tokens,
+            model=model,
+            presence_penalty=presence_penalty,
+            project_id=None,
+            region=None,
             stop_sequences=stop_sequences,
             temperature=temperature,
             top_k=top_k,
@@ -727,7 +998,9 @@ class GenerativeConfig:
             top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeMistral(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             max_tokens=max_tokens,
             model=model,
             temperature=temperature,
@@ -753,7 +1026,9 @@ class GenerativeConfig:
             top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeNvidia(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             max_tokens=max_tokens,
             model=model,
             temperature=temperature,
@@ -780,7 +1055,9 @@ class GenerativeConfig:
                 The number of images passed to the prompt will match the value of `limit` in the search query.
         """
         return _GenerativeOllama(
-            api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
+            api_endpoint=TypeAdapter(AnyHttpUrl).validate_python(api_endpoint)
+            if api_endpoint is not None
+            else None,
             model=model,
             temperature=temperature,
         )
@@ -824,7 +1101,9 @@ class GenerativeConfig:
         """
         return _GenerativeOpenAI(
             api_version=api_version,
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             deployment_id=deployment_id,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
@@ -874,7 +1153,9 @@ class GenerativeConfig:
         """
         return _GenerativeOpenAI(
             api_version=api_version,
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             deployment_id=deployment_id,
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
@@ -911,7 +1192,9 @@ class GenerativeConfig:
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeXAI(
-            base_url=AnyUrl(base_url) if base_url is not None else None,
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
             max_tokens=max_tokens,
             model=model,
             temperature=temperature,

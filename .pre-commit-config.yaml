@@ -9,7 +9,7 @@ repos:
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
   # Ruff version.
-  rev: v0.11.7
+  rev: v0.14.7
   hooks:
     # Run the linter.
     - id: ruff
@@ -19,24 +19,24 @@ repos:
       args: [ weaviate, integration, test, mock_tests, journey_tests ]
 
 - repo: https://github.com/PyCQA/flake8
-  rev: 7.1.0
+  rev: 7.3.0
   hooks:
     - id: flake8
       name: linting
       additional_dependencies: [
-        'flake8-bugbear==22.10.27',
-        'flake8-comprehensions==3.10.1',
-        'flake8-builtins==2.0.1'
+        'flake8-bugbear==24.12.12',
+        'flake8-comprehensions==3.17.0',
+        'flake8-builtins==3.0.0'
       ]
     - id: flake8
       name: docstrings
       additional_dependencies: [
         'flake8-docstrings==1.7.0',
-        'pydoclint==0.6.5',
+        'pydoclint==0.7.3',
       ]
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.6.0
+  rev: v6.0.0
   hooks:
     - id: no-commit-to-branch
     - id: trailing-whitespace

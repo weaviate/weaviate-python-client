@@ -35,6 +35,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import (
+    WeaviateBatchFailedToReestablishStreamError,
     WeaviateBatchStreamError,
     WeaviateBatchValidationError,
     WeaviateGRPCUnavailableError,
@@ -54,11 +55,11 @@ class _BatchBaseSync:
         batch_mode: _BatchMode,
         executor: ThreadPoolExecutor,
         vectorizer_batching: bool,
-        objects: Optional[ObjectsBatchRequest[batch_pb2.BatchObject]] = None,
-        references: Optional[ReferencesBatchRequest] = None,
+        objects: Optional[ObjectsBatchRequest[BatchObject]] = None,
+        references: Optional[ReferencesBatchRequest[BatchReference]] = None,
     ) -> None:
-        self.__batch_objects = objects or ObjectsBatchRequest[batch_pb2.BatchObject]()
-        self.__batch_references = references or ReferencesBatchRequest[batch_pb2.BatchReference]()
+        self.__batch_objects = objects or ObjectsBatchRequest[BatchObject]()
+        self.__batch_references = references or ReferencesBatchRequest[BatchReference]()
 
         self.__connection = connection
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
@@ -67,6 +68,8 @@ class _BatchBaseSync:
         self.__batch_grpc = _BatchGRPC(
             connection._weaviate_version, self.__consistency_level, connection._grpc_max_msg_size
         )
+        self.__cluster = _ClusterBatch(self.__connection)
+        self.__number_of_nodes = self.__cluster.get_number_of_nodes()
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
         self.__uuid_lookup: Set[str] = set()
@@ -82,6 +85,7 @@ class _BatchBaseSync:
         self.__results_lock = threading.Lock()
 
         self.__bg_thread_exception: Optional[Exception] = None
+        self.__is_oom = threading.Event()
         self.__is_shutting_down = threading.Event()
         self.__is_shutdown = threading.Event()
 
@@ -90,7 +94,11 @@ class _BatchBaseSync:
         self.__objs_cache: dict[str, BatchObject] = {}
         self.__refs_cache: dict[str, BatchReference] = {}
 
-        # maxsize=1 so that __batch_send does not run faster than generator for __batch_recv
+        self.__acks_lock = threading.Lock()
+        self.__inflight_objs: set[str] = set()
+        self.__inflight_refs: set[str] = set()
+
+        # maxsize=1 so that __send does not run faster than generator for __recv
         # thereby using too much buffer in case of server-side shutdown
         self.__reqs: Queue[Optional[batch_pb2.BatchStreamRequest]] = Queue(maxsize=1)
 
@@ -131,9 +139,9 @@ class _BatchBaseSync:
         while not self.__all_threads_alive():
             # wait for the stream to be started by __batch_stream
             time.sleep(0.01)
-            if time.time() - now > 10:
-                raise WeaviateBatchValidationError(
-                    "Batch stream was not started within 10 seconds. Please check your connection."
+            if time.time() - now > 60:
+                raise WeaviateBatchStreamError(
+                    "Batch stream was not started within 60 seconds. Please check your connection."
                 )
 
     def _shutdown(self) -> None:
@@ -145,7 +153,7 @@ class _BatchBaseSync:
         # self.__batch_stream will set the shutdown event when it receives
         # the stop message from the server
         while self.__any_threads_alive():
-            time.sleep(1)
+            time.sleep(0.05)
         logger.warning("Send & receive threads finished.")
 
         # copy the results to the public results
@@ -158,7 +166,7 @@ class _BatchBaseSync:
             self.__results_for_wrapper.imported_shards
         )
 
-    def __batch_send(self) -> None:
+    def __send(self) -> None:
         refresh_time: float = 0.01
         while (
             self.__shut_background_thread_down is not None
@@ -196,7 +204,12 @@ class _BatchBaseSync:
 
                 for req in self.__generate_stream_requests(objs, refs):
                     logged = False
-                    while self.__is_shutting_down.is_set() or self.__is_shutdown.is_set():
+                    start = time.time()
+                    while (
+                        self.__is_oom.is_set()
+                        or self.__is_shutting_down.is_set()
+                        or self.__is_shutdown.is_set()
+                    ):
                         # if we were shutdown by the node we were connected to, we need to wait for the stream to be restarted
                         # so that the connection is refreshed to a new node where the objects can be accepted
                         # otherwise, we wait until the stream has been started by __batch_stream to send the first batch
@@ -206,6 +219,10 @@ class _BatchBaseSync:
                             # put sentinel into our queue to signal the end of the current stream
                             self.__reqs.put(None)
                         time.sleep(1)
+                        if time.time() - start > 300:
+                            raise WeaviateBatchFailedToReestablishStreamError(
+                                "Batch stream was not re-established within 5 minutes. Terminating batch."
+                            )
                     if logged:
                         logger.warning("Stream re-established, resuming sending batches")
                     self.__reqs.put(req)
@@ -216,10 +233,13 @@ class _BatchBaseSync:
                 return
             time.sleep(refresh_time)
 
+    def __beacon(self, ref: batch_pb2.BatchReference) -> str:
+        return f"weaviate://localhost/{ref.from_collection}{f'#{ref.tenant}' if ref.tenant != '' else ''}/{ref.from_uuid}#{ref.name}->/{ref.to_collection}/{ref.to_uuid}"
+
     def __generate_stream_requests(
         self,
-        objs: List[batch_pb2.BatchObject],
-        refs: List[batch_pb2.BatchReference],
+        objects: List[BatchObject],
+        references: List[BatchReference],
     ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
         per_object_overhead = 4  # extra overhead bytes per object in the request
 
@@ -229,7 +249,10 @@ class _BatchBaseSync:
         request = request_maker()
         total_size = request.ByteSize()
 
-        for obj in objs:
+        inflight_objs = set()
+        inflight_refs = set()
+        for object_ in objects:
+            obj = self.__batch_grpc.grpc_object(object_._to_internal())
             obj_size = obj.ByteSize() + per_object_overhead
 
             if total_size + obj_size >= self.__batch_grpc.grpc_max_msg_size:
@@ -239,8 +262,11 @@ class _BatchBaseSync:
 
             request.data.objects.values.append(obj)
             total_size += obj_size
+            if self.__connection._weaviate_version.is_at_least(1, 35, 0):
+                inflight_objs.add(obj.uuid)
 
-        for ref in refs:
+        for reference in references:
+            ref = self.__batch_grpc.grpc_reference(reference._to_internal())
             ref_size = ref.ByteSize() + per_object_overhead
 
             if total_size + ref_size >= self.__batch_grpc.grpc_max_msg_size:
@@ -250,6 +276,12 @@ class _BatchBaseSync:
 
             request.data.references.values.append(ref)
             total_size += ref_size
+            if self.__connection._weaviate_version.is_at_least(1, 35, 0):
+                inflight_refs.add(reference._to_beacon())
+
+        with self.__acks_lock:
+            self.__inflight_objs.update(inflight_objs)
+            self.__inflight_refs.update(inflight_refs)
 
         if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
             yield request
@@ -280,9 +312,12 @@ class _BatchBaseSync:
             if self.__is_shutting_down.is_set():
                 logger.warning("Server shutting down, closing the client-side of the stream")
                 return
+            if self.__is_oom.is_set():
+                logger.warning("Server out-of-memory, closing the client-side of the stream")
+                return
             logger.warning("Received sentinel, but not stopping, continuing...")
 
-    def __batch_recv(self) -> None:
+    def __recv(self) -> None:
         for message in self.__batch_grpc.stream(
             connection=self.__connection,
             requests=self.__generate_stream_requests_for_grpc(),
@@ -302,6 +337,11 @@ class _BatchBaseSync:
                     logger.warning(
                         f"Updated batch size to {self.__batch_size} as per server request"
                     )
+            if message.HasField("acks"):
+                with self.__acks_lock:
+                    self.__inflight_objs.difference_update(message.acks.uuids)
+                    self.__uuid_lookup.difference_update(message.acks.uuids)
+                    self.__inflight_refs.difference_update(message.acks.beacons)
             if message.HasField("results"):
                 result_objs = BatchObjectReturn()
                 result_refs = BatchReferenceReturn()
@@ -370,11 +410,23 @@ class _BatchBaseSync:
                     self.__results_for_wrapper.results.refs += result_refs
                     self.__results_for_wrapper.failed_objects.extend(failed_objs)
                     self.__results_for_wrapper.failed_references.extend(failed_refs)
+            elif message.HasField("out_of_memory"):
+                logger.warning(
+                    "Server reported out-of-memory error. Batching will wait at most 10 minutes for the server to scale-up. If the server does not recover within this time, the batch will terminate with an error."
+                )
+                self.__is_oom.set()
+                self.__batch_objects.prepend(
+                    [self.__objs_cache[uuid] for uuid in message.out_of_memory.uuids]
+                )
+                self.__batch_references.prepend(
+                    [self.__refs_cache[beacon] for beacon in message.out_of_memory.beacons]
+                )
             elif message.HasField("shutting_down"):
                 logger.warning(
                     "Received shutting down message from server, pausing sending until stream is re-established"
                 )
                 self.__is_shutting_down.set()
+                self.__is_oom.clear()
             elif message.HasField("shutdown"):
                 logger.warning("Received shutdown finished message from server")
                 self.__is_shutdown.set()
@@ -386,22 +438,23 @@ class _BatchBaseSync:
         if self.__is_shutdown.is_set():
             logger.warning("Restarting batch recv after shutdown...")
             self.__is_shutdown.clear()
-            return self.__batch_recv()
+            return self.__recv()
         else:
             logger.warning("Server closed the stream from its side, shutting down batch")
             return
 
     def __reconnect(self, retry: int = 0) -> None:
-        if self.__consistency_level == ConsistencyLevel.ALL:
+        if self.__consistency_level == ConsistencyLevel.ALL or self.__number_of_nodes == 1:
             # check that all nodes are available before reconnecting
-            cluster = _ClusterBatch(self.__connection)
-            while len(nodes := cluster.get_nodes_status()) != 3 or any(
-                node["status"] != "HEALTHY" for node in nodes
+            up_nodes = self.__cluster.get_nodes_status()
+            while len(up_nodes) != self.__number_of_nodes or any(
+                node["status"] != "HEALTHY" for node in up_nodes
             ):
                 logger.warning(
-                    "Waiting for all nodes to be HEALTHY before reconnecting to batch stream due to CL=ALL..."
+                    "Waiting for all nodes to be HEALTHY before reconnecting to batch stream..."
                 )
                 time.sleep(5)
+                up_nodes = self.__cluster.get_nodes_status()
         try:
             logger.warning(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
             self.__connection.close("sync")
@@ -419,23 +472,27 @@ class _BatchBaseSync:
         """Create a background thread that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
 
-        def batch_send_wrapper() -> None:
+        def send_wrapper() -> None:
             try:
-                self.__batch_send()
+                self.__send()
                 logger.warning("exited batch send thread")
             except Exception as e:
                 logger.error(e)
                 self.__bg_thread_exception = e
 
-        def batch_recv_wrapper() -> None:
+        def recv_wrapper() -> None:
             socket_hung_up = False
             try:
-                self.__batch_recv()
+                self.__recv()
                 logger.warning("exited batch receive thread")
             except Exception as e:
                 if isinstance(e, WeaviateBatchStreamError) and (
-                    "Socket closed" in e.message or "context canceled" in e.message
+                    "Socket closed" in e.message
+                    or "context canceled" in e.message
+                    or "Connection reset" in e.message
+                    or "Received RST_STREAM with error code 2" in e.message
                 ):
+                    logger.error(f"Socket hung up detected in batch receive thread: {e.message}")
                     socket_hung_up = True
                 else:
                     logger.error(e)
@@ -452,30 +509,20 @@ class _BatchBaseSync:
                     logger.warning(
                         f"Re-adding {len(self.__objs_cache)} cached objects to the batch"
                     )
-                    self.__batch_objects.prepend(
-                        [
-                            self.__batch_grpc.grpc_object(o._to_internal())
-                            for o in self.__objs_cache.values()
-                        ]
-                    )
+                    self.__batch_objects.prepend(list(self.__objs_cache.values()))
                 with self.__refs_cache_lock:
-                    self.__batch_references.prepend(
-                        [
-                            self.__batch_grpc.grpc_reference(o._to_internal())
-                            for o in self.__refs_cache.values()
-                        ]
-                    )
+                    self.__batch_references.prepend(list(self.__refs_cache.values()))
                 # start a new stream with a newly reconnected channel
-                return batch_recv_wrapper()
+                return recv_wrapper()
 
         threads = _BgThreads(
             send=threading.Thread(
-                target=batch_send_wrapper,
+                target=send_wrapper,
                 daemon=True,
                 name="BgBatchSend",
             ),
             recv=threading.Thread(
-                target=batch_recv_wrapper,
+                target=recv_wrapper,
                 daemon=True,
                 name="BgBatchRecv",
             ),
@@ -518,14 +565,14 @@ class _BatchBaseSync:
         uuid = str(batch_object.uuid)
         with self.__uuid_lookup_lock:
             self.__uuid_lookup.add(uuid)
-        self.__batch_objects.add(self.__batch_grpc.grpc_object(batch_object._to_internal()))
+        self.__batch_objects.add(batch_object)
         with self.__objs_cache_lock:
             self.__objs_cache[uuid] = batch_object
         self.__objs_count += 1
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
         # not need a long queue
-        while len(self.__batch_objects) >= self.__batch_size * 2:
+        while len(self.__inflight_objs) >= self.__batch_size:
             self.__check_bg_threads_alive()
             time.sleep(0.01)
 
@@ -563,12 +610,13 @@ class _BatchBaseSync:
                 )
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))
-            self.__batch_references.add(
-                self.__batch_grpc.grpc_reference(batch_reference._to_internal())
-            )
+            self.__batch_references.add(batch_reference)
             with self.__refs_cache_lock:
                 self.__refs_cache[batch_reference._to_beacon()] = batch_reference
                 self.__refs_count += 1
+            while len(self.__inflight_refs) >= self.__batch_size * 2:
+                self.__check_bg_threads_alive()
+                time.sleep(0.01)
 
     def __check_bg_threads_alive(self) -> None:
         if self.__any_threads_alive():

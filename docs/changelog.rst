@@ -1,6 +1,55 @@
 Changelog
 =========
 
+
+Version 4.19.2
+--------------
+This patch version includes:
+- Revert merging #1915; not yet merged into Weaviate server
+
+
+Version 4.19.1
+--------------
+This patch version includes:
+
+- Voyage-multimodal-3.5 support in #1915 by @fzowl
+- multi2multivec-weaviate support in #1859 by @augustas1
+- Internal repo documentation improvements in #1879 by @databyjp
+
+
+Version 4.19.0
+--------------
+This minor version includes:
+    - Support for new 1.35 features:
+        - Add support for time-to-live (TTL) on objects
+        - Add support for new ``multi2multivec-weaviate`` module
+        - Enhance model integration helper functions
+            - Add separate service-specific helpers for aws sagemaker vs bedrock, or google gemini vs vertex
+            - Add BaseURL support for Cohere rerankers
+            - Fix model provider parameters
+    - Improve batch performance by optimizing checks for live threads
+    - Update authlib
+
+
+Version 4.18.3
+--------------
+This patch version includes:
+    - Fixes wrong deprecation warning in PyCharm when creating a collection without vectorizers
+    - Fixes warnings with boolean filters
+
+Version 4.18.2
+--------------
+This patch version includes:
+    - Add support for contextual generative and reranker modules
+    - Add support for ZSTD compression in backups
+    - Add support for VoyageAI's voyage-3-large model
+
+Version 4.18.1
+--------------
+This patch version includes:
+    - Add 'dimensions' param to cohere vectorizers  (feat/cohere-dimensions-param)
+    - Add 'dimensions' parameter to text2vec-voyageai methods (feat/t2v-voyage-add-dimensions)
+
 Version 4.18.0
 --------------
 This minor version includes:
