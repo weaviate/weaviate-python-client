@@ -50,8 +50,10 @@ JinaMultimodalModel: TypeAlias = Literal["jina-clip-v1", "jina-clip-v2", "jina-e
 VoyageModel: TypeAlias = Literal[
     "voyage-3.5",
     "voyage-3.5-lite",
+    "voyage-3-large",
     "voyage-3",
     "voyage-3-lite",
+    "voyage-context-3",
     "voyage-large-2",
     "voyage-code-2",
     "voyage-2",
@@ -60,7 +62,10 @@ VoyageModel: TypeAlias = Literal[
     "voyage-finance-2",
     "voyage-multilingual-2",
 ]
-VoyageMultimodalModel: TypeAlias = Literal["voyage-multimodal-3",]
+VoyageMultimodalModel: TypeAlias = Literal[
+    "voyage-multimodal-3",
+    "voyage-multimodal-3.5",
+]
 AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
@@ -73,6 +78,7 @@ AWSService: TypeAlias = Literal[
 WeaviateModel: TypeAlias = Literal[
     "Snowflake/snowflake-arctic-embed-l-v2.0", "Snowflake/snowflake-arctic-embed-m-v1.5"
 ]
+WeaviateMultimodalModel: TypeAlias = Literal["ModernVBERT/colmodernvbert"]
 
 
 class Vectorizers(str, Enum):
@@ -129,6 +135,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_COHERE = "multi2vec-cohere"
     MULTI2VEC_JINAAI = "multi2vec-jinaai"
     MULTI2MULTI_JINAAI = "multi2multivec-jinaai"
+    MULTI2MULTI_WEAVIATE = "multi2multivec-weaviate"
     MULTI2VEC_BIND = "multi2vec-bind"
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
@@ -202,6 +209,8 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     endpoint: Optional[str]
     region: str
     service: str
+    targetModel: Optional[str]
+    targetVariant: Optional[str]
     vectorizeClassName: bool
 
     @field_validator("region")
@@ -328,6 +337,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
     truncate: Optional[CohereTruncation]
     vectorizeClassName: bool
 
@@ -348,6 +358,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     modelId: Optional[str]
     vectorizeClassName: bool
     titleProperty: Optional[str]
+    taskType: Optional[str]
 
 
 class _Text2VecTransformersConfig(_VectorizerConfigCreate):
@@ -383,6 +394,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
     )
+    dimensions: Optional[int]
     model: Optional[str]
     baseURL: Optional[str]
     truncate: Optional[bool]
@@ -458,6 +470,7 @@ class _Multi2VecCohereConfig(_Multi2VecBase):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
     truncate: Optional[CohereTruncation]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -494,6 +507,20 @@ class _Multi2VecAWSConfig(_Multi2VecBase):
 class _Multi2MultiVecJinaConfig(_Multi2VecBase):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2MULTI_JINAAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Multi2MultiVecWeaviateConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2MULTI_WEAVIATE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
@@ -542,6 +569,8 @@ class _Multi2VecVoyageaiConfig(_Multi2VecBase):
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncation: Optional[bool]
+    dimensions: Optional[int]
+    videoFields: Optional[List[Multi2VecField]]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -738,6 +767,8 @@ class _Vectorizer:
             vectorizeClassName=vectorize_collection_name,
             service=service,
             endpoint=endpoint,
+            targetModel=None,
+            targetVariant=None,
         )
 
     @staticmethod
@@ -828,6 +859,7 @@ class _Vectorizer:
         return _Text2VecCohereConfig(
             baseURL=base_url,
             model=model,
+            dimensions=None,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
         )
@@ -861,6 +893,7 @@ class _Vectorizer:
         return _Multi2VecCohereConfig(
             baseURL=base_url,
             model=model,
+            dimensions=None,
             truncate=truncate,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
@@ -869,7 +902,7 @@ class _Vectorizer:
     @staticmethod
     def multi2vec_voyageai(
         *,
-        model: Optional[Union[CohereMultimodalModel, str]] = None,
+        model: Optional[Union[VoyageMultimodalModel, str]] = None,
         truncation: Optional[bool] = None,
         output_encoding: Optional[str],
         vectorize_collection_name: bool = True,
@@ -877,14 +910,14 @@ class _Vectorizer:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
     ) -> _VectorizerConfigCreate:
-        """Create a `_Multi2VecCohereConfig` object for use when vectorizing using the `multi2vec-cohere` model.
+        """Create a `_Multi2VecVoyageaiConfig` object for use when vectorizing using the `multi2vec-voyageai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
         for detailed usage.
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
-            truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             output_encoding: Deprecated, has no effect.
             vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
@@ -892,14 +925,16 @@ class _Vectorizer:
             text_fields: The text fields to use in vectorization.
 
         Raises:
-            pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `VoyageMultimodalModel` type.
         """
         return _Multi2VecVoyageaiConfig(
             baseURL=base_url,
             model=model,
             truncation=truncation,
+            dimensions=None,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
+            videoFields=None,
         )
 
     @staticmethod
@@ -1142,6 +1177,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
@@ -1170,6 +1206,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
@@ -1203,6 +1240,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
@@ -1420,6 +1458,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             baseURL=base_url,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
+            dimensions=None,
         )
 
     @staticmethod

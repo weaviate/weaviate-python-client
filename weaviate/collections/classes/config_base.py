@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, cast
 
@@ -58,6 +59,9 @@ class _ConfigBase:
                 continue
             if isinstance(v, Enum):
                 out[key] = v.value
+                continue
+            if isinstance(v, timedelta):
+                out[key] = int(v.total_seconds())
                 continue
             if isinstance(v, dict):
                 out[key] = {

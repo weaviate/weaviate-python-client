@@ -6,6 +6,7 @@ from _pytest.fixtures import SubRequest
 from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.classes.rbac import Actions, Permissions, RoleScope
+from weaviate.connect.helpers import connect_to_local
 from weaviate.rbac.models import (
     AliasPermissionOutput,
     BackupsPermissionOutput,
@@ -734,3 +735,21 @@ def test_permission_joining(client_factory: ClientFactory) -> None:
 
         finally:
             client.roles.delete(role_name)
+
+
+def test_server_side_batching_with_auth() -> None:
+    collection_name = "TestSSBAuth"
+    with connect_to_local(
+        port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=RBAC_AUTH_CREDS
+    ) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 34, 0):
+            pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+        collection = client.collections.create(collection_name)
+        with client.batch.experimental() as batch:
+            batch.add_object(collection_name)
+            batch.add_object(collection_name)
+            batch.add_object(collection_name)
+        try:
+            assert len(collection) == 3
+        finally:
+            client.collections.delete(collection_name)

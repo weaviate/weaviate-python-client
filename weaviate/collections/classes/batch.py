@@ -32,6 +32,7 @@ class _BatchReference:
     tenant: Optional[str]
     from_uuid: str
     to_uuid: Union[str, None]
+    index: int
 
 
 class BatchObject(BaseModel):
@@ -118,6 +119,7 @@ class BatchReference(BaseModel):
     to_object_uuid: UUID
     to_object_collection: Optional[str] = None
     tenant: Optional[str] = None
+    index: int
 
     @field_validator("from_object_collection")
     def _validate_from_object_collection(cls, v: str) -> str:
@@ -146,26 +148,31 @@ class BatchReference(BaseModel):
             to=f"{BEACON}{self.to_object_collection}{str(self.to_object_uuid)}",
             to_uuid=str(self.to_object_uuid),
             tenant=self.tenant,
+            index=self.index,
         )
 
     @classmethod
     def _from_internal(cls, ref: _BatchReference) -> "BatchReference":
-        from_ = ref.from_.split("weaviate://")[1].split("/")
-        to = ref.to.split("weaviate://")[1].split("/")
+        from_ = ref.from_.split("weaviate://localhost/")[1].split("/")
+        to = ref.to.split("weaviate://localhost/")[1].split("/")
         if len(to) == 2:
-            to_object_collection = to[1]
+            to_object_collection = to[0]
         elif len(to) == 1:
             to_object_collection = None
         else:
             raise ValueError(f"Invalid reference 'to' value in _BatchReference object {ref}")
         return BatchReference(
-            from_object_collection=from_[1],
+            from_object_collection=from_[0],
             from_object_uuid=ref.from_uuid,
-            from_property_name=ref.from_[-1],
+            from_property_name=from_[-1],
             to_object_uuid=(ref.to_uuid if ref.to_uuid is not None else uuid_package.UUID(to[-1])),
             to_object_collection=to_object_collection,
             tenant=ref.tenant,
+            index=ref.index,
         )
+
+    def _to_beacon(self) -> str:
+        return f"{BEACON}{self.from_object_collection}/{self.from_object_uuid}/{self.from_property_name}"
 
 
 @dataclass
@@ -229,11 +236,36 @@ class BatchObjectReturn:
             old_max = max(self.uuids.keys())
             old_min = min(self.uuids.keys())
             for k in range(old_min, old_max - MAX_STORED_RESULTS + 1):
-                del self.uuids[k]
+                if k in self.uuids:
+                    del self.uuids[k]
         if len(self._all_responses) > MAX_STORED_RESULTS:
             self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
 
         return self
+
+    def add_uuids(self, uuids: Dict[int, uuid_package.UUID]) -> None:
+        """Add a list of uuids to the batch return object."""
+        self.uuids.update(uuids)
+        self._all_responses.extend(uuids.values())
+
+        if len(self.uuids) >= MAX_STORED_RESULTS:
+            old_max = max(self.uuids.keys())
+            old_min = min(self.uuids.keys())
+            for k in range(old_min, old_max - MAX_STORED_RESULTS + 1):
+                if k in self.uuids:
+                    del self.uuids[k]
+        if len(self._all_responses) > MAX_STORED_RESULTS:
+            self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
+
+    def add_errors(self, errors: Dict[int, ErrorObject]) -> None:
+        """Add a list of errors to the batch return object."""
+        self.has_errors = True
+        self.errors.update(errors)
+        self._all_responses.extend(errors.values())
+
+        for key in errors.keys():
+            if key in self.uuids:
+                del self.uuids[key]
 
 
 @dataclass
@@ -259,6 +291,11 @@ class BatchReferenceReturn:
             self.errors[prev_max + key + 1] = value
         self.has_errors = self.has_errors or other.has_errors
         return self
+
+    def add_errors(self, errors: Dict[int, ErrorReference]) -> None:
+        """Add a list of errors to the batch return object."""
+        self.has_errors = True
+        self.errors.update(errors)
 
 
 class BatchResult:

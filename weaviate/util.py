@@ -731,8 +731,9 @@ def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
         return datetime.datetime.strptime(string, date_format)
     except ValueError as e:
         # note that the year 9999 is valid and does not need to be handled. for 5 digit years only the first
-        # 4 digits are considered and it wrapps around
-        if "year 0 is out of range" in str(e):
+        # 4 digits are considered and it wrapps around. The datetime library changed the error message in python 3.14
+        # to include "year must be in ...", so we check for both messages here.
+        if "year 0 is out of range" in str(e) or "year must be in" in str(e):
             _Warnings.datetime_year_zero(string)
             return datetime.datetime.min
         raise e
