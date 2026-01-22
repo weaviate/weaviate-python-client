@@ -2428,6 +2428,83 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
+            Configure.Vectors.multi2vec_voyageai(
+                name="test",
+                model="voyage-multimodal-3.5",
+                truncation=True,
+                base_url="https://api.voyageai.com",
+            ),
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-voyageai": {
+                        "model": "voyage-multimodal-3.5",
+                        "truncation": True,
+                        "baseURL": "https://api.voyageai.com/",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_voyageai(
+                name="test",
+                model="voyage-multimodal-3.5",
+                truncation=True,
+                text_fields=[Multi2VecField(name="text", weight=0.2)],
+                image_fields=[Multi2VecField(name="image", weight=0.3)],
+                video_fields=[Multi2VecField(name="video", weight=0.5)],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-voyageai": {
+                        "model": "voyage-multimodal-3.5",
+                        "truncation": True,
+                        "textFields": ["text"],
+                        "imageFields": ["image"],
+                        "videoFields": ["video"],
+                        "weights": {
+                            "textFields": [0.2],
+                            "imageFields": [0.3],
+                            "videoFields": [0.5],
+                        },
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            },
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_voyageai(
+                name="test",
+                model="voyage-multimodal-3.5",
+                dimensions=512,
+                text_fields=["text"],
+                video_fields=["video"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-voyageai": {
+                        "model": "voyage-multimodal-3.5",
+                        "dimensions": 512,
+                        "textFields": ["text"],
+                        "videoFields": ["video"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.Vectors.multi2vec_clip(
                 name="test",
                 image_fields=["image"],

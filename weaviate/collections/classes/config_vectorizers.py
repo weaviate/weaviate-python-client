@@ -62,7 +62,10 @@ VoyageModel: TypeAlias = Literal[
     "voyage-finance-2",
     "voyage-multilingual-2",
 ]
-VoyageMultimodalModel: TypeAlias = Literal["voyage-multimodal-3",]
+VoyageMultimodalModel: TypeAlias = Literal[
+    "voyage-multimodal-3",
+    "voyage-multimodal-3.5",
+]
 AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
@@ -566,6 +569,8 @@ class _Multi2VecVoyageaiConfig(_Multi2VecBase):
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncation: Optional[bool]
+    dimensions: Optional[int]
+    videoFields: Optional[List[Multi2VecField]]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -897,7 +902,7 @@ class _Vectorizer:
     @staticmethod
     def multi2vec_voyageai(
         *,
-        model: Optional[Union[CohereMultimodalModel, str]] = None,
+        model: Optional[Union[VoyageMultimodalModel, str]] = None,
         truncation: Optional[bool] = None,
         output_encoding: Optional[str],
         vectorize_collection_name: bool = True,
@@ -905,14 +910,14 @@ class _Vectorizer:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
     ) -> _VectorizerConfigCreate:
-        """Create a `_Multi2VecCohereConfig` object for use when vectorizing using the `multi2vec-cohere` model.
+        """Create a `_Multi2VecVoyageaiConfig` object for use when vectorizing using the `multi2vec-voyageai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
         for detailed usage.
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
-            truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             output_encoding: Deprecated, has no effect.
             vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
@@ -920,14 +925,16 @@ class _Vectorizer:
             text_fields: The text fields to use in vectorization.
 
         Raises:
-            pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `VoyageMultimodalModel` type.
         """
         return _Multi2VecVoyageaiConfig(
             baseURL=base_url,
             model=model,
             truncation=truncation,
+            dimensions=None,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
+            videoFields=None,
         )
 
     @staticmethod
