@@ -400,6 +400,26 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         self,
         config: dict,
     ) -> Union[Collection, Awaitable[CollectionAsync]]:
+        # Support both "name" and "class" fields for backward compatibility
+        # If "name" is provided without "class", use it as "class"
+        if "name" in config and "class" not in config:
+            config = config.copy()
+            config["class"] = config.pop("name")
+        
+        # Normalize dataType: if it's a string, convert to array
+        # This supports both "text" and ["text"] formats, 
+        # as well as "text[]" -> ["text[]"]
+        if "properties" in config:
+            config = config.copy()
+            properties = []
+            for prop in config["properties"]:
+                prop = prop.copy()
+                if "dataType" in prop and isinstance(prop["dataType"], str):
+                    # Wrap string in array: "text" -> ["text"], "text[]" -> ["text[]"]
+                    prop["dataType"] = [prop["dataType"]]
+                properties.append(prop)
+            config["properties"] = properties
+        
         return self.__create(config=config)
 
     def _create_from_config(
