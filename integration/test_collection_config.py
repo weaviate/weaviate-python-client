@@ -1950,3 +1950,132 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
     )
     conf = collection.config.get()
     assert conf.object_ttl_config is None
+
+
+def test_create_from_dict_minimal_schema(request: SubRequest) -> None:
+    """Test creating a collection with a minimal schema using name or class field."""
+    import json
+
+    with weaviate.connect_to_local() as client:
+        # Test with "name" field
+        client.collections.delete("ExampleSchema")
+        schema_with_name = """{
+          "name": "ExampleSchema"
+        }"""
+        d = json.loads(schema_with_name)
+        collection = client.collections.create_from_dict(d)
+
+        # Verify collection was created with the correct name
+        assert collection.name == "ExampleSchema"
+        config = collection.config.get()
+        assert config.name == "ExampleSchema"
+
+        # Clean up
+        client.collections.delete("ExampleSchema")
+
+        # Test with "class" field (standard Weaviate schema format)
+        client.collections.delete("ExampleSchema")
+        schema_with_class = """{
+          "class": "ExampleSchema"
+        }"""
+        d = json.loads(schema_with_class)
+        collection = client.collections.create_from_dict(d)
+
+        # Verify collection was created with the correct name
+        assert collection.name == "ExampleSchema"
+        config = collection.config.get()
+        assert config.name == "ExampleSchema"
+
+        # Clean up
+        client.collections.delete("ExampleSchema")
+
+
+def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
+    """Test creating a collection with dataType as string or array."""
+    import json
+
+    with weaviate.connect_to_local() as client:
+        # Test with dataType as string with array notation (text[] means array of text)
+        collection_name_1 = "TestDatatypeArrayNotation"
+        client.collections.delete(collection_name_1)
+        schema_string_datatype = f"""{{
+          "class": "{collection_name_1}",
+          "properties": [
+            {{
+              "name": "texts",
+              "dataType": "text[]",
+              "indexFilterable": true,
+              "indexSearchable": true,
+              "tokenization": "word",
+              "indexRangeFilters": false
+            }}
+          ]
+        }}"""
+        d = json.loads(schema_string_datatype)
+        collection = client.collections.create_from_dict(d)
+
+        # Verify collection was created with the correct property (text[] becomes TEXT_ARRAY)
+        assert collection.name == collection_name_1
+        config = collection.config.get()
+        assert config.name == collection_name_1
+        assert len(config.properties) == 1
+        assert config.properties[0].name == "texts"
+        assert config.properties[0].data_type == DataType.TEXT_ARRAY
+
+        # Clean up
+        client.collections.delete(collection_name_1)
+
+        # Test with dataType as array (standard format)
+        collection_name_2 = "TestDatatypeStandardArray"
+        client.collections.delete(collection_name_2)
+        schema_array_datatype = f"""{{
+          "class": "{collection_name_2}",
+          "properties": [
+            {{
+              "name": "text",
+              "dataType": ["text"],
+              "indexFilterable": true,
+              "indexSearchable": true,
+              "tokenization": "word",
+              "indexRangeFilters": false
+            }}
+          ]
+        }}"""
+        d = json.loads(schema_array_datatype)
+        collection = client.collections.create_from_dict(d)
+
+        # Verify collection was created with the correct property
+        assert collection.name == collection_name_2
+        config = collection.config.get()
+        assert config.name == collection_name_2
+        assert len(config.properties) == 1
+        assert config.properties[0].name == "text"
+        assert config.properties[0].data_type == DataType.TEXT
+
+        # Clean up
+        client.collections.delete(collection_name_2)
+
+        # Test with dataType as plain string (without [])
+        collection_name_3 = "TestDatatypePlainString"
+        client.collections.delete(collection_name_3)
+        schema_plain_string = f"""{{
+          "class": "{collection_name_3}",
+          "properties": [
+            {{
+              "name": "text",
+              "dataType": "text"
+            }}
+          ]
+        }}"""
+        d = json.loads(schema_plain_string)
+        collection = client.collections.create_from_dict(d)
+
+        # Verify collection was created with the correct property
+        assert collection.name == collection_name_3
+        config = collection.config.get()
+        assert len(config.properties) == 1
+        assert config.properties[0].name == "text"
+        assert config.properties[0].data_type == DataType.TEXT
+
+        # Clean up
+        client.collections.delete(collection_name_3)
