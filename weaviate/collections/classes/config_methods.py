@@ -213,6 +213,7 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         multi_vector=__get_multivector(config),
     )
 
+
 def __get_hfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigHFresh:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigHFresh(
@@ -223,6 +224,7 @@ def __get_hfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigHFresh:
         quantizer=quantizer,
         multi_vector=None,
     )
+
 
 def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
     quantizer = __get_quantizer_config(config)
@@ -236,7 +238,13 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
 
 def __get_vector_index_config(
     schema: Dict[str, Any],
-) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, _VectorIndexConfigHFresh, None]:
+) -> Union[
+    _VectorIndexConfigHNSW,
+    _VectorIndexConfigFlat,
+    _VectorIndexConfigDynamic,
+    _VectorIndexConfigHFresh,
+    None,
+]:
     if "vectorIndexConfig" not in schema:
         return None
     if schema["vectorIndexType"] == "hnsw":

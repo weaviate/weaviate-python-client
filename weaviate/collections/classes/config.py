@@ -1846,6 +1846,7 @@ class _VectorIndexConfigHNSW(_VectorIndexConfig):
 
 VectorIndexConfigHNSW = _VectorIndexConfigHNSW
 
+
 @dataclass
 class _VectorIndexConfigHFresh(_VectorIndexConfig):
     distance_metric: VectorDistances
@@ -1857,7 +1858,9 @@ class _VectorIndexConfigHFresh(_VectorIndexConfig):
     def vector_index_type() -> str:
         return VectorIndexType.HFRESH.value
 
+
 VectorIndexConfigHFresh = _VectorIndexConfigHFresh
+
 
 @dataclass
 class _VectorIndexConfigFlat(_VectorIndexConfig):
@@ -1932,7 +1935,10 @@ class _NamedVectorizerConfig(_ConfigBase):
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, VectorIndexConfigHFresh
+        VectorIndexConfigHNSW,
+        VectorIndexConfigFlat,
+        VectorIndexConfigDynamic,
+        VectorIndexConfigHFresh,
     ]
 
     def to_dict(self) -> Dict:
@@ -1969,7 +1975,11 @@ class _CollectionConfig(_ConfigBase):
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, VectorIndexConfigHFresh, None
+        VectorIndexConfigHNSW,
+        VectorIndexConfigFlat,
+        VectorIndexConfigDynamic,
+        VectorIndexConfigHFresh,
+        None,
     ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
@@ -2630,9 +2640,9 @@ class _VectorIndexUpdate:
         quantizer: Optional[_RQConfigUpdate] = None,
     ) -> _VectorIndexConfigHFreshUpdate:
         """Create an `_VectorIndexConfigHFreshUpdate` object to update the configuration of the HFresh vector index.
-        
+
         Use this method when defining the `vectorizer_config` argument in `collection.update()`.
-        
+
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)

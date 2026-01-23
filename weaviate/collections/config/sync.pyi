@@ -46,7 +46,11 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         object_ttl_config: Optional[_ObjectTTLConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate, _VectorIndexConfigHFreshUpdate]
+            Union[
+                _VectorIndexConfigHNSWUpdate,
+                _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigHFreshUpdate,
+            ]
         ] = None,
         vectorizer_config: Optional[
             Union[

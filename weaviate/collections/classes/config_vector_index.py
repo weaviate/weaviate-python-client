@@ -594,7 +594,6 @@ class _VectorIndex:
         search_probe: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector: Optional[_MultiVectorConfigCreate] = None,
-
     ) -> _VectorIndexConfigHFreshCreate:
         """Create a `_VectorIndexConfigHFreshCreate` object to be used when defining the HFresh vector index configuration of Weaviate.
 
