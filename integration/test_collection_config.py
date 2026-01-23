@@ -1996,7 +1996,7 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
 
     with weaviate.connect_to_local() as client:
         # Test with dataType as string with array notation (text[] means array of text)
-        collection_name_1 = _sanitize_collection_name(f"{request.node.name}_array_notation")
+        collection_name_1 = "TestDatatypeArrayNotation"
         client.collections.delete(collection_name_1)
         schema_string_datatype = f"""{{
           "class": "{collection_name_1}",
@@ -2026,7 +2026,7 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
         client.collections.delete(collection_name_1)
 
         # Test with dataType as array (standard format)
-        collection_name_2 = _sanitize_collection_name(f"{request.node.name}_standard_array")
+        collection_name_2 = "TestDatatypeStandardArray"
         client.collections.delete(collection_name_2)
         schema_array_datatype = f"""{{
           "class": "{collection_name_2}",
@@ -2056,7 +2056,7 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
         client.collections.delete(collection_name_2)
 
         # Test with dataType as plain string (without [])
-        collection_name_3 = _sanitize_collection_name(f"{request.node.name}_plain_string")
+        collection_name_3 = "TestDatatypePlainString"
         client.collections.delete(collection_name_3)
         schema_plain_string = f"""{{
           "class": "{collection_name_3}",
