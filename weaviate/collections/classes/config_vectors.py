@@ -133,7 +133,6 @@ class _IndexWrappers:
     @staticmethod
     def __hfresh(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigHFreshCreate:
         return _VectorIndexConfigHFreshCreate(
-            distance_metric=None,
             maxPostingSizeKB=None,
             replicas=None,
             searchProbe=None,
