@@ -601,7 +601,7 @@ class _VectorIndex:
 
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hfresh) for a more detailed view!
-        """
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigHFreshCreate(
             distance=distance_metric,
             maxPostingSizeKB=max_posting_size_kb,
