@@ -1959,33 +1959,33 @@ def test_create_from_dict_minimal_schema(request: SubRequest) -> None:
     with weaviate.connect_to_local() as client:
         # Test with "name" field
         client.collections.delete("ExampleSchema")
-        schema_with_name = '''{
+        schema_with_name = """{
           "name": "ExampleSchema"
-        }'''
+        }"""
         d = json.loads(schema_with_name)
         collection = client.collections.create_from_dict(d)
-        
+
         # Verify collection was created with the correct name
         assert collection.name == "ExampleSchema"
         config = collection.config.get()
         assert config.name == "ExampleSchema"
-        
+
         # Clean up
         client.collections.delete("ExampleSchema")
-        
+
         # Test with "class" field (standard Weaviate schema format)
         client.collections.delete("ExampleSchema")
-        schema_with_class = '''{
+        schema_with_class = """{
           "class": "ExampleSchema"
-        }'''
+        }"""
         d = json.loads(schema_with_class)
         collection = client.collections.create_from_dict(d)
-        
+
         # Verify collection was created with the correct name
         assert collection.name == "ExampleSchema"
         config = collection.config.get()
         assert config.name == "ExampleSchema"
-        
+
         # Clean up
         client.collections.delete("ExampleSchema")
 
@@ -1997,7 +1997,7 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
     with weaviate.connect_to_local() as client:
         # Test with dataType as string with array notation (text[] means array of text)
         client.collections.delete("ExampleSchema")
-        schema_string_datatype = '''{
+        schema_string_datatype = """{
           "class": "ExampleSchema",
           "properties": [
             {
@@ -2009,10 +2009,10 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
               "indexRangeFilters": false
             }
           ]
-        }'''
+        }"""
         d = json.loads(schema_string_datatype)
         collection = client.collections.create_from_dict(d)
-        
+
         # Verify collection was created with the correct property (text[] becomes TEXT_ARRAY)
         assert collection.name == "ExampleSchema"
         config = collection.config.get()
@@ -2020,13 +2020,13 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
         assert len(config.properties) == 1
         assert config.properties[0].name == "texts"
         assert config.properties[0].data_type == DataType.TEXT_ARRAY
-        
+
         # Clean up
         client.collections.delete("ExampleSchema")
-        
+
         # Test with dataType as array (standard format)
         client.collections.delete("ExampleSchema")
-        schema_array_datatype = '''{
+        schema_array_datatype = """{
           "class": "ExampleSchema",
           "properties": [
             {
@@ -2038,10 +2038,10 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
               "indexRangeFilters": false
             }
           ]
-        }'''
+        }"""
         d = json.loads(schema_array_datatype)
         collection = client.collections.create_from_dict(d)
-        
+
         # Verify collection was created with the correct property
         assert collection.name == "ExampleSchema"
         config = collection.config.get()
@@ -2049,13 +2049,13 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
         assert len(config.properties) == 1
         assert config.properties[0].name == "text"
         assert config.properties[0].data_type == DataType.TEXT
-        
+
         # Clean up
         client.collections.delete("ExampleSchema")
-        
+
         # Test with dataType as plain string (without [])
         client.collections.delete("ExampleSchema")
-        schema_plain_string = '''{
+        schema_plain_string = """{
           "class": "ExampleSchema",
           "properties": [
             {
@@ -2063,16 +2063,16 @@ def test_create_from_dict_datatype_string_or_array(request: SubRequest) -> None:
               "dataType": "text"
             }
           ]
-        }'''
+        }"""
         d = json.loads(schema_plain_string)
         collection = client.collections.create_from_dict(d)
-        
+
         # Verify collection was created with the correct property
         assert collection.name == "ExampleSchema"
         config = collection.config.get()
         assert len(config.properties) == 1
         assert config.properties[0].name == "text"
         assert config.properties[0].data_type == DataType.TEXT
-        
+
         # Clean up
         client.collections.delete("ExampleSchema")

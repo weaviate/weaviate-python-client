@@ -405,9 +405,9 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         if "name" in config and "class" not in config:
             config = config.copy()
             config["class"] = config.pop("name")
-        
+
         # Normalize dataType: if it's a string, convert to array
-        # This supports both "text" and ["text"] formats, 
+        # This supports both "text" and ["text"] formats,
         # as well as "text[]" -> ["text[]"]
         if "properties" in config:
             config = config.copy()
@@ -419,7 +419,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
                     prop["dataType"] = [prop["dataType"]]
                 properties.append(prop)
             config["properties"] = properties
-        
+
         return self.__create(config=config)
 
     def _create_from_config(
