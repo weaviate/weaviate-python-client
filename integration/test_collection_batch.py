@@ -271,7 +271,7 @@ def test_non_existant_collection(collection_factory_get: CollectionFactoryGet) -
 
 
 @pytest.mark.asyncio
-async def test_add_one_hundred_thousand_data_objects_async(
+async def test_add_one_hundred_thousand_objects_async_collection(
     batch_collection_async: BatchCollectionAsync,
 ) -> None:
     """Test adding one hundred thousand data objects."""

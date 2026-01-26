@@ -819,7 +819,7 @@ def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_one_hundred_thousand_data_objects_async(
+async def test_add_one_hundred_thousand_objects_async_client(
     async_client_factory: AsyncClientFactory,
 ) -> None:
     """Test adding one hundred thousand data objects."""
