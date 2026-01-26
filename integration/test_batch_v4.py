@@ -831,7 +831,7 @@ async def test_add_one_hundred_thousand_data_objects_async(
 
     start = time.time()
     async with client.batch.experimental(concurrency=1) as batch:
-        async for i in arange(nr_objects):
+        for i in range(nr_objects):
             await batch.add_object(
                 collection=name,
                 properties={"name": "test" + str(i)},

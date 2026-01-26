@@ -102,7 +102,7 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
             tenant,
             config,
             batch_client=_BatchCollectionSync[Properties]
-            if connection._weaviate_version.is_at_least(1, 34, 0)
+            if connection._weaviate_version.is_at_least(1, 36, 0)
             else _BatchCollection[Properties],
         )
         """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
