@@ -20,6 +20,7 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        base_backup_id: Optional[str] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,

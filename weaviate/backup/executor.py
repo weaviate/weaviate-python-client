@@ -47,6 +47,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        base_backup_id: Optional[str] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -89,6 +90,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             "id": backup_id,
             "include": include_collections,
             "exclude": exclude_collections,
+            "incremental_backup_base_id": base_backup_id,
         }
 
         if config is not None:
