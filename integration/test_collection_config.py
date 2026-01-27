@@ -1,3 +1,4 @@
+import datetime
 from typing import Generator, List, Optional, Union
 
 import pytest as pytest
@@ -913,9 +914,11 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
     [
         (Configure.Reranker.cohere(), Rerankers.COHERE, {}),
         (
-            Configure.Reranker.cohere(model="rerank-english-v2.0"),
+            Configure.Reranker.cohere(
+                model="rerank-english-v2.0", base_url="https://some-cohere-baseurl.ai/"
+            ),
             Rerankers.COHERE,
-            {"model": "rerank-english-v2.0"},
+            {"model": "rerank-english-v2.0", "baseURL": "https://some-cohere-baseurl.ai/"},
         ),
         (Configure.Reranker.transformers(), Rerankers.TRANSFORMERS, {}),
     ],
@@ -1831,3 +1834,119 @@ def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config is not None
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.quantizer is None
+
+
+def test_object_ttl_creation(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_creation_time(
+            time_to_live=datetime.timedelta(days=30),
+            filter_expired_objects=True,
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "creationTime"
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(days=30)
+
+
+def test_object_ttl_update_time(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_update_time(
+            time_to_live=datetime.timedelta(days=30),
+            filter_expired_objects=True,
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "updateTime"
+    assert config.object_ttl_config.filter_expired_objects
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(days=30)
+
+
+def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        properties=[wvc.config.Property(name="customDate", data_type=DataType.DATE)],
+        object_ttl=Configure.ObjectTTL.delete_by_date_property(
+            property_name="customDate", filter_expired_objects=False, ttl_offset=-1
+        ),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+    assert config.object_ttl_config.delete_on == "customDate"
+    assert config.object_ttl_config.time_to_live == datetime.timedelta(seconds=-1)
+    assert not config.object_ttl_config.filter_expired_objects
+
+
+def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="customDate", data_type=DataType.DATE),
+            wvc.config.Property(name="customDate2", data_type=DataType.DATE),
+        ],
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+
+    conf = collection.config.get()
+    assert conf.object_ttl_config is None
+
+    collection.config.update(
+        object_ttl_config=Reconfigure.ObjectTTL.delete_by_date_property(
+            property_name="customDate", filter_expired_objects=True, ttl_offset=3600
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.object_ttl_config is not None
+    assert conf.object_ttl_config.delete_on == "customDate"
+    assert conf.object_ttl_config.time_to_live == datetime.timedelta(seconds=3600)
+    assert conf.object_ttl_config.filter_expired_objects
+
+    collection.config.update(
+        object_ttl_config=Reconfigure.ObjectTTL.delete_by_update_time(filter_expired_objects=False),
+    )
+
+    conf = collection.config.get()
+    assert conf.object_ttl_config is not None
+    assert conf.object_ttl_config.delete_on == "updateTime"
+    assert conf.object_ttl_config.time_to_live == datetime.timedelta(seconds=3600)
+    assert not conf.object_ttl_config.filter_expired_objects
+
+    collection.config.update(
+        object_ttl_config=Reconfigure.ObjectTTL.delete_by_creation_time(
+            time_to_live=datetime.timedelta(seconds=600),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.object_ttl_config is not None
+    assert conf.object_ttl_config.delete_on == "creationTime"
+    assert conf.object_ttl_config.time_to_live == datetime.timedelta(seconds=600)
+    assert not conf.object_ttl_config.filter_expired_objects
+
+    collection.config.update(
+        object_ttl_config=Reconfigure.ObjectTTL.disable(),
+    )
+    conf = collection.config.get()
+    assert conf.object_ttl_config is None

@@ -20,6 +20,10 @@ class BackupCompressionLevel(str, Enum):
     DEFAULT = "DefaultCompression"
     BEST_SPEED = "BestSpeed"
     BEST_COMPRESSION = "BestCompression"
+    ZSTD_BEST_SPEED = "ZstdBestSpeed"
+    ZSTD_DEFAULT = "ZstdDefaultCompression"
+    ZSTD_BEST_COMPRESSION = "ZstdBestCompression"
+    NO_COMPRESSION = "NoCompression"
 
 
 class BackupStorage(str, Enum):
@@ -58,7 +62,12 @@ class _BackupConfigBase(BaseModel):
 class BackupConfigCreate(_BackupConfigBase):
     """Options to configure the backup when creating a backup."""
 
-    ChunkSize: Optional[int] = Field(default=None, alias="chunk_size")
+    ChunkSize: Optional[int] = Field(
+        default=None,
+        alias="chunk_size",
+        description="DEPRECATED: This parameter no longer has any effect.",
+        exclude=True,
+    )
     CompressionLevel: Optional[BackupCompressionLevel] = Field(
         default=None, alias="compression_level"
     )
@@ -75,6 +84,7 @@ class BackupStatusReturn(BaseModel):
     status: BackupStatus
     path: str
     backup_id: str = Field(alias="id")
+    size: float = Field(default=0)
 
 
 class BackupReturn(BackupStatusReturn):

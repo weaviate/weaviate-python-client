@@ -3,8 +3,6 @@ import time
 import uuid as uuid_package
 from typing import (
     AsyncGenerator,
-    Awaitable,
-    Callable,
     List,
     Optional,
     Set,
@@ -58,11 +56,11 @@ class _BatchBaseAsync:
         connection: ConnectionAsync,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        objects: Optional[ObjectsBatchRequest[batch_pb2.BatchObject]] = None,
+        objects: Optional[ObjectsBatchRequest[BatchObject]] = None,
         references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
-        self.__batch_objects = objects or ObjectsBatchRequest[batch_pb2.BatchObject]()
-        self.__batch_references = references or ReferencesBatchRequest[batch_pb2.BatchReference]()
+        self.__batch_objects = objects or ObjectsBatchRequest[BatchObject]()
+        self.__batch_references = references or ReferencesBatchRequest[BatchReference]()
 
         self.__connection = connection
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
@@ -102,19 +100,29 @@ class _BatchBaseAsync:
             self.__results_for_wrapper.failed_references
         )
 
-    async def __wrap(self, fn: Callable[[], Awaitable[None]]):
-        try:
-            await fn()
-        except Exception as e:
-            socket_hung_up = False
-            if isinstance(e, WeaviateBatchStreamError) and (
-                "Socket closed" in e.message or "context canceled" in e.message
-            ):
-                socket_hung_up = True
-            else:
+    async def _start(self):
+        async def send_wrapper() -> None:
+            try:
+                await self.__send()
+                logger.warning("exited batch send thread")
+            except Exception as e:
                 logger.error(e)
-                logger.error(type(e))
                 self.__bg_thread_exception = e
+
+        async def recv_wrapper() -> None:
+            socket_hung_up = False
+            try:
+                await self.__recv()
+                logger.warning("exited batch receive thread")
+            except Exception as e:
+                if isinstance(e, WeaviateBatchStreamError) and (
+                    "Socket closed" in e.message or "context canceled" in e.message
+                ):
+                    socket_hung_up = True
+                else:
+                    logger.error(e)
+                    logger.error(type(e))
+                    self.__bg_thread_exception = e
             if socket_hung_up:
                 # this happens during ungraceful shutdown of the coordinator
                 # lets restart the stream and add the cached objects again
@@ -126,26 +134,14 @@ class _BatchBaseAsync:
                     logger.warning(
                         f"Re-adding {len(self.__objs_cache)} cached objects to the batch"
                     )
-                    await self.__batch_objects.aprepend(
-                        [
-                            self.__batch_grpc.grpc_object(o._to_internal())
-                            for o in self.__objs_cache.values()
-                        ]
-                    )
+                    await self.__batch_objects.aprepend(list(self.__objs_cache.values()))
                 with self.__refs_cache_lock:
-                    await self.__batch_references.aprepend(
-                        [
-                            self.__batch_grpc.grpc_reference(o._to_internal())
-                            for o in self.__refs_cache.values()
-                        ]
-                    )
-                # start a new fn with a newly reconnected channel
-                return await fn()
+                    await self.__batch_references.aprepend(list(self.__refs_cache.values()))
+                # start a new stream with a newly reconnected channel
+                return await recv_wrapper()
 
-    async def _start(self):
         return _BgTasks(
-            send=asyncio.create_task(self.__wrap(self.__send)),
-            recv=asyncio.create_task(self.__wrap(self.__recv)),
+            send=asyncio.create_task(send_wrapper()), recv=asyncio.create_task(recv_wrapper())
         )
 
     async def _shutdown(self) -> None:
@@ -217,8 +213,8 @@ class _BatchBaseAsync:
 
     async def __generate_stream_requests(
         self,
-        objs: List[batch_pb2.BatchObject],
-        refs: List[batch_pb2.BatchReference],
+        objects: List[BatchObject],
+        references: List[BatchReference],
     ) -> AsyncGenerator[batch_pb2.BatchStreamRequest, None]:
         per_object_overhead = 4  # extra overhead bytes per object in the request
 
@@ -228,7 +224,8 @@ class _BatchBaseAsync:
         request = request_maker()
         total_size = request.ByteSize()
 
-        for obj in objs:
+        for object_ in objects:
+            obj = self.__batch_grpc.grpc_object(object_._to_internal())
             obj_size = obj.ByteSize() + per_object_overhead
 
             if total_size + obj_size >= self.__batch_grpc.grpc_max_msg_size:
@@ -240,7 +237,8 @@ class _BatchBaseAsync:
             request.data.objects.values.append(obj)
             total_size += obj_size
 
-        for ref in refs:
+        for reference in references:
+            ref = self.__batch_grpc.grpc_reference(reference._to_internal())
             ref_size = ref.ByteSize() + per_object_overhead
 
             if total_size + ref_size >= self.__batch_grpc.grpc_max_msg_size:
@@ -401,7 +399,7 @@ class _BatchBaseAsync:
         uuid = str(batch_object.uuid)
         async with self.__uuid_lookup_lock:
             self.__uuid_lookup.add(uuid)
-        await self.__batch_objects.aadd(self.__batch_grpc.grpc_object(batch_object._to_internal()))
+        await self.__batch_objects.aadd(batch_object)
         async with self.__objs_cache_lock:
             self.__objs_cache[uuid] = batch_object
         self.__objs_count += 1
@@ -442,9 +440,7 @@ class _BatchBaseAsync:
                 )
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))
-            await self.__batch_references.aadd(
-                self.__batch_grpc.grpc_reference(batch_reference._to_internal())
-            )
+            await self.__batch_references.aadd(batch_reference)
             async with self.__refs_cache_lock:
                 self.__refs_cache[self.__refs_count] = batch_reference
                 self.__refs_count += 1

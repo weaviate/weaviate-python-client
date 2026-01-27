@@ -50,6 +50,7 @@ JinaMultimodalModel: TypeAlias = Literal["jina-clip-v1", "jina-clip-v2", "jina-e
 VoyageModel: TypeAlias = Literal[
     "voyage-3.5",
     "voyage-3.5-lite",
+    "voyage-3-large",
     "voyage-3",
     "voyage-3-lite",
     "voyage-context-3",
@@ -74,6 +75,7 @@ AWSService: TypeAlias = Literal[
 WeaviateModel: TypeAlias = Literal[
     "Snowflake/snowflake-arctic-embed-l-v2.0", "Snowflake/snowflake-arctic-embed-m-v1.5"
 ]
+WeaviateMultimodalModel: TypeAlias = Literal["ModernVBERT/colmodernvbert"]
 
 
 class Vectorizers(str, Enum):
@@ -130,6 +132,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_COHERE = "multi2vec-cohere"
     MULTI2VEC_JINAAI = "multi2vec-jinaai"
     MULTI2MULTI_JINAAI = "multi2multivec-jinaai"
+    MULTI2MULTI_WEAVIATE = "multi2multivec-weaviate"
     MULTI2VEC_BIND = "multi2vec-bind"
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
@@ -203,6 +206,8 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     endpoint: Optional[str]
     region: str
     service: str
+    targetModel: Optional[str]
+    targetVariant: Optional[str]
     vectorizeClassName: bool
 
     @field_validator("region")
@@ -329,6 +334,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
     truncate: Optional[CohereTruncation]
     vectorizeClassName: bool
 
@@ -349,6 +355,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     modelId: Optional[str]
     vectorizeClassName: bool
     titleProperty: Optional[str]
+    taskType: Optional[str]
 
 
 class _Text2VecTransformersConfig(_VectorizerConfigCreate):
@@ -384,6 +391,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
     )
+    dimensions: Optional[int]
     model: Optional[str]
     baseURL: Optional[str]
     truncate: Optional[bool]
@@ -459,6 +467,7 @@ class _Multi2VecCohereConfig(_Multi2VecBase):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
     truncate: Optional[CohereTruncation]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -495,6 +504,20 @@ class _Multi2VecAWSConfig(_Multi2VecBase):
 class _Multi2MultiVecJinaConfig(_Multi2VecBase):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2MULTI_JINAAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Multi2MultiVecWeaviateConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2MULTI_WEAVIATE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
@@ -739,6 +762,8 @@ class _Vectorizer:
             vectorizeClassName=vectorize_collection_name,
             service=service,
             endpoint=endpoint,
+            targetModel=None,
+            targetVariant=None,
         )
 
     @staticmethod
@@ -829,6 +854,7 @@ class _Vectorizer:
         return _Text2VecCohereConfig(
             baseURL=base_url,
             model=model,
+            dimensions=None,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
         )
@@ -862,6 +888,7 @@ class _Vectorizer:
         return _Multi2VecCohereConfig(
             baseURL=base_url,
             model=model,
+            dimensions=None,
             truncate=truncate,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
@@ -1143,6 +1170,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
@@ -1171,6 +1199,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
@@ -1204,6 +1233,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
+            taskType=None,
         )
 
     @staticmethod
@@ -1421,6 +1451,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             baseURL=base_url,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
+            dimensions=None,
         )
 
     @staticmethod

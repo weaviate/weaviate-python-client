@@ -13,7 +13,6 @@ from copy import copy
 from dataclasses import dataclass, field
 from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, Union, cast
 
-from httpx import ConnectError
 from pydantic import ValidationError
 from typing_extensions import TypeAlias
 
@@ -29,8 +28,6 @@ from weaviate.collections.classes.batch import (
     ErrorObject,
     ErrorReference,
     Shard,
-    _BatchObject,
-    _BatchReference,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import (
@@ -46,7 +43,6 @@ from weaviate.exceptions import (
     WeaviateBatchValidationError,
 )
 from weaviate.logger import logger
-from weaviate.proto.v1 import batch_pb2
 from weaviate.types import UUID, VECTORS
 from weaviate.util import _decode_json_response_dict
 from weaviate.warnings import _Warnings
@@ -110,7 +106,7 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
             self._items = item + self._items
 
 
-Ref = TypeVar("Ref", bound=Union[_BatchReference, batch_pb2.BatchReference])
+Ref = TypeVar("Ref", bound=BatchReference)
 
 
 class ReferencesBatchRequest(BatchRequest[Ref, BatchReferenceReturn]):
@@ -120,8 +116,9 @@ class ReferencesBatchRequest(BatchRequest[Ref, BatchReferenceReturn]):
         ret: List[Ref] = []
         i = 0
         while len(ret) < pop_amount and len(self._items) > 0 and i < len(self._items):
-            if self._items[i].from_uuid not in uuid_lookup and (
-                self._items[i].to_uuid is None or self._items[i].to_uuid not in uuid_lookup
+            if self._items[i].from_object_uuid not in uuid_lookup and (
+                self._items[i].to_object_uuid is None
+                or self._items[i].to_object_uuid not in uuid_lookup
             ):
                 ret.append(self._items.pop(i))
             else:
@@ -170,7 +167,7 @@ class ReferencesBatchRequest(BatchRequest[Ref, BatchReferenceReturn]):
             return self.__head()
 
 
-Obj = TypeVar("Obj", bound=Union[_BatchObject, batch_pb2.BatchObject])
+Obj = TypeVar("Obj", bound=BatchObject)
 
 
 class ObjectsBatchRequest(Generic[Obj], BatchRequest[Obj, BatchObjectReturn]):
@@ -270,11 +267,11 @@ class _BatchBase:
         batch_mode: _BatchMode,
         executor: ThreadPoolExecutor,
         vectorizer_batching: bool,
-        objects: Optional[ObjectsBatchRequest] = None,
-        references: Optional[ReferencesBatchRequest] = None,
+        objects: Optional[ObjectsBatchRequest[BatchObject]] = None,
+        references: Optional[ReferencesBatchRequest[BatchReference]] = None,
     ) -> None:
-        self.__batch_objects = objects or ObjectsBatchRequest()
-        self.__batch_references = references or ReferencesBatchRequest()
+        self.__batch_objects = objects or ObjectsBatchRequest[BatchObject]()
+        self.__batch_references = references or ReferencesBatchRequest[BatchReference]()
 
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
@@ -590,8 +587,8 @@ class _BatchBase:
 
     def __send_batch(
         self,
-        objs: List[_BatchObject],
-        refs: List[_BatchReference],
+        objs: List[BatchObject],
+        refs: List[BatchReference],
         readd_rate_limit: bool,
     ) -> None:
         if (n_objs := len(objs)) > 0:
@@ -600,7 +597,7 @@ class _BatchBase:
                 response_obj = executor.result(
                     self.__batch_grpc.objects(
                         connection=self.__connection,
-                        objects=objs,
+                        objects=[obj._to_internal() for obj in objs],
                         timeout=DEFAULT_REQUEST_TIMEOUT,
                         max_retries=MAX_RETRIES,
                     )
@@ -614,8 +611,7 @@ class _BatchBase:
                     )
             except Exception as e:
                 errors_obj = {
-                    idx: ErrorObject(message=repr(e), object_=BatchObject._from_internal(obj))
-                    for idx, obj in enumerate(objs)
+                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
                 logger.error(
                     {
@@ -669,9 +665,7 @@ class _BatchBase:
                 )
 
                 readd_objects = [
-                    err.object_._to_internal()
-                    for i, err in response_obj.errors.items()
-                    if i in readded_objects
+                    err.object_ for i, err in response_obj.errors.items() if i in readded_objects
                 ]
                 readded_uuids = {obj.uuid for obj in readd_objects}
 
@@ -706,7 +700,7 @@ class _BatchBase:
                     time.sleep(2**highest_retry_count)
             with self.__uuid_lookup_lock:
                 self.__uuid_lookup.difference_update(
-                    obj.uuid for obj in objs if obj.uuid not in readded_uuids
+                    str(obj.uuid) for obj in objs if obj.uuid not in readded_uuids
                 )
 
             if (n_obj_errs := len(response_obj.errors)) > 0 and self.__objs_logs_count < 30:
@@ -731,13 +725,14 @@ class _BatchBase:
             start = time.time()
             try:
                 response_ref = executor.result(
-                    self.__batch_rest.references(connection=self.__connection, references=refs)
+                    self.__batch_rest.references(
+                        connection=self.__connection,
+                        references=[ref._to_internal() for ref in refs],
+                    )
                 )
             except Exception as e:
                 errors_ref = {
-                    idx: ErrorReference(
-                        message=repr(e), reference=BatchReference._from_internal(ref)
-                    )
+                    idx: ErrorReference(message=repr(e), reference=ref)
                     for idx, ref in enumerate(refs)
                 }
                 response_ref = BatchReferenceReturn(
@@ -804,7 +799,7 @@ class _BatchBase:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__uuid_lookup.add(str(batch_object.uuid))
-        self.__batch_objects.add(batch_object._to_internal())
+        self.__batch_objects.add(batch_object)
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
         # not need a long queue
@@ -850,7 +845,7 @@ class _BatchBase:
                 self.__refs_count += 1
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))
-            self.__batch_references.add(batch_reference._to_internal())
+            self.__batch_references.add(batch_reference)
 
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
@@ -903,15 +898,18 @@ class _ClusterBatch:
     ) -> List[Node]:
         try:
             response = executor.result(self._connection.get(path="/nodes"))
-        except ConnectError as conn_err:
-            raise ConnectError("Get nodes status failed due to connection error") from conn_err
+        except Exception:
+            return []
 
         response_typed = _decode_json_response_dict(response, "Nodes status")
         assert response_typed is not None
         nodes = response_typed.get("nodes")
-        if nodes is None or nodes == []:
-            raise EmptyResponseException("Nodes status response returned empty")
+        if nodes is None:
+            return []
         return cast(List[Node], nodes)
+
+    def get_number_of_nodes(self) -> int:
+        return len(self.get_nodes_status())
 
 
 class _ClusterBatchAsync:
@@ -923,8 +921,8 @@ class _ClusterBatchAsync:
     ) -> List[Node]:
         try:
             response = await executor.aresult(self._connection.get(path="/nodes"))
-        except ConnectError as conn_err:
-            raise ConnectError("Get nodes status failed due to connection error") from conn_err
+        except Exception:
+            return []
 
         response_typed = _decode_json_response_dict(response, "Nodes status")
         assert response_typed is not None
@@ -932,3 +930,6 @@ class _ClusterBatchAsync:
         if nodes is None or nodes == []:
             raise EmptyResponseException("Nodes status response returned empty")
         return cast(List[Node], nodes)
+
+    async def get_number_of_nodes(self) -> int:
+        return len(await self.get_nodes_status())

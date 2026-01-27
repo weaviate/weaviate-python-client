@@ -434,9 +434,9 @@ def test_add_ten_thousand_data_objects(
     client, name = client_factory()
     if (
         request.node.callspec.id == "test_add_ten_thousand_data_objects_experimental"
-        and client._connection._weaviate_version.is_lower_than(1, 34, 0)
+        and client._connection._weaviate_version.is_lower_than(1, 36, 0)
     ):
-        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 
@@ -627,10 +627,10 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         lambda client: client.batch.experimental(),
     ],
     ids=[
-        "test_add_one_hundred_objects_and_references_between_all_dynamic",
-        "test_add_one_hundred_objects_and_references_between_all_fixed_size",
-        "test_add_one_hundred_objects_and_references_between_all_rate_limit",
-        "test_add_one_hundred_objects_and_references_between_all_experimental",
+        "test_add_one_object_and_a_self_reference_dynamic",
+        "test_add_one_object_and_a_self_reference_fixed_size",
+        "test_add_one_object_and_a_self_reference_rate_limit",
+        "test_add_one_object_and_a_self_reference_experimental",
     ],
 )
 def test_add_one_object_and_a_self_reference(
@@ -641,11 +641,10 @@ def test_add_one_object_and_a_self_reference(
     """Test adding one object and a self reference."""
     client, name = client_factory()
     if (
-        request.node.callspec.id
-        == "test_add_one_hundred_objects_and_references_between_all_experimental"
-        and client._connection._weaviate_version.is_lower_than(1, 34, 0)
+        request.node.callspec.id == "test_add_one_object_and_a_self_reference_experimental"
+        and client._connection._weaviate_version.is_lower_than(1, 36, 0)
     ):
-        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     with batching_method(client) as batch:
         uuid = batch.add_object(collection=name, properties={})
         batch.add_reference(
@@ -843,21 +842,26 @@ def test_ingest_one_hundred_thousand_data_objects(
 
 
 @pytest.mark.asyncio
-async def test_ingest_one_hundred_thousand_data_objects_async(
+async def test_add_one_hundred_thousand_objects_async_client(
     async_client_factory: AsyncClientFactory,
 ) -> None:
+    """Test adding one hundred thousand data objects."""
     client, name = await async_client_factory()
-    if client._connection._weaviate_version.is_lower_than(1, 34, 0):
-        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 
     start = time.time()
-    results = await client.collections.use(name).data.ingest(
-        {"name": "test" + str(i)} for i in range(nr_objects)
-    )
+    async with client.batch.experimental(concurrency=1) as batch:
+        for i in range(nr_objects):
+            await batch.add_object(
+                collection=name,
+                properties={"name": "test" + str(i)},
+            )
     end = time.time()
     print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    results = client.batch.results.objs
     assert len(results.errors) == 0
     assert len(results.all_responses) == nr_objects
     assert len(results.uuids) == nr_objects
