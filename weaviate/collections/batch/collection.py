@@ -85,14 +85,14 @@ class _BatchCollection(Generic[Properties], _BatchBase):
 class _BatchCollectionSync(Generic[Properties], _BatchBaseSync):
     def __init__(
         self,
-        executor: ThreadPoolExecutor,
         connection: ConnectionSync,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        batch_mode: _BatchMode,
         name: str,
         tenant: Optional[str],
-        vectorizer_batching: bool,
+        executor: Optional[ThreadPoolExecutor] = None,
+        batch_mode: Optional[_BatchMode] = None,
+        vectorizer_batching: bool = False,
     ) -> None:
         super().__init__(
             connection=connection,

@@ -20,13 +20,16 @@ from typing import (
 
 from httpx import Response
 
-from weaviate.collections.batch.async_ import _BatchBaseAsync
 from weaviate.collections.batch.base import _BatchDataWrapper
-from weaviate.collections.batch.batch_wrapper import _ContextManagerAsync, _ContextManagerSync
+from weaviate.collections.batch.collection import (
+    BatchCollectionAsync,
+    BatchCollectionSync,
+    CollectionBatchingContextManager,
+    CollectionBatchingContextManagerAsync,
+)
 from weaviate.collections.batch.grpc_batch import _BatchGRPC
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 from weaviate.collections.batch.rest import _BatchREST
-from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.collections.classes.batch import (
     BatchObjectReturn,
     BatchReferenceReturn,
@@ -726,63 +729,59 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
 
             async def execute() -> BatchObjectReturn:
                 results = _BatchDataWrapper()
-                ctx = _ContextManagerAsync(
-                    _BatchBaseAsync(
+                ctx = CollectionBatchingContextManagerAsync(
+                    BatchCollectionAsync(
                         connection=con,
                         results=results,
                         consistency_level=self._consistency_level,
+                        name=self.name,
+                        tenant=self._tenant,
                     )
                 )
                 async with ctx as batch:
                     for obj in objs:
                         if isinstance(obj, DataObject):
-                            await batch._add_object(
-                                collection=self.name,
+                            await batch.add_object(
                                 properties=cast(dict, obj.properties),
                                 references=obj.references,
                                 uuid=obj.uuid,
                                 vector=obj.vector,
-                                tenant=self._tenant,
                             )
                         else:
-                            await batch._add_object(
-                                collection=self.name,
+                            await batch.add_object(
                                 properties=cast(dict, obj),
                                 references=None,
                                 uuid=None,
                                 vector=None,
-                                tenant=self._tenant,
                             )
                 return results.results.objs
 
             return execute()
 
         results = _BatchDataWrapper()
-        ctx = _ContextManagerSync(
-            _BatchBaseSync(
+        ctx = CollectionBatchingContextManager(
+            BatchCollectionSync(
                 connection=self._connection,
                 results=results,
                 consistency_level=self._consistency_level,
+                name=self.name,
+                tenant=self._tenant,
             )
         )
         with ctx as batch:
             for obj in objs:
                 if isinstance(obj, DataObject):
-                    batch._add_object(
-                        collection=self.name,
+                    batch.add_object(
                         properties=cast(dict, obj.properties),
                         references=obj.references,
                         uuid=obj.uuid,
                         vector=obj.vector,
-                        tenant=self._tenant,
                     )
                 else:
-                    batch._add_object(
-                        collection=self.name,
+                    batch.add_object(
                         properties=cast(dict, obj),
                         references=None,
                         uuid=None,
                         vector=None,
-                        tenant=self._tenant,
                     )
         return results.results.objs

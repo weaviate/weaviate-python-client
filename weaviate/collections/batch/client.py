@@ -146,7 +146,7 @@ BatchClientAsync = _BatchClientAsync
 ClientBatchingContextManager = _ContextManagerSync[
     Union[BatchClient, BatchClientSync], BatchClientProtocol
 ]
-ClientBatchingContextManagerAsync = _ContextManagerAsync[BatchClientProtocolAsync,]
+ClientBatchingContextManagerAsync = _ContextManagerAsync[BatchClientProtocolAsync]
 
 
 class _BatchClientWrapper(_BatchWrapper):
