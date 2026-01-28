@@ -236,6 +236,8 @@ class _BatchBaseAsync:
             obj_size = obj.ByteSize() + per_object_overhead
 
             if total_size + obj_size >= self.__batch_grpc.grpc_max_msg_size:
+                self.__inflight_objs.update(inflight_objs)
+                self.__inflight_refs.update(inflight_refs)
                 yield request
                 request = request_maker()
                 total_size = request.ByteSize()
@@ -249,6 +251,8 @@ class _BatchBaseAsync:
             ref_size = ref.ByteSize() + per_object_overhead
 
             if total_size + ref_size >= self.__batch_grpc.grpc_max_msg_size:
+                self.__inflight_objs.update(inflight_objs)
+                self.__inflight_refs.update(inflight_refs)
                 yield request
                 request = request_maker()
                 total_size = request.ByteSize()
@@ -257,10 +261,9 @@ class _BatchBaseAsync:
             total_size += ref_size
             inflight_refs.add(reference._to_beacon())
 
-        self.__inflight_objs.update(inflight_objs)
-        self.__inflight_refs.update(inflight_refs)
-
         if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
+            self.__inflight_objs.update(inflight_objs)
+            self.__inflight_refs.update(inflight_refs)
             yield request
 
     async def __send(self):
@@ -284,6 +287,7 @@ class _BatchBaseAsync:
                         batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop()),
                     )
                     self.__is_renewing_stream.set()
+                    await self.__stream.done_writing()
                     return
             req = await self.__reqs.get()
             if req is not None:
@@ -297,12 +301,15 @@ class _BatchBaseAsync:
                     self.__stream,
                     batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop()),
                 )
+                await self.__stream.done_writing()
                 return
             if self.__is_shutting_down.is_set():
                 logger.warning("Server shutting down, closing the client-side of the stream")
+                await self.__stream.done_writing()
                 return
             if self.__is_oom.is_set():
                 logger.warning("Server out-of-memory, closing the client-side of the stream")
+                await self.__stream.done_writing()
                 return
             logger.warning("Received sentinel, but not stopping, continuing...")
 
