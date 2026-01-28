@@ -520,8 +520,11 @@ class _ContextManagerAsync(Generic[Q]):
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         await self.__current_batch._shutdown()
-        await self.__bg_tasks.send
-        await self.__bg_tasks.recv
+        await asyncio.gather(
+            self.__bg_tasks.send,
+            self.__bg_tasks.recv,
+            self.__bg_tasks.loop,
+        )
 
     async def __aenter__(self) -> Q:
         self.__bg_tasks = await self.__current_batch._start()

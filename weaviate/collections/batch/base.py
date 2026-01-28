@@ -60,6 +60,9 @@ VECTORIZER_BATCHING_STEP_SIZE = 48  # cohere max batch size is 96
 MAX_RETRIES = float(
     os.getenv("WEAVIATE_BATCH_MAX_RETRIES", "9.299")
 )  # approximately 10m30s of waiting in worst case, e.g. server scale up event
+GCP_STREAM_TIMEOUT = (
+    160  # GCP connections have a max lifetime of 180s, leave 20s of buffer as safety
+)
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
@@ -860,29 +863,29 @@ class _BatchBase:
 
 
 class _BgThreads:
-    def __init__(self, send: threading.Thread, recv: threading.Thread):
-        self.send = send
+    def __init__(self, loop: threading.Thread, recv: threading.Thread):
+        self.loop = loop
         self.recv = recv
         self.__started_recv = False
-        self.__started_send = False
+        self.__started_loop = False
 
     def start_recv(self) -> None:
         if not self.__started_recv:
             self.recv.start()
             self.__started_recv = True
 
-    def start_send(self) -> None:
-        if not self.__started_send:
-            self.send.start()
-            self.__started_send = True
+    def start_loop(self) -> None:
+        if not self.__started_loop:
+            self.loop.start()
+            self.__started_loop = True
 
     def is_alive(self) -> bool:
         """Check if the background threads are still alive."""
-        return self.send_alive() or self.recv_alive()
+        return self.loop_alive() or self.recv_alive()
 
-    def send_alive(self) -> bool:
-        """Check if the send background thread is still alive."""
-        return self.send.is_alive()
+    def loop_alive(self) -> bool:
+        """Check if the loop background thread is still alive."""
+        return self.loop.is_alive()
 
     def recv_alive(self) -> bool:
         """Check if the recv background thread is still alive."""
