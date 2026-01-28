@@ -60,6 +60,9 @@ VECTORIZER_BATCHING_STEP_SIZE = 48  # cohere max batch size is 96
 MAX_RETRIES = float(
     os.getenv("WEAVIATE_BATCH_MAX_RETRIES", "9.299")
 )  # approximately 10m30s of waiting in worst case, e.g. server scale up event
+GCP_STREAM_TIMEOUT = (
+    160  # GCP connections have a max lifetime of 180s, leave 20s of buffer as safety
+)
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):

@@ -8,6 +8,7 @@ from typing import Generator, List, Optional, Set, Union
 from pydantic import ValidationError
 
 from weaviate.collections.batch.base import (
+    GCP_STREAM_TIMEOUT,
     ObjectsBatchRequest,
     ReferencesBatchRequest,
     _BatchDataWrapper,
@@ -62,6 +63,9 @@ class _BatchBaseSync:
         self.__batch_references = references or ReferencesBatchRequest[BatchReference]()
 
         self.__connection = connection
+        self.__is_gcp_on_wcd = connection._connection_params.is_gcp_on_wcd()
+        self.__stream_start: Optional[float] = None
+        self.__is_renewing_stream = threading.Event()
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
         self.__batch_size = 100
 
@@ -298,6 +302,15 @@ class _BatchBaseSync:
             self.__shut_background_thread_down is not None
             and not self.__shut_background_thread_down.is_set()
         ):
+            if self.__is_gcp_on_wcd:
+                assert self.__stream_start is not None
+                if time.time() - self.__stream_start > GCP_STREAM_TIMEOUT:
+                    logger.warning(
+                        "GCP connections have a maximum lifetime. Re-establishing the batch stream to avoid timeout errors."
+                    )
+                    yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
+                    self.__is_renewing_stream.set()
+                    return
             req = self.__reqs.get()
             if req is not None:
                 self.__total += len(req.data.objects.values) + len(req.data.references.values)
@@ -410,7 +423,7 @@ class _BatchBaseSync:
                     self.__results_for_wrapper.results.refs += result_refs
                     self.__results_for_wrapper.failed_objects.extend(failed_objs)
                     self.__results_for_wrapper.failed_references.extend(failed_refs)
-            elif message.HasField("out_of_memory"):
+            if message.HasField("out_of_memory"):
                 logger.warning(
                     "Server reported out-of-memory error. Batching will wait at most 10 minutes for the server to scale-up. If the server does not recover within this time, the batch will terminate with an error."
                 )
@@ -421,13 +434,13 @@ class _BatchBaseSync:
                 self.__batch_references.prepend(
                     [self.__refs_cache[beacon] for beacon in message.out_of_memory.beacons]
                 )
-            elif message.HasField("shutting_down"):
+            if message.HasField("shutting_down"):
                 logger.warning(
                     "Received shutting down message from server, pausing sending until stream is re-established"
                 )
                 self.__is_shutting_down.set()
                 self.__is_oom.clear()
-            elif message.HasField("shutdown"):
+            if message.HasField("shutdown"):
                 logger.warning("Received shutdown finished message from server")
                 self.__is_shutdown.set()
                 self.__is_shutting_down.clear()
@@ -438,6 +451,11 @@ class _BatchBaseSync:
         if self.__is_shutdown.is_set():
             logger.warning("Restarting batch recv after shutdown...")
             self.__is_shutdown.clear()
+            return self.__recv()
+        elif self.__is_renewing_stream.is_set():
+            # restart the stream if we are renewing it (GCP connections have a max lifetime)
+            logger.warning("Restarting batch recv after renewing stream...")
+            self.__is_renewing_stream.clear()
             return self.__recv()
         else:
             logger.warning("Server closed the stream from its side, shutting down batch")
