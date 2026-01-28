@@ -31,7 +31,10 @@ def test_sphere(collection_factory: CollectionFactory) -> None:
     with collection.batch.experimental() as batch:
         with open(sphere_file) as jsonl_file:
             for i, jsonl in enumerate(jsonl_file):
-                if i == import_objects or batch.number_errors > 10:
+                if i == import_objects:
+                    break
+                if batch.number_errors > 10:
+                    print("Too many errors, stopping import")
                     break
 
                 json_parsed = json.loads(jsonl)
@@ -46,7 +49,9 @@ def test_sphere(collection_factory: CollectionFactory) -> None:
                     vector=json_parsed["vector"],
                 )
                 if i % 1000 == 0:
-                    print(f"Imported {len(collection)} objects after processing {i} lines")
+                    print(
+                        f"Imported {len(collection)} objects after processing {i} lines in {time.time() - start} seconds"
+                    )
     assert len(collection.batch.failed_objects) == 0
     assert len(collection) == import_objects
     print(f"Imported {import_objects} objects in {time.time() - start}")

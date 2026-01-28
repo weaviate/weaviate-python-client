@@ -36,6 +36,9 @@ class ProtocolParams(BaseModel):
             raise ValueError("port must be between 0 and 65535")
         return v
 
+    def is_gcp(self) -> bool:
+        return "gcp.weaviate.cloud" in self.host
+
 
 T = TypeVar("T", bound="ConnectionParams")
 
@@ -89,6 +92,9 @@ class ConnectionParams(BaseModel):
                 secure=grpc_secure,
             ),
         )
+
+    def is_gcp(self) -> bool:
+        return "gcp.weaviate.cloud" in self.http.host
 
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:
