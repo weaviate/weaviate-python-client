@@ -10,6 +10,7 @@ from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies
 from weaviate.types import NUMBER
+from weaviate.util import is_weaviate_domain
 
 # from grpclib.client import Channel
 
@@ -93,8 +94,8 @@ class ConnectionParams(BaseModel):
             ),
         )
 
-    def is_gcp(self) -> bool:
-        return "gcp.weaviate.cloud" in self.http.host
+    def is_gcp_on_wcd(self) -> bool:
+        return "gcp" in self.http.host.lower() and is_weaviate_domain(self.http.host)
 
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:

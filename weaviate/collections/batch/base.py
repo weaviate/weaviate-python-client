@@ -849,7 +849,7 @@ class _BatchBaseNew:
         self.__batch_references = references or ReferencesBatchRequest[BatchReference]()
 
         self.__connection = connection
-        self.__is_gcp = connection._connection_params.is_gcp()
+        self.__is_gcp_on_wcd = connection._connection_params.is_gcp_on_wcd()
         self.__stream_start: Optional[float] = None
         self.__is_renewing_stream = threading.Event()
 
@@ -1089,7 +1089,7 @@ class _BatchBaseNew:
             self.__shut_background_thread_down is not None
             and not self.__shut_background_thread_down.is_set()
         ):
-            if self.__is_gcp:
+            if self.__is_gcp_on_wcd:
                 assert self.__stream_start is not None
                 if time.time() - self.__stream_start > GCP_STREAM_TIMEOUT:
                     logger.warning(
