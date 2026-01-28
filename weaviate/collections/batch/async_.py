@@ -266,6 +266,13 @@ class _BatchBaseAsync:
             self.__inflight_refs.update(inflight_refs)
             yield request
 
+    async def __end_stream(self):
+        await self.__connection.grpc_batch_stream_write(
+            self.__stream,
+            batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop()),
+        )
+        await self.__stream.done_writing()
+
     async def __send(self):
         await self.__connection.grpc_batch_stream_write(
             stream=self.__stream,
@@ -282,12 +289,8 @@ class _BatchBaseAsync:
                     logger.warning(
                         "GCP connections have a maximum lifetime. Re-establishing the batch stream to avoid timeout errors."
                     )
-                    await self.__connection.grpc_batch_stream_write(
-                        self.__stream,
-                        batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop()),
-                    )
                     self.__is_renewing_stream.set()
-                    await self.__stream.done_writing()
+                    await self.__end_stream()
                     return
             req = await self.__reqs.get()
             if req is not None:
@@ -297,11 +300,7 @@ class _BatchBaseAsync:
                 self.__is_shutting_down.is_set() or self.__is_shutdown.is_set()
             ):
                 logger.warning("Batching finished, closing the client-side of the stream")
-                await self.__connection.grpc_batch_stream_write(
-                    self.__stream,
-                    batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop()),
-                )
-                await self.__stream.done_writing()
+                await self.__end_stream()
                 return
             if self.__is_shutting_down.is_set():
                 logger.warning("Server shutting down, closing the client-side of the stream")
