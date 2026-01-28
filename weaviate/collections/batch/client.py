@@ -295,7 +295,6 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
-                batch_mode=self._batch_mode,
             )
         )
 

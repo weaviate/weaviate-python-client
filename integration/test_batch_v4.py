@@ -1,4 +1,3 @@
-import asyncio
 import concurrent.futures
 import uuid
 from dataclasses import dataclass
@@ -847,9 +846,3 @@ async def test_add_one_hundred_thousand_objects_async_client(
         obj.message for obj in client.batch.failed_objects
     ]
     await client.collections.delete(name)
-
-
-async def arange(count):
-    for i in range(count):
-        yield i
-        await asyncio.sleep(0.0)

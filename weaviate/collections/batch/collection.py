@@ -139,7 +139,6 @@ class _BatchCollectionAsync(Generic[Properties], _BatchBaseAsync):
         connection: ConnectionAsync,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        batch_mode: _BatchMode,
         name: str,
         tenant: Optional[str],
     ) -> None:
@@ -147,7 +146,6 @@ class _BatchCollectionAsync(Generic[Properties], _BatchBaseAsync):
             connection=connection,
             consistency_level=consistency_level,
             results=results,
-            batch_mode=batch_mode,
         )
         self.__name = name
         self.__tenant = tenant
@@ -324,7 +322,6 @@ class _BatchCollectionWrapperAsync(Generic[Properties], _BatchWrapperAsync):
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
-                batch_mode=self._batch_mode,
                 name=self.__name,
                 tenant=self.__tenant,
             )
