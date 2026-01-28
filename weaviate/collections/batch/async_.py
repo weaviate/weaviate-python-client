@@ -106,7 +106,6 @@ class _BatchBaseAsync:
         )
 
         self.__stop = False
-        self.__shutdown_send_task = asyncio.Event()
 
     @property
     def number_errors(self) -> int:
@@ -190,11 +189,6 @@ class _BatchBaseAsync:
                 ) < self.__batch_size:
                     # wait for more objects to be added up to the batch size
                     await asyncio.sleep(0.01)
-                    if self.__shutdown_send_task.is_set():
-                        logger.warning("Tasks were shutdown, exiting batch send loop")
-                        # shutdown was requested, exit early
-                        await self.__reqs.put(None)
-                        return
                     if time.time() - start >= 1 and (
                         len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
                     ):

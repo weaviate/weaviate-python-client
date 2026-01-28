@@ -15,7 +15,6 @@ from weaviate.collections.batch.base import (
     _BatchMode,
     _BgThreads,
     _ClusterBatch,
-    _ServerSideBatching,
 )
 from weaviate.collections.batch.grpc_batch import _BatchGRPC
 from weaviate.collections.classes.batch import (
@@ -52,9 +51,9 @@ class _BatchBaseSync:
         connection: ConnectionSync,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        batch_mode: _BatchMode,
-        executor: ThreadPoolExecutor,
-        vectorizer_batching: bool,
+        batch_mode: Optional[_BatchMode] = None,
+        executor: Optional[ThreadPoolExecutor] = None,
+        vectorizer_batching: bool = False,
         objects: Optional[ObjectsBatchRequest[BatchObject]] = None,
         references: Optional[ReferencesBatchRequest[BatchReference]] = None,
     ) -> None:
@@ -107,8 +106,6 @@ class _BatchBaseSync:
 
         self.__stop = False
 
-        self.__batch_mode = batch_mode
-
     @property
     def number_errors(self) -> int:
         """Return the number of errors in the batch."""
@@ -127,12 +124,7 @@ class _BatchBaseSync:
         )
 
     def _start(self) -> None:
-        assert isinstance(self.__batch_mode, _ServerSideBatching), (
-            "Only server-side batching is supported in this mode"
-        )
-        self.__bg_threads = [
-            self.__start_bg_threads() for _ in range(self.__batch_mode.concurrency)
-        ]
+        self.__bg_threads = [self.__start_bg_threads() for _ in range(1)]
         logger.warning(
             f"Provisioned {len(self.__bg_threads)} stream(s) to the server for batch processing"
         )
