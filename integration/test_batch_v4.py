@@ -837,11 +837,12 @@ async def test_add_one_hundred_thousand_objects_async_client(
             )
     end = time.time()
     print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
-    results = client.batch.results.objs
-    assert len(results.errors) == 0
-    assert len(results.all_responses) == nr_objects
-    assert len(results.uuids) == nr_objects
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.all_responses) == nr_objects
+    assert len(client.batch.results.objs.uuids) == nr_objects
     assert await client.collections.use(name).length() == nr_objects
-    assert results.has_errors is False
-    assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]
+    assert client.batch.results.objs.has_errors is False
+    assert len(client.batch.failed_objects) == 0, [
+        obj.message for obj in client.batch.failed_objects
+    ]
     await client.collections.delete(name)
