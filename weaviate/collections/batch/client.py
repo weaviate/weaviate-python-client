@@ -266,9 +266,9 @@ class _BatchClientWrapper(_BatchWrapper):
 
         When you exit the context manager, the final batch will be sent automatically.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
             )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
@@ -308,9 +308,9 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
 
         When you exit the context manager, the final batch will be sent automatically.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
             )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency

@@ -817,8 +817,8 @@ def test_ingest_one_hundred_thousand_data_objects(
     client_factory: ClientFactory,
 ) -> None:
     client, name = client_factory()
-    if client._connection._weaviate_version.is_lower_than(1, 34, 0):
-        pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 
