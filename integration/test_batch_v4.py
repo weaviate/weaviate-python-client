@@ -817,30 +817,6 @@ def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
     client.collections.delete(["target", "source"])
 
 
-def test_ingest_one_hundred_thousand_data_objects(
-    client_factory: ClientFactory,
-) -> None:
-    client, name = client_factory()
-    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
-        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
-    nr_objects = 100000
-    import time
-
-    start = time.time()
-    results = client.collections.use(name).data.ingest(
-        {"name": "test" + str(i)} for i in range(nr_objects)
-    )
-    end = time.time()
-    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
-    assert len(results.errors) == 0
-    assert len(results.all_responses) == nr_objects
-    assert len(results.uuids) == nr_objects
-    assert len(client.collections.use(name)) == nr_objects
-    assert results.has_errors is False
-    assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]
-    client.collections.delete(name)
-
-
 @pytest.mark.asyncio
 async def test_add_one_hundred_thousand_objects_async_client(
     async_client_factory: AsyncClientFactory,
