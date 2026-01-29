@@ -41,6 +41,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
+    _VectorIndexConfigHFresh,
     _VectorizerConfig,
 )
 
@@ -213,6 +214,18 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
     )
 
 
+def __get_hfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigHFresh:
+    quantizer = __get_quantizer_config(config)
+    return _VectorIndexConfigHFresh(
+        distance_metric=VectorDistances(config.get("distance")),
+        max_posting_size_kb=config["maxPostingSizeKB"],
+        replicas=config["replicas"],
+        search_probe=config["searchProbe"],
+        quantizer=quantizer,
+        multi_vector=None,
+    )
+
+
 def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigFlat(
@@ -225,7 +238,13 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
 
 def __get_vector_index_config(
     schema: Dict[str, Any],
-) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None]:
+) -> Union[
+    _VectorIndexConfigHNSW,
+    _VectorIndexConfigFlat,
+    _VectorIndexConfigDynamic,
+    _VectorIndexConfigHFresh,
+    None,
+]:
     if "vectorIndexConfig" not in schema:
         return None
     if schema["vectorIndexType"] == "hnsw":
@@ -239,6 +258,8 @@ def __get_vector_index_config(
             hnsw=__get_hnsw_config(schema["vectorIndexConfig"]["hnsw"]),
             flat=__get_flat_config(schema["vectorIndexConfig"]["flat"]),
         )
+    elif schema["vectorIndexType"] == "hfresh":
+        return __get_hfresh_config(schema["vectorIndexConfig"])
     else:
         return None
 

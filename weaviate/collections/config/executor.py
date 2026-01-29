@@ -38,6 +38,7 @@ from weaviate.collections.classes.config import (
     _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigHFreshUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -136,6 +137,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             Union[
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigHFreshUpdate,
             ]
         ] = None,
         vectorizer_config: Optional[
@@ -143,6 +145,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
                 _VectorIndexConfigDynamicUpdate,
+                _VectorIndexConfigHFreshUpdate,
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
@@ -187,6 +190,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
                 _VectorIndexConfigDynamicUpdate,
+                _VectorIndexConfigHFreshUpdate,
             ),
         ):
             _Warnings.vectorizer_config_in_config_update()
