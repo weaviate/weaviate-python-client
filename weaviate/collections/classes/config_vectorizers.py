@@ -48,6 +48,9 @@ JinaModel: TypeAlias = Literal[
 ]
 JinaMultimodalModel: TypeAlias = Literal["jina-clip-v1", "jina-clip-v2", "jina-embeddings-v4"]
 VoyageModel: TypeAlias = Literal[
+    "voyage-4",
+    "voyage-4-lite",
+    "voyage-4-large",
     "voyage-3.5",
     "voyage-3.5-lite",
     "voyage-3-large",
