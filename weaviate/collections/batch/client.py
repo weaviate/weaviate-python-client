@@ -1,6 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Optional, Type, Union
 
+from deprecation import deprecated as docstring_deprecated
+from typing_extensions import deprecated as typing_deprecated
+
 from weaviate.collections.batch.async_ import _BatchBaseAsync
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -256,19 +259,36 @@ class _BatchClientWrapper(_BatchWrapper):
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset(_BatchClient)
 
+    @docstring_deprecated(
+        details="Use the 'stream' method instead. This method will be removed in 4.21.0",
+        deprecated_in="4.20.0",
+    )
+    @typing_deprecated("Use the 'stream' method instead. This method will be removed in 4.21.0")
     def experimental(
         self,
         *,
         concurrency: Optional[int] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> ClientBatchingContextManager:
-        """Configure the batching context manager using the experimental server-side batching mode.
+        return self.stream(concurrency=concurrency, consistency_level=consistency_level)
+
+    def stream(
+        self,
+        *,
+        concurrency: Optional[int] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ) -> ClientBatchingContextManager:
+        """Configure the batching context manager to use batch streaming.
 
         When you exit the context manager, the final batch will be sent automatically.
+
+        Args:
+            concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
+            consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
             )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
@@ -298,15 +318,32 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
             )
         )
 
+    @docstring_deprecated(
+        details="Use the 'stream' method instead. This method will be removed in 4.21.0",
+        deprecated_in="4.20.0",
+    )
+    @typing_deprecated("Use the 'stream' method instead. This method will be removed in 4.21.0")
     def experimental(
         self,
         *,
         concurrency: Optional[int] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> AsyncClientBatchingContextManager:
-        """Configure the batching context manager using the experimental server-side batching mode.
+        return self.stream(concurrency=concurrency, consistency_level=consistency_level)
+
+    def stream(
+        self,
+        *,
+        concurrency: Optional[int] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ) -> AsyncClientBatchingContextManager:
+        """Configure the batching context manager to use batch streaming.
 
         When you exit the context manager, the final batch will be sent automatically.
+
+        Args:
+            concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
+            consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
         """
         if self._connection._weaviate_version.is_lower_than(1, 34, 0):
             raise WeaviateUnsupportedFeatureError(

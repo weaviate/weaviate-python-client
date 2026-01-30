@@ -2,7 +2,7 @@ import threading
 import time
 import uuid as uuid_package
 from concurrent.futures import ThreadPoolExecutor
-from queue import Queue
+from queue import Empty, Full, Queue
 from typing import Generator, List, Optional, Set, Union
 
 from pydantic import ValidationError
@@ -34,8 +34,10 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
 )
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.connect.executor import result
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import (
+    WeaviateBatchFailedToReestablishStreamError,
     WeaviateBatchStreamError,
     WeaviateBatchValidationError,
     WeaviateGRPCUnavailableError,
@@ -101,10 +103,9 @@ class _BatchBaseSync:
         self.__inflight_objs: set[str] = set()
         self.__inflight_refs: set[str] = set()
 
-        # maxsize=1 so that __send does not run faster than generator for __recv
+        # maxsize=1 so that __loop does not run faster than generator for __recv
         # thereby using too much buffer in case of server-side shutdown
         self.__reqs: Queue[Optional[batch_pb2.BatchStreamRequest]] = Queue(maxsize=1)
-
         self.__stop = False
 
         self.__batch_mode = batch_mode
@@ -121,11 +122,6 @@ class _BatchBaseSync:
             thread.is_alive() for thread in self.__bg_threads
         )
 
-    def __any_threads_alive(self) -> bool:
-        return self.__bg_threads is not None and any(
-            thread.is_alive() for thread in self.__bg_threads
-        )
-
     def _start(self) -> None:
         assert isinstance(self.__batch_mode, _ServerSideBatching), (
             "Only server-side batching is supported in this mode"
@@ -133,12 +129,12 @@ class _BatchBaseSync:
         self.__bg_threads = [
             self.__start_bg_threads() for _ in range(self.__batch_mode.concurrency)
         ]
-        logger.warning(
+        logger.info(
             f"Provisioned {len(self.__bg_threads)} stream(s) to the server for batch processing"
         )
         now = time.time()
         while not self.__all_threads_alive():
-            # wait for the stream to be started by __batch_stream
+            # wait for the recv threads to be started
             time.sleep(0.01)
             if time.time() - now > 60:
                 raise WeaviateBatchStreamError(
@@ -148,10 +144,6 @@ class _BatchBaseSync:
     def _wait(self) -> None:
         for bg_thread in self.__bg_threads:
             bg_thread.join()
-
-    def _shutdown(self) -> None:
-        # Shutdown the current batch and wait for all requests to be finished
-        self.__stop = True
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -163,17 +155,35 @@ class _BatchBaseSync:
             self.__results_for_wrapper.imported_shards
         )
 
+    def _shutdown(self) -> None:
+        # Shutdown the current batch and wait for all requests to be finished
+        self.__stop = True
+
     def __loop(self) -> None:
         refresh_time: float = 0.01
         while self.__bg_exception is None:
+            start, paused = time.time(), False
+            while (
+                self.__is_shutting_down.is_set()
+                or self.__is_shutdown.is_set()
+                or self.__is_oom.is_set()
+            ):
+                if not paused:
+                    logger.info("Server is shutting down, pausing batching loop...")
+                    self.__reqs.put(None)
+                    paused = True
+                time.sleep(1)
+                if time.time() - start > 300:
+                    raise WeaviateBatchFailedToReestablishStreamError(
+                        "Batch stream was not re-established within 5 minutes. Terminating batch."
+                    )
             if len(self.__batch_objects) + len(self.__batch_references) > 0:
-                self._batch_send = True
                 start = time.time()
                 while (len_o := len(self.__batch_objects)) + (
                     len_r := len(self.__batch_references)
                 ) < self.__batch_size:
                     # wait for more objects to be added up to the batch size
-                    time.sleep(0.01)
+                    time.sleep(refresh_time)
                     if time.time() - start >= 1 and (
                         len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
                     ):
@@ -189,11 +199,18 @@ class _BatchBaseSync:
                     self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
 
                 for req in self.__generate_stream_requests(objs, refs):
-                    self.__reqs.put(req)
+                    try:
+                        self.__reqs.put(req, timeout=10)
+                    except Full as e:
+                        logger.warning(
+                            "Batch queue is blocked for more than 10 seconds. Exiting the loop"
+                        )
+                        self.__bg_exception = e
+                        return
             elif self.__stop:
                 # we are done, send the sentinel into our queue to be consumed by the batch sender
                 self.__reqs.put(None)  # signal the end of the stream
-                logger.warning("Batching finished, sent stop signal to batch stream")
+                logger.info("Batching finished, sent stop signal to batch stream")
                 return
             time.sleep(refresh_time)
 
@@ -256,33 +273,38 @@ class _BatchBaseSync:
                 consistency_level=self.__batch_grpc._consistency_level,
             ),
         )
-        while self.__bg_exception is not None:
+        stream_start = time.time()
+        while self.__bg_exception is None:
             if self.__is_gcp_on_wcd:
-                assert self.__stream_start is not None
-                if time.time() - self.__stream_start > GCP_STREAM_TIMEOUT:
-                    logger.warning(
+                assert stream_start is not None
+                if time.time() - stream_start > GCP_STREAM_TIMEOUT:
+                    logger.info(
                         "GCP connections have a maximum lifetime. Re-establishing the batch stream to avoid timeout errors."
                     )
-                    yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     self.__is_renewing_stream.set()
+                    yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     return
-            req = self.__reqs.get()
+            try:
+                req = self.__reqs.get(timeout=1)
+            except Empty:
+                continue
             if req is not None:
                 yield req
                 continue
             if self.__stop and not (
                 self.__is_shutting_down.is_set() or self.__is_shutdown.is_set()
             ):
-                logger.warning("Batching finished, closing the client-side of the stream")
+                logger.info("Batching finished, closing the client-side of the stream")
                 yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                 return
             if self.__is_shutting_down.is_set():
-                logger.warning("Server shutting down, closing the client-side of the stream")
+                logger.info("Server shutting down, closing the client-side of the stream")
                 return
             if self.__is_oom.is_set():
-                logger.warning("Server out-of-memory, closing the client-side of the stream")
+                logger.info("Server out-of-memory, closing the client-side of the stream")
                 return
-            logger.warning("Received sentinel, but not stopping, continuing...")
+            logger.info("Received sentinel, but not stopping, continuing...")
+        logger.info("Batch send thread exiting due to exception...")
 
     def __recv(self) -> None:
         for message in self.__batch_grpc.stream(
@@ -290,25 +312,25 @@ class _BatchBaseSync:
             requests=self.__send(),
         ):
             if message.HasField("started"):
-                logger.warning("Batch stream started successfully")
-                for threads in self.__bg_threads:
-                    threads.start_loop()
+                logger.info("Batch stream started successfully")
+
             if message.HasField("backoff"):
                 if (
                     message.backoff.batch_size != self.__batch_size
                     and not self.__is_shutting_down.is_set()
                     and not self.__is_shutdown.is_set()
+                    and not self.__is_oom.is_set()
                     and not self.__stop
                 ):
                     self.__batch_size = message.backoff.batch_size
-                    logger.warning(
-                        f"Updated batch size to {self.__batch_size} as per server request"
-                    )
+                    logger.info(f"Updated batch size to {self.__batch_size} as per server request")
+
             if message.HasField("acks"):
                 with self.__acks_lock:
                     self.__inflight_objs.difference_update(message.acks.uuids)
                     self.__uuid_lookup.difference_update(message.acks.uuids)
                     self.__inflight_refs.difference_update(message.acks.beacons)
+
             if message.HasField("results"):
                 result_objs = BatchObjectReturn()
                 result_refs = BatchReferenceReturn()
@@ -381,9 +403,10 @@ class _BatchBaseSync:
                     self.__results_for_wrapper.results.refs += result_refs
                     self.__results_for_wrapper.failed_objects.extend(failed_objs)
                     self.__results_for_wrapper.failed_references.extend(failed_refs)
+
             if message.HasField("out_of_memory"):
-                logger.warning(
-                    "Server reported out-of-memory error. Batching will wait at most 10 minutes for the server to scale-up. If the server does not recover within this time, the batch will terminate with an error."
+                logger.info(
+                    "Server reported out-of-memory. Batching will wait at most 10 minutes for the server to scale-up. If the server does not recover within this time, the batch will terminate with an error."
                 )
                 self.__is_oom.set()
                 with self.__objs_cache_lock:
@@ -394,32 +417,32 @@ class _BatchBaseSync:
                     self.__batch_references.prepend(
                         [self.__refs_cache[beacon] for beacon in message.out_of_memory.beacons]
                     )
+
             if message.HasField("shutting_down"):
-                logger.warning(
-                    "Received shutting down message from server, pausing sending until stream is re-established"
-                )
+                logger.info("Received shutting down message from server")
                 self.__is_shutting_down.set()
                 self.__is_oom.clear()
+
             if message.HasField("shutdown"):
-                logger.warning("Received shutdown finished message from server")
+                logger.info("Received shutdown finished message from server")
                 self.__is_shutdown.set()
                 self.__is_shutting_down.clear()
-                self.__reconnect()
 
         # restart the stream if we were shutdown by the node we were connected to ensuring that the index is
         # propagated properly from it to the new one
         if self.__is_shutdown.is_set():
-            logger.warning("Restarting batch recv after shutdown...")
+            self.__reconnect()
+            logger.info("Restarting batch recv after shutdown...")
             self.__is_shutdown.clear()
             return self.__recv()
         elif self.__is_renewing_stream.is_set():
             # restart the stream if we are renewing it (GCP connections have a max lifetime)
-            logger.warning("Restarting batch recv after renewing stream...")
+            logger.info("Restarting batch recv after renewing stream...")
             self.__is_renewing_stream.clear()
             return self.__recv()
-        else:
-            logger.warning("Server closed the stream from its side, shutting down batch")
-            return
+
+        logger.info("Server closed the stream from its side, shutting down batch")
+        return
 
     def __reconnect(self, retry: int = 0) -> None:
         if self.__consistency_level == ConsistencyLevel.ALL or self.__number_of_nodes == 1:
@@ -428,18 +451,19 @@ class _BatchBaseSync:
             while len(up_nodes) != self.__number_of_nodes or any(
                 node["status"] != "HEALTHY" for node in up_nodes
             ):
-                logger.warning(
+                logger.info(
                     "Waiting for all nodes to be HEALTHY before reconnecting to batch stream..."
                 )
                 time.sleep(5)
                 up_nodes = self.__cluster.get_nodes_status()
         try:
-            logger.warning(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
-            self.__connection.close("sync")
+            logger.info(f"Trying to reconnect after shutdown... {retry + 1}/{5}")
+            result(self.__connection.close("sync"))
             self.__connection.connect(force=True)
-            logger.warning("Reconnected successfully")
+            logger.info("Reconnected successfully")
         except (WeaviateStartUpError, WeaviateGRPCUnavailableError) as e:
             if retry < 5:
+                logger.warning(f"Failed to reconnect, after {retry} attempts. Retrying...")
                 time.sleep(2**retry)
                 self.__reconnect(retry + 1)
             else:
@@ -447,12 +471,10 @@ class _BatchBaseSync:
                 self.__bg_exception = e
 
     def __start_bg_threads(self) -> _BgThreads:
-        """Create a background thread that periodically checks how congested the batch queue is."""
-
         def loop_wrapper() -> None:
             try:
                 self.__loop()
-                logger.warning("exited batch requests loop thread")
+                logger.info("exited batch requests loop thread")
             except Exception as e:
                 logger.error(e)
                 self.__bg_exception = e
@@ -461,7 +483,7 @@ class _BatchBaseSync:
             socket_hung_up = False
             try:
                 self.__recv()
-                logger.warning("exited batch receive thread")
+                logger.info("exited batch receive thread")
             except Exception as e:
                 if isinstance(e, WeaviateBatchStreamError) and (
                     "Socket closed" in e.message
@@ -483,9 +505,6 @@ class _BatchBaseSync:
                 # server sets this whenever it restarts, gracefully or unexpectedly, so need to clear it now
                 self.__is_shutting_down.clear()
                 with self.__objs_cache_lock:
-                    logger.warning(
-                        f"Re-adding {len(self.__objs_cache)} cached objects to the batch"
-                    )
                     self.__batch_objects.prepend(list(self.__objs_cache.values()))
                 with self.__refs_cache_lock:
                     self.__batch_references.prepend(list(self.__refs_cache.values()))
@@ -505,6 +524,7 @@ class _BatchBaseSync:
             ),
         )
         threads.start_recv()
+        threads.start_loop()
         return threads
 
     def flush(self) -> None:
@@ -547,9 +567,7 @@ class _BatchBaseSync:
             self.__objs_cache[uuid] = batch_object
         self.__objs_count += 1
 
-        # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
-        # not need a long queue
-        while len(self.__inflight_objs) >= self.__batch_size:
+        while self.__is_blocked():
             self.__check_bg_threads_alive()
             time.sleep(0.01)
 
@@ -591,9 +609,19 @@ class _BatchBaseSync:
             with self.__refs_cache_lock:
                 self.__refs_cache[batch_reference._to_beacon()] = batch_reference
                 self.__refs_count += 1
-            while len(self.__inflight_refs) >= self.__batch_size * 2:
+            while self.__is_blocked():
                 self.__check_bg_threads_alive()
                 time.sleep(0.01)
+
+    def __is_blocked(self):
+        return (
+            len(self.__inflight_objs) >= self.__batch_size
+            or len(self.__inflight_refs) >= self.__batch_size * 2
+            or self.__is_renewing_stream.is_set()
+            or self.__is_shutting_down.is_set()
+            or self.__is_shutdown.is_set()
+            or self.__is_oom.is_set()
+        )
 
     def __check_bg_threads_alive(self) -> None:
         if self.__all_threads_alive():

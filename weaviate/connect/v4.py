@@ -7,6 +7,7 @@ from ssl import SSLZeroReturnError
 from threading import Event, Thread
 from typing import (
     Any,
+    AsyncGenerator,
     Awaitable,
     Dict,
     Generator,
@@ -1224,19 +1225,29 @@ class ConnectionAsync(_ConnectionBase):
                 raise InsufficientPermissionsError(e)
             raise WeaviateDeleteManyError(str(e))
 
-    def grpc_batch_stream(
+    async def grpc_batch_stream(
         self,
-    ) -> StreamStreamCall[batch_pb2.BatchStreamRequest, batch_pb2.BatchStreamReply]:
+        requests: AsyncGenerator[batch_pb2.BatchStreamRequest, None],
+    ) -> AsyncGenerator[batch_pb2.BatchStreamReply, None]:
         assert isinstance(self._grpc_channel, grpc.aio.Channel)
-        return self._grpc_channel.stream_stream(
-            "/weaviate.v1.Weaviate/BatchStream",
-            request_serializer=batch_pb2.BatchStreamRequest.SerializeToString,
-            response_deserializer=batch_pb2.BatchStreamReply.FromString,
-        )(
-            request_iterator=None,
-            timeout=self.timeout_config.stream,
-            metadata=self.grpc_headers(),
-        )
+        try:
+            async for msg in self._grpc_channel.stream_stream(
+                "/weaviate.v1.Weaviate/BatchStream",
+                request_serializer=batch_pb2.BatchStreamRequest.SerializeToString,
+                response_deserializer=batch_pb2.BatchStreamReply.FromString,
+            )(
+                request_iterator=requests,
+                timeout=self.timeout_config.stream,
+                metadata=self.grpc_headers(),
+            ):
+                yield msg
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
 
     async def grpc_batch_stream_write(
         self,
