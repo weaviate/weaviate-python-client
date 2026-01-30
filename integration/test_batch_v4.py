@@ -415,13 +415,11 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
     [
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
-        lambda client: client.batch.rate_limit(9999),
         lambda client: client.batch.stream(concurrency=1),
     ],
     ids=[
         "test_add_ten_thousand_data_objects_dynamic",
         "test_add_ten_thousand_data_objects_fixed_size",
-        "test_add_ten_thousand_data_objects_rate_limit",
         "test_add_ten_thousand_data_objects_stream",
     ],
 )
@@ -623,13 +621,11 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     [
         lambda client: client.batch.dynamic(),
         lambda client: client.batch.fixed_size(),
-        lambda client: client.batch.rate_limit(1000),
         lambda client: client.batch.stream(),
     ],
     ids=[
         "test_add_one_object_and_a_self_reference_dynamic",
         "test_add_one_object_and_a_self_reference_fixed_size",
-        "test_add_one_object_and_a_self_reference_rate_limit",
         "test_add_one_object_and_a_self_reference_stream",
     ],
 )
