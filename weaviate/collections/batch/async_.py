@@ -304,7 +304,10 @@ class _BatchBaseAsync:
                     self.__is_renewing_stream.set()
                     await self.__end_stream()
                     return
-            req = await asyncio.wait_for(self.__reqs.get(), timeout=1)
+            try:
+                req = await asyncio.wait_for(self.__reqs.get(), timeout=1)
+            except asyncio.TimeoutError:
+                continue
             if req is not None:
                 await self.__connection.grpc_batch_stream_write(self.__stream, req)
                 continue
