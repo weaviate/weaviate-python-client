@@ -508,6 +508,7 @@ class _ContextManagerSync(Generic[T, P]):
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.__current_batch._shutdown()
+        self.__current_batch._wait()
 
     def __enter__(self) -> P:
         self.__current_batch._start()

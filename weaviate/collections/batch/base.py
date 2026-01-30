@@ -359,6 +359,9 @@ class _BatchBase:
     def _start(self):
         pass
 
+    def _wait(self):
+        pass
+
     def _shutdown(self) -> None:
         """Shutdown the current batch and wait for all requests to be finished."""
         self.flush()
