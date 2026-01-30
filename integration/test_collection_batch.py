@@ -271,7 +271,7 @@ def test_non_existant_collection(collection_factory_get: CollectionFactoryGet) -
 
 
 @pytest.mark.asyncio
-async def test_add_one_hundred_thousand_objects_async_collection(
+async def test_batch_one_hundred_thousand_objects_async_collection(
     batch_collection_async: BatchCollectionAsync,
 ) -> None:
     """Test adding one hundred thousand data objects."""
@@ -295,3 +295,46 @@ async def test_add_one_hundred_thousand_objects_async_collection(
     assert await col.length() == nr_objects
     assert col.batch.results.objs.has_errors is False
     assert len(col.batch.failed_objects) == 0, [obj.message for obj in col.batch.failed_objects]
+
+
+@pytest.mark.asyncio
+async def test_ingest_one_hundred_thousand_data_objects_async(
+    batch_collection_async: BatchCollectionAsync,
+) -> None:
+    col = await batch_collection_async()
+    if col._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
+    nr_objects = 100000
+    import time
+
+    start = time.time()
+    results = await col.data.ingest({"name": "test" + str(i)} for i in range(nr_objects))
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    assert len(results.errors) == 0
+    assert len(results.all_responses) == nr_objects
+    assert len(results.uuids) == nr_objects
+    assert await col.length() == nr_objects
+    assert results.has_errors is False
+    assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]
+
+
+def test_ingest_one_hundred_thousand_data_objects(
+    batch_collection: BatchCollection,
+) -> None:
+    col = batch_collection()
+    if col._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
+    nr_objects = 100000
+    import time
+
+    start = time.time()
+    results = col.data.ingest({"name": "test" + str(i)} for i in range(nr_objects))
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    assert len(results.errors) == 0
+    assert len(results.all_responses) == nr_objects
+    assert len(results.uuids) == nr_objects
+    assert len(col) == nr_objects
+    assert results.has_errors is False
+    assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]

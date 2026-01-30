@@ -742,8 +742,8 @@ def test_server_side_batching_with_auth() -> None:
     with connect_to_local(
         port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=RBAC_AUTH_CREDS
     ) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 34, 0):
-            pytest.skip("Server-side batching not supported in Weaviate < 1.34.0")
+        if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+            pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
         collection = client.collections.create(collection_name)
         with client.batch.stream() as batch:
             batch.add_object(collection_name)

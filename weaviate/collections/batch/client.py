@@ -19,8 +19,8 @@ from weaviate.collections.batch.batch_wrapper import (
     _BatchMode,
     _BatchWrapper,
     _BatchWrapperAsync,
-    _ContextManagerWrapper,
-    _ContextManagerWrapperAsync,
+    _ContextManagerAsync,
+    _ContextManagerSync,
 )
 from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
@@ -146,10 +146,10 @@ class _BatchClientAsync(_BatchBaseAsync):
 BatchClient = _BatchClient
 BatchClientSync = _BatchClientSync
 BatchClientAsync = _BatchClientAsync
-ClientBatchingContextManager = _ContextManagerWrapper[
+ClientBatchingContextManager = _ContextManagerSync[
     Union[BatchClient, BatchClientSync], BatchClientProtocol
 ]
-AsyncClientBatchingContextManager = _ContextManagerWrapperAsync[BatchClientProtocolAsync]
+ClientBatchingContextManagerAsync = _ContextManagerAsync[BatchClientProtocolAsync]
 
 
 class _BatchClientWrapper(_BatchWrapper):
@@ -196,7 +196,7 @@ class _BatchClientWrapper(_BatchWrapper):
 
         self._batch_data = _BatchDataWrapper()  # clear old data
 
-        return _ContextManagerWrapper(
+        return _ContextManagerSync(
             batch_client(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
@@ -310,7 +310,7 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
 
     def __create_batch_and_reset(self):
         self._batch_data = _BatchDataWrapper()  # clear old data
-        return _ContextManagerWrapperAsync(
+        return _ContextManagerAsync(
             BatchClientAsync(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
@@ -328,7 +328,7 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
         *,
         concurrency: Optional[int] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-    ) -> AsyncClientBatchingContextManager:
+    ) -> ClientBatchingContextManagerAsync:
         return self.stream(concurrency=concurrency, consistency_level=consistency_level)
 
     def stream(
@@ -336,7 +336,7 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
         *,
         concurrency: Optional[int] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-    ) -> AsyncClientBatchingContextManager:
+    ) -> ClientBatchingContextManagerAsync:
         """Configure the batching context manager to use batch streaming.
 
         When you exit the context manager, the final batch will be sent automatically.
@@ -345,9 +345,9 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
             concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
             consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
             )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency

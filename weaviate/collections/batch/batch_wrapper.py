@@ -10,7 +10,6 @@ from weaviate.collections.batch.base import (
     _ClusterBatch,
     _ClusterBatchAsync,
     _DynamicBatching,
-    _ServerSideBatching,
 )
 from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.collections.classes.batch import (
@@ -140,8 +139,6 @@ class _BatchWrapperAsync:
         self._connection = connection
         self._consistency_level = consistency_level
         self._current_batch: Optional[_BatchBaseAsync] = None
-        # config options
-        self._batch_mode: _BatchMode = _ServerSideBatching(1)
 
         self._batch_data = _BatchDataWrapper()
         self._cluster = _ClusterBatchAsync(connection)
@@ -371,7 +368,7 @@ class BatchClientProtocolAsync(Protocol):
         """
         ...
 
-    async def flush(self) -> None:
+    def flush(self) -> None:
         """Flush the current batch.
 
         This will send all the objects and references in the current batch to Weaviate.
@@ -505,19 +502,20 @@ P = TypeVar("P", bound=Union[BatchClientProtocol, BatchCollectionProtocol[Proper
 Q = TypeVar("Q", bound=Union[BatchClientProtocolAsync, BatchCollectionProtocolAsync[Properties]])
 
 
-class _ContextManagerWrapper(Generic[T, P]):
+class _ContextManagerSync(Generic[T, P]):
     def __init__(self, current_batch: T):
         self.__current_batch: T = current_batch
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.__current_batch._shutdown()
+        self.__current_batch._wait()
 
     def __enter__(self) -> P:
         self.__current_batch._start()
         return self.__current_batch  # pyright: ignore[reportReturnType]
 
 
-class _ContextManagerWrapperAsync(Generic[Q]):
+class _ContextManagerAsync(Generic[Q]):
     def __init__(self, current_batch: _BatchBaseAsync):
         self.__current_batch = current_batch
 

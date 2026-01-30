@@ -19,8 +19,8 @@ from weaviate.collections.batch.batch_wrapper import (
     BatchCollectionProtocolAsync,
     _BatchWrapper,
     _BatchWrapperAsync,
-    _ContextManagerWrapper,
-    _ContextManagerWrapperAsync,
+    _ContextManagerAsync,
+    _ContextManagerSync,
 )
 from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
@@ -88,14 +88,14 @@ class _BatchCollection(Generic[Properties], _BatchBase):
 class _BatchCollectionSync(Generic[Properties], _BatchBaseSync):
     def __init__(
         self,
-        executor: ThreadPoolExecutor,
         connection: ConnectionSync,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        batch_mode: _BatchMode,
         name: str,
         tenant: Optional[str],
-        vectorizer_batching: bool,
+        executor: Optional[ThreadPoolExecutor] = None,
+        batch_mode: Optional[_BatchMode] = None,
+        vectorizer_batching: bool = False,
     ) -> None:
         super().__init__(
             connection=connection,
@@ -184,11 +184,11 @@ class _BatchCollectionAsync(Generic[Properties], _BatchBaseAsync):
 BatchCollection = _BatchCollection
 BatchCollectionSync = _BatchCollectionSync
 BatchCollectionAsync = _BatchCollectionAsync
-CollectionBatchingContextManager = _ContextManagerWrapper[
+CollectionBatchingContextManager = _ContextManagerSync[
     Union[BatchCollection[Properties], BatchCollectionSync[Properties]],
     BatchCollectionProtocol[Properties],
 ]
-CollectionBatchingContextManagerAsync = _ContextManagerWrapperAsync[
+CollectionBatchingContextManagerAsync = _ContextManagerAsync[
     BatchCollectionProtocolAsync[Properties]
 ]
 
@@ -239,7 +239,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 self._vectorizer_batching = False
 
         self._batch_data = _BatchDataWrapper()  # clear old data
-        return _ContextManagerWrapper(
+        return _ContextManagerSync(
             batch_client(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
@@ -311,9 +311,9 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             concurrency: The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate. If not provided, the default value is 1.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
             )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
@@ -338,7 +338,7 @@ class _BatchCollectionWrapperAsync(Generic[Properties], _BatchWrapperAsync):
 
     def __create_batch_and_reset(self):
         self._batch_data = _BatchDataWrapper()  # clear old data
-        return _ContextManagerWrapperAsync(
+        return _ContextManagerAsync(
             BatchCollectionAsync(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
@@ -371,9 +371,9 @@ class _BatchCollectionWrapperAsync(Generic[Properties], _BatchWrapperAsync):
             concurrency: The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate. If not provided, the default value is 1.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
             )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
