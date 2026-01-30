@@ -433,7 +433,7 @@ def test_add_ten_thousand_data_objects(
     """Test adding ten thousand data objects."""
     client, name = client_factory()
     if (
-        request.node.callspec.id == "test_add_ten_thousand_data_objects_experimental"
+        request.node.callspec.id == "test_add_ten_thousand_data_objects_stream"
         and client._connection._weaviate_version.is_lower_than(1, 36, 0)
     ):
         pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
@@ -641,7 +641,7 @@ def test_add_one_object_and_a_self_reference(
     """Test adding one object and a self reference."""
     client, name = client_factory()
     if (
-        request.node.callspec.id == "test_add_one_object_and_a_self_reference_experimental"
+        request.node.callspec.id == "test_add_one_object_and_a_self_reference_stream"
         and client._connection._weaviate_version.is_lower_than(1, 36, 0)
     ):
         pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
