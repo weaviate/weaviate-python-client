@@ -745,7 +745,7 @@ def test_server_side_batching_with_auth() -> None:
         if client._connection._weaviate_version.is_lower_than(1, 36, 0):
             pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
         collection = client.collections.create(collection_name)
-        with client.batch.experimental() as batch:
+        with client.batch.stream() as batch:
             batch.add_object(collection_name)
             batch.add_object(collection_name)
             batch.add_object(collection_name)

@@ -282,7 +282,7 @@ async def test_batch_one_hundred_thousand_objects_async_collection(
     import time
 
     start = time.time()
-    async with col.batch.experimental() as batch:
+    async with col.batch.stream() as batch:
         for i in range(nr_objects):
             await batch.add_object(
                 properties={"name": "test" + str(i)},

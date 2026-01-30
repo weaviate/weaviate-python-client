@@ -881,15 +881,19 @@ class _BgThreads:
 
     def is_alive(self) -> bool:
         """Check if the background threads are still alive."""
-        return self.loop_alive() or self.recv_alive()
+        return self.loop_alive() and self.recv_alive()
 
     def loop_alive(self) -> bool:
         """Check if the loop background thread is still alive."""
-        return self.loop.is_alive()
+        if self.__started_loop:
+            return self.loop.is_alive()
+        return True  # not started yet so considered alive
 
     def recv_alive(self) -> bool:
         """Check if the recv background thread is still alive."""
-        return self.recv.is_alive()
+        if self.__started_recv:
+            return self.recv.is_alive()
+        return True  # not started yet so considered alive
 
     def join(self) -> None:
         """Join the background threads."""

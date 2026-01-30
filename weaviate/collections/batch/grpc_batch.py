@@ -2,7 +2,18 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Union, cast
+from typing import (
+    Any,
+    AsyncGenerator,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from google.protobuf.struct_pb2 import Struct
 
@@ -215,13 +226,16 @@ class _BatchGRPC(_BaseGRPC):
     def astream(
         self,
         connection: ConnectionAsync,
+        *,
+        requests: AsyncGenerator[batch_pb2.BatchStreamRequest, None],
     ):
         """Start a new async stream for send/recv messages about the ongoing server-side batching from Weaviate.
 
         Args:
             connection: The connection to the Weaviate instance.
+            requests: An async generator that yields `BatchStreamRequest` messages to be sent to the server.
         """
-        return connection.grpc_batch_stream()
+        return connection.grpc_batch_stream(requests=requests)
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], refs: ReferenceInputs
