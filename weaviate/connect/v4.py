@@ -1012,7 +1012,9 @@ class ConnectionSync(_ConnectionBase):
         try:
             assert self.grpc_stub is not None
             for msg in self.grpc_stub.BatchStream(
-                request_iterator=requests, metadata=self.grpc_headers()
+                request_iterator=requests,
+                timeout=self.timeout_config.stream,
+                metadata=self.grpc_headers(),
             ):
                 yield msg
         except RpcError as e:
@@ -1232,7 +1234,7 @@ class ConnectionAsync(_ConnectionBase):
             response_deserializer=batch_pb2.BatchStreamReply.FromString,
         )(
             request_iterator=None,
-            timeout=self.timeout_config.insert,
+            timeout=self.timeout_config.stream,
             metadata=self.grpc_headers(),
         )
 
