@@ -225,6 +225,7 @@ def test_create_and_restore_backup_without_waiting(
             BackupStatus.TRANSFERRED,
             BackupStatus.TRANSFERRING,
             BackupStatus.STARTED,
+            BackupStatus.FINALIZING,
         ]
         if restore_status.status == BackupStatus.SUCCESS:
             break

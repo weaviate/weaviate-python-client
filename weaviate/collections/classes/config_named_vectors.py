@@ -730,8 +730,10 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 baseURL=base_url,
                 model=model,
                 truncation=truncation,
+                dimensions=None,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
+                videoFields=None,
             ),
             vector_index_config=vector_index_config,
         )
