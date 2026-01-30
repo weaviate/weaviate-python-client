@@ -7,7 +7,7 @@ from weaviate.collections.aggregate import _AggregateCollection
 from weaviate.collections.backups import _CollectionBackup
 from weaviate.collections.batch.collection import (
     _BatchCollection,
-    _BatchCollectionNew,
+    _BatchCollectionSync,
     _BatchCollectionWrapper,
 )
 from weaviate.collections.classes.cluster import Shard
@@ -101,10 +101,8 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
             name,
             tenant,
             config,
-            batch_client=_BatchCollectionNew[Properties]
-            if connection._weaviate_version.is_at_least(
-                1, 32, 0
-            )  # todo: change to 1.33.0 when it lands
+            batch_client=_BatchCollectionSync[Properties]
+            if connection._weaviate_version.is_at_least(1, 36, 0)
             else _BatchCollection[Properties],
         )
         """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""

@@ -10,6 +10,7 @@ from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies
 from weaviate.types import NUMBER
+from weaviate.util import is_weaviate_domain
 
 # from grpclib.client import Channel
 
@@ -35,6 +36,9 @@ class ProtocolParams(BaseModel):
         if v < 0 or v > 65535:
             raise ValueError("port must be between 0 and 65535")
         return v
+
+    def is_gcp(self) -> bool:
+        return "gcp.weaviate.cloud" in self.host
 
 
 T = TypeVar("T", bound="ConnectionParams")
@@ -89,6 +93,9 @@ class ConnectionParams(BaseModel):
                 secure=grpc_secure,
             ),
         )
+
+    def is_gcp_on_wcd(self) -> bool:
+        return "gcp" in self.http.host.lower() and is_weaviate_domain(self.http.host)
 
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:

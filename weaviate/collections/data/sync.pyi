@@ -1,6 +1,9 @@
 import uuid as uuid_package
-from typing import Generic, List, Literal, Optional, Sequence, Union, overload
+from typing import Generic, Iterable, List, Literal, Optional, Sequence, Union, overload
 
+from weaviate.collections.batch.grpc_batch import _BatchGRPC
+from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
+from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
     BatchObjectReturn,
     BatchReferenceReturn,
@@ -21,6 +24,10 @@ from weaviate.types import UUID, VECTORS
 from .executor import _DataCollectionExecutor
 
 class _DataCollection(Generic[Properties,], _DataCollectionExecutor[ConnectionSync, Properties]):
+    __batch_delete: _BatchDeleteGRPC
+    __batch_grpc: _BatchGRPC
+    __batch_rest: _BatchREST
+
     def insert(
         self,
         properties: Properties,
@@ -70,3 +77,6 @@ class _DataCollection(Generic[Properties,], _DataCollectionExecutor[ConnectionSy
     def delete_many(
         self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
     ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...
+    def ingest(
+        self, objs: Iterable[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]]
+    ) -> BatchObjectReturn: ...

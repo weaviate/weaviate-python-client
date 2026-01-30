@@ -7,6 +7,7 @@ from ssl import SSLZeroReturnError
 from threading import Event, Thread
 from typing import (
     Any,
+    AsyncGenerator,
     Awaitable,
     Dict,
     Generator,
@@ -20,13 +21,14 @@ from typing import (
     overload,
 )
 
+import grpc
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
 from grpc import Call, RpcError, StatusCode
 from grpc import Channel as SyncChannel  # type: ignore
-from grpc.aio import AioRpcError
+from grpc.aio import AioRpcError, StreamStreamCall
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 
 # from grpclib.client import Channel
@@ -398,7 +400,7 @@ class _ConnectionBase:
             async def get_oidc() -> None:
                 async with self._make_client("async") as client:
                     try:
-                        response = await client.get(oidc_url)
+                        response = await client.get(oidc_url, timeout=self.timeout_config.init)
                     except Exception as e:
                         raise WeaviateConnectionError(
                             f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -413,7 +415,7 @@ class _ConnectionBase:
 
         with self._make_client("sync") as client:
             try:
-                response = client.get(oidc_url)
+                response = client.get(oidc_url, timeout=self.timeout_config.init)
             except Exception as e:
                 raise WeaviateConnectionError(
                     f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -1011,7 +1013,9 @@ class ConnectionSync(_ConnectionBase):
         try:
             assert self.grpc_stub is not None
             for msg in self.grpc_stub.BatchStream(
-                request_iterator=requests, metadata=self.grpc_headers()
+                request_iterator=requests,
+                timeout=self.timeout_config.stream,
+                metadata=self.grpc_headers(),
             ):
                 yield msg
         except RpcError as e:
@@ -1020,7 +1024,7 @@ class ConnectionSync(_ConnectionBase):
                 raise InsufficientPermissionsError(error)
             if error.code() == StatusCode.ABORTED:
                 raise _BatchStreamShutdownError()
-            raise WeaviateBatchStreamError(str(error.details()))
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest
@@ -1088,8 +1092,8 @@ class ConnectionSync(_ConnectionBase):
 class ConnectionAsync(_ConnectionBase):
     """Connection class used to communicate to a weaviate instance."""
 
-    async def connect(self) -> None:
-        if self._connected:
+    async def connect(self, force: bool = False) -> None:
+        if self._connected and not force:
             return None
 
         await executor.aresult(self._open_connections_rest(self._auth, "async"))
@@ -1220,6 +1224,62 @@ class ConnectionAsync(_ConnectionBase):
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
             raise WeaviateDeleteManyError(str(e))
+
+    async def grpc_batch_stream(
+        self,
+        requests: AsyncGenerator[batch_pb2.BatchStreamRequest, None],
+    ) -> AsyncGenerator[batch_pb2.BatchStreamReply, None]:
+        assert isinstance(self._grpc_channel, grpc.aio.Channel)
+        try:
+            async for msg in self._grpc_channel.stream_stream(
+                "/weaviate.v1.Weaviate/BatchStream",
+                request_serializer=batch_pb2.BatchStreamRequest.SerializeToString,
+                response_deserializer=batch_pb2.BatchStreamReply.FromString,
+            )(
+                request_iterator=requests,
+                timeout=self.timeout_config.stream,
+                metadata=self.grpc_headers(),
+            ):
+                yield msg
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
+
+    async def grpc_batch_stream_write(
+        self,
+        stream: StreamStreamCall[batch_pb2.BatchStreamRequest, batch_pb2.BatchStreamReply],
+        request: batch_pb2.BatchStreamRequest,
+    ) -> None:
+        try:
+            await stream.write(request)
+        except AioRpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(str(error.details()))
+
+    async def grpc_batch_stream_read(
+        self,
+        stream: StreamStreamCall[batch_pb2.BatchStreamRequest, batch_pb2.BatchStreamReply],
+    ) -> Optional[batch_pb2.BatchStreamReply]:
+        try:
+            msg = await stream.read()
+            if not isinstance(msg, batch_pb2.BatchStreamReply):
+                return None
+            return msg
+        except AioRpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(str(error.details()))
 
     async def grpc_tenants_get(
         self, request: tenants_pb2.TenantsGetRequest
