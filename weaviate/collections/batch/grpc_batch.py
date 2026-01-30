@@ -20,7 +20,7 @@ from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
 from weaviate.collections.grpc.shared import _BaseGRPC, _is_1d_vector, _Pack
 from weaviate.connect import executor
 from weaviate.connect.base import MAX_GRPC_MESSAGE_LENGTH
-from weaviate.connect.v4 import Connection, ConnectionSync
+from weaviate.connect.v4 import Connection, ConnectionAsync, ConnectionSync
 from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
@@ -203,14 +203,25 @@ class _BatchGRPC(_BaseGRPC):
         connection: ConnectionSync,
         *,
         requests: Generator[batch_pb2.BatchStreamRequest, None, None],
-    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
-        """Start a new stream for receiving messages about the ongoing server-side batching from Weaviate.
+    ):
+        """Start a new sync stream for send/recv messages about the ongoing server-side batching from Weaviate.
 
         Args:
             connection: The connection to the Weaviate instance.
             requests: A generator that yields `BatchStreamRequest` messages to be sent to the server.
         """
         return connection.grpc_batch_stream(requests=requests)
+
+    def astream(
+        self,
+        connection: ConnectionAsync,
+    ):
+        """Start a new async stream for send/recv messages about the ongoing server-side batching from Weaviate.
+
+        Args:
+            connection: The connection to the Weaviate instance.
+        """
+        return connection.grpc_batch_stream()
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], refs: ReferenceInputs
