@@ -346,7 +346,7 @@ class _BatchBase:
         self.__uuid_lookup_lock = threading.Lock()
         self.__results_lock = threading.Lock()
 
-        self.__bg_thread = self.__start_bg_threads()
+        self.__bg_threads = self.__start_bg_threads()
         self.__bg_thread_exception: Optional[Exception] = None
 
     @property
@@ -365,7 +365,7 @@ class _BatchBase:
 
         # we are done, shut bg threads down and end the event loop
         self.__shut_background_thread_down.set()
-        while self.__bg_thread.is_alive():
+        while self.__bg_threads.is_alive():
             time.sleep(0.01)
 
         # copy the results to the public results
@@ -773,7 +773,7 @@ class _BatchBase:
             or len(self.__batch_references) > 0
         ):
             time.sleep(0.01)
-            self.__check_bg_thread_alive()
+            self.__check_bg_threads_alive()
 
     def _add_object(
         self,
@@ -784,7 +784,7 @@ class _BatchBase:
         vector: Optional[VECTORS] = None,
         tenant: Optional[str] = None,
     ) -> UUID:
-        self.__check_bg_thread_alive()
+        self.__check_bg_threads_alive()
         try:
             batch_object = BatchObject(
                 collection=collection,
@@ -810,7 +810,7 @@ class _BatchBase:
             self.__recommended_num_objects == 0
             or len(self.__batch_objects) >= self.__recommended_num_objects * 2
         ):
-            self.__check_bg_thread_alive()
+            self.__check_bg_threads_alive()
             time.sleep(0.01)
 
         assert batch_object.uuid is not None
@@ -824,7 +824,7 @@ class _BatchBase:
         to: ReferenceInput,
         tenant: Optional[str] = None,
     ) -> None:
-        self.__check_bg_thread_alive()
+        self.__check_bg_threads_alive()
         if isinstance(to, ReferenceToMulti):
             to_strs: Union[List[str], List[UUID]] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
@@ -853,10 +853,10 @@ class _BatchBase:
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
             time.sleep(0.01)  # block if weaviate is overloaded, also do not send any refs
-            self.__check_bg_thread_alive()
+            self.__check_bg_threads_alive()
 
-    def __check_bg_thread_alive(self) -> None:
-        if self.__bg_thread.is_alive():
+    def __check_bg_threads_alive(self) -> None:
+        if self.__bg_threads.is_alive():
             return
 
         raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
@@ -890,6 +890,11 @@ class _BgThreads:
     def recv_alive(self) -> bool:
         """Check if the recv background thread is still alive."""
         return self.recv.is_alive()
+
+    def join(self) -> None:
+        """Join the background threads."""
+        self.loop.join()
+        self.recv.join()
 
 
 class _ClusterBatch:

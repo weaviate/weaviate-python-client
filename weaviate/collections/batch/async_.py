@@ -54,6 +54,9 @@ class _BgTasks:
         self.recv = recv
         self.loop = loop
 
+    def all_alive(self) -> bool:
+        return all([not self.send.done(), not self.recv.done(), not self.loop.done()])
+
 
 class _BatchBaseAsync:
     def __init__(
@@ -107,12 +110,34 @@ class _BatchBaseAsync:
 
         self.__stop = False
         self.__shutdown_send_task = asyncio.Event()
+        self.__bg_exception: Optional[Exception] = None
+        self.__bg_tasks: Optional[_BgTasks] = None
 
     @property
     def number_errors(self) -> int:
         """Return the number of errors in the batch."""
         return len(self.__results_for_wrapper.failed_objects) + len(
             self.__results_for_wrapper.failed_references
+        )
+
+    def __all_tasks_alive(self) -> bool:
+        return self.__bg_tasks is not None and self.__bg_tasks.all_alive()
+
+    async def _wait(self):
+        assert self.__bg_tasks is not None
+        await asyncio.gather(
+            self.__bg_tasks.send,
+            self.__bg_tasks.recv,
+            self.__bg_tasks.loop,
+        )
+        # copy the results to the public results
+        self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
+        self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
+        self.__results_for_wrapper_backup.failed_references = (
+            self.__results_for_wrapper.failed_references
+        )
+        self.__results_for_wrapper_backup.imported_shards = (
+            self.__results_for_wrapper.imported_shards
         )
 
     async def _start(self):
@@ -122,7 +147,7 @@ class _BatchBaseAsync:
                 logger.warning("exited batch send thread")
             except Exception as e:
                 logger.error(e)
-                self.__bg_thread_exception = e
+                self.__bg_exception = e
 
         async def loop_wrapper() -> None:
             try:
@@ -130,7 +155,7 @@ class _BatchBaseAsync:
                 logger.warning("exited batch loop thread")
             except Exception as e:
                 logger.error(e)
-                self.__bg_thread_exception = e
+                self.__bg_exception = e
 
         async def recv_wrapper() -> None:
             socket_hung_up = False
@@ -144,8 +169,7 @@ class _BatchBaseAsync:
                     socket_hung_up = True
                 else:
                     logger.error(e)
-                    logger.error(type(e))
-                    self.__bg_thread_exception = e
+                    self.__bg_exception = e
             if socket_hung_up:
                 # this happens during ungraceful shutdown of the coordinator
                 # lets restart the stream and add the cached objects again
@@ -158,30 +182,18 @@ class _BatchBaseAsync:
                 # start a new stream with a newly reconnected channel
                 return await recv_wrapper()
 
-        return _BgTasks(
+        self.__bg_tasks = _BgTasks(
             send=asyncio.create_task(send_wrapper()),
             recv=asyncio.create_task(recv_wrapper()),
             loop=asyncio.create_task(loop_wrapper()),
         )
 
     async def _shutdown(self) -> None:
-        # Shutdown the current batch and wait for all requests to be finished
-        await self.flush()
         self.__stop = True
-
-        # copy the results to the public results
-        self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
-        self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
-        self.__results_for_wrapper_backup.failed_references = (
-            self.__results_for_wrapper.failed_references
-        )
-        self.__results_for_wrapper_backup.imported_shards = (
-            self.__results_for_wrapper.imported_shards
-        )
 
     async def __loop(self) -> None:
         refresh_time: float = 0.01
-        while True:
+        while self.__bg_exception is None:
             if len(self.__batch_objects) + len(self.__batch_references) > 0:
                 self._batch_send = True
                 start = time.time()
@@ -282,7 +294,7 @@ class _BatchBaseAsync:
                 ),
             ),
         )
-        while True:
+        while self.__bg_exception is None:
             if self.__is_gcp_on_wcd:
                 assert self.__stream_start is not None
                 if time.time() - self.__stream_start > GCP_STREAM_TIMEOUT:
@@ -292,7 +304,7 @@ class _BatchBaseAsync:
                     self.__is_renewing_stream.set()
                     await self.__end_stream()
                     return
-            req = await self.__reqs.get()
+            req = await asyncio.wait_for(self.__reqs.get(), timeout=1)
             if req is not None:
                 await self.__connection.grpc_batch_stream_write(self.__stream, req)
                 continue
@@ -313,7 +325,7 @@ class _BatchBaseAsync:
             logger.warning("Received sentinel, but not stopping, continuing...")
 
     async def __recv(self) -> None:
-        while True:
+        while self.__bg_exception is None:
             message = await self.__connection.grpc_batch_stream_read(self.__stream)
             if not isinstance(message, batch_pb2.BatchStreamReply):
                 logger.warning("Server closed the stream from its side, shutting down batch")
@@ -460,6 +472,7 @@ class _BatchBaseAsync:
         vector: Optional[VECTORS] = None,
         tenant: Optional[str] = None,
     ) -> UUID:
+        self.__check_bg_tasks_alive()
         try:
             batch_object = BatchObject(
                 collection=collection,
@@ -482,6 +495,7 @@ class _BatchBaseAsync:
         self.__objs_count += 1
 
         while len(self.__inflight_objs) >= self.__batch_size:
+            self.__check_bg_tasks_alive()
             await asyncio.sleep(0.01)
 
         assert batch_object.uuid is not None
@@ -495,6 +509,7 @@ class _BatchBaseAsync:
         to: ReferenceInput,
         tenant: Optional[str] = None,
     ) -> None:
+        self.__check_bg_tasks_alive()
         if isinstance(to, ReferenceToMulti):
             to_strs: Union[List[str], List[UUID]] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
@@ -521,4 +536,11 @@ class _BatchBaseAsync:
             self.__refs_cache[batch_reference._to_beacon()] = batch_reference
             self.__refs_count += 1
             while len(self.__inflight_refs) >= self.__batch_size * 2:
+                self.__check_bg_tasks_alive()
                 await asyncio.sleep(0.01)
+
+    def __check_bg_tasks_alive(self) -> None:
+        if self.__all_tasks_alive():
+            return
+
+        raise self.__bg_exception or Exception("Batch tasks died unexpectedly")

@@ -87,7 +87,7 @@ class _BatchBaseSync:
         self.__uuid_lookup_lock = threading.Lock()
         self.__results_lock = threading.Lock()
 
-        self.__bg_thread_exception: Optional[Exception] = None
+        self.__bg_exception: Optional[Exception] = None
         self.__is_oom = threading.Event()
         self.__is_shutting_down = threading.Event()
         self.__is_shutdown = threading.Event()
@@ -145,17 +145,13 @@ class _BatchBaseSync:
                     "Batch stream was not started within 60 seconds. Please check your connection."
                 )
 
+    def _wait(self) -> None:
+        for bg_thread in self.__bg_threads:
+            bg_thread.join()
+
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished
-        self.flush()
         self.__stop = True
-
-        # we are done, wait for bg threads to finish
-        # self.__batch_stream will set the shutdown event when it receives
-        # the stop message from the server
-        while self.__any_threads_alive():
-            time.sleep(0.05)
-        logger.warning("Send & receive threads finished.")
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -169,10 +165,7 @@ class _BatchBaseSync:
 
     def __loop(self) -> None:
         refresh_time: float = 0.01
-        while (
-            self.__shut_background_thread_down is not None
-            and not self.__shut_background_thread_down.is_set()
-        ):
+        while self.__bg_exception is None:
             if len(self.__batch_objects) + len(self.__batch_references) > 0:
                 self._batch_send = True
                 start = time.time()
@@ -181,14 +174,6 @@ class _BatchBaseSync:
                 ) < self.__batch_size:
                     # wait for more objects to be added up to the batch size
                     time.sleep(0.01)
-                    if (
-                        self.__shut_background_thread_down is not None
-                        and self.__shut_background_thread_down.is_set()
-                    ):
-                        logger.warning("Threads were shutdown, exiting batch send loop")
-                        # shutdown was requested, exit early
-                        self.__reqs.put(None)
-                        return
                     if time.time() - start >= 1 and (
                         len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
                     ):
@@ -271,10 +256,7 @@ class _BatchBaseSync:
                 consistency_level=self.__batch_grpc._consistency_level,
             ),
         )
-        while (
-            self.__shut_background_thread_down is not None
-            and not self.__shut_background_thread_down.is_set()
-        ):
+        while self.__bg_exception is not None:
             if self.__is_gcp_on_wcd:
                 assert self.__stream_start is not None
                 if time.time() - self.__stream_start > GCP_STREAM_TIMEOUT:
@@ -462,11 +444,10 @@ class _BatchBaseSync:
                 self.__reconnect(retry + 1)
             else:
                 logger.error("Failed to reconnect after 5 attempts")
-                self.__bg_thread_exception = e
+                self.__bg_exception = e
 
     def __start_bg_threads(self) -> _BgThreads:
         """Create a background thread that periodically checks how congested the batch queue is."""
-        self.__shut_background_thread_down = threading.Event()
 
         def loop_wrapper() -> None:
             try:
@@ -474,7 +455,7 @@ class _BatchBaseSync:
                 logger.warning("exited batch requests loop thread")
             except Exception as e:
                 logger.error(e)
-                self.__bg_thread_exception = e
+                self.__bg_exception = e
 
         def recv_wrapper() -> None:
             socket_hung_up = False
@@ -493,7 +474,7 @@ class _BatchBaseSync:
                 else:
                     logger.error(e)
                     logger.error(type(e))
-                    self.__bg_thread_exception = e
+                    self.__bg_exception = e
             if socket_hung_up:
                 # this happens during ungraceful shutdown of the coordinator
                 # lets restart the stream and add the cached objects again
@@ -615,7 +596,7 @@ class _BatchBaseSync:
                 time.sleep(0.01)
 
     def __check_bg_threads_alive(self) -> None:
-        if self.__any_threads_alive():
+        if self.__all_threads_alive():
             return
 
-        raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
+        raise self.__bg_exception or Exception("Batch thread died unexpectedly")
