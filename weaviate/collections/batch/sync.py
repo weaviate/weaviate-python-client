@@ -154,21 +154,6 @@ class _BatchBaseSync:
     def __loop(self) -> None:
         refresh_time: float = 0.01
         while self.__bg_exception is None:
-            start, paused = time.time(), False
-            while (
-                self.__is_shutting_down.is_set()
-                or self.__is_shutdown.is_set()
-                or self.__is_oom.is_set()
-            ):
-                if not paused:
-                    logger.info("Server is shutting down, pausing batching loop...")
-                    self.__reqs.put(None)
-                    paused = True
-                time.sleep(1)
-                if time.time() - start > 300:
-                    raise WeaviateBatchFailedToReestablishStreamError(
-                        "Batch stream was not re-established within 5 minutes. Terminating batch."
-                    )
             if len(self.__batch_objects) + len(self.__batch_references) > 0:
                 start = time.time()
                 while (len_o := len(self.__batch_objects)) + (
@@ -191,6 +176,21 @@ class _BatchBaseSync:
                     self.__uuid_lookup.difference_update(obj.uuid for obj in objs)
 
                 for req in self.__generate_stream_requests(objs, refs):
+                    start, paused = time.time(), False
+                    while (
+                        self.__is_shutting_down.is_set()
+                        or self.__is_shutdown.is_set()
+                        or self.__is_oom.is_set()
+                    ):
+                        if not paused:
+                            logger.info("Server is shutting down, pausing batching loop...")
+                            self.__reqs.put(None)
+                            paused = True
+                        time.sleep(1)
+                        if time.time() - start > 300:
+                            raise WeaviateBatchFailedToReestablishStreamError(
+                                "Batch stream was not re-established within 5 minutes. Terminating batch."
+                            )
                     try:
                         self.__reqs.put(req, timeout=10)
                     except Full as e:
@@ -205,9 +205,6 @@ class _BatchBaseSync:
                 logger.info("Batching finished, sent stop signal to batch stream")
                 return
             time.sleep(refresh_time)
-
-    def __beacon(self, ref: batch_pb2.BatchReference) -> str:
-        return f"weaviate://localhost/{ref.from_collection}{f'#{ref.tenant}' if ref.tenant != '' else ''}/{ref.from_uuid}#{ref.name}->/{ref.to_collection}/{ref.to_uuid}"
 
     def __generate_stream_requests(
         self,
@@ -299,10 +296,12 @@ class _BatchBaseSync:
         logger.info("Batch send thread exiting due to exception...")
 
     def __recv(self) -> None:
-        for message in self.__batch_grpc.stream(
+        stream = self.__batch_grpc.stream(
             connection=self.__connection,
             requests=self.__send(),
-        ):
+        )
+        self.__is_shutdown.clear()
+        for message in stream:
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
 
@@ -425,7 +424,6 @@ class _BatchBaseSync:
         if self.__is_shutdown.is_set():
             self.__reconnect()
             logger.info("Restarting batch recv after shutdown...")
-            self.__is_shutdown.clear()
             return self.__recv()
         elif self.__is_renewing_stream.is_set():
             # restart the stream if we are renewing it (GCP connections have a max lifetime)

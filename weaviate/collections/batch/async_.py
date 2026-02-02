@@ -193,21 +193,6 @@ class _BatchBaseAsync:
     async def __loop(self) -> None:
         refresh_time: float = 0.01
         while self.__bg_exception is None:
-            start, paused = time.time(), False
-            while (
-                self.__is_shutting_down.is_set()
-                or self.__is_shutdown.is_set()
-                or self.__is_oom.is_set()
-            ):
-                if not paused:
-                    logger.info("Server is shutting down, pausing batching loop...")
-                    await self.__reqs.put(None)
-                    paused = True
-                await asyncio.sleep(1)
-                if time.time() - start > 300:
-                    raise WeaviateBatchFailedToReestablishStreamError(
-                        "Batch stream was not re-established within 5 minutes. Terminating batch."
-                    )
             if len(self.__batch_objects) + len(self.__batch_references) > 0:
                 start = time.time()
                 while (len_o := len(self.__batch_objects)) + (
@@ -228,6 +213,21 @@ class _BatchBaseAsync:
                 )
 
                 for req in self.__generate_stream_requests(objs, refs):
+                    start, paused = time.time(), False
+                    while (
+                        self.__is_shutting_down.is_set()
+                        or self.__is_shutdown.is_set()
+                        or self.__is_oom.is_set()
+                    ):
+                        if not paused:
+                            logger.info("Server is shutting down, pausing batching loop...")
+                            await self.__reqs.put(None)
+                            paused = True
+                        await asyncio.sleep(1)
+                        if time.time() - start > 300:
+                            raise WeaviateBatchFailedToReestablishStreamError(
+                                "Batch stream was not re-established within 5 minutes. Terminating batch."
+                            )
                     try:
                         await asyncio.wait_for(self.__reqs.put(req), timeout=10)
                     except asyncio.TimeoutError as e:
@@ -335,10 +335,12 @@ class _BatchBaseAsync:
         logger.info("Batch send thread exiting due to exception...")
 
     async def __recv(self) -> None:
-        async for message in self.__batch_grpc.astream(
+        stream = self.__batch_grpc.astream(
             connection=self.__connection,
             requests=self.__send(),
-        ):
+        )
+        self.__is_shutdown.clear()
+        async for message in stream:
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
 
@@ -451,7 +453,6 @@ class _BatchBaseAsync:
         if self.__is_shutdown.is_set():
             await self.__reconnect()
             logger.info("Restarting batch recv after shutdown...")
-            self.__is_shutdown.clear()
             return await self.__recv()
 
         elif self.__is_renewing_stream.is_set():
