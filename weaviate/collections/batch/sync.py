@@ -192,10 +192,10 @@ class _BatchBaseSync:
                                 "Batch stream was not re-established within 5 minutes. Terminating batch."
                             )
                     try:
-                        self.__reqs.put(req, timeout=10)
+                        self.__reqs.put(req, timeout=60)
                     except Full as e:
                         logger.warning(
-                            "Batch queue is blocked for more than 10 seconds. Exiting the loop"
+                            "Batch queue is blocked for more than 60 seconds. Exiting the loop"
                         )
                         self.__bg_exception = e
                         return
