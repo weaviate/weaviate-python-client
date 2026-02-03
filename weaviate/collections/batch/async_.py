@@ -515,6 +515,7 @@ class _BatchBaseAsync:
         tenant: Optional[str] = None,
     ) -> UUID:
         self.__check_bg_tasks_alive()
+        await asyncio.sleep(0)
         try:
             batch_object = BatchObject(
                 collection=collection,
@@ -555,6 +556,7 @@ class _BatchBaseAsync:
         tenant: Optional[str] = None,
     ) -> None:
         self.__check_bg_tasks_alive()
+        await asyncio.sleep(0)
         if isinstance(to, ReferenceToMulti):
             to_strs: Union[List[str], List[UUID]] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
