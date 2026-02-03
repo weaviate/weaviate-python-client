@@ -78,7 +78,6 @@ class _BatchBaseAsync:
 
         self.__connection = connection
         self.__is_gcp_on_wcd = connection._connection_params.is_gcp_on_wcd()
-        self.__stream_start: Optional[float] = None
         self.__is_renewing_stream = asyncio.Event()
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
         self.__batch_size = 100
@@ -89,6 +88,7 @@ class _BatchBaseAsync:
         self.__cluster = _ClusterBatchAsync(self.__connection)
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
+        self.__uuid_lookup_lock = asyncio.Lock()
         self.__uuid_lookup: Set[str] = set()
 
         # we do not want that users can access the results directly as they are not thread-safe
@@ -102,7 +102,9 @@ class _BatchBaseAsync:
         self.__is_shutting_down = asyncio.Event()
         self.__is_shutdown = asyncio.Event()
 
+        self.__objs_cache_lock = asyncio.Lock()
         self.__objs_cache: dict[str, BatchObject] = {}
+        self.__refs_cache_lock = asyncio.Lock()
         self.__refs_cache: dict[str, BatchReference] = {}
 
         self.__inflight_objs: set[str] = set()
@@ -160,8 +162,10 @@ class _BatchBaseAsync:
                 await self.__reconnect()
                 # server sets this whenever it restarts, gracefully or unexpectedly, so need to clear it now
                 self.__is_shutting_down.clear()
-                await self.__batch_objects.aprepend(list(self.__objs_cache.values()))
-                await self.__batch_references.aprepend(list(self.__refs_cache.values()))
+                async with self.__objs_cache_lock:
+                    await self.__batch_objects.aprepend(list(self.__objs_cache.values()))
+                async with self.__refs_cache_lock:
+                    await self.__batch_references.aprepend(list(self.__refs_cache.values()))
                 # start a new stream with a newly reconnected channel
                 return await recv_wrapper()
 
@@ -207,10 +211,11 @@ class _BatchBaseAsync:
                         break
 
                 objs = self.__batch_objects.pop_items(self.__batch_size)
-                refs = self.__batch_references.pop_items(
-                    self.__batch_size - len(objs),
-                    uuid_lookup=self.__uuid_lookup,
-                )
+                async with self.__uuid_lookup_lock:
+                    refs = self.__batch_references.pop_items(
+                        self.__batch_size - len(objs),
+                        uuid_lookup=self.__uuid_lookup,
+                    )
 
                 for req in self.__generate_stream_requests(objs, refs):
                     start, paused = time.time(), False
@@ -357,7 +362,8 @@ class _BatchBaseAsync:
 
             if message.HasField("acks"):
                 self.__inflight_objs.difference_update(message.acks.uuids)
-                self.__uuid_lookup.difference_update(message.acks.uuids)
+                async with self.__uuid_lookup_lock:
+                    self.__uuid_lookup.difference_update(message.acks.uuids)
                 self.__inflight_refs.difference_update(message.acks.beacons)
 
             if message.HasField("results"):
@@ -368,7 +374,8 @@ class _BatchBaseAsync:
                 for error in message.results.errors:
                     if error.HasField("uuid"):
                         try:
-                            cached = self.__objs_cache.pop(error.uuid)
+                            async with self.__objs_cache_lock:
+                                cached = self.__objs_cache.pop(error.uuid)
                         except KeyError:
                             continue
                         err = ErrorObject(
@@ -389,7 +396,8 @@ class _BatchBaseAsync:
                         )
                     if error.HasField("beacon"):
                         try:
-                            cached = self.__refs_cache.pop(error.beacon)
+                            async with self.__refs_cache_lock:
+                                cached = self.__refs_cache.pop(error.beacon)
                         except KeyError:
                             continue
                         err = ErrorReference(
@@ -410,7 +418,8 @@ class _BatchBaseAsync:
                 for success in message.results.successes:
                     if success.HasField("uuid"):
                         try:
-                            cached = self.__objs_cache.pop(success.uuid)
+                            async with self.__objs_cache_lock:
+                                cached = self.__objs_cache.pop(success.uuid)
                         except KeyError:
                             continue
                         uuid = uuid_package.UUID(success.uuid)
@@ -420,7 +429,8 @@ class _BatchBaseAsync:
                         )
                     if success.HasField("beacon"):
                         try:
-                            self.__refs_cache.pop(success.beacon, None)
+                            async with self.__refs_cache_lock:
+                                self.__refs_cache.pop(success.beacon)
                         except KeyError:
                             continue
                 self.__results_for_wrapper.results.objs += result_objs
@@ -521,16 +531,19 @@ class _BatchBaseAsync:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         uuid = str(batch_object.uuid)
-        self.__uuid_lookup.add(uuid)
+        async with self.__uuid_lookup_lock:
+            self.__uuid_lookup.add(uuid)
         await self.__batch_objects.aadd(batch_object)
-        self.__objs_cache[uuid] = batch_object
-        self.__objs_count += 1
+        async with self.__objs_cache_lock:
+            self.__objs_cache[uuid] = batch_object
+            self.__objs_count += 1
 
         while self.__is_blocked():
             self.__check_bg_tasks_alive()
             await asyncio.sleep(0.01)
 
         assert batch_object.uuid is not None
+        await asyncio.sleep(0)
         return batch_object.uuid
 
     async def _add_reference(
@@ -565,8 +578,9 @@ class _BatchBaseAsync:
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))
             await self.__batch_references.aadd(batch_reference)
-            self.__refs_cache[batch_reference._to_beacon()] = batch_reference
-            self.__refs_count += 1
+            async with self.__refs_cache_lock:
+                self.__refs_cache[batch_reference._to_beacon()] = batch_reference
+                self.__refs_count += 1
             while self.__is_blocked():
                 self.__check_bg_tasks_alive()
                 await asyncio.sleep(0.01)
