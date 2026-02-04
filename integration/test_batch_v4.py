@@ -480,6 +480,8 @@ def test_add_one_hundred_objects_and_references_between_all(
 ) -> None:
     """Test adding one hundred objects and references between all of them."""
     client, name = client_factory()
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100
     uuids: List[UUID] = []
     with client.batch.stream() as batch:
