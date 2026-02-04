@@ -101,6 +101,7 @@ class _BatchBaseAsync:
         self.__is_oom = asyncio.Event()
         self.__is_shutting_down = asyncio.Event()
         self.__is_shutdown = asyncio.Event()
+        self.__is_hungup = asyncio.Event()
 
         self.__objs_cache_lock = asyncio.Lock()
         self.__objs_cache: dict[str, BatchObject] = {}
@@ -142,26 +143,26 @@ class _BatchBaseAsync:
                 self.__bg_exception = e
 
         async def recv_wrapper() -> None:
-            socket_hung_up = False
             try:
                 await self.__recv()
                 logger.info("exited batch recv task")
             except Exception as e:
                 if isinstance(e, WeaviateBatchStreamError) and (
-                    "Socket closed" in e.message or "context canceled" in e.message
+                    "Socket closed" in e.message
+                    or "context canceled" in e.message
+                    or "Connection reset" in e.message
+                    or "Received RST_STREAM with error code 2" in e.message
                 ):
-                    logger.warning(e)
-                    socket_hung_up = True
+                    logger.error(f"Socket hang up detected in batch receive thread: {e.message}")
+                    self.__is_hungup.set()
                 else:
                     logger.error(e)
                     self.__bg_exception = e
-            if socket_hung_up:
+            if self.__is_hungup.is_set():
                 # this happens during ungraceful shutdown of the coordinator
                 # lets restart the stream and add the cached objects again
                 logger.warning("Stream closed unexpectedly, restarting...")
                 await self.__reconnect()
-                # server sets this whenever it restarts, gracefully or unexpectedly, so need to clear it now
-                self.__is_shutting_down.clear()
                 async with self.__objs_cache_lock:
                     await self.__batch_objects.aprepend(list(self.__objs_cache.values()))
                 async with self.__refs_cache_lock:
@@ -233,6 +234,9 @@ class _BatchBaseAsync:
                             raise WeaviateBatchFailedToReestablishStreamError(
                                 "Batch stream was not re-established within 5 minutes. Terminating batch."
                             )
+                    if paused:
+                        logger.info("Server is back up, resuming batching loop...")
+                        paused = False
                     try:
                         await asyncio.wait_for(self.__reqs.put(req), timeout=60)
                     except asyncio.TimeoutError as e:
@@ -336,6 +340,9 @@ class _BatchBaseAsync:
             if self.__is_oom.is_set():
                 logger.info("Server out-of-memory, closing the client-side of the stream")
                 return
+            if self.__is_hungup.is_set():
+                logger.info("Detected hung up stream, closing the client-side of the stream")
+                return
             logger.info("Received sentinel, but not stopping, continuing...")
         logger.info("Batch send thread exiting due to exception...")
 
@@ -344,6 +351,7 @@ class _BatchBaseAsync:
             connection=self.__connection,
             requests=self.__send(),
         )
+        self.__is_hungup.clear()
         self.__is_shutdown.clear()
         async for message in stream:
             if message.HasField("started"):
@@ -355,6 +363,8 @@ class _BatchBaseAsync:
                     and not self.__is_shutting_down.is_set()
                     and not self.__is_shutdown.is_set()
                     and not self.__is_oom.is_set()
+                    and not self.__is_hungup.is_set()
+                    and not self.__is_renewing_stream.is_set()
                     and not self.__stop
                 ):
                     self.__batch_size = message.backoff.batch_size
