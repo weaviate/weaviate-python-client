@@ -482,7 +482,7 @@ def test_add_one_hundred_objects_and_references_between_all(
     client, name = client_factory()
     nr_objects = 100
     uuids: List[UUID] = []
-    with client.batch.dynamic() as batch:
+    with client.batch.stream() as batch:
         for i in range(nr_objects):
             uuid_ = batch.add_object(
                 collection=name,
@@ -842,3 +842,33 @@ async def test_add_one_hundred_thousand_objects_async_client(
         obj.message for obj in client.batch.failed_objects
     ]
     await client.collections.delete(name)
+
+
+def test_add_one_hundred_thousand_objects_sync_client(
+    client_factory: ClientFactory,
+) -> None:
+    """Test adding one hundred thousand data objects."""
+    client, name = client_factory()
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
+    nr_objects = 100000
+    import time
+
+    start = time.time()
+    with client.batch.stream(concurrency=1) as batch:
+        for i in range(nr_objects):
+            batch.add_object(
+                collection=name,
+                properties={"name": "test" + str(i)},
+            )
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.all_responses) == nr_objects
+    assert len(client.batch.results.objs.uuids) == nr_objects
+    assert len(client.collections.use(name)) == nr_objects
+    assert client.batch.results.objs.has_errors is False
+    assert len(client.batch.failed_objects) == 0, [
+        obj.message for obj in client.batch.failed_objects
+    ]
+    client.collections.delete(name)

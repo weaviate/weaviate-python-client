@@ -102,6 +102,10 @@ class _BatchBaseAsync:
         self.__is_shutting_down = asyncio.Event()
         self.__is_shutdown = asyncio.Event()
         self.__is_hungup = asyncio.Event()
+        self.__is_stopped = asyncio.Event()
+
+        self.__shutdown_loop = asyncio.Event()
+        self.__sent_sentinel = asyncio.Event()
 
         self.__objs_cache_lock = asyncio.Lock()
         self.__objs_cache: dict[str, BatchObject] = {}
@@ -117,7 +121,6 @@ class _BatchBaseAsync:
             maxsize=1
         )
 
-        self.__stop = False
         self.__bg_exception: Optional[Exception] = None
         self.__bg_tasks: Optional[_BgTasks] = None
 
@@ -193,11 +196,11 @@ class _BatchBaseAsync:
         )
 
     async def _shutdown(self) -> None:
-        self.__stop = True
+        self.__is_stopped.set()
 
     async def __loop(self) -> None:
         refresh_time: float = 0.01
-        while self.__bg_exception is None:
+        while self.__bg_exception is None and not self.__shutdown_loop.is_set():
             if len(self.__batch_objects) + len(self.__batch_references) > 0:
                 start = time.time()
                 while (len_o := len(self.__batch_objects)) + (
@@ -211,9 +214,9 @@ class _BatchBaseAsync:
                         # no new objects were added in the last second, exit the loop
                         break
 
-                objs = self.__batch_objects.pop_items(self.__batch_size)
+                objs = await self.__batch_objects.apop_items(self.__batch_size)
                 async with self.__uuid_lookup_lock:
-                    refs = self.__batch_references.pop_items(
+                    refs = await self.__batch_references.apop_items(
                         self.__batch_size - len(objs),
                         uuid_lookup=self.__uuid_lookup,
                     )
@@ -224,12 +227,12 @@ class _BatchBaseAsync:
                         self.__is_shutting_down.is_set()
                         or self.__is_shutdown.is_set()
                         or self.__is_oom.is_set()
+                        or self.__is_hungup.is_set()
                     ):
                         if not paused:
                             logger.info("Server is shutting down, pausing batching loop...")
-                            await self.__reqs.put(None)
                             paused = True
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(refresh_time)
                         if time.time() - start > 300:
                             raise WeaviateBatchFailedToReestablishStreamError(
                                 "Batch stream was not re-established within 5 minutes. Terminating batch."
@@ -245,11 +248,16 @@ class _BatchBaseAsync:
                         )
                         self.__bg_exception = e
                         return
-            elif self.__stop:
-                # we are done, send the sentinel into our queue to be consumed by the batch sender
-                await self.__reqs.put(None)  # signal the end of the stream
-                logger.info("Batching finished, sent stop signal to batch stream")
-                return
+            elif (
+                self.__is_stopped.is_set()
+                and not self.__sent_sentinel.is_set()
+                and not self.__is_hungup.is_set()
+                and not self.__is_shutdown.is_set()
+                and not self.__is_shutting_down.is_set()
+                and not self.__is_oom.is_set()
+            ):
+                await self.__reqs.put(None)
+                self.__sent_sentinel.set()
             await asyncio.sleep(refresh_time)
 
     def __generate_stream_requests(
@@ -305,6 +313,7 @@ class _BatchBaseAsync:
     async def __send(
         self,
     ) -> AsyncGenerator[batch_pb2.BatchStreamRequest, None]:
+        self.__sent_sentinel.clear()
         yield batch_pb2.BatchStreamRequest(
             start=batch_pb2.BatchStreamRequest.Start(
                 consistency_level=self.__batch_grpc._consistency_level,
@@ -313,7 +322,7 @@ class _BatchBaseAsync:
         stream_start = time.time()
         while self.__bg_exception is None:
             if self.__is_gcp_on_wcd:
-                assert stream_start is not None
+                assert stream_start is not None, "stream_start should be set for GCP streams"
                 if time.time() - stream_start > GCP_STREAM_TIMEOUT:
                     logger.info(
                         "GCP connections have a maximum lifetime. Re-establishing the batch stream to avoid timeout errors."
@@ -323,27 +332,25 @@ class _BatchBaseAsync:
                     return
             try:
                 req = await asyncio.wait_for(self.__reqs.get(), timeout=1)
-            except asyncio.TimeoutError:
-                continue
-            if req is not None:
+                if req is None:
+                    logger.info(
+                        "Batching finished, stopping and closing the client-side of the stream"
+                    )
+                    yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
+                    return
                 yield req
                 continue
-            if self.__stop and not (
-                self.__is_shutting_down.is_set() or self.__is_shutdown.is_set()
-            ):
-                logger.info("Batching finished, closing the client-side of the stream")
-                yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
-                return
-            if self.__is_shutting_down.is_set():
-                logger.info("Server shutting down, closing the client-side of the stream")
-                return
-            if self.__is_oom.is_set():
-                logger.info("Server out-of-memory, closing the client-side of the stream")
-                return
-            if self.__is_hungup.is_set():
-                logger.info("Detected hung up stream, closing the client-side of the stream")
-                return
-            logger.info("Received sentinel, but not stopping, continuing...")
+            except asyncio.TimeoutError:
+                if self.__is_shutting_down.is_set():
+                    logger.info("Server shutting down, closing the client-side of the stream")
+                    return
+                elif self.__is_oom.is_set():
+                    logger.info("Server out-of-memory, closing the client-side of the stream")
+                    return
+                elif self.__is_hungup.is_set():
+                    logger.info("Detected hung up stream, closing the client-side of the stream")
+                    return
+                logger.info("Timed out getting request from queue, but not stopping, continuing...")
         logger.info("Batch send thread exiting due to exception...")
 
     async def __recv(self) -> None:
@@ -365,15 +372,13 @@ class _BatchBaseAsync:
                     and not self.__is_oom.is_set()
                     and not self.__is_hungup.is_set()
                     and not self.__is_renewing_stream.is_set()
-                    and not self.__stop
+                    and not self.__is_stopped.is_set()
                 ):
                     self.__batch_size = message.backoff.batch_size
                     logger.info(f"Updated batch size to {self.__batch_size} as per server request")
 
             if message.HasField("acks"):
                 self.__inflight_objs.difference_update(message.acks.uuids)
-                async with self.__uuid_lookup_lock:
-                    self.__uuid_lookup.difference_update(message.acks.uuids)
                 self.__inflight_refs.difference_update(message.acks.beacons)
 
             if message.HasField("results"):
@@ -430,6 +435,8 @@ class _BatchBaseAsync:
                         try:
                             async with self.__objs_cache_lock:
                                 cached = self.__objs_cache.pop(success.uuid)
+                                async with self.__uuid_lookup_lock:
+                                    self.__uuid_lookup.discard(success.uuid)
                         except KeyError:
                             continue
                         uuid = uuid_package.UUID(success.uuid)
@@ -482,6 +489,7 @@ class _BatchBaseAsync:
             return await self.__recv()
 
         logger.info("Server closed the stream from its side, shutting down batch")
+        self.__shutdown_loop.set()
 
     async def __reconnect(self, retry: int = 0) -> None:
         if self.__consistency_level == ConsistencyLevel.ALL or self.__number_of_nodes == 1:
