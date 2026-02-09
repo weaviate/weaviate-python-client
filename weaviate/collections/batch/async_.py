@@ -461,10 +461,18 @@ class _BatchBaseAsync:
                 )
                 self.__is_oom.set()
                 await self.__batch_objects.aprepend(
-                    [self.__objs_cache[uuid] for uuid in message.out_of_memory.uuids]
+                    [
+                        o
+                        for uuid in message.out_of_memory.uuids
+                        if (o := self.__objs_cache.get(uuid)) is not None
+                    ]
                 )
                 await self.__batch_references.aprepend(
-                    [self.__refs_cache[beacon] for beacon in message.out_of_memory.beacons]
+                    [
+                        r
+                        for beacon in message.out_of_memory.beacons
+                        if (r := self.__refs_cache.get(beacon)) is not None
+                    ]
                 )
 
             if message.HasField("shutting_down"):
