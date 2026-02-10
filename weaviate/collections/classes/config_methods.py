@@ -256,6 +256,8 @@ def __get_vector_config(
 
             vectorizer_str: str = str(list(vectorizer)[0])
             vec_config: Dict[str, Any] = named_vector["vectorizer"][vectorizer_str]
+            if vec_config is None:
+                vec_config = {}
             props = vec_config.pop("properties", None)
 
             vector_index_config = __get_vector_index_config(named_vector)
