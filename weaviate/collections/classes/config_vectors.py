@@ -20,6 +20,8 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigHFreshCreate,
+    _VectorIndexConfigHFreshUpdate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vectorizers import (
@@ -126,6 +128,17 @@ class _IndexWrappers:
             vectorCacheMaxObjects=None,
             quantizer=quantizer,
             multivector=multivector,
+        )
+
+    @staticmethod
+    def __hfresh(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigHFreshCreate:
+        return _VectorIndexConfigHFreshCreate(
+            maxPostingSizeKB=None,
+            replicas=None,
+            searchProbe=None,
+            quantizer=quantizer,
+            multivector=None,
+            distance=None,
         )
 
     @staticmethod
@@ -1804,6 +1817,7 @@ class _VectorsUpdate:
         name: Optional[str] = None,
         vector_index_config: Union[
             _VectorIndexConfigHNSWUpdate,
+            _VectorIndexConfigHFreshUpdate,
             _VectorIndexConfigFlatUpdate,
             _VectorIndexConfigDynamicUpdate,
         ],
