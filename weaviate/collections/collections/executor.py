@@ -1,4 +1,5 @@
 import asyncio
+from enum import Enum
 from typing import (
     Awaitable,
     Dict,
@@ -56,7 +57,10 @@ from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 CollectionType = TypeVar("CollectionType", Collection, CollectionAsync)
-
+class IndexName(Enum): #DNJ TODO -somewhere else?
+    Searchable="searchable",
+    Filterable="filterable"
+    RangeFilters="rangeFilters"
 
 class _CollectionsExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
@@ -328,6 +332,43 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             path=path,
             error_msg="Collection may not exist.",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="collection exists"),
+        )
+    
+    def delete_property_index(
+            self,
+            name: str,
+            property: str, # DNJ TODO - accept property instance if exists
+            index_name: IndexName,
+    ) -> executor.Result[bool]: # DNJ TODO - confirm output
+        """ # DNJ TODO
+        Docstring for delete_property_index
+        
+        :param self: Description
+        :param name: Description
+        :type name: str
+        :param property: Description
+        :type property: str
+        :param index_name: Description
+        :type index_name: IndexName
+        :return: Description
+        :rtype: Result[None]
+        """
+        _validate_input([_ValidateArgument(expected=[str], name="name", value=name)]) # DNJ TODO
+        path = (
+            f"/schema/{_capitalize_first_letter(name)}"
+            + f"/properties/{property}"
+            + f"/index/{index_name.value}"
+        )
+       
+        def resp(res: Response) -> bool:
+            return res.status_code == 200
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.delete,
+            path=path,
+            error_msg="Property may not exist.", # DNJ TODO - find all error states
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
         )
 
     def export_config(
