@@ -1,5 +1,6 @@
 from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
 
+from httpx import Response
 from typing_extensions import deprecated
 
 from weaviate.collections.classes.config import (
@@ -26,6 +27,8 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.collection import Collection
 from weaviate.collections.collections.base import _CollectionsBase
 from weaviate.connect.v4 import ConnectionSync
+
+from weaviate.collections.collections.executor import IndexName
 
 class _Collections(_CollectionsBase[ConnectionSync]):
     @overload
@@ -122,6 +125,12 @@ class _Collections(_CollectionsBase[ConnectionSync]):
     def delete_all(self) -> None: ...
     def exists(self, name: str) -> bool: ...
     def export_config(self, name: str) -> CollectionConfig: ...
+    def delete_property_index(
+            self,
+            name: str,
+            property: str, # DNJ TODO - accept property instance if exists
+            index_name: IndexName,
+    ) -> bool: ...
     @overload
     def list_all(self, simple: Literal[False]) -> Dict[str, CollectionConfig]: ...
     @overload
