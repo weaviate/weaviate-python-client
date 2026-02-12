@@ -26,6 +26,36 @@ def test_empty_input_contains_all() -> None:
         wvc.query.Filter.by_property("test").contains_all([])
 
 
+def test_empty_list_equal() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").equal([])
+
+
+def test_empty_list_not_equal() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").not_equal([])
+
+
+def test_empty_list_less_than() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").less_than([])
+
+
+def test_empty_list_less_or_equal() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").less_or_equal([])
+
+
+def test_empty_list_greater_than() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").greater_than([])
+
+
+def test_empty_list_greater_or_equal() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").greater_or_equal([])
+
+
 def test_filter_lists() -> None:
     f1 = wvc.query.Filter.by_property("test").equal("test")
     f2 = wvc.query.Filter.by_creation_time().greater_or_equal(datetime.datetime.now())
