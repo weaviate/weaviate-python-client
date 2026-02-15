@@ -1,9 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Optional, Type, Union
 
+from deprecation import deprecated as docstring_deprecated
+from typing_extensions import deprecated as typing_deprecated
+
+from weaviate.collections.batch.async_ import _BatchBaseAsync
 from weaviate.collections.batch.base import (
     _BatchBase,
-    _BatchBaseNew,
     _BatchDataWrapper,
     _DynamicBatching,
     _FixedSizeBatching,
@@ -12,15 +15,19 @@ from weaviate.collections.batch.base import (
 )
 from weaviate.collections.batch.batch_wrapper import (
     BatchClientProtocol,
+    BatchClientProtocolAsync,
     _BatchMode,
     _BatchWrapper,
-    _ContextManagerWrapper,
+    _BatchWrapperAsync,
+    _ContextManagerAsync,
+    _ContextManagerSync,
 )
+from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.connect.v4 import ConnectionSync
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
 from weaviate.types import UUID, VECTORS
 
@@ -38,31 +45,6 @@ class _BatchClient(_BatchBase):
         vector: Optional[VECTORS] = None,
         tenant: Optional[Union[str, Tenant]] = None,
     ) -> UUID:
-        """Add one object to this batch.
-
-        NOTE: If the UUID of one of the objects already exists then the existing object will be
-        replaced by the new object.
-
-        Args:
-            collection: The name of the collection this object belongs to.
-            properties: The data properties of the object to be added as a dictionary.
-            references: The references of the object to be added as a dictionary.
-            uuid: The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
-                If it is None an UUIDv4 will generated, by default None
-            vector: The embedding of the object. Can be used when a collection does not have a vectorization module or the given
-                vector was generated using the _identical_ vectorization module that is configured for the class. In this
-                case this vector takes precedence.
-                Supported types are:
-                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
-                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
-            tenant: The tenant name or Tenant object to be used for this request.
-
-        Returns:
-            The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
-
-        Raises:
-            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
-        """
         return super()._add_object(
             collection=collection,
             properties=properties,
@@ -80,19 +62,6 @@ class _BatchClient(_BatchBase):
         to: ReferenceInput,
         tenant: Optional[Union[str, Tenant]] = None,
     ) -> None:
-        """Add one reference to this batch.
-
-        Args:
-            from_uuid: The UUID of the object, as an uuid.UUID object or str, that should reference another object.
-            from_collection: The name of the collection that should reference another object.
-            from_property: The name of the property that contains the reference.
-            to: The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
-                For multi-target references use wvc.Reference.to_multi_target().
-            tenant: The tenant name or Tenant object to be used for this request.
-
-        Raises:
-            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
-        """
         super()._add_reference(
             from_object_uuid=from_uuid,
             from_object_collection=from_collection,
@@ -102,7 +71,7 @@ class _BatchClient(_BatchBase):
         )
 
 
-class _BatchClientNew(_BatchBaseNew):
+class _BatchClientSync(_BatchBaseSync):
     def add_object(
         self,
         collection: str,
@@ -112,31 +81,6 @@ class _BatchClientNew(_BatchBaseNew):
         vector: Optional[VECTORS] = None,
         tenant: Optional[Union[str, Tenant]] = None,
     ) -> UUID:
-        """Add one object to this batch.
-
-        NOTE: If the UUID of one of the objects already exists then the existing object will be
-        replaced by the new object.
-
-        Args:
-            collection: The name of the collection this object belongs to.
-            properties: The data properties of the object to be added as a dictionary.
-            references: The references of the object to be added as a dictionary.
-            uuid: The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
-                If it is None an UUIDv4 will generated, by default None
-            vector: The embedding of the object. Can be used when a collection does not have a vectorization module or the given
-                vector was generated using the _identical_ vectorization module that is configured for the class. In this
-                case this vector takes precedence.
-                Supported types are:
-                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
-                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
-            tenant: The tenant name or Tenant object to be used for this request.
-
-        Returns:
-            The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
-
-        Raises:
-            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
-        """
         return super()._add_object(
             collection=collection,
             properties=properties,
@@ -154,19 +98,6 @@ class _BatchClientNew(_BatchBaseNew):
         to: ReferenceInput,
         tenant: Optional[Union[str, Tenant]] = None,
     ) -> None:
-        """Add one reference to this batch.
-
-        Args:
-            from_uuid: The UUID of the object, as an uuid.UUID object or str, that should reference another object.
-            from_collection: The name of the collection that should reference another object.
-            from_property: The name of the property that contains the reference.
-            to: The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
-                For multi-target references use wvc.Reference.to_multi_target().
-            tenant: The tenant name or Tenant object to be used for this request.
-
-        Raises:
-            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
-        """
         super()._add_reference(
             from_object_uuid=from_uuid,
             from_object_collection=from_collection,
@@ -176,11 +107,49 @@ class _BatchClientNew(_BatchBaseNew):
         )
 
 
+class _BatchClientAsync(_BatchBaseAsync):
+    async def add_object(
+        self,
+        collection: str,
+        properties: Optional[WeaviateProperties] = None,
+        references: Optional[ReferenceInputs] = None,
+        uuid: Optional[UUID] = None,
+        vector: Optional[VECTORS] = None,
+        tenant: Optional[Union[str, Tenant]] = None,
+    ) -> UUID:
+        return await super()._add_object(
+            collection=collection,
+            properties=properties,
+            references=references,
+            uuid=uuid,
+            vector=vector,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
+        )
+
+    async def add_reference(
+        self,
+        from_uuid: UUID,
+        from_collection: str,
+        from_property: str,
+        to: ReferenceInput,
+        tenant: Optional[Union[str, Tenant]] = None,
+    ) -> None:
+        await super()._add_reference(
+            from_object_uuid=from_uuid,
+            from_object_collection=from_collection,
+            from_property_name=from_property,
+            to=to,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
+        )
+
+
 BatchClient = _BatchClient
-BatchClientNew = _BatchClientNew
-ClientBatchingContextManager = _ContextManagerWrapper[
-    Union[BatchClient, BatchClientNew], BatchClientProtocol
+BatchClientSync = _BatchClientSync
+BatchClientAsync = _BatchClientAsync
+ClientBatchingContextManager = _ContextManagerSync[
+    Union[BatchClient, BatchClientSync], BatchClientProtocol
 ]
+ClientBatchingContextManagerAsync = _ContextManagerAsync[BatchClientProtocolAsync]
 
 
 class _BatchClientWrapper(_BatchWrapper):
@@ -197,7 +166,7 @@ class _BatchClientWrapper(_BatchWrapper):
         # define one executor per client with it shared between all child batch contexts
 
     def __create_batch_and_reset(
-        self, batch_client: Union[Type[_BatchClient], Type[_BatchClientNew]]
+        self, batch_client: Union[Type[_BatchClient], Type[_BatchClientSync]]
     ):
         if self._vectorizer_batching is None or not self._vectorizer_batching:
             try:
@@ -227,7 +196,7 @@ class _BatchClientWrapper(_BatchWrapper):
 
         self._batch_data = _BatchDataWrapper()  # clear old data
 
-        return _ContextManagerWrapper(
+        return _ContextManagerSync(
             batch_client(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
@@ -290,19 +259,36 @@ class _BatchClientWrapper(_BatchWrapper):
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset(_BatchClient)
 
+    @docstring_deprecated(
+        details="Use the 'stream' method instead. This method will be removed in 4.21.0",
+        deprecated_in="4.20.0",
+    )
+    @typing_deprecated("Use the 'stream' method instead. This method will be removed in 4.21.0")
     def experimental(
         self,
         *,
         concurrency: Optional[int] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> ClientBatchingContextManager:
-        """Configure the batching context manager using the experimental server-side batching mode.
+        return self.stream(concurrency=concurrency, consistency_level=consistency_level)
+
+    def stream(
+        self,
+        *,
+        concurrency: Optional[int] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ) -> ClientBatchingContextManager:
+        """Configure the batching context manager to use batch streaming.
 
         When you exit the context manager, the final batch will be sent automatically.
+
+        Args:
+            concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
+            consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 34, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.34.0"
+                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
             )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
@@ -311,4 +297,63 @@ class _BatchClientWrapper(_BatchWrapper):
             concurrency=1,  # hard-code until client-side multi-threading is fixed
         )
         self._consistency_level = consistency_level
-        return self.__create_batch_and_reset(_BatchClientNew)
+        return self.__create_batch_and_reset(_BatchClientSync)
+
+
+class _BatchClientWrapperAsync(_BatchWrapperAsync):
+    def __init__(
+        self,
+        connection: ConnectionAsync,
+    ):
+        super().__init__(connection, None)
+        self._vectorizer_batching: Optional[bool] = None
+
+    def __create_batch_and_reset(self):
+        self._batch_data = _BatchDataWrapper()  # clear old data
+        return _ContextManagerAsync(
+            BatchClientAsync(
+                connection=self._connection,
+                consistency_level=self._consistency_level,
+                results=self._batch_data,
+            )
+        )
+
+    @docstring_deprecated(
+        details="Use the 'stream' method instead. This method will be removed in 4.21.0",
+        deprecated_in="4.20.0",
+    )
+    @typing_deprecated("Use the 'stream' method instead. This method will be removed in 4.21.0")
+    def experimental(
+        self,
+        *,
+        concurrency: Optional[int] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ) -> ClientBatchingContextManagerAsync:
+        return self.stream(concurrency=concurrency, consistency_level=consistency_level)
+
+    def stream(
+        self,
+        *,
+        concurrency: Optional[int] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ) -> ClientBatchingContextManagerAsync:
+        """Configure the batching context manager to use batch streaming.
+
+        When you exit the context manager, the final batch will be sent automatically.
+
+        Args:
+            concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
+            consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
+        """
+        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
+            )
+        self._batch_mode = _ServerSideBatching(
+            # concurrency=concurrency
+            # if concurrency is not None
+            # else len(self._cluster.get_nodes_status())
+            concurrency=1,  # hard-code until client-side multi-threading is fixed
+        )
+        self._consistency_level = consistency_level
+        return self.__create_batch_and_reset()

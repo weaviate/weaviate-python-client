@@ -1,10 +1,10 @@
 import uuid
 from dataclasses import dataclass
-from typing import Any, Generator, Optional, Protocol, Union
+from typing import Any, Awaitable, Generator, Optional, Protocol, Union
 
 import pytest
 
-from integration.conftest import CollectionFactory, CollectionFactoryGet
+from integration.conftest import AsyncCollectionFactory, CollectionFactory, CollectionFactoryGet
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     Configure,
@@ -16,6 +16,8 @@ from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import ReferenceToMulti, _CrossReference
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import VECTORS
+
+from weaviate.collections.collection.async_ import CollectionAsync
 
 UUID = Union[str, uuid.UUID]
 
@@ -55,11 +57,21 @@ class BatchCollection(Protocol):
         ...
 
 
+class BatchCollectionAsync(Protocol):
+    """Typing for fixture."""
+
+    def __call__(
+        self, name: str = "", multi_tenancy: bool = False
+    ) -> Awaitable[CollectionAsync[Any, Any]]:
+        """Typing for fixture."""
+        ...
+
+
 @pytest.fixture
 def batch_collection(
     collection_factory: CollectionFactory,
 ) -> Generator[BatchCollection, None, None]:
-    def _factory(name: str = "", multi_tenancy: bool = False) -> Collection[Any, Any]:
+    def _factory(name: str = "", multi_tenancy: bool = False):
         collection = collection_factory(
             name=name,
             vectorizer_config=Configure.Vectorizer.none(),
@@ -70,6 +82,29 @@ def batch_collection(
             multi_tenancy_config=Configure.multi_tenancy(multi_tenancy),
         )
         collection.config.add_reference(
+            ReferenceProperty(name="test", target_collection=collection.name)
+        )
+
+        return collection
+
+    yield _factory
+
+
+@pytest.fixture
+def batch_collection_async(
+    async_collection_factory: AsyncCollectionFactory,
+) -> Generator[BatchCollectionAsync, None, None]:
+    async def _factory(name: str = "", multi_tenancy: bool = False):
+        collection = await async_collection_factory(
+            name=name,
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=[
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="age", data_type=DataType.INT),
+            ],
+            multi_tenancy_config=Configure.multi_tenancy(multi_tenancy),
+        )
+        await collection.config.add_reference(
             ReferenceProperty(name="test", target_collection=collection.name)
         )
 
@@ -233,3 +268,73 @@ def test_non_existant_collection(collection_factory_get: CollectionFactoryGet) -
 
     # above should not throw - depending on the autoschema config this might create an error or
     # not, so we do not check for errors here
+
+
+@pytest.mark.asyncio
+async def test_batch_one_hundred_thousand_objects_async_collection(
+    batch_collection_async: BatchCollectionAsync,
+) -> None:
+    """Test adding one hundred thousand data objects."""
+    col = await batch_collection_async()
+    if col._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
+    nr_objects = 100000
+    import time
+
+    start = time.time()
+    async with col.batch.stream() as batch:
+        for i in range(nr_objects):
+            await batch.add_object(
+                properties={"name": "test" + str(i)},
+            )
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    assert len(col.batch.results.objs.errors) == 0
+    assert len(col.batch.results.objs.all_responses) == nr_objects
+    assert len(col.batch.results.objs.uuids) == nr_objects
+    assert await col.length() == nr_objects
+    assert col.batch.results.objs.has_errors is False
+    assert len(col.batch.failed_objects) == 0, [obj.message for obj in col.batch.failed_objects]
+
+
+@pytest.mark.asyncio
+async def test_ingest_one_hundred_thousand_data_objects_async(
+    batch_collection_async: BatchCollectionAsync,
+) -> None:
+    col = await batch_collection_async()
+    if col._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
+    nr_objects = 100000
+    import time
+
+    start = time.time()
+    results = await col.data.ingest({"name": "test" + str(i)} for i in range(nr_objects))
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    assert len(results.errors) == 0
+    assert len(results.all_responses) == nr_objects
+    assert len(results.uuids) == nr_objects
+    assert await col.length() == nr_objects
+    assert results.has_errors is False
+    assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]
+
+
+def test_ingest_one_hundred_thousand_data_objects(
+    batch_collection: BatchCollection,
+) -> None:
+    col = batch_collection()
+    if col._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
+    nr_objects = 100000
+    import time
+
+    start = time.time()
+    results = col.data.ingest({"name": "test" + str(i)} for i in range(nr_objects))
+    end = time.time()
+    print(f"Time taken to add {nr_objects} objects: {end - start} seconds")
+    assert len(results.errors) == 0
+    assert len(results.all_responses) == nr_objects
+    assert len(results.uuids) == nr_objects
+    assert len(col) == nr_objects
+    assert results.has_errors is False
+    assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]
