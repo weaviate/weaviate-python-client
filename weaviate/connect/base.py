@@ -8,7 +8,7 @@ from grpc import ssl_channel_credentials
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 
-from weaviate.config import Proxies
+from weaviate.config import GrpcConfig, Proxies
 from weaviate.types import NUMBER
 
 # from grpclib.client import Channel
@@ -105,7 +105,11 @@ class ConnectionParams(BaseModel):
         return f"{self.grpc.host}:{self.grpc.port}"
 
     def _grpc_channel(
-        self, proxies: Dict[str, str], grpc_msg_size: Optional[int], is_async: bool
+        self,
+        proxies: Dict[str, str],
+        grpc_msg_size: Optional[int],
+        is_async: bool,
+        grpc_config: Optional[GrpcConfig] = None,
     ) -> Union[AsyncChannel, SyncChannel]:
         if grpc_msg_size is None:
             grpc_msg_size = MAX_GRPC_MESSAGE_LENGTH
@@ -120,14 +124,33 @@ class ConnectionParams(BaseModel):
         else:
             options = opts
 
+        if grpc_config is not None and grpc_config.channel_options is not None:
+            options.extend(grpc_config.channel_options)
+
         if is_async:
             mod = grpc.aio
         else:
             mod = grpc
         if self.grpc.secure:
+            if grpc_config is not None and grpc_config.credentials is not None:
+                creds = grpc_config.credentials
+            elif grpc_config is not None and any(
+                [
+                    grpc_config.ssl_root_certificates is not None,
+                    grpc_config.ssl_private_key is not None,
+                    grpc_config.ssl_certificate_chain is not None,
+                ]
+            ):
+                creds = ssl_channel_credentials(
+                    root_certificates=grpc_config.ssl_root_certificates,
+                    private_key=grpc_config.ssl_private_key,
+                    certificate_chain=grpc_config.ssl_certificate_chain,
+                )
+            else:
+                creds = ssl_channel_credentials()
             return mod.secure_channel(
                 target=self._grpc_target,
-                credentials=ssl_channel_credentials(),
+                credentials=creds,
                 options=options,
             )
         else:

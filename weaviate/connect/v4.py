@@ -50,7 +50,7 @@ from httpx import (
 
 from weaviate import __version__ as client_version
 from weaviate.auth import AuthApiKey, AuthClientCredentials, AuthCredentials
-from weaviate.config import ConnectionConfig, Proxies
+from weaviate.config import ConnectionConfig, GrpcConfig, Proxies
 from weaviate.config import Timeout as TimeoutConfig
 from weaviate.connect import executor
 from weaviate.connect.authentication import _Auth
@@ -132,6 +132,7 @@ class _ConnectionBase:
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedV4] = None,
         skip_init_checks: bool = False,
+        grpc_config: Optional[GrpcConfig] = None,
     ):
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
@@ -149,6 +150,7 @@ class _ConnectionBase:
         self._grpc_max_msg_size: Optional[int] = None
         self._connected = False
         self._skip_init_checks = skip_init_checks
+        self._grpc_config = grpc_config
 
         client_type = "sync" if isinstance(self, ConnectionSync) else "async"
         embedded_suffix = "-embedded" if self.embedded_db is not None else ""
@@ -370,6 +372,7 @@ class _ConnectionBase:
             proxies=self._proxies,
             grpc_msg_size=self._grpc_max_msg_size,
             is_async=colour == "async",
+            grpc_config=self._grpc_config,
         )
         self._grpc_channel = channel
         assert self._grpc_channel is not None

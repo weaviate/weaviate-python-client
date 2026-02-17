@@ -79,6 +79,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             proxies=config.proxies,
             trust_env=config.trust_env,
             skip_init_checks=skip_init_checks,
+            grpc_config=config.grpc_config,
         )
 
         self.integrations = _Integrations(self._connection)

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 @dataclass
@@ -66,6 +66,22 @@ class Proxies(BaseModel):
     grpc: Optional[str] = Field(default=None)
 
 
+class GrpcConfig(BaseModel):
+    """Configuration for the gRPC channel used by the Weaviate client.
+
+    Use this to customize TLS/SSL settings for gRPC connections, which is useful when
+    routing through application gateways (Azure App Gateway, AWS ALB, envoy, etc.).
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    channel_options: Optional[List[Tuple[str, Any]]] = Field(default=None)
+    ssl_root_certificates: Optional[bytes] = Field(default=None)
+    ssl_private_key: Optional[bytes] = Field(default=None)
+    ssl_certificate_chain: Optional[bytes] = Field(default=None)
+    credentials: Optional[Any] = Field(default=None)
+
+
 class AdditionalConfig(BaseModel):
     """Use this class to specify the connection and proxy settings for your client when connecting to Weaviate.
 
@@ -81,6 +97,7 @@ class AdditionalConfig(BaseModel):
     proxies: Union[str, Proxies, None] = Field(default=None)
     timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
+    grpc_config: Optional[GrpcConfig] = Field(default=None)
 
     @property
     def timeout(self) -> Timeout:
