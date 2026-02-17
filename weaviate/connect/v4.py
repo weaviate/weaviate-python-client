@@ -740,15 +740,19 @@ class _ConnectionBase:
             if is_weaviate_client_too_old(client_version, latest_version):
                 _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
 
-        try:
-            if colour == "async":
+        if colour == "async":
 
-                async def _execute() -> None:
+            async def _execute() -> None:
+                try:
                     async with AsyncClient() as client:
                         res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
                     return resp(res)
+                except RequestError:
+                    pass  # ignore any errors related to requests, it is a best-effort warning
 
-                return _execute()
+            return _execute()
+
+        try:
             with Client() as client:
                 res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
             return resp(res)
