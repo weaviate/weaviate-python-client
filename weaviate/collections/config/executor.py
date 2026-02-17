@@ -612,7 +612,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
         path = (
             f"/schema/{_capitalize_first_letter(self._name)}"
-            + f"/properties/{property}"
+            + f"/properties/{property_name}"
             + f"/index/{index_name}"
         )
 

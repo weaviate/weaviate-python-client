@@ -1953,6 +1953,55 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
 
 
 @pytest.mark.parametrize("index_name", ["filterable", "searchable", "rangeFilters"])
-def test_delete_property_index(index_name, collection_factory: CollectionFactory) -> None:
+def test_delete_property_index(index_name: str, collection_factory: CollectionFactory) -> None:
     """Test delete index works for each index type."""
-    pass
+    collection_dummy = collection_factory("dummy")
+    if (
+        index_name == "rangeFilters"
+        and collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0)
+    ):
+        pytest.skip("delete property index not supported before 1.36.0")
+    if index_name == "filterable" or index_name == "searchable":
+        _data_type = DataType.TEXT
+        _index_range_filters = False
+        _index_searchable = True
+        _index_filterable = True
+    else:
+        _data_type = DataType.DATE
+        _index_range_filters = True
+        _index_searchable = False
+        _index_filterable = True
+    collection = collection_factory(
+        properties=[
+            Property(
+                name="indexed_prop",
+                data_type=_data_type,
+                index_range_filters=_index_range_filters,
+                index_searchable=_index_searchable,
+                index_filterable=_index_filterable,
+            )
+        ],
+    )
+    config = collection.config.get()
+    assert config.properties[0].index_filterable is _index_filterable
+    assert config.properties[0].index_searchable is _index_searchable
+    assert config.properties[0].index_range_filters is _index_range_filters
+
+    with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError):
+        collection.config.delete_property_index("does_not_exist", index_name)  # type: ignore[arg-type]
+
+    collection.config.delete_property_index("indexed_prop", index_name)  # type: ignore[arg-type]
+
+    config = collection.config.get()
+    if index_name == "filterable":
+        assert config.properties[0].index_filterable is False
+        assert config.properties[0].index_searchable is _index_searchable
+        assert config.properties[0].index_range_filters is _index_range_filters
+    elif index_name == "searchable":
+        assert config.properties[0].index_searchable is False
+        assert config.properties[0].index_filterable is _index_filterable
+        assert config.properties[0].index_range_filters is _index_range_filters
+    elif index_name == "rangeFilters":
+        assert config.properties[0].index_range_filters is False
+        assert config.properties[0].index_searchable is _index_searchable
+        assert config.properties[0].index_filterable is _index_filterable
