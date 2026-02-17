@@ -1971,6 +1971,7 @@ def test_delete_property_index(index_name: str, collection_factory: CollectionFa
         _index_range_filters = True
         _index_searchable = False
         _index_filterable = True
+
     collection = collection_factory(
         properties=[
             Property(
