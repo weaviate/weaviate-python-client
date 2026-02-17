@@ -623,6 +623,6 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.delete,
             path=path,
-            error_msg="Property may not exist.",  # DNJ TODO - find all error states
+            error_msg="Property may not exist.",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
         )
