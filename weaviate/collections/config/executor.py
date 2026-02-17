@@ -610,6 +610,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
         _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+
         path = (
             f"/schema/{_capitalize_first_letter(self._name)}"
             + f"/properties/{property_name}"
@@ -623,6 +624,6 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.delete,
             path=path,
-            error_msg="Property may not exist.",
+            error_msg="Property may not exist",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
         )
