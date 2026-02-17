@@ -1956,11 +1956,9 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
 def test_delete_property_index(index_name: str, collection_factory: CollectionFactory) -> None:
     """Test delete index works for each index type."""
     collection_dummy = collection_factory("dummy")
-    if (
-        index_name == "rangeFilters"
-        and collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0)
-    ):
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
         pytest.skip("delete property index not supported before 1.36.0")
+
     if index_name == "filterable" or index_name == "searchable":
         _data_type = DataType.TEXT
         _index_range_filters = False
