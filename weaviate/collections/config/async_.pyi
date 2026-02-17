@@ -5,6 +5,7 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    IndexName,
     Property,
     ReferenceProperty,
     ShardStatus,
@@ -82,3 +83,4 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     async def add_vector(
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...
+    async def delete_property_index(self, property_name: str, index_name: IndexName) -> bool: ...

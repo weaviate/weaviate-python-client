@@ -53,7 +53,11 @@ from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatus
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
-from weaviate.util import _capitalize_first_letter, _decode_json_response_dict, _decode_json_response_list
+from weaviate.util import (
+    _capitalize_first_letter,
+    _decode_json_response_dict,
+    _decode_json_response_list,
+)
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
@@ -584,31 +588,34 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         return executor.result(resp(schema))
 
     def delete_property_index(
-            self,
-            property: str,
-            index_name: IndexName,
-    ) -> executor.Result[bool]: # DNJ TODO - confirm output
-        """ # DNJ TODO
-        Docstring for delete_property_index
-        
-        :param self: Description
-        :param name: Description
-        :type name: str
-        :param property: Description
-        :type property: str
-        :param index_name: Description
-        :type index_name: IndexName
-        :return: Description
-        :rtype: Result[None]
+        self,
+        property_name: str,
+        index_name: IndexName,
+    ) -> executor.Result[bool]:
+        """Delete a property index from the collection in Weaviate.
+
+            This is a destructive operation. The index will
+            need to be regenerated if you wish to use it again.
+
+        Args:
+            property_name: The property name from which to delete the index.
+            index_name: The type of the index to delete.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the property or index does not exist.
         """
-        _validate_input([_ValidateArgument(expected=[str], name="property", value=property)]) 
-        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)]) 
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        )
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
         path = (
             f"/schema/{_capitalize_first_letter(self._name)}"
             + f"/properties/{property}"
             + f"/index/{index_name}"
         )
-       
+
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
@@ -616,6 +623,6 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.delete,
             path=path,
-            error_msg="Property may not exist.", # DNJ TODO - find all error states
+            error_msg="Property may not exist.",  # DNJ TODO - find all error states
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
         )

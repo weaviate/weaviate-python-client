@@ -1,6 +1,5 @@
-
-import pytest
 from weaviate.collections.classes.config_methods import _collection_configs_simple_from_json
+
 
 def test_collection_config_simple_from_json_with_none_vectorizer_config() -> None:
     """Test that _collection_configs_simple_from_json handles None vectorizer config."""
@@ -10,9 +9,7 @@ def test_collection_config_simple_from_json_with_none_vectorizer_config() -> Non
                 "class": "TestCollection",
                 "vectorConfig": {
                     "default": {
-                        "vectorizer": {
-                            "text2vec-transformers": None
-                        },
+                        "vectorizer": {"text2vec-transformers": None},
                         "vectorIndexType": "hnsw",
                         "vectorIndexConfig": {
                             "skip": False,
@@ -25,15 +22,15 @@ def test_collection_config_simple_from_json_with_none_vectorizer_config() -> Non
                             "dynamicEfFactor": 8,
                             "vectorCacheMaxObjects": 1000000000000,
                             "flatSearchCutoff": 40000,
-                            "distance": "cosine"
-                        }
+                            "distance": "cosine",
+                        },
                     }
                 },
                 "properties": [],
                 "invertedIndexConfig": {
-                        "bm25": {"b": 0.75, "k1": 1.2},
-                        "cleanupIntervalSeconds": 60,
-                        "stopwords": {"preset": "en", "additions": None, "removals": None}
+                    "bm25": {"b": 0.75, "k1": 1.2},
+                    "cleanupIntervalSeconds": 60,
+                    "stopwords": {"preset": "en", "additions": None, "removals": None},
                 },
                 "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
                 "shardingConfig": {
@@ -44,7 +41,7 @@ def test_collection_config_simple_from_json_with_none_vectorizer_config() -> Non
                     "actualVirtualCount": 128,
                     "key": "_id",
                     "strategy": "hash",
-                    "function": "murmur3"
+                    "function": "murmur3",
                 },
                 "vectorIndexType": "hnsw",
                 "vectorIndexConfig": {
@@ -58,8 +55,8 @@ def test_collection_config_simple_from_json_with_none_vectorizer_config() -> Non
                     "dynamicEfFactor": 8,
                     "vectorCacheMaxObjects": 1000000000000,
                     "flatSearchCutoff": 40000,
-                    "distance": "cosine"
-                }
+                    "distance": "cosine",
+                },
             }
         ]
     }

@@ -108,6 +108,7 @@ IndexName: TypeAlias = Literal[
     "rangeFilters",
 ]
 
+
 class ConsistencyLevel(str, BaseEnum):
     """The consistency levels when writing to Weaviate with replication enabled.
 

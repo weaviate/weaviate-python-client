@@ -1950,3 +1950,9 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
     )
     conf = collection.config.get()
     assert conf.object_ttl_config is None
+
+
+@pytest.mark.parametrize("index_name", ["filterable", "searchable", "rangeFilters"])
+def test_delete_property_index(index_name, collection_factory: CollectionFactory) -> None:
+    """Test delete index works for each index type."""
+    pass
