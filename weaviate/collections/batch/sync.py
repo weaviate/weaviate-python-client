@@ -91,9 +91,9 @@ class _BatchBaseSync:
         self.__bg_exception: Optional[Exception] = None
         self.__is_oom = threading.Event()
         self.__is_shutting_down = threading.Event()
-        self.__is_shutdown = threading.Event()
         self.__is_hungup = threading.Event()
         self.__is_stopped = threading.Event()
+        self.__oom_wait_time = 300
 
         self.__shutdown_loop = threading.Event()
         self.__sent_sentinel = threading.Event()
@@ -177,7 +177,6 @@ class _BatchBaseSync:
                     start, paused = time.time(), False
                     while (
                         self.__is_shutting_down.is_set()
-                        or self.__is_shutdown.is_set()
                         or self.__is_oom.is_set()
                         or self.__is_hungup.is_set()
                     ):
@@ -185,9 +184,9 @@ class _BatchBaseSync:
                             logger.info("Server is shutting down, pausing batching loop...")
                             paused = True
                         time.sleep(refresh_time)
-                        if time.time() - start > 300:
+                        if time.time() - start > self.__oom_wait_time:
                             raise WeaviateBatchFailedToReestablishStreamError(
-                                "Batch stream was not re-established within 5 minutes. Terminating batch."
+                                f"Batch stream was not re-established within {self.__oom_wait_time} seconds after an OOM message. Terminating batch."
                             )
                     if paused:
                         logger.info("Server is back up, resuming batching loop...")
@@ -204,7 +203,6 @@ class _BatchBaseSync:
                 self.__is_stopped.is_set()
                 and not self.__sent_sentinel.is_set()
                 and not self.__is_hungup.is_set()
-                and not self.__is_shutdown.is_set()
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
@@ -308,8 +306,9 @@ class _BatchBaseSync:
             connection=self.__connection,
             requests=self.__send(),
         )
+        self.__is_renewing_stream.clear()
+        self.__is_shutting_down.clear()
         self.__is_hungup.clear()
-        self.__is_shutdown.clear()
         for message in stream:
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
@@ -318,7 +317,6 @@ class _BatchBaseSync:
                 if (
                     message.backoff.batch_size != self.__batch_size
                     and not self.__is_shutting_down.is_set()
-                    and not self.__is_shutdown.is_set()
                     and not self.__is_oom.is_set()
                     and not self.__is_hungup.is_set()
                     and not self.__is_renewing_stream.is_set()
@@ -412,6 +410,7 @@ class _BatchBaseSync:
                     "Server reported out-of-memory. Batching will wait at most 10 minutes for the server to scale-up. If the server does not recover within this time, the batch will terminate with an error."
                 )
                 self.__is_oom.set()
+                self.__oom_wait_time = message.out_of_memory.wait_time
                 with self.__objs_cache_lock:
                     self.__batch_objects.prepend(
                         [
@@ -434,21 +433,15 @@ class _BatchBaseSync:
                 self.__is_shutting_down.set()
                 self.__is_oom.clear()
 
-            if message.HasField("shutdown"):
-                logger.info("Received shutdown finished message from server")
-                self.__is_shutdown.set()
-                self.__is_shutting_down.clear()
-
         # restart the stream if we were shutdown by the node we were connected to ensuring that the index is
         # propagated properly from it to the new one
-        if self.__is_shutdown.is_set():
+        if self.__is_shutting_down.is_set():
             self.__reconnect()
             logger.info("Restarting batch recv after shutdown...")
             return self.__recv()
         elif self.__is_renewing_stream.is_set():
             # restart the stream if we are renewing it (GCP connections have a max lifetime)
             logger.info("Restarting batch recv after renewing stream...")
-            self.__is_renewing_stream.clear()
             return self.__recv()
 
         logger.info("Server closed the stream from its side, shutting down batch")
@@ -625,7 +618,6 @@ class _BatchBaseSync:
             or len(self.__inflight_refs) >= self.__batch_size * 2
             or self.__is_renewing_stream.is_set()
             or self.__is_shutting_down.is_set()
-            or self.__is_shutdown.is_set()
             or self.__is_oom.is_set()
         )
 

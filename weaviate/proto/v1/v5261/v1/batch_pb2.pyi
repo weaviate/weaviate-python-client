@@ -59,23 +59,22 @@ class BatchStreamRequest(_message.Message):
     def __init__(self, start: _Optional[_Union[BatchStreamRequest.Start, _Mapping]] = ..., data: _Optional[_Union[BatchStreamRequest.Data, _Mapping]] = ..., stop: _Optional[_Union[BatchStreamRequest.Stop, _Mapping]] = ...) -> None: ...
 
 class BatchStreamReply(_message.Message):
-    __slots__ = ("results", "shutting_down", "shutdown", "started", "backoff", "acks", "out_of_memory")
+    __slots__ = ("results", "shutting_down", "started", "backoff", "acks", "out_of_memory")
     class Started(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
     class ShuttingDown(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
-    class Shutdown(_message.Message):
-        __slots__ = ()
-        def __init__(self) -> None: ...
     class OutOfMemory(_message.Message):
-        __slots__ = ("uuids", "beacons")
+        __slots__ = ("uuids", "beacons", "wait_time")
         UUIDS_FIELD_NUMBER: _ClassVar[int]
         BEACONS_FIELD_NUMBER: _ClassVar[int]
+        WAIT_TIME_FIELD_NUMBER: _ClassVar[int]
         uuids: _containers.RepeatedScalarFieldContainer[str]
         beacons: _containers.RepeatedScalarFieldContainer[str]
-        def __init__(self, uuids: _Optional[_Iterable[str]] = ..., beacons: _Optional[_Iterable[str]] = ...) -> None: ...
+        wait_time: int
+        def __init__(self, uuids: _Optional[_Iterable[str]] = ..., beacons: _Optional[_Iterable[str]] = ..., wait_time: _Optional[int] = ...) -> None: ...
     class Backoff(_message.Message):
         __slots__ = ("batch_size",)
         BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
@@ -113,19 +112,17 @@ class BatchStreamReply(_message.Message):
         def __init__(self, errors: _Optional[_Iterable[_Union[BatchStreamReply.Results.Error, _Mapping]]] = ..., successes: _Optional[_Iterable[_Union[BatchStreamReply.Results.Success, _Mapping]]] = ...) -> None: ...
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     SHUTTING_DOWN_FIELD_NUMBER: _ClassVar[int]
-    SHUTDOWN_FIELD_NUMBER: _ClassVar[int]
     STARTED_FIELD_NUMBER: _ClassVar[int]
     BACKOFF_FIELD_NUMBER: _ClassVar[int]
     ACKS_FIELD_NUMBER: _ClassVar[int]
     OUT_OF_MEMORY_FIELD_NUMBER: _ClassVar[int]
     results: BatchStreamReply.Results
     shutting_down: BatchStreamReply.ShuttingDown
-    shutdown: BatchStreamReply.Shutdown
     started: BatchStreamReply.Started
     backoff: BatchStreamReply.Backoff
     acks: BatchStreamReply.Acks
     out_of_memory: BatchStreamReply.OutOfMemory
-    def __init__(self, results: _Optional[_Union[BatchStreamReply.Results, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamReply.ShuttingDown, _Mapping]] = ..., shutdown: _Optional[_Union[BatchStreamReply.Shutdown, _Mapping]] = ..., started: _Optional[_Union[BatchStreamReply.Started, _Mapping]] = ..., backoff: _Optional[_Union[BatchStreamReply.Backoff, _Mapping]] = ..., acks: _Optional[_Union[BatchStreamReply.Acks, _Mapping]] = ..., out_of_memory: _Optional[_Union[BatchStreamReply.OutOfMemory, _Mapping]] = ...) -> None: ...
+    def __init__(self, results: _Optional[_Union[BatchStreamReply.Results, _Mapping]] = ..., shutting_down: _Optional[_Union[BatchStreamReply.ShuttingDown, _Mapping]] = ..., started: _Optional[_Union[BatchStreamReply.Started, _Mapping]] = ..., backoff: _Optional[_Union[BatchStreamReply.Backoff, _Mapping]] = ..., acks: _Optional[_Union[BatchStreamReply.Acks, _Mapping]] = ..., out_of_memory: _Optional[_Union[BatchStreamReply.OutOfMemory, _Mapping]] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")
