@@ -602,7 +602,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         :rtype: Result[None]
         """
         _validate_input([_ValidateArgument(expected=[str], name="property", value=property)]) 
-        _validate_input([_ValidateArgument(expected=[IndexName], name="index_name", value=index_name)]) 
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)]) 
         path = (
             f"/schema/{_capitalize_first_letter(self._name)}"
             + f"/properties/{property}"
