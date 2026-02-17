@@ -1,4 +1,6 @@
+import os
 from typing import Callable, Generator, Optional, Tuple, Union
+from unittest import mock
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -667,3 +669,16 @@ async def test_sync_client_inside_async_client(caplog: pytest.LogCaptureFixture)
             assert client.is_ready()
             assert await aclient.is_ready()
             assert "BlockingIOError: [Errno 35] Resource temporarily unavailable" not in caplog.text
+
+
+def test_sync_client_connects_even_if_pypi_fails():
+    with mock.patch.dict(os.environ, {"PYPI_PACKAGE_URL": "http://does-not-exist"}):
+        with weaviate.connect_to_local() as client:
+            assert client.is_ready()
+
+
+@pytest.mark.asyncio
+async def test_async_client_connects_even_if_pypi_fails():
+    with mock.patch.dict(os.environ, {"PYPI_PACKAGE_URL": "http://does-not-exist"}):
+        async with weaviate.use_async_with_local() as client:
+            assert await client.is_ready()

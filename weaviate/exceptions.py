@@ -292,6 +292,15 @@ class WeaviateBatchValidationError(WeaviateBaseError):
         self.message = message
 
 
+class WeaviateBatchFailedToReestablishStreamError(WeaviateBaseError):
+    """Is raised when the batch stream fails to re-establish within a timeout period."""
+
+    def __init__(self, message: str):
+        msg = f"""Batch stream failed to re-establish: {message}"""
+        super().__init__(msg)
+        self.message = message
+
+
 class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
     """Is raised when inserting an invalid property."""
 

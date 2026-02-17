@@ -22,12 +22,21 @@ env:
   WEAVIATE_128: 1.28.16
   WEAVIATE_129: 1.29.11
   WEAVIATE_130: 1.30.22
+<<<<<<< djanicek/drop-prop-index
   WEAVIATE_131: 1.31.20
   WEAVIATE_132: 1.32.23
   WEAVIATE_133: 1.33.10
   WEAVIATE_134: 1.34.5
   WEAVIATE_135: 1.35.0
   weaviate_136: 1.36.0-rc.0
+=======
+  WEAVIATE_131: 1.31.22
+  WEAVIATE_132: 1.32.26
+  WEAVIATE_133: 1.33.11
+  WEAVIATE_134: 1.34.8
+  WEAVIATE_135: 1.35.2
+  WEAVIATE_136: 1.36.0-dev-35d0c3a
+>>>>>>> dev/1.36
 
 jobs:
   lint-and-format:
@@ -155,11 +164,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_132, grpc: "1.59.0"},
-          { py: "3.11", weaviate: $WEAVIATE_132, grpc: "1.66.0"},
-          { py: "3.12", weaviate: $WEAVIATE_132, grpc: "1.70.0"},
-          { py: "3.13", weaviate: $WEAVIATE_132, grpc: "1.72.1"},
-          { py: "3.14", weaviate: $WEAVIATE_132, grpc: "1.76.0"}
+          { py: "3.10", weaviate: $WEAVIATE_136, grpc: "1.59.0"},
+          { py: "3.11", weaviate: $WEAVIATE_136, grpc: "1.66.0"},
+          { py: "3.12", weaviate: $WEAVIATE_136, grpc: "1.70.0"},
+          { py: "3.13", weaviate: $WEAVIATE_136, grpc: "1.72.1"},
+          { py: "3.14", weaviate: $WEAVIATE_136, grpc: "1.76.0"}
         ]
         optional_dependencies: [false]
     steps:
@@ -210,11 +219,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_132},
-          { py: "3.11", weaviate: $WEAVIATE_132},
-          { py: "3.12", weaviate: $WEAVIATE_132},
-          { py: "3.13", weaviate: $WEAVIATE_132},
-          { py: "3.14", weaviate: $WEAVIATE_132}
+          { py: "3.10", weaviate: $WEAVIATE_136},
+          { py: "3.11", weaviate: $WEAVIATE_136},
+          { py: "3.12", weaviate: $WEAVIATE_136},
+          { py: "3.13", weaviate: $WEAVIATE_136},
+          { py: "3.14", weaviate: $WEAVIATE_136}
         ]
         optional_dependencies: [false]
     steps:
@@ -306,8 +315,9 @@ jobs:
           $WEAVIATE_131,
           $WEAVIATE_132,
           $WEAVIATE_133,
-          $WEAVIATE_134
-          $WEAVIATE_135
+          $WEAVIATE_134,
+          $WEAVIATE_135,
+          $WEAVIATE_136
         ]
     steps:
       - name: Checkout

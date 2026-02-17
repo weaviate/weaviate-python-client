@@ -5,6 +5,7 @@ Version 4.19.3
 --------------
 This patch version includes:
     - Add support for VoyageAI voyage-4 model family (voyage-4, voyage-4-lite, voyage-4-large)
+    - A fix for async client connection issues when `pypi` is down
 
 
 Version 4.19.2
