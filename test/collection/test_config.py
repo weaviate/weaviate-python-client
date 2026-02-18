@@ -2682,3 +2682,15 @@ TEST_OBJECT_TTL_CONFIG_TO_DICT_PARAMETERS = [
 def test_object_ttl_config_to_dict(ttl_config: _ObjectTTLConfig, expected: dict) -> None:
     """Test that _ObjectTTLConfig.to_dict() properly converts timedelta to seconds."""
     assert ttl_config.to_dict() == expected
+
+
+def test_nested_property_with_id_name_is_allowed() -> None:
+    """A nested property named 'id' must not raise — only top-level 'id' is reserved."""
+    prop = Property(
+        name="nested_property",
+        data_type=DataType.OBJECT,
+        nested_properties=[
+            Property(name="id", data_type=DataType.TEXT),
+        ],
+    )
+    assert prop.nestedProperties[0].name == "id"

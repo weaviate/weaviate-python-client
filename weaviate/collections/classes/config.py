@@ -2069,7 +2069,7 @@ class Property(_ConfigCreateModel):
 
     @field_validator("name")
     def _check_name(cls, v: str) -> str:
-        if v in ["id", "vector"]:
+        if v == "vector":
             raise ValueError(f"Property name '{v}' is reserved and cannot be used")
         return v
 
@@ -2195,6 +2195,20 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
+
+    @field_validator("properties", mode="after")
+    @classmethod
+    def _check_top_level_property_names(
+        cls, v: Optional[Sequence["Property"]]
+    ) -> Optional[Sequence["Property"]]:
+        if v is None:
+            return v
+        for prop in v:
+            if prop.name == "id":
+                raise ValueError(
+                    f"Property name 'id' is reserved and cannot be used as a top-level property"
+                )
+        return v
 
     @field_validator("vectorizerConfig", "vectorConfig", mode="after")
     @classmethod
