@@ -56,6 +56,9 @@ class Timeout(BaseModel):
     query: Union[int, float] = Field(default=30, ge=0)
     insert: Union[int, float] = Field(default=90, ge=0)
     init: Union[int, float] = Field(default=2, ge=0)
+    stream: Union[int, float, None] = Field(
+        default=None, ge=0, description="Timeout for streaming operations."
+    )
 
 
 class Proxies(BaseModel):

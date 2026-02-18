@@ -102,6 +102,12 @@ OpenAiReasoningEffort: TypeAlias = Literal[
     "high",
 ]
 
+IndexName: TypeAlias = Literal[
+    "searchable",
+    "filterable",
+    "rangeFilters",
+]
+
 
 class ConsistencyLevel(str, BaseEnum):
     """The consistency levels when writing to Weaviate with replication enabled.
