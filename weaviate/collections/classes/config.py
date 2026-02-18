@@ -74,7 +74,7 @@ from weaviate.collections.classes.config_vectors import (
     _Vectors,
     _VectorsUpdate,
 )
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateInsertInvalidPropertyError
 from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -2205,9 +2205,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             return v
         for prop in v:
             if prop.name == "id":
-                raise ValueError(
-                    f"Property name 'id' is reserved and cannot be used as a top-level property"
-                )
+                raise WeaviateInsertInvalidPropertyError({"name": prop.name})
         return v
 
     @field_validator("vectorizerConfig", "vectorConfig", mode="after")

@@ -22,6 +22,7 @@ from weaviate.collections.classes.config_vectorizers import (
     VectorDistances,
 )
 from weaviate.collections.classes.config_vectors import _VectorConfigCreate
+from weaviate.exceptions import WeaviateInsertInvalidPropertyError
 
 DEFAULTS = {
     "vectorConfig": {
@@ -1380,7 +1381,16 @@ def test_config_create_with_properties(
     assert out["properties"] == make_expected_props()
 
 
-@pytest.mark.parametrize("name", ["id", "vector"])
+def test_config_with_invalid_property_id():
+    with pytest.raises(WeaviateInsertInvalidPropertyError):
+        _CollectionConfigCreate(
+            name="test",
+            description="test",
+            properties=[Property(name="id", data_type=DataType.TEXT)],
+        )
+
+
+@pytest.mark.parametrize("name", ["vector"])
 def test_config_with_invalid_property(name: str):
     with pytest.raises(ValidationError):
         _CollectionConfigCreate(
