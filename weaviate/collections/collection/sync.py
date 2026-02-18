@@ -29,6 +29,7 @@ from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
 from weaviate.collections.query import _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect.v4 import ConnectionSync
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID
 
 from .base import _CollectionBase
@@ -204,8 +205,10 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         try:
             self.config.get(simple=True)
             return True
-        except Exception:
-            return False
+        except UnexpectedStatusCodeError as e:
+            if e.status_code == 404:
+                return False
+            raise e
 
     def shards(self) -> List[Shard]:
         """Get the statuses of all the shards of this collection.
