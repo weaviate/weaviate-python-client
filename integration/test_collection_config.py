@@ -39,6 +39,7 @@ from weaviate.collections.classes.config import (
     Tokenization,
     _NamedVectorConfigCreate,
     _VectorizerConfigCreate,
+    IndexName,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
@@ -1953,7 +1954,9 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
 
 
 @pytest.mark.parametrize("index_name", ["filterable", "searchable", "rangeFilters"])
-def test_delete_property_index(index_name: str, collection_factory: CollectionFactory) -> None:
+def test_delete_property_index(
+    index_name: IndexName, collection_factory: CollectionFactory
+) -> None:
     """Test delete index works for each index type."""
     collection_dummy = collection_factory("dummy")
     if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
@@ -1987,9 +1990,9 @@ def test_delete_property_index(index_name: str, collection_factory: CollectionFa
     assert config.properties[0].index_range_filters is _index_range_filters
 
     with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError):
-        collection.config.delete_property_index("does_not_exist", index_name)  # type: ignore[arg-type]
+        collection.config.delete_property_index("does_not_exist", index_name)
 
-    collection.config.delete_property_index("indexed_prop", index_name)  # type: ignore[arg-type]
+    collection.config.delete_property_index("indexed_prop", index_name)
 
     config = collection.config.get()
     if index_name == "filterable":
