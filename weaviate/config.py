@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Tuple, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from grpc import ChannelCredentials
+from pydantic import BaseModel, Field
 
 
 @dataclass
@@ -69,17 +70,12 @@ class Proxies(BaseModel):
 class GrpcConfig(BaseModel):
     """Configuration for the gRPC channel used by the Weaviate client.
 
-    Use this to customize TLS/SSL settings for gRPC connections, which is useful when
-    routing through application gateways (Azure App Gateway, AWS ALB, envoy, etc.).
+    Use this to customize TLS/SSL settings for gRPC connections. To provide your own `ChannelCredentials` object,
+    use the `ssl_channel_credentials()` function from the `grpc` library.
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     channel_options: Optional[List[Tuple[str, Any]]] = Field(default=None)
-    ssl_root_certificates: Optional[bytes] = Field(default=None)
-    ssl_private_key: Optional[bytes] = Field(default=None)
-    ssl_certificate_chain: Optional[bytes] = Field(default=None)
-    credentials: Optional[Any] = Field(default=None)
+    credentials: Optional[ChannelCredentials] = Field(default=None)
 
 
 class AdditionalConfig(BaseModel):

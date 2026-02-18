@@ -134,18 +134,6 @@ class ConnectionParams(BaseModel):
         if self.grpc.secure:
             if grpc_config is not None and grpc_config.credentials is not None:
                 creds = grpc_config.credentials
-            elif grpc_config is not None and any(
-                [
-                    grpc_config.ssl_root_certificates is not None,
-                    grpc_config.ssl_private_key is not None,
-                    grpc_config.ssl_certificate_chain is not None,
-                ]
-            ):
-                creds = ssl_channel_credentials(
-                    root_certificates=grpc_config.ssl_root_certificates,
-                    private_key=grpc_config.ssl_private_key,
-                    certificate_chain=grpc_config.ssl_certificate_chain,
-                )
             else:
                 creds = ssl_channel_credentials()
             return mod.secure_channel(
