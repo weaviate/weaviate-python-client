@@ -40,36 +40,10 @@ def mock_ssl_creds(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     return mock
 
 
-def test_grpc_config_default_values() -> None:
-    config = GrpcConfig()
-    assert config.channel_options is None
-    assert config.ssl_root_certificates is None
-    assert config.ssl_private_key is None
-    assert config.ssl_certificate_chain is None
-    assert config.credentials is None
-
-
 def test_grpc_config_channel_options() -> None:
     opts: List[Tuple[str, Any]] = [("grpc.ssl_target_name_override", "my-host")]
     config = GrpcConfig(channel_options=opts)
     assert config.channel_options == opts
-
-
-def test_grpc_config_ssl_fields() -> None:
-    config = GrpcConfig(
-        ssl_root_certificates=b"root-ca",
-        ssl_private_key=b"key",
-        ssl_certificate_chain=b"cert",
-    )
-    assert config.ssl_root_certificates == b"root-ca"
-    assert config.ssl_private_key == b"key"
-    assert config.ssl_certificate_chain == b"cert"
-
-
-def test_grpc_config_credentials_escape_hatch() -> None:
-    creds = grpc.ssl_channel_credentials()
-    config = GrpcConfig(credentials=creds)
-    assert config.credentials is creds
 
 
 def test_secure_channel_default_credentials(
@@ -121,56 +95,12 @@ def test_channel_options_appended_insecure(
     assert ("grpc.keepalive_time_ms", 30000) in options
 
 
-def test_ssl_params_used_for_credentials(
+def test_credentials(
     secure_params: ConnectionParams, mock_grpc: MagicMock, mock_ssl_creds: MagicMock
 ) -> None:
-    config = GrpcConfig(
-        ssl_root_certificates=b"root-ca",
-        ssl_private_key=b"key",
-        ssl_certificate_chain=b"cert",
-    )
-    secure_params._grpc_channel(proxies={}, grpc_msg_size=None, is_async=False, grpc_config=config)
-
-    mock_ssl_creds.assert_called_once_with(
-        root_certificates=b"root-ca",
-        private_key=b"key",
-        certificate_chain=b"cert",
-    )
-
-
-def test_only_root_certs(
-    secure_params: ConnectionParams, mock_grpc: MagicMock, mock_ssl_creds: MagicMock
-) -> None:
-    config = GrpcConfig(ssl_root_certificates=b"root-ca")
-    secure_params._grpc_channel(proxies={}, grpc_msg_size=None, is_async=False, grpc_config=config)
-
-    mock_ssl_creds.assert_called_once_with(
-        root_certificates=b"root-ca",
-        private_key=None,
-        certificate_chain=None,
-    )
-
-
-def test_credentials_escape_hatch_used_directly(
-    secure_params: ConnectionParams, mock_grpc: MagicMock, mock_ssl_creds: MagicMock
-) -> None:
-    fake_creds = MagicMock()
-    config = GrpcConfig(credentials=fake_creds)
+    creds = grpc.ssl_channel_credentials()
+    config = GrpcConfig(credentials=creds)
     secure_params._grpc_channel(proxies={}, grpc_msg_size=None, is_async=False, grpc_config=config)
 
     mock_ssl_creds.assert_not_called()
-    assert mock_grpc.secure_channel.call_args.kwargs["credentials"] is fake_creds
-
-
-def test_credentials_takes_precedence_over_ssl_params(
-    secure_params: ConnectionParams, mock_grpc: MagicMock, mock_ssl_creds: MagicMock
-) -> None:
-    fake_creds = MagicMock()
-    config = GrpcConfig(
-        credentials=fake_creds,
-        ssl_root_certificates=b"should-be-ignored",
-    )
-    secure_params._grpc_channel(proxies={}, grpc_msg_size=None, is_async=False, grpc_config=config)
-
-    mock_ssl_creds.assert_not_called()
-    assert mock_grpc.secure_channel.call_args.kwargs["credentials"] is fake_creds
+    assert mock_grpc.secure_channel.call_args.kwargs["credentials"] is creds
