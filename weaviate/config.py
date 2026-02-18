@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 from grpc import ChannelCredentials
-from pydantic import BaseModel, Field
+from grpc.aio._typing import ChannelArgumentType
+from pydantic import BaseModel, ConfigDict, Field
 
 
 @dataclass
@@ -68,13 +69,32 @@ class Proxies(BaseModel):
 
 
 class GrpcConfig(BaseModel):
-    """Configuration for the gRPC channel used by the Weaviate client.
+    """Configuration for the gRPC channel used by the Weaviate client. Use this to customize TLS/SSL settings for gRPC connections.
 
-    Use this to customize TLS/SSL settings for gRPC connections. To provide your own `ChannelCredentials` object,
-    use the `ssl_channel_credentials()` function from the `grpc` library.
+    To provide your own `channel_options`, supply a list of tuples where each tuple contains the name of the gRPC channel option and its corresponding value.
+        [Reference](https://grpc.github.io/grpc/python/glossary.html#term-channel_arguments)
+
+    To provide your own `credentials`, use the `ssl_channel_credentials()` function from the `grpc` library to build a `ChannelCredentials` object.
+        [Reference](https://grpc.github.io/grpc/python/grpc.html#grpc.ssl_channel_credentials)
+
+    Example usage:
+    ```python
+    from grpc import ssl_channel_credentials
+    import weaviate.classes as wvc
+
+    conf = wvc.init.GrpcConfig(
+        channel_options=[
+            ("grpc.keepalive_time_ms", 10000),
+            ("grpc.keepalive_timeout_ms", 5000),
+        ],
+        credentials=ssl_channel_credentials(...),
+    )
+    ```
     """
 
-    channel_options: Optional[List[Tuple[str, Any]]] = Field(default=None)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    channel_options: Optional[ChannelArgumentType] = Field(default=None)
     credentials: Optional[ChannelCredentials] = Field(default=None)
 
 
