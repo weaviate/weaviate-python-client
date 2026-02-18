@@ -2,12 +2,14 @@
 
 from typing import (
     Any,
+    Awaitable,
     Dict,
     Generic,
     Optional,
     Tuple,
     Type,
     Union,
+    cast,
 )
 
 from httpx import Response
@@ -151,9 +153,14 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             method=self._connection.connect,
         )
 
-    def is_live(self) -> executor.Result[bool]:
-        def resp(res: Response) -> bool:
-            return res.status_code == 200
+    def __check_grpc_live(self) -> executor.Result[bool]:
+        """Check if the gRPC endpoint is live by pinging it."""
+        grpc_colour: executor.Colour = (
+            "async" if isinstance(self._connection, ConnectionAsync) else "sync"
+        )
+
+        def resp(_: None) -> bool:
+            return True
 
         def exc(e: Exception) -> bool:
             print(e)
@@ -162,8 +169,43 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
         return executor.execute(
             response_callback=resp,
             exception_callback=exc,
-            method=self._connection.get,
-            path="/.well-known/live",
+            method=self._connection._ping_grpc,
+            colour=grpc_colour,
+        )
+
+    def is_live(self) -> executor.Result[bool]:
+        """Check if the Weaviate instance is live by pinging both HTTP and gRPC endpoints.
+
+        Returns:
+            `True` if both HTTP and gRPC endpoints are live, `False` otherwise.
+        """
+
+        def resp(res: Response) -> Union[bool, Awaitable[bool]]:
+            if res.status_code != 200:
+                return False
+
+            # HTTP is live, now check gRPC
+            grpc_result = self.__check_grpc_live()
+            if isinstance(grpc_result, Awaitable):
+
+                async def await_grpc_result() -> bool:
+                    return await grpc_result
+
+                return cast(Awaitable[bool], await_grpc_result())
+            return grpc_result
+
+        def exc(e: Exception) -> bool:
+            print(e)
+            return False
+
+        return cast(
+            executor.Result[bool],
+            executor.execute(
+                response_callback=resp,
+                exception_callback=exc,
+                method=self._connection.get,
+                path="/.well-known/live",
+            ),
         )
 
     def is_ready(self) -> executor.Result[bool]:

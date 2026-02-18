@@ -634,6 +634,30 @@ async def test_async_client_is_ready() -> None:
         assert await client.is_ready()
 
 
+def test_client_is_not_live() -> None:
+    assert not weaviate.WeaviateClient(
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
+        skip_init_checks=True,
+    ).is_live()
+
+
+def test_client_is_live() -> None:
+    with weaviate.connect_to_wcs(
+        cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
+    ) as client:
+        assert client.is_live()
+
+
+@pytest.mark.asyncio
+async def test_async_client_is_live() -> None:
+    async with weaviate.use_async_with_weaviate_cloud(
+        cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
+    ) as client:
+        assert await client.is_live()
+
+
 def test_local_proxies() -> None:
     with weaviate.connect_to_local(
         additional_config=wvc.init.AdditionalConfig(
