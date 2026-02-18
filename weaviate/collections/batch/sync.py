@@ -229,6 +229,11 @@ class _BatchBaseSync:
             obj = self.__batch_grpc.grpc_object(object_._to_internal())
             obj_size = obj.ByteSize() + per_object_overhead
 
+            if obj_size > self.__batch_grpc.grpc_max_msg_size:
+                raise WeaviateBatchValidationError(
+                    f"Object with uuid {object_.uuid} is too large to be sent in a batch request. Size: {obj_size} bytes, max size: {self.__batch_grpc.grpc_max_msg_size} bytes."
+                )
+
             if total_size + obj_size >= self.__batch_grpc.grpc_max_msg_size:
                 yield request
                 request = request_maker()
