@@ -286,7 +286,11 @@ class _BatchGRPC(_BaseGRPC):
                                 empty_list_props=parsed.empty_list_props,
                             )
                             for v in entry
-                            if (parsed := self.__translate_properties_from_python_to_grpc(v, {}, nested=True))
+                            if (
+                                parsed := self.__translate_properties_from_python_to_grpc(
+                                    v, {}, nested=True
+                                )
+                            )
                         ],
                         prop_name=key,
                     )
