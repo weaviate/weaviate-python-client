@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.19.4
+--------------
+This patch version includes:
+    - Adds the gRPC healthcheck ping to the `is_live()` method of the async client to provide a more accurate check of the connection status of the async client
+
+
 Version 4.19.3
 --------------
 This patch version includes:
