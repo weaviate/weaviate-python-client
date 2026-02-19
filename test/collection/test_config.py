@@ -5,9 +5,11 @@ import pytest
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
+    _ReplicationConfigUpdate,
     Configure,
     DataType,
     Property,
+    Reconfigure,
     ReferenceProperty,
     Vectorizers,
     _CollectionConfigCreate,
@@ -15,6 +17,8 @@ from weaviate.collections.classes.config import (
     _ObjectTTLConfig,
     _RerankerProvider,
     _VectorizerConfigCreate,
+    _ReplicationConfigCreate,
+    ReplicationDeletionStrategy,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_vectorizers import (
@@ -2682,3 +2686,137 @@ TEST_OBJECT_TTL_CONFIG_TO_DICT_PARAMETERS = [
 def test_object_ttl_config_to_dict(ttl_config: _ObjectTTLConfig, expected: dict) -> None:
     """Test that _ObjectTTLConfig.to_dict() properly converts timedelta to seconds."""
     assert ttl_config.to_dict() == expected
+
+
+TEST_CONFIGURE_WITH_REPLICATION_PARAMETERS = [
+    (Configure.replication(), {}),
+    (
+        Configure.replication(
+            factor=3,
+            async_enabled=True,
+            deletion_strategy=ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
+        ),
+        {
+            "factor": 3,
+            "asyncEnabled": True,
+            "deletionStrategy": "DeleteOnConflict",
+        },
+    ),
+    (
+        Configure.replication(
+            async_config=Configure.Replication.async_config(
+                max_workers=10,
+                hashtree_height=5,
+                frequency=60,
+                frequency_while_propagating=30,
+                alive_nodes_checking_frequency=120,
+                logging_frequency=15,
+                diff_batch_size=100,
+                diff_per_node_timeout=10,
+                pre_propagation_timeout=20,
+                propagation_timeout=300,
+                propagation_limit=1000,
+                propagation_delay=5,
+                propagation_concurrency=4,
+                propagation_batch_size=50,
+            )
+        ),
+        {
+            "asyncConfig": {
+                "maxWorkers": 10,
+                "hashtreeHeight": 5,
+                "frequency": 60,
+                "frequencyWhilePropagating": 30,
+                "aliveNodesCheckingFrequency": 120,
+                "loggingFrequency": 15,
+                "diffBatchSize": 100,
+                "diffPerNodeTimeout": 10,
+                "prePropagationTimeout": 20,
+                "propagationTimeout": 300,
+                "propagationLimit": 1000,
+                "propagationDelay": 5,
+                "propagationConcurrency": 4,
+                "propagationBatchSize": 50,
+            }
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize("config,expected", TEST_CONFIGURE_WITH_REPLICATION_PARAMETERS)
+def test_configure_with_replication(config: _ReplicationConfigCreate, expected: dict) -> None:
+    """Test that _ReplicationConfig.to_dict() properly converts replication settings."""
+    assert config._to_dict() == expected
+
+
+TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS = [
+    (
+        Reconfigure.replication(),
+        {
+            "factor": None,
+            "asyncEnabled": None,
+            "deletionStrategy": None,
+            "asyncConfig": None,
+        },
+    ),
+    (
+        Reconfigure.replication(
+            factor=3,
+            async_enabled=True,
+            deletion_strategy=ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
+        ),
+        {
+            "factor": 3,
+            "asyncEnabled": True,
+            "deletionStrategy": "DeleteOnConflict",
+            "asyncConfig": None,
+        },
+    ),
+    (
+        Reconfigure.replication(
+            async_config=Reconfigure.Replication.async_config(
+                max_workers=10,
+                hashtree_height=5,
+                frequency=60,
+                frequency_while_propagating=30,
+                alive_nodes_checking_frequency=120,
+                logging_frequency=15,
+                diff_batch_size=100,
+                diff_per_node_timeout=10,
+                pre_propagation_timeout=20,
+                propagation_timeout=300,
+                propagation_limit=1000,
+                propagation_delay=5,
+                propagation_concurrency=4,
+                propagation_batch_size=50,
+            )
+        ),
+        {
+            "factor": None,
+            "asyncEnabled": None,
+            "deletionStrategy": None,
+            "asyncConfig": {
+                "maxWorkers": 10,
+                "hashtreeHeight": 5,
+                "frequency": 60,
+                "frequencyWhilePropagating": 30,
+                "aliveNodesCheckingFrequency": 120,
+                "loggingFrequency": 15,
+                "diffBatchSize": 100,
+                "diffPerNodeTimeout": 10,
+                "prePropagationTimeout": 20,
+                "propagationTimeout": 300,
+                "propagationLimit": 1000,
+                "propagationDelay": 5,
+                "propagationConcurrency": 4,
+                "propagationBatchSize": 50,
+            },
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize("config,expected", TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS)
+def test_reconfigure_with_replication(config: _ReplicationConfigUpdate, expected: dict) -> None:
+    """Test that _ReplicationConfig.to_dict() properly converts replication settings."""
+    assert config.model_dump() == expected
