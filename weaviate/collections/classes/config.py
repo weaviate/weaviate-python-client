@@ -74,7 +74,7 @@ from weaviate.collections.classes.config_vectors import (
     _Vectors,
     _VectorsUpdate,
 )
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateInsertInvalidPropertyError
+from weaviate.exceptions import WeaviateInsertInvalidPropertyError, WeaviateInvalidInputError
 from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
