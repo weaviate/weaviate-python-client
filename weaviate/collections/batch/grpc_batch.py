@@ -213,9 +213,9 @@ class _BatchGRPC(_BaseGRPC):
         return connection.grpc_batch_stream(requests=requests)
 
     def __translate_properties_from_python_to_grpc(
-        self, data: Dict[str, Any], refs: ReferenceInputs
+        self, data: Dict[str, Any], refs: ReferenceInputs, *, nested: bool = False
     ) -> batch_pb2.BatchObject.Properties:
-        _validate_props(data)
+        _validate_props(data, nested=nested)
 
         multi_target: List[batch_pb2.BatchObject.MultiTargetRefProps] = []
         single_target: List[batch_pb2.BatchObject.SingleTargetRefProps] = []
@@ -252,7 +252,7 @@ class _BatchGRPC(_BaseGRPC):
 
         for key, entry in data.items():
             if isinstance(entry, dict):
-                parsed = self.__translate_properties_from_python_to_grpc(entry, {})
+                parsed = self.__translate_properties_from_python_to_grpc(entry, {}, nested=True)
                 object_properties.append(
                     base_pb2.ObjectProperties(
                         prop_name=key,
@@ -286,7 +286,11 @@ class _BatchGRPC(_BaseGRPC):
                                 empty_list_props=parsed.empty_list_props,
                             )
                             for v in entry
-                            if (parsed := self.__translate_properties_from_python_to_grpc(v, {}))
+                            if (
+                                parsed := self.__translate_properties_from_python_to_grpc(
+                                    v, {}, nested=True
+                                )
+                            )
                         ],
                         prop_name=key,
                     )
@@ -333,8 +337,10 @@ class _BatchGRPC(_BaseGRPC):
         )
 
 
-def _validate_props(props: Dict[str, Any]) -> None:
-    if "id" in props or "vector" in props:
+def _validate_props(props: Dict[str, Any], nested: bool = False) -> None:
+    if not nested and "id" in props:
+        raise WeaviateInsertInvalidPropertyError(props)
+    if "vector" in props:
         raise WeaviateInsertInvalidPropertyError(props)
 
 
