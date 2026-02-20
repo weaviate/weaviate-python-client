@@ -54,6 +54,7 @@ class _BackupAsync(_BackupExecutor[ConnectionAsync]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
+        operation: Literal["create", "restore"] = "create",
     ) -> bool: ...
     async def list_backups(
         self, backend: BackupStorage, sort_by_starting_time_asc: Optional[bool] = None
