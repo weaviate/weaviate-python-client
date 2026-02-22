@@ -3,6 +3,7 @@ from typing import (
     Any,
     AsyncIterable,
     AsyncIterator,
+    Dict,
     Generic,
     Iterable,
     Iterator,
@@ -62,16 +63,24 @@ class _ObjectIterator(
         self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
         self.__iter_object_last_uuid: Optional[UUIDorStr] = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
+        self.__iter_shard_cursors: Optional[Dict[str, str]] = None
 
     def __iter__(
         self,
     ) -> Iterator[Object[TProperties, TReferences]]:
         self.__iter_object_cache = []
         self.__iter_object_last_uuid = _parse_after(self.__inputs.after)
+        self.__iter_shard_cursors = None
         return self
 
     def __next__(self) -> Object[TProperties, TReferences]:
         if len(self.__iter_object_cache) == 0:
+            # Shard cursor pagination:
+            # - First call uses shard_cursors=None; subsequent calls include the cursors
+            #   returned by the server in the previous SearchReply.
+            # - The server returns updated shard_cursors in each response, which are fed
+            #   back into the next request so each shard resumes from the right position.
+            # - Iteration ends when the server returns an empty result set.
             res = self.__query.fetch_objects(
                 limit=self.__iter_cache_size,
                 after=self.__iter_object_last_uuid,
@@ -80,8 +89,10 @@ class _ObjectIterator(
                 return_properties=self.__inputs.return_properties,
                 return_references=self.__inputs.return_references,
                 filters=self.__inputs.filters,
+                shard_cursors=self.__iter_shard_cursors,
             )
             self.__iter_object_cache = res.objects  # type: ignore
+            self.__iter_shard_cursors = res.shard_cursors
             if len(self.__iter_object_cache) == 0:
                 raise StopIteration
 
@@ -109,18 +120,26 @@ class _ObjectAIterator(
         self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
         self.__iter_object_last_uuid: UUIDorStr = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
+        self.__iter_shard_cursors: Optional[Dict[str, str]] = None
 
     def __aiter__(
         self,
     ) -> AsyncIterator[Object[TProperties, TReferences]]:
         self.__iter_object_cache = []
         self.__iter_object_last_uuid = _parse_after(self.__inputs.after)
+        self.__iter_shard_cursors = None
         return self
 
     async def __anext__(
         self,
     ) -> Object[TProperties, TReferences]:
         if len(self.__iter_object_cache) == 0:
+            # Shard cursor pagination:
+            # - First call uses shard_cursors=None; subsequent calls include the cursors
+            #   returned by the server in the previous SearchReply.
+            # - The server returns updated shard_cursors in each response, which are fed
+            #   back into the next request so each shard resumes from the right position.
+            # - Iteration ends when the server returns an empty result set.
             res = await self.__query.fetch_objects(
                 limit=self.__iter_cache_size,
                 after=self.__iter_object_last_uuid,
@@ -129,8 +148,10 @@ class _ObjectAIterator(
                 return_properties=self.__inputs.return_properties,
                 return_references=self.__inputs.return_references,
                 filters=self.__inputs.filters,
+                shard_cursors=self.__iter_shard_cursors,
             )
             self.__iter_object_cache = res.objects  # type: ignore
+            self.__iter_shard_cursors = res.shard_cursors
             if len(self.__iter_object_cache) == 0:
                 raise StopAsyncIteration
 

@@ -1,4 +1,4 @@
-from typing import Any, Generic, Literal, Optional, Type, Union, cast, overload
+from typing import Any, Dict, Generic, Literal, Optional, Type, Union, cast, overload
 
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
@@ -39,6 +39,7 @@ class _FetchObjectsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
     @overload
@@ -54,6 +55,7 @@ class _FetchObjectsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -69,6 +71,7 @@ class _FetchObjectsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
     @overload
@@ -84,6 +87,7 @@ class _FetchObjectsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> executor.Result[QueryReturn[TProperties, References]]: ...
 
     @overload
@@ -99,6 +103,7 @@ class _FetchObjectsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> executor.Result[QueryReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -114,6 +119,7 @@ class _FetchObjectsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> executor.Result[QueryReturn[TProperties, TReferences]]: ...
 
     @overload
@@ -129,6 +135,7 @@ class _FetchObjectsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> executor.Result[QueryReturnType[Properties, References, TProperties, TReferences]]: ...
 
     def fetch_objects(
@@ -143,6 +150,7 @@ class _FetchObjectsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> executor.Result[QueryReturnType[Properties, References, TProperties, TReferences]]:
         """Retrieve the objects in this collection without any search.
 
@@ -156,6 +164,7 @@ class _FetchObjectsQueryExecutor(
             return_metadata: The metadata to return for each object, defaults to `None`.
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
+            shard_cursors: The shard cursors from the previous response for paginated queries.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -195,6 +204,7 @@ class _FetchObjectsQueryExecutor(
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(cast(Any, return_references)),
+            shard_cursors=shard_cursors,
         )
         return executor.execute(
             response_callback=resp,

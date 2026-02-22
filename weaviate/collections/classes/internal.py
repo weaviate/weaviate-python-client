@@ -269,9 +269,15 @@ class GroupByReturn(Generic[P, R]):
 
 @dataclass
 class QueryReturn(Generic[P, R]):
-    """The return type of a query within the `.query` namespace of a collection."""
+    """The return type of a query within the `.query` namespace of a collection.
+
+    Attributes:
+        objects: List of objects returned from the query.
+        shard_cursors: Optional dictionary mapping shard IDs to cursor positions for paginated queries.
+    """
 
     objects: List[Object[P, R]]
+    shard_cursors: Optional[Dict[str, str]] = None
 
 
 _GQLEntryReturnType: TypeAlias = Dict[str, List[Dict[str, Any]]]

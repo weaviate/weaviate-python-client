@@ -121,6 +121,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
@@ -144,6 +145,7 @@ class _QueryGRPC(_BaseGRPC):
             generative=generative,
             rerank=rerank,
             sort_by=sort_by,
+            shard_cursors=shard_cursors,
         )
 
     def hybrid(
@@ -416,6 +418,7 @@ class _QueryGRPC(_BaseGRPC):
         near_imu: Optional[base_search_pb2.NearIMUSearch] = None,
         near_thermal: Optional[base_search_pb2.NearThermalSearch] = None,
         near_video: Optional[base_search_pb2.NearVideoSearch] = None,
+        shard_cursors: Optional[Dict[str, str]] = None,
     ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
             _validate_input(
@@ -507,6 +510,7 @@ class _QueryGRPC(_BaseGRPC):
             near_imu=near_imu,
             near_thermal=near_thermal,
             near_video=near_video,
+            shard_cursors=shard_cursors if shard_cursors else {},
         )
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:

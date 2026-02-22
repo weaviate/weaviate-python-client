@@ -457,11 +457,14 @@ class _BaseExecutor(Generic[ConnectionType]):
         res: search_get_pb2.SearchReply,
         options: _QueryOptions,
     ) -> QueryReturn[WeaviateProperties, CrossReferences]:
+        # Extract shard_cursors from protobuf map and convert to Python dict
+        shard_cursors = dict(res.shard_cursors) if res.shard_cursors else None
         return QueryReturn(
             objects=[
                 self.__result_to_query_object(obj.properties, obj.metadata, options)
                 for obj in res.results
-            ]
+            ],
+            shard_cursors=shard_cursors,
         )
 
     def _result_to_generative_query_return(

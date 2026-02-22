@@ -28,6 +28,11 @@ class WeaviateStub(object):
                 request_serializer=v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
                 response_deserializer=v1_dot_batch__pb2.BatchObjectsReply.FromString,
                 )
+        self.BatchReferences = channel.unary_unary(
+                '/weaviate.v1.Weaviate/BatchReferences',
+                request_serializer=v1_dot_batch__pb2.BatchReferencesRequest.SerializeToString,
+                response_deserializer=v1_dot_batch__pb2.BatchReferencesReply.FromString,
+                )
         self.BatchDelete = channel.unary_unary(
                 '/weaviate.v1.Weaviate/BatchDelete',
                 request_serializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.SerializeToString,
@@ -43,6 +48,11 @@ class WeaviateStub(object):
                 request_serializer=v1_dot_aggregate__pb2.AggregateRequest.SerializeToString,
                 response_deserializer=v1_dot_aggregate__pb2.AggregateReply.FromString,
                 )
+        self.BatchStream = channel.stream_stream(
+                '/weaviate.v1.Weaviate/BatchStream',
+                request_serializer=v1_dot_batch__pb2.BatchStreamRequest.SerializeToString,
+                response_deserializer=v1_dot_batch__pb2.BatchStreamReply.FromString,
+                )
 
 
 class WeaviateServicer(object):
@@ -55,6 +65,12 @@ class WeaviateServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def BatchObjects(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchReferences(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -78,6 +94,12 @@ class WeaviateServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def BatchStream(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WeaviateServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -90,6 +112,11 @@ def add_WeaviateServicer_to_server(servicer, server):
                     servicer.BatchObjects,
                     request_deserializer=v1_dot_batch__pb2.BatchObjectsRequest.FromString,
                     response_serializer=v1_dot_batch__pb2.BatchObjectsReply.SerializeToString,
+            ),
+            'BatchReferences': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchReferences,
+                    request_deserializer=v1_dot_batch__pb2.BatchReferencesRequest.FromString,
+                    response_serializer=v1_dot_batch__pb2.BatchReferencesReply.SerializeToString,
             ),
             'BatchDelete': grpc.unary_unary_rpc_method_handler(
                     servicer.BatchDelete,
@@ -105,6 +132,11 @@ def add_WeaviateServicer_to_server(servicer, server):
                     servicer.Aggregate,
                     request_deserializer=v1_dot_aggregate__pb2.AggregateRequest.FromString,
                     response_serializer=v1_dot_aggregate__pb2.AggregateReply.SerializeToString,
+            ),
+            'BatchStream': grpc.stream_stream_rpc_method_handler(
+                    servicer.BatchStream,
+                    request_deserializer=v1_dot_batch__pb2.BatchStreamRequest.FromString,
+                    response_serializer=v1_dot_batch__pb2.BatchStreamReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -147,6 +179,23 @@ class Weaviate(object):
         return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/BatchObjects',
             v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
             v1_dot_batch__pb2.BatchObjectsReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchReferences(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/BatchReferences',
+            v1_dot_batch__pb2.BatchReferencesRequest.SerializeToString,
+            v1_dot_batch__pb2.BatchReferencesReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -198,5 +247,22 @@ class Weaviate(object):
         return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/Aggregate',
             v1_dot_aggregate__pb2.AggregateRequest.SerializeToString,
             v1_dot_aggregate__pb2.AggregateReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchStream(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_stream(request_iterator, target, '/weaviate.v1.Weaviate/BatchStream',
+            v1_dot_batch__pb2.BatchStreamRequest.SerializeToString,
+            v1_dot_batch__pb2.BatchStreamReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
