@@ -4,6 +4,7 @@ from typing import Generic, List, Optional, Union
 from httpx import Response
 
 from weaviate.cluster.models import (
+    ClusterStatistics,
     ReplicationType,
     ShardingState,
 )
@@ -148,4 +149,32 @@ class _ClusterExecutor(Generic[ConnectionType]):
             path=path,
             params=params,
             error_msg="Get nodes status failed",
+        )
+
+    def statistics(self) -> executor.Result[ClusterStatistics]:
+        """Get RAFT cluster statistics.
+
+        Returns cluster statistics data including RAFT consensus state (leader/follower), 
+        commit/applied indices, and cluster synchronization status.
+
+        Returns:
+            ClusterStatistics with a list of node statistics and synchronized flag.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a non-OK status.
+        """
+
+        def resp(response: Response) -> ClusterStatistics:
+            response_typed = _decode_json_response_dict(response, "Cluster statistics")
+            if response_typed is None:
+                response_typed = {}
+            return ClusterStatistics._from_weaviate(response_typed)
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path="/cluster/statistics",
+            status_codes=_ExpectedStatusCodes(200, "cluster statistics"),
+            error_msg="Get cluster statistics failed",
         )
