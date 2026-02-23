@@ -52,6 +52,7 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigHFreshUpdate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
@@ -1888,6 +1889,27 @@ VectorIndexConfigHNSW = _VectorIndexConfigHNSW
 
 
 @dataclass
+class _VectorIndexConfigHFresh(_VectorIndexConfig):
+    distance_metric: VectorDistances
+    max_posting_size_kb: int
+    replicas: int
+    search_probe: int
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.HFRESH.value
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        if "maxPostingSizeKb" in out:
+            out["maxPostingSizeKB"] = out.pop("maxPostingSizeKb")
+        return out
+
+
+VectorIndexConfigHFresh = _VectorIndexConfigHFresh
+
+
+@dataclass
 class _VectorIndexConfigFlat(_VectorIndexConfig):
     distance_metric: VectorDistances
     vector_cache_max_objects: int
@@ -1960,7 +1982,10 @@ class _NamedVectorizerConfig(_ConfigBase):
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic
+        VectorIndexConfigHNSW,
+        VectorIndexConfigFlat,
+        VectorIndexConfigDynamic,
+        VectorIndexConfigHFresh,
     ]
 
     def to_dict(self) -> Dict:
@@ -1997,7 +2022,11 @@ class _CollectionConfig(_ConfigBase):
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
+        VectorIndexConfigHNSW,
+        VectorIndexConfigFlat,
+        VectorIndexConfigDynamic,
+        VectorIndexConfigHFresh,
+        None,
     ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
@@ -2746,6 +2775,25 @@ class _VectorIndexUpdate:
             threshold=threshold,
             hnsw=hnsw,
             flat=flat,
+            quantizer=quantizer,
+        )
+
+    @staticmethod
+    def hfresh(
+        max_posting_size_kb: Optional[int] = None,
+        search_probe: Optional[int] = None,
+        quantizer: Optional[_RQConfigUpdate] = None,
+    ) -> _VectorIndexConfigHFreshUpdate:
+        """Create an `_VectorIndexConfigHFreshUpdate` object to update the configuration of the HFresh vector index.
+
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
+
+        Args:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigHFreshUpdate(
+            maxPostingSizeKB=max_posting_size_kb,
+            searchProbe=search_probe,
             quantizer=quantizer,
         )
 
