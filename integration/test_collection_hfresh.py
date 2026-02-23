@@ -3,8 +3,6 @@ import weaviate
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
-    DataType,
-    Property,
     Reconfigure,
     VectorDistances,
     VectorIndexType,
