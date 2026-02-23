@@ -167,8 +167,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
 
         def resp(response: Response) -> ClusterStatistics:
             response_typed = _decode_json_response_dict(response, "Cluster statistics")
-            if response_typed is None:
-                response_typed = {}
+            assert response_typed is not None
             return ClusterStatistics._from_weaviate(response_typed)
 
         return executor.execute(

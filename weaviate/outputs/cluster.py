@@ -1,6 +1,7 @@
 from weaviate.cluster.models import (
     ClusterStatistics,
     NodeStatistics,
+    RaftConfigurationMember,
     RaftStats,
     ShardingState,
     ShardReplicas,
@@ -20,6 +21,7 @@ __all__ = [
     "NodeMinimal",
     "NodeStatistics",
     "NodeVerbose",
+    "RaftConfigurationMember",
     "RaftStats",
     "Shard",
     "ShardingState",
