@@ -427,6 +427,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
+        operation: Literal["create", "restore"] = "create",
     ) -> executor.Result[bool]:
         """Cancels a running backup.
 
@@ -434,6 +435,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             backup_id: The identifier name of the backup. NOTE: Case insensitive.
             backend: The backend storage where to create the backup.
             backup_location: The dynamic location of a backup. By default None.
+            operation: The type of the backup operation to cancel, either "create" or "restore". By default "create".
 
         Raises:
             weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
@@ -445,7 +447,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             backup_id=backup_id,
             backend=backend,
         )
-        path = f"/backups/{backend.value}/{backup_id}"
+        path = f"/backups/{backend.value}/{backup_id}{'/restore' if operation == 'restore' else ''}"
         params: Dict[str, str] = {}
 
         if backup_location is not None:

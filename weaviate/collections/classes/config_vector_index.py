@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Dict, Optional, overload
+from typing import Any, Dict, Literal, Optional, overload
 
 from pydantic import Field
 from typing_extensions import deprecated
@@ -287,7 +287,6 @@ class _BQConfigCreate(_QuantizerConfigCreate):
 
 
 class _SQConfigCreate(_QuantizerConfigCreate):
-    cache: Optional[bool]
     rescoreLimit: Optional[int]
     trainingLimit: Optional[int]
 
@@ -445,6 +444,25 @@ class _VectorIndexQuantizer:
             rescoreLimit=rescore_limit,
         )
 
+    @deprecated(
+        "The `cache` field is not supported by SQ and will be ignored if set. It will be removed in a future release."
+    )
+    @overload
+    @staticmethod
+    def sq(
+        cache: bool,
+        rescore_limit: Optional[int] = None,
+        training_limit: Optional[int] = None,
+    ) -> _SQConfigCreate: ...
+
+    @overload
+    @staticmethod
+    def sq(
+        cache: Literal[None] = None,
+        rescore_limit: Optional[int] = None,
+        training_limit: Optional[int] = None,
+    ) -> _SQConfigCreate: ...
+
     @staticmethod
     def sq(
         cache: Optional[bool] = None,
@@ -459,7 +477,6 @@ class _VectorIndexQuantizer:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _SQConfigCreate(
-            cache=cache,
             rescoreLimit=rescore_limit,
             trainingLimit=training_limit,
         )

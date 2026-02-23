@@ -1,10 +1,18 @@
 Changelog
 =========
 
+Version 4.19.4
+--------------
+This patch version includes:
+    - Adds the gRPC healthcheck ping to the `is_live()` method of the async client to provide a more accurate check of the connection status of the async client
+    - Fixes bug where exceptions raised in `collections.exists()` were silently ignored and the method would return `False` instead of raising the exception
+
+
 Version 4.19.3
 --------------
 This patch version includes:
     - Add support for VoyageAI voyage-4 model family (voyage-4, voyage-4-lite, voyage-4-large)
+    - A fix for async client connection issues when `pypi` is down
 
 
 Version 4.19.2

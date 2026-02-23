@@ -497,13 +497,13 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
 
 
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
-def test_cancel_backup(
+def test_cancel_backup_create(
     client: weaviate.WeaviateClient,
     dynamic_backup_location: bool,
     tmp_path: pathlib.Path,
     request: SubRequest,
 ) -> None:
-    """Cancel backup without waiting."""
+    """Cancel backup create without waiting."""
     backup_id = unique_backup_id(request.node.name)
     if client._connection._weaviate_version.is_lower_than(1, 24, 25):
         pytest.skip("Cancel backups is only supported from 1.24.25")
@@ -537,6 +537,67 @@ def test_cancel_backup(
             break
         time.sleep(0.1)
     status_resp = client.backup.get_create_status(
+        backup_id=backup_id, backend=BACKEND, backup_location=backup_location
+    )
+    # there can be a race between the cancel and the backup completion
+    assert status_resp.status == BackupStatus.CANCELED or status_resp.status == BackupStatus.SUCCESS
+
+
+@pytest.mark.parametrize("dynamic_backup_location", [False, True])
+def test_cancel_backup_restore(
+    client: weaviate.WeaviateClient,
+    dynamic_backup_location: bool,
+    tmp_path: pathlib.Path,
+    request: SubRequest,
+) -> None:
+    """Cancel backup restore without waiting."""
+    backup_id = unique_backup_id(request.node.name)
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Cancel restores is only supported from 1.36.0")
+
+    backup_location: Optional[wvc.backup.BackupLocationType] = None
+    if dynamic_backup_location:
+        backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
+
+    c_name = "Restore"
+    c = client.collections.create(
+        name=c_name, properties=[Property(name="name", data_type=DataType.TEXT)]
+    )
+    c.data.insert({"name": "test"})
+
+    resp = client.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        backup_location=backup_location,
+        include_collections=[c_name],
+        wait_for_completion=True,
+    )
+    assert resp.status == BackupStatus.SUCCESS
+
+    client.collections.delete(c_name)
+
+    resp = client.backup.restore(
+        backup_id=backup_id,
+        backend=BACKEND,
+        backup_location=backup_location,
+        include_collections=[c_name],
+    )
+    assert resp.status == BackupStatus.STARTED
+
+    assert client.backup.cancel(
+        backup_id=backup_id, backend=BACKEND, backup_location=backup_location, operation="restore"
+    )
+
+    start = time.time()
+    while time.time() - start < 5:
+        status_resp = client.backup.get_restore_status(
+            backup_id=backup_id, backend=BACKEND, backup_location=backup_location
+        )
+        if status_resp.status == BackupStatus.CANCELED:
+            break
+        time.sleep(0.1)
+
+    status_resp = client.backup.get_restore_status(
         backup_id=backup_id, backend=BACKEND, backup_location=backup_location
     )
     # there can be a race between the cancel and the backup completion

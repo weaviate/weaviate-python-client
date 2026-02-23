@@ -8,7 +8,10 @@ echo "This script compiles protos for Protobuf 4, 5, and 6 versions."
 SCRIPT_DIR="${0%/*}"
 cd "$SCRIPT_DIR"
 PROJECT_ROOT=$(pwd)
+# Get weaviate dir from arg or by navigating up from script location
+WEAVIATE_DIR="${1:-../../../../weaviate}"
 
+echo "Weaviate directory: $WEAVIATE_DIR"
 echo "Project root: $PROJECT_ROOT"
 
 # Clean up any existing proto compilation venv and recreate
@@ -40,11 +43,11 @@ compile_protos() {
 
     # Compile protos
     python3 -m grpc_tools.protoc \
-        -I ../../../../weaviate/grpc/proto \
+        -I $WEAVIATE_DIR/grpc/proto \
         --python_out="$output_dir" \
         --pyi_out="$output_dir" \
         --grpc_python_out="$output_dir" \
-        ../../../../weaviate/grpc/proto/v1/*.proto
+        $WEAVIATE_DIR/grpc/proto/v1/*.proto
 
     # Fix imports in generated files
     if [ -d "$version" ]; then

@@ -406,3 +406,24 @@ def test_grpc_forbidden_exception(forbidden: weaviate.collections.Collection) ->
 
     with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
         forbidden.data.insert_many([{"name": "test"}])
+
+
+def test_collection_exists(weaviate_mock: HTTPServer) -> None:
+    non_existing = "NonExistingCollection"
+    erroring = "ErroringCollection"
+    weaviate_mock.expect_request(f"/v1/schema/{non_existing}").respond_with_json(
+        response_json={"error": [{"message": "collection not found"}]}, status=404
+    )
+    weaviate_mock.expect_request(f"/v1/schema/{erroring}").respond_with_json(
+        response_json={"error": [{"message": "this is an error"}]}, status=500
+    )
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert not client.collections.exists(non_existing)
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+            client.collections.exists("")
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            client.collections.exists(erroring)
+            assert e.value.status_code == 500
