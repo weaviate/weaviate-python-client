@@ -1899,6 +1899,12 @@ class _VectorIndexConfigHFresh(_VectorIndexConfig):
     def vector_index_type() -> str:
         return VectorIndexType.HFRESH.value
 
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        if "maxPostingSizeKb" in out:
+            out["maxPostingSizeKB"] = out.pop("maxPostingSizeKb")
+        return out
+
 
 VectorIndexConfigHFresh = _VectorIndexConfigHFresh
 
