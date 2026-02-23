@@ -1,6 +1,4 @@
 import pytest
-import weaviate
-import weaviate.exceptions
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
@@ -8,6 +6,7 @@ from weaviate.collections.classes.config import (
     VectorIndexType,
     _VectorIndexConfigHFresh,
 )
+
 
 def test_collection_config_hfresh(collection_factory: CollectionFactory) -> None:
     collection_dummy = collection_factory("dummy")
@@ -24,7 +23,7 @@ def test_collection_config_hfresh(collection_factory: CollectionFactory) -> None
     )
 
     config = collection.config.get()
-    
+
     assert config.vector_index_type == VectorIndexType.HFRESH
     assert isinstance(config.vector_index_config, _VectorIndexConfigHFresh)
     assert config.vector_index_config.distance_metric == VectorDistances.COSINE
