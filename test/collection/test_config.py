@@ -26,6 +26,7 @@ from weaviate.collections.classes.config_vectorizers import (
     VectorDistances,
 )
 from weaviate.collections.classes.config_vectors import _VectorConfigCreate
+from weaviate.exceptions import WeaviateInsertInvalidPropertyError
 
 DEFAULTS = {
     "vectorConfig": {
@@ -1384,7 +1385,16 @@ def test_config_create_with_properties(
     assert out["properties"] == make_expected_props()
 
 
-@pytest.mark.parametrize("name", ["id", "vector"])
+def test_config_with_invalid_property_id():
+    with pytest.raises(WeaviateInsertInvalidPropertyError):
+        _CollectionConfigCreate(
+            name="test",
+            description="test",
+            properties=[Property(name="id", data_type=DataType.TEXT)],
+        )
+
+
+@pytest.mark.parametrize("name", ["vector"])
 def test_config_with_invalid_property(name: str):
     with pytest.raises(ValidationError):
         _CollectionConfigCreate(
@@ -2820,3 +2830,15 @@ TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS = [
 def test_reconfigure_with_replication(config: _ReplicationConfigUpdate, expected: dict) -> None:
     """Test that _ReplicationConfig.to_dict() properly converts replication settings."""
     assert config.model_dump() == expected
+
+
+def test_nested_property_with_id_name_is_allowed() -> None:
+    """A nested property named 'id' must not raise — only top-level 'id' is reserved."""
+    prop = Property(
+        name="nested_property",
+        data_type=DataType.OBJECT,
+        nested_properties=[
+            Property(name="id", data_type=DataType.TEXT),
+        ],
+    )
+    assert prop.nestedProperties[0].name == "id"

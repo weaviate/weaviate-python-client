@@ -1,6 +1,10 @@
 import uuid
 
+import pytest
+
+from weaviate.collections.batch.grpc_batch import _validate_props
 from weaviate.collections.classes.batch import MAX_STORED_RESULTS, BatchObjectReturn
+from weaviate.exceptions import WeaviateInsertInvalidPropertyError
 
 
 def test_batch_object_return_add() -> None:
@@ -30,3 +34,22 @@ def test_batch_object_return_add() -> None:
         idx + len(rhs_uuids): v
         for idx, v in enumerate(lhs_uuids[len(rhs_uuids) : MAX_STORED_RESULTS] + rhs_uuids)
     }
+
+
+def test_validate_props_raises_for_top_level_id() -> None:
+    with pytest.raises(WeaviateInsertInvalidPropertyError):
+        _validate_props({"id": "abc123"})
+
+
+def test_validate_props_allows_nested_id() -> None:
+    _validate_props({"id": "abc123"}, nested=True)
+
+
+def test_validate_props_raises_for_top_level_vector() -> None:
+    with pytest.raises(WeaviateInsertInvalidPropertyError):
+        _validate_props({"vector": [0.1, 0.2]})
+
+
+def test_validate_props_raises_for_nested_vector() -> None:
+    with pytest.raises(WeaviateInsertInvalidPropertyError):
+        _validate_props({"vector": [0.1, 0.2]}, nested=True)

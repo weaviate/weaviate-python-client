@@ -318,6 +318,8 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         """
         _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
         path = f"/schema/{_capitalize_first_letter(name)}"
+        if name == "":
+            raise WeaviateInvalidInputError("Collection name cannot be an empty string.")
 
         def resp(res: Response) -> bool:
             return res.status_code == 200
