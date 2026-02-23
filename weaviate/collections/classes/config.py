@@ -287,15 +287,51 @@ class _ShardingConfigCreate(_ConfigCreateModel):
     function: str = "murmur3"
 
 
+class _AsyncReplicationConfigCreate(_ConfigCreateModel):
+    maxWorkers: Optional[int]
+    hashtreeHeight: Optional[int]
+    frequency: Optional[int]
+    frequencyWhilePropagating: Optional[int]
+    aliveNodesCheckingFrequency: Optional[int]
+    loggingFrequency: Optional[int]
+    diffBatchSize: Optional[int]
+    diffPerNodeTimeout: Optional[int]
+    prePropagationTimeout: Optional[int]
+    propagationTimeout: Optional[int]
+    propagationLimit: Optional[int]
+    propagationDelay: Optional[int]
+    propagationConcurrency: Optional[int]
+    propagationBatchSize: Optional[int]
+
+
+class _AsyncReplicationConfigUpdate(_ConfigUpdateModel):
+    maxWorkers: Optional[int]
+    hashtreeHeight: Optional[int]
+    frequency: Optional[int]
+    frequencyWhilePropagating: Optional[int]
+    aliveNodesCheckingFrequency: Optional[int]
+    loggingFrequency: Optional[int]
+    diffBatchSize: Optional[int]
+    diffPerNodeTimeout: Optional[int]
+    prePropagationTimeout: Optional[int]
+    propagationTimeout: Optional[int]
+    propagationLimit: Optional[int]
+    propagationDelay: Optional[int]
+    propagationConcurrency: Optional[int]
+    propagationBatchSize: Optional[int]
+
+
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    asyncConfig: Optional[_AsyncReplicationConfigCreate]
     deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    asyncConfig: Optional[_AsyncReplicationConfigUpdate]
     deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
@@ -2350,6 +2386,88 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         ret_dict["properties"] = existing_props
 
 
+class _Replication:
+    @staticmethod
+    def async_config(
+        *,
+        max_workers: Optional[int] = None,
+        hashtree_height: Optional[int] = None,
+        frequency: Optional[int] = None,
+        frequency_while_propagating: Optional[int] = None,
+        alive_nodes_checking_frequency: Optional[int] = None,
+        logging_frequency: Optional[int] = None,
+        diff_batch_size: Optional[int] = None,
+        diff_per_node_timeout: Optional[int] = None,
+        pre_propagation_timeout: Optional[int] = None,
+        propagation_timeout: Optional[int] = None,
+        propagation_limit: Optional[int] = None,
+        propagation_delay: Optional[int] = None,
+        propagation_concurrency: Optional[int] = None,
+        propagation_batch_size: Optional[int] = None,
+    ) -> _AsyncReplicationConfigCreate:
+        """Create a configuration object create for async replication settings when creating a collection.
+
+        This is only available with WeaviateDB `>=v1.36.0`.
+        """
+        return _AsyncReplicationConfigCreate(
+            maxWorkers=max_workers,
+            hashtreeHeight=hashtree_height,
+            frequency=frequency,
+            frequencyWhilePropagating=frequency_while_propagating,
+            aliveNodesCheckingFrequency=alive_nodes_checking_frequency,
+            loggingFrequency=logging_frequency,
+            diffBatchSize=diff_batch_size,
+            diffPerNodeTimeout=diff_per_node_timeout,
+            prePropagationTimeout=pre_propagation_timeout,
+            propagationTimeout=propagation_timeout,
+            propagationLimit=propagation_limit,
+            propagationDelay=propagation_delay,
+            propagationConcurrency=propagation_concurrency,
+            propagationBatchSize=propagation_batch_size,
+        )
+
+
+class _ReplicationUpdate:
+    @staticmethod
+    def async_config(
+        *,
+        max_workers: Optional[int] = None,
+        hashtree_height: Optional[int] = None,
+        frequency: Optional[int] = None,
+        frequency_while_propagating: Optional[int] = None,
+        alive_nodes_checking_frequency: Optional[int] = None,
+        logging_frequency: Optional[int] = None,
+        diff_batch_size: Optional[int] = None,
+        diff_per_node_timeout: Optional[int] = None,
+        pre_propagation_timeout: Optional[int] = None,
+        propagation_timeout: Optional[int] = None,
+        propagation_limit: Optional[int] = None,
+        propagation_delay: Optional[int] = None,
+        propagation_concurrency: Optional[int] = None,
+        propagation_batch_size: Optional[int] = None,
+    ) -> _AsyncReplicationConfigUpdate:
+        """Create a configuration object for async replication settings when updating a collection.
+
+        This is only available with WeaviateDB `>=v1.36.0`.
+        """
+        return _AsyncReplicationConfigUpdate(
+            maxWorkers=max_workers,
+            hashtreeHeight=hashtree_height,
+            frequency=frequency,
+            frequencyWhilePropagating=frequency_while_propagating,
+            aliveNodesCheckingFrequency=alive_nodes_checking_frequency,
+            loggingFrequency=logging_frequency,
+            diffBatchSize=diff_batch_size,
+            diffPerNodeTimeout=diff_per_node_timeout,
+            prePropagationTimeout=pre_propagation_timeout,
+            propagationTimeout=propagation_timeout,
+            propagationLimit=propagation_limit,
+            propagationDelay=propagation_delay,
+            propagationConcurrency=propagation_concurrency,
+            propagationBatchSize=propagation_batch_size,
+        )
+
+
 class Configure:
     """Use this factory class to generate the correct object for use when using the `collections.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
 
@@ -2365,6 +2483,7 @@ class Configure:
     Vectors = _Vectors
     MultiVectors = _MultiVectors
     ObjectTTL = _ObjectTTL
+    Replication = _Replication
 
     @staticmethod
     def inverted_index(
@@ -2427,6 +2546,7 @@ class Configure:
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
         deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
+        async_config: Optional[_AsyncReplicationConfigCreate] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2436,11 +2556,13 @@ class Configure:
             factor: The replication factor.
             async_enabled: Enabled async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
+            async_config: The configuration for async replication. This is only relevant if `async_enabled` is `True`.
         """
         return _ReplicationConfigCreate(
             factor=factor,
             asyncEnabled=async_enabled,
             deletionStrategy=deletion_strategy,
+            asyncConfig=async_config,
         )
 
     @staticmethod
@@ -2643,6 +2765,7 @@ class Reconfigure:
     Generative = _Generative  # config is the same for create and update
     Reranker = _Reranker  # config is the same for create and update
     ObjectTTL = _ObjectTTLUpdate
+    Replication = _ReplicationUpdate
 
     @staticmethod
     def inverted_index(
@@ -2675,6 +2798,7 @@ class Reconfigure:
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
         deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
+        async_config: Optional[_AsyncReplicationConfigUpdate] = None,
     ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
@@ -2684,11 +2808,13 @@ class Reconfigure:
             factor: The replication factor.
             async_enabled: Enable async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
+            async_config: The async replication configuration. This is only applicable if `async_enabled` is set to `True`.
         """
         return _ReplicationConfigUpdate(
             factor=factor,
             asyncEnabled=async_enabled,
             deletionStrategy=deletion_strategy,
+            asyncConfig=async_config,
         )
 
     @staticmethod
