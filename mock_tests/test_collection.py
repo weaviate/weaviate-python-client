@@ -313,9 +313,7 @@ def test_node_with_timeout(
     assert nodes[0].status == "TIMEOUT"
 
 
-def test_cluster_statistics(
-    httpserver: HTTPServer, start_grpc_server: grpc.Server
-) -> None:
+def test_cluster_statistics(httpserver: HTTPServer, start_grpc_server: grpc.Server) -> None:
     httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
     httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
     httpserver.expect_request("/v1/cluster/statistics").respond_with_json(

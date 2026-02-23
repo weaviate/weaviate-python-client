@@ -154,7 +154,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
     def statistics(self) -> executor.Result[ClusterStatistics]:
         """Get RAFT cluster statistics.
 
-        Returns cluster statistics data including RAFT consensus state (leader/follower), 
+        Returns cluster statistics data including RAFT consensus state (leader/follower),
         commit/applied indices, and cluster synchronization status.
 
         Returns:

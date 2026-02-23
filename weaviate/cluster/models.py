@@ -143,14 +143,14 @@ class RaftConfigurationMember:
     """A member in the RAFT cluster's latest configuration."""
 
     address: str
-    id: str
+    node_id: str
     suffrage: int
 
     @staticmethod
     def _from_weaviate(data: dict) -> "RaftConfigurationMember":
         return RaftConfigurationMember(
             address=data["address"],
-            id=data["id"],
+            node_id=data["id"],
             suffrage=data["suffrage"],
         )
 
@@ -216,7 +216,7 @@ class NodeStatistics:
     leader_address: str
     leader_id: str
     name: str
-    open: bool
+    is_open: bool
     raft: RaftStats
     ready: bool
     status: str
@@ -231,7 +231,7 @@ class NodeStatistics:
             leader_address=data.get("leaderAddress", ""),
             leader_id=data.get("leaderId", ""),
             name=data.get("name", ""),
-            open=data.get("open", False),
+            is_open=data.get("open", False),
             raft=RaftStats._from_weaviate(data.get("raft", {})),
             ready=data.get("ready", False),
             status=data.get("status", ""),
@@ -248,8 +248,6 @@ class ClusterStatistics:
     @staticmethod
     def _from_weaviate(data: dict) -> "ClusterStatistics":
         return ClusterStatistics(
-            statistics=[
-                NodeStatistics._from_weaviate(s) for s in data.get("statistics", [])
-            ],
+            statistics=[NodeStatistics._from_weaviate(s) for s in data.get("statistics", [])],
             synchronized=data.get("synchronized", False),
         )
