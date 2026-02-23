@@ -90,9 +90,7 @@ def test_collection_update_hfresh(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.replicas == 1
     assert config.vector_index_config.search_probe == 25
 
-    collection.config.update(
-        vectorizer_config=Reconfigure.VectorIndex.hfresh(search_probe=100)
-    )
+    collection.config.update(vectorizer_config=Reconfigure.VectorIndex.hfresh(search_probe=100))
 
     config = collection.config.get()
     assert isinstance(config.vector_index_config, _VectorIndexConfigHFresh)
