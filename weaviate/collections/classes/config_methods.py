@@ -133,7 +133,6 @@ def __get_quantizer_config(
     elif "sq" in config and config["sq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _SQConfig(
-            cache=config["sq"].get("cache"),
             rescore_limit=config["sq"].get("rescoreLimit"),
             training_limit=config["sq"].get("trainingLimit"),
         )

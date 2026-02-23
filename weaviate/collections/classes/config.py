@@ -1768,7 +1768,6 @@ class _BQConfig(_ConfigBase):
 
 @dataclass
 class _SQConfig(_ConfigBase):
-    cache: Optional[bool]
     rescore_limit: int
     training_limit: int
 
