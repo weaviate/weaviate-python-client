@@ -5,6 +5,9 @@ from typing import Generic, List, Literal, Optional, Type, Union, overload
 from weaviate.cluster import _ClusterAsync
 from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.collections.backups import _CollectionBackupAsync
+from weaviate.collections.batch.collection import (
+    _BatchCollectionWrapperAsync,
+)
 from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
@@ -77,6 +80,15 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
         self.backup: _CollectionBackupAsync = _CollectionBackupAsync(connection, name)
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
+        self.batch: _BatchCollectionWrapperAsync[Properties] = _BatchCollectionWrapperAsync[
+            Properties
+        ](
+            connection,
+            consistency_level,
+            name,
+            tenant,
+        )
+        """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.config = _ConfigCollectionAsync(connection, name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollectionAsync[Properties](

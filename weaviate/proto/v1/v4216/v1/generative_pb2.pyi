@@ -108,7 +108,7 @@ class GenerativeAnyscale(_message.Message):
     def __init__(self, base_url: _Optional[str] = ..., model: _Optional[str] = ..., temperature: _Optional[float] = ...) -> None: ...
 
 class GenerativeAWS(_message.Message):
-    __slots__ = ["model", "temperature", "service", "region", "endpoint", "target_model", "target_variant", "images", "image_properties", "max_tokens"]
+    __slots__ = ["model", "temperature", "service", "region", "endpoint", "target_model", "target_variant", "images", "image_properties", "max_tokens", "stop_sequences"]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
     SERVICE_FIELD_NUMBER: _ClassVar[int]
@@ -119,6 +119,7 @@ class GenerativeAWS(_message.Message):
     IMAGES_FIELD_NUMBER: _ClassVar[int]
     IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    STOP_SEQUENCES_FIELD_NUMBER: _ClassVar[int]
     model: str
     temperature: float
     service: str
@@ -129,7 +130,8 @@ class GenerativeAWS(_message.Message):
     images: _base_pb2.TextArray
     image_properties: _base_pb2.TextArray
     max_tokens: int
-    def __init__(self, model: _Optional[str] = ..., temperature: _Optional[float] = ..., service: _Optional[str] = ..., region: _Optional[str] = ..., endpoint: _Optional[str] = ..., target_model: _Optional[str] = ..., target_variant: _Optional[str] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., max_tokens: _Optional[int] = ...) -> None: ...
+    stop_sequences: _base_pb2.TextArray
+    def __init__(self, model: _Optional[str] = ..., temperature: _Optional[float] = ..., service: _Optional[str] = ..., region: _Optional[str] = ..., endpoint: _Optional[str] = ..., target_model: _Optional[str] = ..., target_variant: _Optional[str] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., max_tokens: _Optional[int] = ..., stop_sequences: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
 
 class GenerativeCohere(_message.Message):
     __slots__ = ["base_url", "frequency_penalty", "max_tokens", "model", "k", "p", "presence_penalty", "stop_sequences", "temperature", "images", "image_properties"]
