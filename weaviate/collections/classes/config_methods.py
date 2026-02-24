@@ -40,8 +40,8 @@ from weaviate.collections.classes.config import (
     _StopwordsConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
-    _VectorIndexConfigHNSW,
     _VectorIndexConfigHFresh,
+    _VectorIndexConfigHNSW,
     _VectorizerConfig,
 )
 

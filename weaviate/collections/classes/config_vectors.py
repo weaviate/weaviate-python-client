@@ -18,10 +18,10 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatCreate,
     _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHNSWCreate,
-    _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigHFreshCreate,
     _VectorIndexConfigHFreshUpdate,
+    _VectorIndexConfigHNSWCreate,
+    _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vectorizers import (
