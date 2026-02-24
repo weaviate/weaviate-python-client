@@ -21,8 +21,8 @@ from weaviate.collections.classes.config import (
     _VectorConfigCreate,
     _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigHFreshUpdate,
+    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate

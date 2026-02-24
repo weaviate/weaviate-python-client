@@ -38,8 +38,8 @@ from weaviate.collections.classes.config import (
     _VectorConfigCreate,
     _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigHFreshUpdate,
+    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
