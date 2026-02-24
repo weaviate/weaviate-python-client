@@ -9,8 +9,10 @@ from weaviate.collections.classes.filters import (
     _FilterAnd,
     _FilterNot,
     _FilterOr,
+    _FilterValue,
     _Operator,
 )
+from weaviate.collections.filters import _FilterToGRPC
 from weaviate.proto.v1 import base_pb2
 
 
@@ -54,6 +56,13 @@ def test_empty_list_greater_than() -> None:
 def test_empty_list_greater_or_equal() -> None:
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
         wvc.query.Filter.by_property("test").greater_or_equal([])
+
+
+def test_empty_list_grpc_conversion() -> None:
+    """Ensure the gRPC converter raises WeaviateInvalidInputError for empty lists."""
+    fv = _FilterValue(target="test", value=[], operator=_Operator.EQUAL)
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        _FilterToGRPC.convert(fv)
 
 
 def test_filter_lists() -> None:

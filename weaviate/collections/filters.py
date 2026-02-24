@@ -40,6 +40,12 @@ class _FilterToGRPC:
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> base_pb2.Filters:
+        if isinstance(weav_filter.value, list) and len(weav_filter.value) == 0:
+            raise WeaviateInvalidInputError(
+                "Filtering on empty lists is not supported by Weaviate. "
+                "To filter by property length, use "
+                "Filter.by_property('prop', length=True).equal(0)"
+            )
         operator = weav_filter.operator._to_grpc()
         target = _FilterToGRPC.__to_target(weav_filter.target)
         if isinstance(weav_filter.value, bool):
