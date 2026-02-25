@@ -37,7 +37,9 @@ def test_get_user_without_last_used_time(
 
     weaviate_no_auth_mock.expect_request("/v1/users/db/test-user").respond_with_handler(handler)
 
-    with weaviate.connect_to_local(host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC) as client:
+    with weaviate.connect_to_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
         user = client.users.db.get(user_id="test-user")
 
     assert user is not None
@@ -60,7 +62,9 @@ def test_get_user_with_last_used_time(
 
     weaviate_no_auth_mock.expect_request("/v1/users/db/test-user").respond_with_handler(handler)
 
-    with weaviate.connect_to_local(host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC) as client:
+    with weaviate.connect_to_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
         user = client.users.db.get(user_id="test-user", include_last_used_time=True)
 
     assert user is not None
@@ -76,7 +80,9 @@ def test_get_user_not_found(
         Response("{}", content_type="application/json", status=404)
     )
 
-    with weaviate.connect_to_local(host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC) as client:
+    with weaviate.connect_to_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
         user = client.users.db.get(user_id="nonexistent")
 
     assert user is None
@@ -93,7 +99,9 @@ def test_list_all_without_last_used_time(
 
     weaviate_no_auth_mock.expect_request("/v1/users/db").respond_with_handler(handler)
 
-    with weaviate.connect_to_local(host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC) as client:
+    with weaviate.connect_to_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
         users = client.users.db.list_all()
 
     assert len(users) == 2
@@ -115,7 +123,9 @@ def test_list_all_with_last_used_time(
 
     weaviate_no_auth_mock.expect_request("/v1/users/db").respond_with_handler(handler)
 
-    with weaviate.connect_to_local(host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC) as client:
+    with weaviate.connect_to_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
         users = client.users.db.list_all(include_last_used_time=True)
 
     assert len(users) == 2
