@@ -1,8 +1,6 @@
 import json
 from datetime import datetime, timezone
-
 import grpc
-import pytest
 from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
