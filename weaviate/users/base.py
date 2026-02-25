@@ -513,13 +513,13 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     active=user["active"],
                     user_type=UserTypes(user["dbUserType"]),
                     created_at=(
-                        datetime.fromisoformat(user["createdAt"].replace("Z", "+00:00"))
-                        if user.get("createdAt") is not None
+                        datetime.fromisoformat(ca.replace("Z", "+00:00"))
+                        if (ca := user.get("createdAt")) is not None
                         else None
                     ),
                     last_used_time=(
-                        datetime.fromisoformat(user["lastUsedAt"].replace("Z", "+00:00"))
-                        if include_last_used_time and user.get("lastUsedAt") is not None
+                        datetime.fromisoformat(lua.replace("Z", "+00:00"))
+                        if include_last_used_time and (lua := user.get("lastUsedAt")) is not None
                         else None
                     ),
                     api_key_first_letters=user.get("apiKeyFirstLetters"),
