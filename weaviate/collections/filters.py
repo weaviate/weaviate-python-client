@@ -40,6 +40,12 @@ class _FilterToGRPC:
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> base_pb2.Filters:
+        if isinstance(weav_filter.value, list) and len(weav_filter.value) == 0:
+            raise WeaviateInvalidInputError(
+                "Filtering on empty lists is not supported by Weaviate. "
+                "To filter by property length, use "
+                "Filter.by_property('prop', length=True).equal(0)"
+            )
         operator = weav_filter.operator._to_grpc()
         target = _FilterToGRPC.__to_target(weav_filter.target)
         if isinstance(weav_filter.value, bool):
@@ -116,7 +122,9 @@ class _FilterToGRPC:
 
     @staticmethod
     def __filter_to_text_list(value: FilterValues) -> Optional[base_pb2.TextArray]:
-        if not isinstance(value, list) or not (
+        if not isinstance(value, list) or len(value) == 0:
+            return None
+        if not (
             isinstance(value[0], TIME)
             or isinstance(value[0], str)
             or isinstance(value[0], uuid_lib.UUID)
@@ -135,14 +143,14 @@ class _FilterToGRPC:
 
     @staticmethod
     def __filter_to_bool_list(value: FilterValues) -> Optional[base_pb2.BooleanArray]:
-        if not isinstance(value, list) or not isinstance(value[0], bool):
+        if not isinstance(value, list) or len(value) == 0 or not isinstance(value[0], bool):
             return None
 
         return base_pb2.BooleanArray(values=cast(List[bool], value))
 
     @staticmethod
     def __filter_to_float_list(value: FilterValues) -> Optional[base_pb2.NumberArray]:
-        if not isinstance(value, list) or not isinstance(value[0], float):
+        if not isinstance(value, list) or len(value) == 0 or not isinstance(value[0], float):
             return None
 
         return base_pb2.NumberArray(values=cast(List[float], value))
@@ -152,6 +160,7 @@ class _FilterToGRPC:
         # bool is a subclass of int in Python, so the check must ensure it's not a bool
         if (
             not isinstance(value, list)
+            or len(value) == 0
             or not isinstance(value[0], int)
             or isinstance(value[0], bool)
         ):
@@ -224,6 +233,12 @@ class _FilterToREST:
         if isinstance(value, float):
             return {"valueNumber": value}
         if isinstance(value, list):
+            if len(value) == 0:
+                raise WeaviateInvalidInputError(
+                    "Filtering on empty lists is not supported by Weaviate. "
+                    "To filter by property length, use "
+                    "Filter.by_property('prop', length=True).equal(0)"
+                )
             if isinstance(value[0], str):
                 return {"valueTextArray": value}
             if isinstance(value[0], uuid_lib.UUID):
