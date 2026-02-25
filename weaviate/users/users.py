@@ -1,5 +1,6 @@
-from dataclasses import dataclass
-from typing import Dict, Final, List, Literal
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Dict, Final, List, Literal, Optional
 
 from weaviate.rbac.models import (
     Role,
@@ -29,6 +30,8 @@ class UserBase:
 class UserDB(UserBase):
     user_type: UserTypes
     active: bool
+    created_at: Optional[datetime] = field(default=None)
+    last_used_time: Optional[datetime] = field(default=None)
 
 
 @dataclass
