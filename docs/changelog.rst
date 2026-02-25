@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.20.1
+--------------
+This patch version includes:
+    - Raise an input error when filtering on an empty list
+
+
 Version 4.20.0
 --------------
 This minor version includes:
