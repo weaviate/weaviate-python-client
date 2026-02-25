@@ -1953,27 +1953,16 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
     assert conf.object_ttl_config is None
 
 
-def test_object_ttl_roundtrip_from_dict(
-    collection_factory: CollectionFactory, client_factory: ClientFactory
-) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
-        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
-
-    client = client_factory()
-
-    # (schema_to_create, expected_object_ttl_config_dict)
-    test_cases = [
+@pytest.mark.parametrize(
+    "create_kwargs,expected_ttl_dict",
+    [
         # deleteOn: _creationTimeUnix
         (
             {
-                "class": "CollectionTTLRoundtripCreation",
-                "objectTtlConfig": {
-                    "enabled": True,
-                    "defaultTtl": 60,
-                    "deleteOn": "_creationTimeUnix",
-                    "filterExpiredObjects": True,
-                },
+                "object_ttl_config": Configure.ObjectTTL.delete_by_creation_time(
+                    time_to_live=60,
+                    filter_expired_objects=True,
+                ),
             },
             {
                 "enabled": True,
@@ -1985,13 +1974,10 @@ def test_object_ttl_roundtrip_from_dict(
         # deleteOn: _lastUpdateTimeUnix
         (
             {
-                "class": "CollectionTTLRoundtripUpdate",
-                "objectTtlConfig": {
-                    "enabled": True,
-                    "defaultTtl": 3600,
-                    "deleteOn": "_lastUpdateTimeUnix",
-                    "filterExpiredObjects": True,
-                },
+                "object_ttl_config": Configure.ObjectTTL.delete_by_update_time(
+                    time_to_live=3600,
+                    filter_expired_objects=True,
+                ),
             },
             {
                 "enabled": True,
@@ -2003,19 +1989,12 @@ def test_object_ttl_roundtrip_from_dict(
         # deleteOn: custom date property
         (
             {
-                "class": "CollectionTTLRoundtripDateProp",
-                "properties": [
-                    {
-                        "name": "reference_date",
-                        "dataType": ["date"],
-                    }
-                ],
-                "objectTtlConfig": {
-                    "enabled": True,
-                    "defaultTtl": 123,
-                    "deleteOn": "reference_date",
-                    "filterExpiredObjects": True,
-                },
+                "properties": [Property(name="reference_date", data_type=DataType.DATE)],
+                "object_ttl_config": Configure.ObjectTTL.delete_by_date_property(
+                    property_name="reference_date",
+                    ttl_offset=123,
+                    filter_expired_objects=True,
+                ),
             },
             {
                 "enabled": True,
@@ -2024,35 +2003,43 @@ def test_object_ttl_roundtrip_from_dict(
                 "filterExpiredObjects": True,
             },
         ),
-    ]
+    ],
+)
+def test_object_ttl_roundtrip_from_dict(
+    client_factory: ClientFactory,
+    create_kwargs: dict,
+    expected_ttl_dict: dict,
+) -> None:
+    client = client_factory()
+    if client._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
 
-    for schema, expected_ttl_dict in test_cases:
-        name = schema["class"]
-        reimport_name = name + "Reimport"
+    name = "TTLRoundtrip"
+    reimport_name = "TTLRoundtripReimport"
+    client.collections.delete(name)
+    client.collections.delete(reimport_name)
+    try:
+        collection = client.collections.create(name=name, **create_kwargs)
+        config = collection.config.get()
+        assert config.object_ttl_config is not None, f"object_ttl_config is None for {name}"
+        assert config.object_ttl_config.to_dict() == expected_ttl_dict, (
+            f"Round-trip mismatch for {name}: "
+            f"got {config.object_ttl_config.to_dict()}, expected {expected_ttl_dict}"
+        )
+
+        # Guard against schema round-trip regression (#1957):
+        # export the full collection schema dict and re-import it.
+        exported_dict = config.to_dict()
+        exported_dict["class"] = reimport_name
+        client.collections.create_from_dict(exported_dict)
+        reimport_config = client.collections.export_config(reimport_name)
+        assert reimport_config.object_ttl_config is not None, (
+            f"object_ttl_config is None after schema round-trip for {reimport_name}"
+        )
+        assert reimport_config.object_ttl_config.to_dict() == expected_ttl_dict, (
+            f"Schema round-trip mismatch for {reimport_name}: "
+            f"got {reimport_config.object_ttl_config.to_dict()}, expected {expected_ttl_dict}"
+        )
+    finally:
         client.collections.delete(name)
         client.collections.delete(reimport_name)
-        try:
-            client.collections.create_from_dict(schema)
-            config = client.collections.export_config(name)
-            assert config.object_ttl_config is not None, f"object_ttl_config is None for {name}"
-            assert config.object_ttl_config.to_dict() == expected_ttl_dict, (
-                f"Round-trip mismatch for {name}: "
-                f"got {config.object_ttl_config.to_dict()}, expected {expected_ttl_dict}"
-            )
-
-            # Guard against schema round-trip regression (#1957):
-            # export the full collection schema dict and re-import it.
-            exported_dict = config.to_dict()
-            exported_dict["class"] = reimport_name
-            client.collections.create_from_dict(exported_dict)
-            reimport_config = client.collections.export_config(reimport_name)
-            assert reimport_config.object_ttl_config is not None, (
-                f"object_ttl_config is None after schema round-trip for {reimport_name}"
-            )
-            assert reimport_config.object_ttl_config.to_dict() == expected_ttl_dict, (
-                f"Schema round-trip mismatch for {reimport_name}: "
-                f"got {reimport_config.object_ttl_config.to_dict()}, expected {expected_ttl_dict}"
-            )
-        finally:
-            client.collections.delete(name)
-            client.collections.delete(reimport_name)
