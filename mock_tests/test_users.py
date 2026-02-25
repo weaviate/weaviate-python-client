@@ -47,6 +47,7 @@ def test_get_user_without_last_used_time(
     assert user.active is True
     assert user.created_at == EXPECTED_CREATED_AT
     assert user.last_used_time is None
+    assert user.api_key_first_letters == "UzJ"
     assert captured["params"].get("includeLastUsedTime") in ("False", "false")
 
 
@@ -101,6 +102,7 @@ def test_list_all_without_last_used_time(
     assert users[0].user_id == "test-user"
     assert users[0].created_at == EXPECTED_CREATED_AT
     assert users[0].last_used_time is None
+    assert users[0].api_key_first_letters == "UzJ"
     assert captured["params"].get("includeLastUsedTime") in ("False", "false")
 
 

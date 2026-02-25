@@ -484,6 +484,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     if last_used_at is not None
                     else None
                 ),
+                api_key_first_letters=parsed.get("apiKeyFirstLetters"),
             )
 
         return executor.execute(
@@ -521,6 +522,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                         if include_last_used_time and user.get("lastUsedAt") is not None
                         else None
                     ),
+                    api_key_first_letters=user.get("apiKeyFirstLetters"),
                 )
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)
             ]
