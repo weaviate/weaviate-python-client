@@ -40,7 +40,9 @@ def test_get_user_without_last_used_time(
 
     def handler(request: Request) -> Response:
         captured["params"] = dict(request.args)
-        return Response(json.dumps(USER_DATA_NO_LAST_USED), content_type="application/json", status=200)
+        return Response(
+            json.dumps(USER_DATA_NO_LAST_USED), content_type="application/json", status=200
+        )
 
     weaviate_no_auth_mock.expect_request("/v1/users/db/test-user").respond_with_handler(handler)
 
@@ -102,7 +104,9 @@ def test_list_all_without_last_used_time(
 
     def handler(request: Request) -> Response:
         captured["params"] = dict(request.args)
-        return Response(json.dumps(USERS_DATA_NO_LAST_USED), content_type="application/json", status=200)
+        return Response(
+            json.dumps(USERS_DATA_NO_LAST_USED), content_type="application/json", status=200
+        )
 
     weaviate_no_auth_mock.expect_request("/v1/users/db").respond_with_handler(handler)
 
