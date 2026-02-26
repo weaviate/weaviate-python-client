@@ -214,3 +214,82 @@ def test_list_all_users(client_factory: ClientFactory) -> None:
         assert len(dynamic_users) == 5
         for i in range(5):
             client.users.db.delete(user_id=f"list-all-{i}")
+
+
+def test_get_user_created_at_and_api_key_first_letters(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+
+        randomUserName = "new-user" + str(random.randint(1, 1000))
+        apiKey = client.users.db.create(user_id=randomUserName)
+        try:
+            user = client.users.db.get(user_id=randomUserName)
+            assert user is not None
+            assert user.created_at is not None
+            assert user.api_key_first_letters is not None
+            assert len(user.api_key_first_letters) > 0
+        finally:
+            client.users.db.delete(user_id=randomUserName)
+
+
+def test_get_user_include_last_used_time(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+
+        randomUserName = "new-user" + str(random.randint(1, 1000))
+        apiKey = client.users.db.create(user_id=randomUserName)
+        try:
+            # log in with the new user to generate a lastUsedAt timestamp
+            with weaviate.connect_to_local(
+                port=RBAC_PORTS[0],
+                grpc_port=RBAC_PORTS[1],
+                auth_credentials=Auth.api_key(apiKey),
+            ) as client2:
+                assert client2.users.get_my_user().user_id == randomUserName
+
+            # without include_last_used_time, last_used_time should be None
+            user = client.users.db.get(user_id=randomUserName)
+            assert user is not None
+            assert user.last_used_time is None
+
+            # with include_last_used_time=True, last_used_time should be populated
+            user = client.users.db.get(user_id=randomUserName, include_last_used_time=True)
+            assert user is not None
+            assert user.last_used_time is not None
+        finally:
+            client.users.db.delete(user_id=randomUserName)
+
+
+def test_list_all_include_last_used_time(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+
+        randomUserName = "new-user" + str(random.randint(1, 1000))
+        apiKey = client.users.db.create(user_id=randomUserName)
+        try:
+            # log in with the new user to generate a lastUsedAt timestamp
+            with weaviate.connect_to_local(
+                port=RBAC_PORTS[0],
+                grpc_port=RBAC_PORTS[1],
+                auth_credentials=Auth.api_key(apiKey),
+            ) as client2:
+                assert client2.users.get_my_user().user_id == randomUserName
+
+            # without include_last_used_time, last_used_time should be None
+            users = client.users.db.list_all()
+            target = next((u for u in users if u.user_id == randomUserName), None)
+            assert target is not None
+            assert target.created_at is not None
+            assert target.api_key_first_letters is not None
+            assert target.last_used_time is None
+
+            # with include_last_used_time=True, last_used_time should be populated
+            users = client.users.db.list_all(include_last_used_time=True)
+            target = next((u for u in users if u.user_id == randomUserName), None)
+            assert target is not None
+            assert target.last_used_time is not None
+        finally:
+            client.users.db.delete(user_id=randomUserName)
