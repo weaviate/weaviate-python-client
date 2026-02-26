@@ -202,3 +202,21 @@ def test_get_user_last_used_time_parsed_when_include_false(
     assert user is not None
     assert user.last_used_time == EXPECTED_LAST_USED_AT
     assert captured["params"].get("includeLastUsedTime") in ("False", "false")
+
+
+def test_get_user_go_zero_time_treated_as_none(
+    weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """Go's zero time (0001-01-01T00:00:00Z) returned by the server should map to None."""
+    data = {**USER_DATA, "lastUsedAt": "0001-01-01T00:00:00Z"}
+    weaviate_no_auth_mock.expect_request("/v1/users/db/test-user").respond_with_response(
+        Response(json.dumps(data), content_type="application/json", status=200)
+    )
+
+    with weaviate.connect_to_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
+        user = client.users.db.get(user_id="test-user")
+
+    assert user is not None
+    assert user.last_used_time is None

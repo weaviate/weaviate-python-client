@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
 
 from httpx import Response
@@ -20,6 +20,16 @@ from weaviate.users.users import (
     UserDB,
 )
 from weaviate.util import _decode_json_response_dict, escape_string
+
+# Go's zero time value, returned by the server when a timestamp is not set
+_GO_ZERO_TIME = datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc)
+
+
+def _parse_last_used_at(value: Optional[str]) -> Optional[datetime]:
+    if value is None:
+        return None
+    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return None if dt == _GO_ZERO_TIME else dt
 
 
 class _BaseExecutor(Generic[ConnectionType]):
@@ -468,7 +478,6 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
             created_at = parsed.get("createdAt")
-            last_used_at = parsed.get("lastUsedAt")
             return UserDB(
                 user_id=parsed["userId"],
                 role_names=parsed["roles"],
@@ -479,11 +488,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     if created_at is not None
                     else None
                 ),
-                last_used_time=(
-                    datetime.fromisoformat(last_used_at.replace("Z", "+00:00"))
-                    if last_used_at is not None
-                    else None
-                ),
+                last_used_time=_parse_last_used_at(parsed.get("lastUsedAt")),
                 api_key_first_letters=parsed.get("apiKeyFirstLetters"),
             )
 
@@ -517,11 +522,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                         if (ca := user.get("createdAt")) is not None
                         else None
                     ),
-                    last_used_time=(
-                        datetime.fromisoformat(lua.replace("Z", "+00:00"))
-                        if (lua := user.get("lastUsedAt")) is not None
-                        else None
-                    ),
+                    last_used_time=_parse_last_used_at(user.get("lastUsedAt")),
                     api_key_first_letters=user.get("apiKeyFirstLetters"),
                 )
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)
