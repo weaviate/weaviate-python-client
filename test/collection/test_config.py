@@ -13,7 +13,6 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     _CollectionConfigCreate,
     _GenerativeProvider,
-
     _RerankerProvider,
     _VectorizerConfigCreate,
     _ReplicationConfigCreate,
@@ -2611,7 +2610,6 @@ def test_config_with_vectors(vector_config: List[_VectorConfigCreate], expected:
         "class": "Test",
         "vectorConfig": expected,
     }
-
 
 
 TEST_CONFIGURE_WITH_REPLICATION_PARAMETERS = [
