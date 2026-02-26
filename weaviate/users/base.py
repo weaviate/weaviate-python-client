@@ -468,7 +468,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
             created_at = parsed.get("createdAt")
-            last_used_at = parsed.get("lastUsedAt") if include_last_used_time else None
+            last_used_at = parsed.get("lastUsedAt")
             return UserDB(
                 user_id=parsed["userId"],
                 role_names=parsed["roles"],
@@ -519,7 +519,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     ),
                     last_used_time=(
                         datetime.fromisoformat(lua.replace("Z", "+00:00"))
-                        if include_last_used_time and (lua := user.get("lastUsedAt")) is not None
+                        if (lua := user.get("lastUsedAt")) is not None
                         else None
                     ),
                     api_key_first_letters=user.get("apiKeyFirstLetters"),

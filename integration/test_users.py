@@ -222,7 +222,7 @@ def test_get_user_created_at_and_api_key_first_letters(client_factory: ClientFac
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
         randomUserName = "new-user" + str(random.randint(1, 1000))
-        apiKey = client.users.db.create(user_id=randomUserName)
+        client.users.db.create(user_id=randomUserName)
         try:
             user = client.users.db.get(user_id=randomUserName)
             assert user is not None
