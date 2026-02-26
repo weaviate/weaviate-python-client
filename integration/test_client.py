@@ -419,6 +419,21 @@ def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubReq
         client.collections.delete(request.node.name)
 
 
+def test_client_cluster_statistics(client: weaviate.WeaviateClient) -> None:
+    """GET /v1/cluster/statistics – RAFT cluster statistics."""
+    stats = client.cluster.statistics()
+    assert hasattr(stats, "statistics")
+    assert hasattr(stats, "synchronized")
+    assert isinstance(stats.statistics, list)
+    assert isinstance(stats.synchronized, bool)
+    for node in stats.statistics:
+        assert hasattr(node, "name")
+        assert hasattr(node, "status")
+        assert hasattr(node, "raft")
+        assert hasattr(node.raft, "state")
+        assert node.raft.state in ("Leader", "Follower", "Candidate", "")
+
+
 def test_client_connect_and_close() -> None:
     client = weaviate.WeaviateClient(
         connection_params=weaviate.connect.ConnectionParams.from_url(

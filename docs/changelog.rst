@@ -1,6 +1,28 @@
 Changelog
 =========
 
+Version 4.20.1
+--------------
+This patch version includes:
+    - Raise an input error when filtering on an empty list
+
+
+Version 4.20.0
+--------------
+This minor version includes:
+    - Support for new 1.36 features:
+        - Server-side batching (SSB) is now GA via ``batch.stream`` (``batch.experimental`` is deprecated)
+        - Add ``collection.data.ingest`` as a new entry point for SSB usage in sync and async clients
+        - Add support for the new HFresh index type
+        - Add support for async replication configuration
+        - Add support for cancelling backup restore operations
+        - Add ``collection.config.delete_property_index`` to drop filterable, searchable, or range filter indices from properties
+    - Add ``client.cluster.statistics()`` method for retrieving cluster and Raft statistics
+    - Allow ``images`` and ``image_properties`` in Cohere generative config at runtime
+    - Provide options to specify custom gRPC SSL credentials for advanced connection setups
+    - Remove ``cache`` option from ``SQConfig`` and deprecate the field in the factory method
+    - Fix validation of nested object properties to allow ``id`` as a nested property name
+
 Version 4.19.4
 --------------
 This patch version includes:

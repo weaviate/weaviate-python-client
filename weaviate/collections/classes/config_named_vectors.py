@@ -14,6 +14,7 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigCreate,
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHFreshUpdate,
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigUpdate,
 )
@@ -1340,6 +1341,7 @@ class _NamedVectorsUpdate:
         *,
         vector_index_config: Union[
             _VectorIndexConfigHNSWUpdate,
+            _VectorIndexConfigHFreshUpdate,
             _VectorIndexConfigFlatUpdate,
             _VectorIndexConfigDynamicUpdate,
         ],

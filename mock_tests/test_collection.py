@@ -313,6 +313,59 @@ def test_node_with_timeout(
     assert nodes[0].status == "TIMEOUT"
 
 
+def test_cluster_statistics(httpserver: HTTPServer, start_grpc_server: grpc.Server) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
+    httpserver.expect_request("/v1/cluster/statistics").respond_with_json(
+        {
+            "statistics": [
+                {
+                    "candidates": {},
+                    "dbLoaded": True,
+                    "initialLastAppliedIndex": 119,
+                    "isVoter": True,
+                    "leaderAddress": "172.16.11.11:8300",
+                    "leaderId": "weaviate-0",
+                    "name": "weaviate-0",
+                    "open": True,
+                    "raft": {
+                        "appliedIndex": "144",
+                        "commitIndex": "144",
+                        "fsmPending": "0",
+                        "lastContact": "0",
+                        "lastLogIndex": "144",
+                        "lastLogTerm": "31",
+                        "latestConfiguration": [
+                            {"address": "172.16.11.11:8300", "id": "weaviate-0", "suffrage": 0}
+                        ],
+                        "latestConfigurationIndex": "0",
+                        "numPeers": "2",
+                        "state": "Leader",
+                        "term": "31",
+                    },
+                    "ready": True,
+                    "status": "HEALTHY",
+                }
+            ],
+            "synchronized": True,
+        }
+    )
+
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+    )
+    client.connect()
+
+    stats = client.cluster.statistics()
+    assert stats.synchronized is True
+    assert len(stats.statistics) == 1
+    assert stats.statistics[0].name == "weaviate-0"
+    assert stats.statistics[0].status == "HEALTHY"
+    assert stats.statistics[0].raft.state == "Leader"
+
+
 def test_backup_cancel_while_create_and_restore(
     weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> None:
