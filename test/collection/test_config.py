@@ -20,7 +20,6 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigCreate,
     ReplicationDeletionStrategy,
 )
-from weaviate.collections.classes.config_methods import _get_object_ttl_config
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_vectorizers import (
     Multi2VecField,

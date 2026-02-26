@@ -7,7 +7,6 @@ from _pytest.fixtures import SubRequest
 import weaviate
 import weaviate.classes as wvc
 from integration.conftest import (
-    ClientFactory,
     CollectionFactory,
     OpenAICollection,
     _sanitize_collection_name,
