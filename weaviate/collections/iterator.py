@@ -1,3 +1,4 @@
+from collections import deque
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -54,14 +55,14 @@ class _ObjectIterator(
         self.__query = query
         self.__inputs = inputs
 
-        self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
+        self.__iter_object_cache: deque[Object[TProperties, TReferences]] = deque()
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
 
     def __iter__(
         self,
     ) -> Iterator[Object[TProperties, TReferences]]:
-        self.__iter_object_cache = []
+        self.__iter_object_cache = deque()
         self.__iter_object_last_uuid = _parse_after(self.__inputs.after)
         return self
 
@@ -75,11 +76,11 @@ class _ObjectIterator(
                 return_properties=self.__inputs.return_properties,
                 return_references=self.__inputs.return_references,
             )
-            self.__iter_object_cache = res.objects  # type: ignore
+            self.__iter_object_cache = deque(res.objects)  # type: ignore
             if len(self.__iter_object_cache) == 0:
                 raise StopIteration
 
-        ret_object = self.__iter_object_cache.pop(0)
+        ret_object = self.__iter_object_cache.popleft()
         self.__iter_object_last_uuid = ret_object.uuid
         assert (
             self.__iter_object_last_uuid is not None
@@ -100,14 +101,14 @@ class _ObjectAIterator(
         self.__query = query
         self.__inputs = inputs
 
-        self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
+        self.__iter_object_cache: deque[Object[TProperties, TReferences]] = deque()
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
 
     def __aiter__(
         self,
     ) -> AsyncIterator[Object[TProperties, TReferences]]:
-        self.__iter_object_cache = []
+        self.__iter_object_cache = deque()
         self.__iter_object_last_uuid = _parse_after(self.__inputs.after)
         return self
 
@@ -123,11 +124,11 @@ class _ObjectAIterator(
                 return_properties=self.__inputs.return_properties,
                 return_references=self.__inputs.return_references,
             )
-            self.__iter_object_cache = res.objects  # type: ignore
+            self.__iter_object_cache = deque(res.objects)  # type: ignore
             if len(self.__iter_object_cache) == 0:
                 raise StopAsyncIteration
 
-        ret_object = self.__iter_object_cache.pop(0)
+        ret_object = self.__iter_object_cache.popleft()
         self.__iter_object_last_uuid = ret_object.uuid
         assert (
             self.__iter_object_last_uuid is not None
