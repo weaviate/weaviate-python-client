@@ -124,6 +124,7 @@ class ConnectionParams(BaseModel):
             ("grpc.max_send_message_length", grpc_msg_size),
             ("grpc.max_receive_message_length", grpc_msg_size),
             ("grpc.default_authority", self.grpc.host),
+            ("grpc.lb_policy_name", "round_robin"),
         ]
 
         if (p := proxies.get("grpc")) is not None:
