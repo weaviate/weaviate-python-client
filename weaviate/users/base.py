@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
 
 from httpx import Response
@@ -19,6 +20,16 @@ from weaviate.users.users import (
     UserDB,
 )
 from weaviate.util import _decode_json_response_dict, escape_string
+
+# Go's zero time value, returned by the server when a timestamp is not set
+_GO_ZERO_TIME = datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc)
+
+
+def _parse_last_used_at(value: Optional[str]) -> Optional[datetime]:
+    if value is None:
+        return None
+    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return None if dt == _GO_ZERO_TIME else dt
 
 
 class _BaseExecutor(Generic[ConnectionType]):
@@ -451,11 +462,14 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Deactivate user"),
         )
 
-    def get(self, *, user_id: str) -> executor.Result[Optional[UserDB]]:
+    def get(
+        self, *, user_id: str, include_last_used_time: bool = False
+    ) -> executor.Result[Optional[UserDB]]:
         """Get all information about an user.
 
         Args:
             user_id: The id of the user.
+            include_last_used_time: If True, the last used time of the user will be included.
         """
 
         def resp(res: Response) -> Optional[UserDB]:
@@ -463,23 +477,36 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 return None
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
+            created_at = parsed.get("createdAt")
             return UserDB(
                 user_id=parsed["userId"],
                 role_names=parsed["roles"],
                 active=parsed["active"],
                 user_type=UserTypes(parsed["dbUserType"]),
+                created_at=(
+                    datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                    if created_at is not None
+                    else None
+                ),
+                last_used_time=_parse_last_used_at(parsed.get("lastUsedAt")),
+                api_key_first_letters=parsed.get("apiKeyFirstLetters"),
             )
 
         return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=f"/users/db/{user_id}",
+            params={"includeLastUsedTime": include_last_used_time},
             error_msg=f"Could not get user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get user"),
         )
 
-    def list_all(self) -> executor.Result[List[UserDB]]:
-        """List all DB users."""
+    def list_all(self, *, include_last_used_time: bool = False) -> executor.Result[List[UserDB]]:
+        """List all DB users.
+
+        Args:
+            include_last_used_time: If True, the last used time of each user will be included.
+        """
 
         def resp(res: Response) -> List[UserDB]:
             parsed = _decode_json_response_dict(res, "Get user")
@@ -490,6 +517,13 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     role_names=user["roles"],
                     active=user["active"],
                     user_type=UserTypes(user["dbUserType"]),
+                    created_at=(
+                        datetime.fromisoformat(ca.replace("Z", "+00:00"))
+                        if (ca := user.get("createdAt")) is not None
+                        else None
+                    ),
+                    last_used_time=_parse_last_used_at(user.get("lastUsedAt")),
+                    api_key_first_letters=user.get("apiKeyFirstLetters"),
                 )
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)
             ]
@@ -498,6 +532,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             response_callback=resp,
             method=self._connection.get,
             path="/users/db",
+            params={"includeLastUsedTime": include_last_used_time},
             error_msg="Could not list all users",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="list all users"),
         )
