@@ -7,7 +7,6 @@ from typing import (
     Generic,
     Iterable,
     Iterator,
-    List,
     Optional,
 )
 from uuid import UUID
