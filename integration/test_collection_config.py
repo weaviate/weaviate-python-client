@@ -1953,6 +1953,31 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
     assert conf.object_ttl_config is None
 
 
+def test_object_ttl_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_creation_time(
+            time_to_live=datetime.timedelta(seconds=60),
+            filter_expired_objects=True,
+        ),
+    )
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+
+    name = f"TestObjectTTLRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
 @pytest.mark.parametrize("index_name", ["filterable", "searchable", "rangeFilters"])
 def test_delete_property_index(
     index_name: IndexName, collection_factory: CollectionFactory

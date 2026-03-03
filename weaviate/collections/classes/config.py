@@ -2004,6 +2004,22 @@ class _ObjectTTLConfig(_ConfigBase):
     filter_expired_objects: bool
     delete_on: Union[str, Literal["updateTime"], Literal["creationTime"]]
 
+    def to_dict(self) -> dict:
+        delete_on = self.delete_on
+        if delete_on == "creationTime":
+            delete_on = "_creationTimeUnix"
+        elif delete_on == "updateTime":
+            delete_on = "_lastUpdateTimeUnix"
+
+        out: dict = {
+            "enabled": self.enabled,
+            "filterExpiredObjects": self.filter_expired_objects,
+            "deleteOn": delete_on,
+        }
+        if self.time_to_live is not None:
+            out["defaultTtl"] = int(self.time_to_live.total_seconds())
+        return out
+
 
 ObjectTTLConfig = _ObjectTTLConfig
 
