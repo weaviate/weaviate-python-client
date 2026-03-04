@@ -742,6 +742,46 @@ def test_overwrite_alias_true(
     assert literature.collection == "Article", "alias must point to the original collection"
 
 
+def test_incremental_backup(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    """Create and restore incremental backup."""
+    if client._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("List backups is only supported from 1.37.0")
+
+    backup_id = unique_backup_id(request.node.name)
+    base_backup_id = backup_id + "_base"
+
+    # create base backup
+    client.backup.create(
+        backup_id=base_backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+    )
+
+    # create incremental backup
+    client.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+        incremental_backup_base_id=base_backup_id,
+    )
+
+    # remove existing class
+    client.collections.delete("Article")
+
+    # restore incremental backup
+    client.backup.restore(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+    )
+
+    # check data exists again
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
+
+
 # This test has been disabled temporarily until the behaviour of this scenario is clarified.
 # It worked in version 1.33.0-rc.1, but broken in version 1.33.0+
 # def test_overwrite_alias_false(

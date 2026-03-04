@@ -30,6 +30,8 @@ services:
       DISABLE_TELEMETRY: 'true'
       DISABLE_LAZY_LOAD_SHARDS: 'true'
       GRPC_MAX_MESSAGE_SIZE: 100000000  # 100mb
+      OBJECTS_TTL_DELETE_SCHEDULE: "@every 12h" # for objectTTL tests to work
+
   contextionary:
     environment:
       OCCURRENCE_WEIGHT_LINEAR_FACTOR: 0.75
