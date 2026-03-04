@@ -744,6 +744,9 @@ def test_overwrite_alias_true(
 
 def test_incremental_backup(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     """Create and restore incremental backup."""
+    if client._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("List backups is only supported from 1.37.0")
+
     backup_id = unique_backup_id(request.node.name)
     base_backup_id = backup_id + "_base"
 
