@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.20.2
+--------------
+This patch version includes:
+    - Support for incremental backups
+
 Version 4.20.1
 --------------
 This patch version includes:
