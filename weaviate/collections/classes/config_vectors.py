@@ -1074,6 +1074,54 @@ class _Vectors:
         )
 
     @staticmethod
+    @typing_deprecated(
+        "`multi2vec_google_aistudio` is deprecated and will be removed after Q3 '26. Use `multi2vec_google_gemini` instead."
+    )
+    def multi2vec_google_aistudio(
+        *,
+        name: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        dimensions: Optional[int] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        model: Optional[str] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_interval_seconds: Optional[int] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `multi2vec-google` module with the Google AI Studio API endpoint.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            text_fields: The text fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecGoogleConfig(
+                projectId=None,
+                location=None,
+                apiEndpoint="generativelanguage.googleapis.com",
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+                videoFields=_map_multi2vec_fields(video_fields),
+                dimensions=dimensions,
+                modelId=model,
+                videoIntervalSeconds=video_interval_seconds,
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
     def multi2vec_bind(
         *,
         name: Optional[str] = None,

@@ -2565,6 +2565,29 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
+            Configure.Vectors.multi2vec_google_aistudio(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "apiEndpoint": "generativelanguage.googleapis.com",
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.Vectors.multi2vec_bind(
                 name="test",
                 audio_fields=["audio"],
