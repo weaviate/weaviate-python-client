@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.20.3
+--------------
+This patch version includes:
+    - Update of ``authlib`` dependency
+
 Version 4.20.2
 --------------
 This patch version includes:
