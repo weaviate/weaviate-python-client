@@ -1074,10 +1074,7 @@ class _Vectors:
         )
 
     @staticmethod
-    @typing_deprecated(
-        "`multi2vec_google_aistudio` is deprecated and will be removed after Q3 '26. Use `multi2vec_google_gemini` instead."
-    )
-    def multi2vec_google_aistudio(
+    def multi2vec_google_gemini(
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
@@ -1089,7 +1086,7 @@ class _Vectors:
         video_interval_seconds: Optional[int] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _VectorConfigCreate:
-        """Create a vector using the `multi2vec-google` module with the Google AI Studio API endpoint.
+        """Create a vector using the `multi2vec-google` module with the Google Gemini API endpoint.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
         for detailed usage.

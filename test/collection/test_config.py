@@ -2565,7 +2565,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
-            Configure.Vectors.multi2vec_google_aistudio(
+            Configure.Vectors.multi2vec_google_gemini(
                 name="test",
                 image_fields=["image"],
                 text_fields=["text"],
