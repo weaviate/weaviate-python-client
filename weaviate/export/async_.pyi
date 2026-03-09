@@ -16,7 +16,7 @@ class _ExportAsync(_ExportExecutor[ConnectionAsync]):
         self,
         export_id: str,
         backend: ExportStorage,
-        file_format: ExportFileFormat = ExportFileFormat.PARQUET,
+        file_format: ExportFileFormat,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,

@@ -41,7 +41,7 @@ class _ExportExecutor(Generic[ConnectionType]):
         self,
         export_id: str,
         backend: ExportStorage,
-        file_format: ExportFileFormat = ExportFileFormat.PARQUET,
+        file_format: ExportFileFormat,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
@@ -52,7 +52,7 @@ class _ExportExecutor(Generic[ConnectionType]):
         Args:
             export_id: The identifier name of the export.
             backend: The backend storage where to create the export.
-            file_format: The file format of the export. By default PARQUET.
+            file_format: The file format of the export (e.g. ExportFileFormat.PARQUET).
             include_collections: The collection/list of collections to be included in the export. If not specified all
                 collections will be included. Either `include_collections` or `exclude_collections` can be set.
             exclude_collections: The collection/list of collections to be excluded in the export.
