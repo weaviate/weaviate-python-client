@@ -7,10 +7,12 @@ from pytest_httpserver import HTTPServer
 
 import weaviate
 import weaviate.classes as wvc
+from weaviate import __version__ as client_version
 from mock_tests.conftest import (
     MOCK_IP,
     MOCK_PORT,
     MOCK_PORT_GRPC,
+    MockMetadataCaptureWeaviateService,
     MockRetriesWeaviateService,
 )
 from weaviate.backup.backup import BackupStorage
@@ -480,3 +482,16 @@ def test_collection_exists(weaviate_mock: HTTPServer) -> None:
         with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
             client.collections.exists(erroring)
             assert e.value.status_code == 500
+
+
+def test_grpc_client_version_header(
+    metadata_capture_collection: tuple[
+        weaviate.collections.Collection, MockMetadataCaptureWeaviateService
+    ],
+) -> None:
+    collection, service = metadata_capture_collection
+    collection.query.fetch_objects()
+
+    assert "x-weaviate-client" in service.captured_metadata
+    expected = f"weaviate-client-python/{client_version}-sync"
+    assert service.captured_metadata["x-weaviate-client"] == expected
