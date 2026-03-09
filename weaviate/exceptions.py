@@ -141,6 +141,14 @@ class BackupCanceledError(WeaviateBaseError):
     """Backup canceled Exception."""
 
 
+class ExportFailedError(WeaviateBaseError):
+    """Export Failed Exception."""
+
+
+class ExportCancelledError(WeaviateBaseError):
+    """Export Cancelled Exception."""
+
+
 class EmptyResponseError(WeaviateBaseError):
     """Occurs when an HTTP request unexpectedly returns an empty response."""
 

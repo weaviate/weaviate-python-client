@@ -1,4 +1,16 @@
-from . import aggregate, backup, batch, cluster, config, data, query, replication, tenants, users
+from . import (
+    aggregate,
+    backup,
+    batch,
+    cluster,
+    config,
+    data,
+    export,
+    query,
+    replication,
+    tenants,
+    users,
+)
 
 __all__ = [
     "aggregate",
@@ -7,6 +19,7 @@ __all__ = [
     "cluster",
     "config",
     "data",
+    "export",
     "query",
     "replication",
     "tenants",

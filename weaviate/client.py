@@ -20,6 +20,7 @@ from .connect.base import (
 from .connect.v4 import ConnectionAsync, ConnectionSync
 from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
+from .export import _Export, _ExportAsync
 from .groups import _Groups, _GroupsAsync
 from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
@@ -76,6 +77,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         )
         self.alias = _AliasAsync(self._connection)
         self.backup = _BackupAsync(self._connection)
+        self.export = _ExportAsync(self._connection)
         self.batch = _BatchClientWrapperAsync(self._connection)
         self.cluster = _ClusterAsync(self._connection)
         self.collections = _CollectionsAsync(self._connection)
@@ -152,6 +154,7 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
             consistency_level=None,
         )
         self.backup = _Backup(self._connection)
+        self.export = _Export(self._connection)
         self.cluster = _Cluster(self._connection)
         self.collections = collections
         self.debug = _Debug(self._connection)
