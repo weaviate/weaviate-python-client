@@ -270,7 +270,7 @@ class _ConnectionBase:
             self.__metadata_list.append(("x-weaviate-client", self._headers["X-Weaviate-Client"]))
         if len(self.additional_headers):
             for key, val in self.additional_headers.items():
-                if val is not None:
+                if val is not None and key.lower() != "x-weaviate-client":
                     self.__metadata_list.append((key.lower(), val))
 
         if self._auth is not None:
