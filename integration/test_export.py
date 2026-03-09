@@ -6,7 +6,6 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from weaviate.auth import Auth
 from weaviate.collections.classes.config import DataType, Property
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.export.export import (
@@ -16,9 +15,6 @@ from weaviate.export.export import (
 )
 
 from .conftest import _sanitize_collection_name
-
-RBAC_PORTS = (8093, 50065)
-RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 pytestmark = pytest.mark.xdist_group(name="export")
 
@@ -39,9 +35,7 @@ OBJECT_IDS = [
 
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local(
-        port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=RBAC_AUTH_CREDS
-    )
+    client = weaviate.connect_to_local()
     client.collections.delete(COLLECTION_NAME)
 
     col = client.collections.create(
@@ -73,6 +67,7 @@ def test_create_export_with_waiting(client: weaviate.WeaviateClient, request: Su
     resp = client.export.create(
         export_id=export_id,
         backend=BACKEND,
+        file_format=ExportFileFormat.PARQUET,
         include_collections=[COLLECTION_NAME],
         wait_for_completion=True,
     )
@@ -89,6 +84,7 @@ def test_create_export_without_waiting(
     resp = client.export.create(
         export_id=export_id,
         backend=BACKEND,
+        file_format=ExportFileFormat.PARQUET,
         include_collections=[COLLECTION_NAME],
     )
     assert resp.status in [ExportStatus.STARTED, ExportStatus.TRANSFERRING, ExportStatus.SUCCESS]
@@ -115,6 +111,7 @@ def test_get_export_status(client: weaviate.WeaviateClient, request: SubRequest)
     client.export.create(
         export_id=export_id,
         backend=BACKEND,
+        file_format=ExportFileFormat.PARQUET,
         include_collections=[COLLECTION_NAME],
         wait_for_completion=True,
     )
@@ -151,6 +148,7 @@ def test_create_export_include_as_str_and_list(
     resp = client.export.create(
         export_id=export_id,
         backend=BACKEND,
+        file_format=ExportFileFormat.PARQUET,
         include_collections=include,
         wait_for_completion=True,
     )
@@ -165,6 +163,7 @@ def test_cancel_export(client: weaviate.WeaviateClient, request: SubRequest) -> 
     resp = client.export.create(
         export_id=export_id,
         backend=BACKEND,
+        file_format=ExportFileFormat.PARQUET,
         include_collections=[COLLECTION_NAME],
     )
     assert resp.status in [ExportStatus.STARTED, ExportStatus.TRANSFERRING, ExportStatus.SUCCESS]
@@ -191,6 +190,7 @@ def test_fail_on_non_existing_collection(
         client.export.create(
             export_id=export_id,
             backend=BACKEND,
+            file_format=ExportFileFormat.PARQUET,
             include_collections=["NonExistingCollection"],
             wait_for_completion=True,
         )
@@ -205,6 +205,7 @@ def test_fail_on_both_include_and_exclude(
         client.export.create(
             export_id=export_id,
             backend=BACKEND,
+            file_format=ExportFileFormat.PARQUET,
             include_collections=COLLECTION_NAME,
             exclude_collections="SomeOther",
         )

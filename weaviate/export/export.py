@@ -37,17 +37,14 @@ class ExportStatus(str, Enum):
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
     CANCELLED = "CANCELLED"
-    SKIPPED = "SKIPPED"
 
 
 class ShardExportStatus(str, Enum):
     """The status of an individual shard export."""
 
-    STARTED = "STARTED"
     TRANSFERRING = "TRANSFERRING"
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
-    CANCELLED = "CANCELLED"
     SKIPPED = "SKIPPED"
 
 
