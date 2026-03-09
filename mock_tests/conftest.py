@@ -252,6 +252,25 @@ def timeouts_collection(
     return weaviate_timeouts_client.collections.use(mock_class["class"])
 
 
+class MockMetadataCaptureWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    captured_metadata: dict = {}
+
+    def Search(
+        self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
+    ) -> search_get_pb2.SearchReply:
+        self.captured_metadata = dict(context.invocation_metadata())
+        return search_get_pb2.SearchReply()
+
+
+@pytest.fixture(scope="function")
+def metadata_capture_collection(
+    weaviate_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+) -> tuple[weaviate.collections.Collection, MockMetadataCaptureWeaviateService]:
+    service = MockMetadataCaptureWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return weaviate_client.collections.use("MetadataCaptureCollection"), service
+
+
 class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
     search_count = 0
     tenants_count = 0
