@@ -36,7 +36,7 @@ class ExportStatus(str, Enum):
     TRANSFERRING = "TRANSFERRING"
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
-    CANCELLED = "CANCELLED"
+    CANCELED = "CANCELED"
 
 
 class ShardExportStatus(str, Enum):
