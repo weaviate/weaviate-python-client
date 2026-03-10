@@ -547,8 +547,9 @@ class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
         default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
     )
     videoFields: Optional[List[Multi2VecField]]
-    projectId: str
+    projectId: Optional[str]
     location: Optional[str]
+    apiEndpoint: Optional[str] = None
     modelId: Optional[str]
     dimensions: Optional[int]
     videoIntervalSeconds: Optional[int]
