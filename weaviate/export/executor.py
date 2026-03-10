@@ -15,7 +15,7 @@ from weaviate.connect.v4 import (
 )
 from weaviate.exceptions import (
     EmptyResponseException,
-    ExportCancelledError,
+    ExportCanceledError,
     ExportFailedError,
 )
 from weaviate.export.export import (
@@ -127,9 +127,9 @@ class _ExportExecutor(Generic[ConnectionType]):
                             raise ExportFailedError(
                                 f"Export failed: {create_status} with error: {status.error}"
                             )
-                        if status.status == ExportStatus.CANCELLED:
-                            raise ExportCancelledError(
-                                f"Export was cancelled: {create_status} with error: {status.error}"
+                        if status.status == ExportStatus.CANCELED:
+                            raise ExportCanceledError(
+                                f"Export was canceled: {create_status} with error: {status.error}"
                             )
                         await asyncio.sleep(1)
                 return ExportCreateReturn(**create_status)
@@ -162,9 +162,9 @@ class _ExportExecutor(Generic[ConnectionType]):
                     raise ExportFailedError(
                         f"Export failed: {create_status} with error: {status.error}"
                     )
-                if status.status == ExportStatus.CANCELLED:
-                    raise ExportCancelledError(
-                        f"Export was cancelled: {create_status} with error: {status.error}"
+                if status.status == ExportStatus.CANCELED:
+                    raise ExportCanceledError(
+                        f"Export was canceled: {create_status} with error: {status.error}"
                     )
                 time.sleep(1)
         return ExportCreateReturn(**create_status)

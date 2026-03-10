@@ -175,10 +175,10 @@ def test_cancel_export(client: weaviate.WeaviateClient, request: SubRequest) -> 
     start = time.time()
     while time.time() - start < 5:
         status = client.export.get_status(export_id=export_id, backend=BACKEND)
-        if status.status in [ExportStatus.CANCELLED, ExportStatus.SUCCESS]:
+        if status.status in [ExportStatus.CANCELED, ExportStatus.SUCCESS]:
             break
         time.sleep(0.1)
-    assert status.status in [ExportStatus.CANCELLED, ExportStatus.SUCCESS]
+    assert status.status in [ExportStatus.CANCELED, ExportStatus.SUCCESS]
 
 
 def test_fail_on_non_existing_collection(

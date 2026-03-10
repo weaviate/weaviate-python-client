@@ -145,8 +145,8 @@ class ExportFailedError(WeaviateBaseError):
     """Export Failed Exception."""
 
 
-class ExportCancelledError(WeaviateBaseError):
-    """Export Cancelled Exception."""
+class ExportCanceledError(WeaviateBaseError):
+    """Export Canceled Exception."""
 
 
 class EmptyResponseError(WeaviateBaseError):
