@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.20.4
+--------------
+This patch version includes:
+    - Include client version in GRPC requests
+    - Add support for the new ``multi2vec_google_gemini`` module
+
 Version 4.20.3
 --------------
 This patch version includes:
