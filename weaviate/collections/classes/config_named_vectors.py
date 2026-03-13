@@ -560,7 +560,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         vectorize_collection_name: bool = True,
         location: str,
         project_id: str,
-        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -579,7 +578,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             location: Where the model runs. REQUIRED.
             project_id: The project ID to use, REQUIRED.
-            audio_fields: The audio fields to use in vectorization.
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
@@ -593,7 +591,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizer=_Multi2VecGoogleConfig(
                 projectId=project_id,
                 location=location,
-                audioFields=_map_multi2vec_fields(audio_fields),
+                audioFields=None,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
