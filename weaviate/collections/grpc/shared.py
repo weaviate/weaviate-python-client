@@ -690,7 +690,12 @@ class _BaseGRPC:
             base_search_pb2.Hybrid(
                 properties=properties,
                 query=query,
-                alpha=float(alpha) if alpha is not None else None,
+                alpha=None
+                if self._weaviate_version.is_at_least(1, 36, 0)
+                else (alpha)
+                if alpha is not None
+                else None,
+                alpha_param=alpha if self._weaviate_version.is_at_least(1, 36, 0) else None,
                 fusion_type=(
                     cast(
                         base_search_pb2.Hybrid.FusionType,
