@@ -148,6 +148,7 @@ class DataType(str, BaseEnum):
         UUID_ARRAY: UUID array data type.
         GEO_COORDINATES: Geo coordinates data type.
         BLOB: Blob data type.
+        BLOB_HASH: Blob hash data type.
         PHONE_NUMBER: Phone number data type.
         OBJECT: Object data type.
         OBJECT_ARRAY: Object array data type.
@@ -167,6 +168,7 @@ class DataType(str, BaseEnum):
     UUID_ARRAY = "uuid[]"
     GEO_COORDINATES = "geoCoordinates"
     BLOB = "blob"
+    BLOB_HASH = "blobHash"
     PHONE_NUMBER = "phoneNumber"
     OBJECT = "object"
     OBJECT_ARRAY = "object[]"
