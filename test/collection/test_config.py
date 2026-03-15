@@ -325,11 +325,11 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        Configure.Vectorizer.text2vec_palm(
+        Configure.Vectorizer.text2vec_google(
             project_id="project",
         ),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
                 "projectId": "project",
                 "vectorizeClassName": True,
             }
@@ -340,7 +340,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             project_id="project",
         ),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
                 "projectId": "project",
                 "vectorizeClassName": True,
             }
@@ -349,21 +349,21 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_google_aistudio(),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
                 "apiEndpoint": "generativelanguage.googleapis.com",
                 "vectorizeClassName": True,
             }
         },
     ),
     (
-        Configure.Vectorizer.text2vec_palm(
+        Configure.Vectorizer.text2vec_palm( # not changed to text2vec_google to ensure BC
             project_id="project",
             api_endpoint="api.google.com",
             model_id="model",
             vectorize_collection_name=False,
         ),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
                 "projectId": "project",
                 "apiEndpoint": "api.google.com",
                 "modelId": "model",
@@ -379,7 +379,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             vectorize_collection_name=False,
         ),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
                 "projectId": "project",
                 "apiEndpoint": "api.google.com",
                 "modelId": "model",
@@ -524,7 +524,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        Configure.Vectorizer.multi2vec_palm(
+        Configure.Vectorizer.multi2vec_palm( # not changed to _google to ensure BC
             image_fields=["image"],
             text_fields=["text"],
             video_fields=["video"],
@@ -533,7 +533,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             location="us-central1",
         ),
         {
-            "multi2vec-palm": {
+            "multi2vec-google": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -553,7 +553,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             location="us-central1",
         ),
         {
-            "multi2vec-palm": {
+            "multi2vec-google": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -1709,7 +1709,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -1730,7 +1730,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -1750,7 +1750,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -1887,7 +1887,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
@@ -1911,7 +1911,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
@@ -2300,7 +2300,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -2322,7 +2322,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -2549,7 +2549,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
