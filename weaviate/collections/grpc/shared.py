@@ -692,7 +692,7 @@ class _BaseGRPC:
                 query=query,
                 alpha=None
                 if self._weaviate_version.is_at_least(1, 36, 0)
-                else (alpha)
+                else alpha
                 if alpha is not None
                 else None,
                 alpha_param=alpha if self._weaviate_version.is_at_least(1, 36, 0) else None,
