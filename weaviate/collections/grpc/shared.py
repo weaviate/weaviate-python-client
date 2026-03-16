@@ -691,7 +691,7 @@ class _BaseGRPC:
             base_search_pb2.Hybrid(
                 properties=properties,
                 query=query,
-                alpha=None if is_1_36 else (alpha if alpha is not None else None),
+                alpha=None if is_1_36 else (alpha if alpha is not None else 0.7),
                 alpha_param=alpha if is_1_36 else None,
                 use_alpha_param=is_1_36,
                 fusion_type=(
