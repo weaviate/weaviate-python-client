@@ -617,7 +617,7 @@ class _BatchBase:
                     )
             except Exception as e:
                 errors_obj = {
-                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
+                    idx: ErrorObject(message=repr(e), object_=obj, original_uuid=obj.uuid) for idx, obj in enumerate(objs)
                 }
                 logger.error(
                     {
