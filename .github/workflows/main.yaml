@@ -310,7 +310,7 @@ jobs:
           $WEAVIATE_133,
           $WEAVIATE_134,
           $WEAVIATE_135,
-          $WEAVIATE_136
+          $WEAVIATE_136,
           $WEAVIATE_137
         ]
     steps:
