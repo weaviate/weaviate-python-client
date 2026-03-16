@@ -9,7 +9,7 @@ SCRIPT_DIR="${0%/*}"
 cd "$SCRIPT_DIR"
 PROJECT_ROOT=$(pwd)
 # Get weaviate dir from arg or by navigating up from script location
-WEAVIATE_DIR="${1:-../../../../core/weaviate}"
+WEAVIATE_DIR="${1:-../../../../weaviate}"
 
 echo "Weaviate directory: $WEAVIATE_DIR"
 echo "Project root: $PROJECT_ROOT"
