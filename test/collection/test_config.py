@@ -565,7 +565,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.multi2vec_google(
-            audio_fields=["audio"],
             image_fields=["image"],
             text_fields=["text"],
             video_fields=["video"],
@@ -574,7 +573,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         ),
         {
             "multi2vec-palm": {
-                "audioFields": ["audio"],
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -585,7 +583,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.multi2vec_google(
-            audio_fields=[Multi2VecField(name="audio")],
             image_fields=[Multi2VecField(name="image")],
             text_fields=[Multi2VecField(name="text")],
             video_fields=[Multi2VecField(name="video")],
@@ -594,7 +591,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         ),
         {
             "multi2vec-palm": {
-                "audioFields": ["audio"],
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -605,7 +601,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.multi2vec_google(
-            audio_fields=[Multi2VecField(name="audio", weight=0.5)],
             image_fields=[Multi2VecField(name="image", weight=0.5)],
             text_fields=[Multi2VecField(name="text", weight=0.5)],
             video_fields=[Multi2VecField(name="video", weight=0.5)],
@@ -615,14 +610,12 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         ),
         {
             "multi2vec-palm": {
-                "audioFields": ["audio"],
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
                 "projectId": "project",
                 "location": "us-central1",
                 "weights": {
-                    "audioFields": [0.5],
                     "imageFields": [0.5],
                     "textFields": [0.5],
                     "videoFields": [0.5],
