@@ -696,6 +696,7 @@ class _BaseGRPC:
                 if alpha is not None
                 else None,
                 alpha_param=alpha if self._weaviate_version.is_at_least(1, 36, 0) else None,
+                use_alpha_param=self._weaviate_version.is_at_least(1, 36, 0),
                 fusion_type=(
                     cast(
                         base_search_pb2.Hybrid.FusionType,
