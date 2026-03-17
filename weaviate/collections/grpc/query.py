@@ -31,6 +31,7 @@ from weaviate.collections.classes.grpc import (
     QueryNested,
     Rerank,
     TargetVectorJoinType,
+    _DiversityMMR,
     _MetadataQuery,
     _QueryReference,
     _QueryReferenceMultiTarget,
@@ -262,6 +263,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
+        selection: Optional[_DiversityMMR] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -275,7 +277,7 @@ class _QueryGRPC(_BaseGRPC):
             autocut=autocut,
             group_by=group_by,
             near_vector=self._parse_near_vector(
-                near_vector, certainty, distance, target_vector=target_vector
+                near_vector, certainty, distance, target_vector=target_vector, selection=selection
             ),
         )
 
@@ -296,6 +298,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
+        selection: Optional[_DiversityMMR] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -308,7 +311,9 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
-            near_object=self._parse_near_object(near_object, certainty, distance, target_vector),
+            near_object=self._parse_near_object(
+                near_object, certainty, distance, target_vector, selection=selection
+            ),
         )
 
     def near_text(
@@ -330,6 +335,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
+        selection: Optional[_DiversityMMR] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -349,6 +355,7 @@ class _QueryGRPC(_BaseGRPC):
                 move_away=move_away,
                 move_to=move_to,
                 target_vector=target_vector,
+                selection=selection,
             ),
         )
 
@@ -370,6 +377,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
+        selection: Optional[_DiversityMMR] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -388,6 +396,7 @@ class _QueryGRPC(_BaseGRPC):
                 certainty,
                 distance,
                 target_vector,
+                selection=selection,
             ),
         )
 
