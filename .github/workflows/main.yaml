@@ -28,7 +28,7 @@ env:
   WEAVIATE_134: 1.34.5
   WEAVIATE_135: 1.35.0
   WEAVIATE_136: 1.36.0
-  WEAVIATE_137: 1.37.0-dev-29d5c87.amd64
+  WEAVIATE_137: 1.37.0-dev-4e2d51d.amd64
 
 
 jobs:
@@ -310,7 +310,7 @@ jobs:
           $WEAVIATE_133,
           $WEAVIATE_134,
           $WEAVIATE_135,
-          $WEAVIATE_136
+          $WEAVIATE_136,
           $WEAVIATE_137
         ]
     steps:
