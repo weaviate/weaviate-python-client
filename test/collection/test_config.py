@@ -564,6 +564,66 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.multi2vec_google(
+            image_fields=["image"],
+            text_fields=["text"],
+            video_fields=["video"],
+            project_id="project",
+            location="us-central1",
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_google(
+            image_fields=[Multi2VecField(name="image")],
+            text_fields=[Multi2VecField(name="text")],
+            video_fields=[Multi2VecField(name="video")],
+            project_id="project",
+            location="us-central1",
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_google(
+            image_fields=[Multi2VecField(name="image", weight=0.5)],
+            text_fields=[Multi2VecField(name="text", weight=0.5)],
+            video_fields=[Multi2VecField(name="video", weight=0.5)],
+            project_id="project",
+            location="us-central1",
+            vectorize_collection_name=False,
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+                "weights": {
+                    "imageFields": [0.5],
+                    "textFields": [0.5],
+                    "videoFields": [0.5],
+                },
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.multi2vec_clip(
             image_fields=[Multi2VecField(name="image")],
             text_fields=[Multi2VecField(name="text")],
@@ -1924,6 +1984,32 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     ),
     (
         [
+            Configure.NamedVectors.multi2vec_google(
+                name="test",
+                audio_fields=["audio"],
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "audioFields": ["audio"],
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.NamedVectors.multi2vec_bind(
                 name="test",
                 audio_fields=["audio"],
@@ -2578,6 +2664,89 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_google(
+                name="test",
+                audio_fields=["audio"],
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "audioFields": ["audio"],
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_google_gemini(
+                name="test",
+                audio_fields=["audio"],
+                image_fields=["image"],
+                text_fields=["text"],
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "apiEndpoint": "generativelanguage.googleapis.com",
+                        "audioFields": ["audio"],
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_google_gemini(
+                name="test",
+                audio_fields=[Multi2VecField(name="audio", weight=0.5)],
+                image_fields=[Multi2VecField(name="image", weight=0.5)],
+                text_fields=[Multi2VecField(name="text", weight=0.5)],
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "apiEndpoint": "generativelanguage.googleapis.com",
+                        "audioFields": ["audio"],
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "dimensions": 768,
+                        "weights": {
+                            "audioFields": [0.5],
+                            "imageFields": [0.5],
+                            "textFields": [0.5],
+                        },
                     }
                 },
                 "vectorIndexType": "hnsw",
