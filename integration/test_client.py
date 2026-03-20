@@ -355,7 +355,10 @@ def test_client_cluster_with_lazy_shard_loading(
         ]
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
-        assert nodes[0].shards[0].loaded is True
+        if collection._connection._weaviate_version.is_lower_than(1, 36, 0):
+            assert nodes[0].shards[0].loaded is False
+        else:
+            assert nodes[0].shards[0].loaded is True
     finally:
         client.collections.delete(request.node.name)
 
@@ -383,7 +386,10 @@ def test_client_cluster_without_lazy_shard_loading(
         ]
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
-        assert nodes[0].shards[0].loaded is True
+        if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+            assert nodes[0].shards[0].loaded is True
+        else:
+            assert nodes[0].shards[0].loaded is False
     finally:
         client.collections.delete(request.node.name)
 
