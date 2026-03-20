@@ -254,7 +254,7 @@ class _BatchBaseAsync:
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
-                await self.__reqs.put(None)
+                await asyncio.wait_for(self.__reqs.put(None), timeout=60)
                 self.__sent_sentinel.set()
             await asyncio.sleep(refresh_time)
 

@@ -206,7 +206,7 @@ class _BatchBaseSync:
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
-                self.__reqs.put(None)
+                self.__reqs.put(None, timeout=60)
                 self.__sent_sentinel.set()
             time.sleep(refresh_time)
 
