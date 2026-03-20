@@ -206,7 +206,14 @@ class _BatchBaseSync:
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
-                self.__reqs.put(None, timeout=60)
+                try:
+                    self.__reqs.put(None, timeout=60)
+                except Full as e:
+                    logger.warning(
+                        "Batch queue is blocked for more than 60 seconds while trying to send shutdown signal. Exiting the loop"
+                    )
+                    self.__bg_exception = e
+                    return
                 self.__sent_sentinel.set()
             time.sleep(refresh_time)
 
