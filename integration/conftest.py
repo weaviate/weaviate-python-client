@@ -1,5 +1,10 @@
 import os
 import time
+import sys
+import threading
+import traceback
+import signal
+import pytest
 from typing import (
     Any,
     AsyncGenerator,
@@ -14,7 +19,6 @@ from typing import (
 )
 from typing import Callable, TypeVar
 
-import pytest
 import pytest_asyncio
 from _pytest.fixtures import SubRequest
 
@@ -500,3 +504,60 @@ def retry_on_http_error(
             raise
     # This should never be reached, but satisfies the type checker
     raise last_exception  # type: ignore
+
+
+TIMEOUT_SECONDS = 30
+
+
+def dump_all_stacks():
+    """Print stack traces for every live thread."""
+    frames = sys._current_frames()
+    lines = ["\n===== DEADLOCK DETECTED — THREAD DUMP =====\n"]
+    for thread in threading.enumerate():
+        frame = frames.get(thread.ident)  # pyright: ignore
+        lines.append(f"\n--- Thread: {thread.name} (id={thread.ident}, daemon={thread.daemon}) ---")
+        if frame:
+            lines.append("".join(traceback.format_stack(frame)))
+        else:
+            lines.append("  (no frame available)\n")
+    lines.append("===========================================\n")
+    return "\n".join(lines)
+
+
+class DeadlockWatchdog:
+    def __init__(self, timeout):
+        self.timeout = timeout
+        self._timer = None
+        self._test_name = None
+
+    def start(self, test_name):
+        self._test_name = test_name
+        self._timer = threading.Timer(self.timeout, self._on_timeout)
+        self._timer.daemon = True
+        self._timer.start()
+
+    def stop(self):
+        if self._timer:
+            self._timer.cancel()
+            self._timer = None
+
+    def _on_timeout(self):
+        dump = dump_all_stacks()
+        # Write to stderr so it's always visible even if captured
+        sys.stderr.write(f"\n[WATCHDOG] Test '{self._test_name}' timed out after {self.timeout}s\n")
+        sys.stderr.write(dump)
+        sys.stderr.flush()
+        # Force-kill the process so CI doesn't hang forever
+        signal.raise_signal(signal.SIGTERM)
+
+
+_watchdog = DeadlockWatchdog(TIMEOUT_SECONDS)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_call(item):
+    _watchdog.start(item.nodeid)
+    try:
+        yield
+    finally:
+        _watchdog.stop()
