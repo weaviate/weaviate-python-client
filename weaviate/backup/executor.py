@@ -88,6 +88,16 @@ class _BackupExecutor(Generic[ConnectionType]):
             wait_for_completion=wait_for_completion,
         )
 
+        if (
+            incremental_base_backup_id is not None
+            and self._connection._weaviate_version.is_lower_than(1, 37, 0)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "Incremental backups",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
+
         payload: dict = {
             "id": backup_id,
             "include": include_collections,

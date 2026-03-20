@@ -68,7 +68,7 @@ class SearchOperatorOptions(_message.Message):
     def __init__(self, operator: _Optional[_Union[SearchOperatorOptions.Operator, str]] = ..., minimum_or_tokens_match: _Optional[int] = ...) -> None: ...
 
 class Hybrid(_message.Message):
-    __slots__ = ("query", "properties", "vector", "alpha", "fusion_type", "vector_bytes", "target_vectors", "near_text", "near_vector", "targets", "bm25_search_operator", "vector_distance", "vectors")
+    __slots__ = ("query", "properties", "vector", "alpha", "fusion_type", "vector_bytes", "target_vectors", "near_text", "near_vector", "targets", "bm25_search_operator", "alpha_param", "use_alpha_param", "vector_distance", "vectors")
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = ()
         FUSION_TYPE_UNSPECIFIED: _ClassVar[Hybrid.FusionType]
@@ -88,6 +88,8 @@ class Hybrid(_message.Message):
     NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
     TARGETS_FIELD_NUMBER: _ClassVar[int]
     BM25_SEARCH_OPERATOR_FIELD_NUMBER: _ClassVar[int]
+    ALPHA_PARAM_FIELD_NUMBER: _ClassVar[int]
+    USE_ALPHA_PARAM_FIELD_NUMBER: _ClassVar[int]
     VECTOR_DISTANCE_FIELD_NUMBER: _ClassVar[int]
     VECTORS_FIELD_NUMBER: _ClassVar[int]
     query: str
@@ -101,9 +103,11 @@ class Hybrid(_message.Message):
     near_vector: NearVector
     targets: Targets
     bm25_search_operator: SearchOperatorOptions
+    alpha_param: float
+    use_alpha_param: bool
     vector_distance: float
     vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
-    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., vector: _Optional[_Iterable[float]] = ..., alpha: _Optional[float] = ..., fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ..., vector_bytes: _Optional[bytes] = ..., target_vectors: _Optional[_Iterable[str]] = ..., near_text: _Optional[_Union[NearTextSearch, _Mapping]] = ..., near_vector: _Optional[_Union[NearVector, _Mapping]] = ..., targets: _Optional[_Union[Targets, _Mapping]] = ..., bm25_search_operator: _Optional[_Union[SearchOperatorOptions, _Mapping]] = ..., vector_distance: _Optional[float] = ..., vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...) -> None: ...
+    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., vector: _Optional[_Iterable[float]] = ..., alpha: _Optional[float] = ..., fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ..., vector_bytes: _Optional[bytes] = ..., target_vectors: _Optional[_Iterable[str]] = ..., near_text: _Optional[_Union[NearTextSearch, _Mapping]] = ..., near_vector: _Optional[_Union[NearVector, _Mapping]] = ..., targets: _Optional[_Union[Targets, _Mapping]] = ..., bm25_search_operator: _Optional[_Union[SearchOperatorOptions, _Mapping]] = ..., alpha_param: _Optional[float] = ..., use_alpha_param: bool = ..., vector_distance: _Optional[float] = ..., vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...) -> None: ...
 
 class NearVector(_message.Message):
     __slots__ = ("vector", "certainty", "distance", "vector_bytes", "target_vectors", "targets", "vector_per_target", "vector_for_targets", "vectors")
