@@ -3,7 +3,6 @@ import time
 import sys
 import threading
 import traceback
-import signal
 import pytest
 from typing import (
     Any,
@@ -506,20 +505,19 @@ def retry_on_http_error(
     raise last_exception  # type: ignore
 
 
-TIMEOUT_SECONDS = 30
+TIMEOUT_SECONDS = 300
 
 
 def dump_all_stacks():
-    """Print stack traces for every live thread."""
     frames = sys._current_frames()
     lines = ["\n===== DEADLOCK DETECTED — THREAD DUMP =====\n"]
     for thread in threading.enumerate():
         frame = frames.get(thread.ident)  # pyright: ignore
-        lines.append(f"\n--- Thread: {thread.name} (id={thread.ident}, daemon={thread.daemon}) ---")
+        lines.append(f"\n--- Thread: {thread.name} (id={thread.ident}) ---")
         if frame:
             lines.append("".join(traceback.format_stack(frame)))
         else:
-            lines.append("  (no frame available)\n")
+            lines.append("  (no frame)\n")
     lines.append("===========================================\n")
     return "\n".join(lines)
 
@@ -528,10 +526,9 @@ class DeadlockWatchdog:
     def __init__(self, timeout):
         self.timeout = timeout
         self._timer = None
-        self._test_name = None
 
-    def start(self, test_name):
-        self._test_name = test_name
+    def start(self, label):
+        self._label = label
         self._timer = threading.Timer(self.timeout, self._on_timeout)
         self._timer.daemon = True
         self._timer.start()
@@ -542,21 +539,29 @@ class DeadlockWatchdog:
             self._timer = None
 
     def _on_timeout(self):
-        dump = dump_all_stacks()
-        # Write to stderr so it's always visible even if captured
-        sys.stderr.write(f"\n[WATCHDOG] Test '{self._test_name}' timed out after {self.timeout}s\n")
-        sys.stderr.write(dump)
+        sys.stderr.write(f"\n[WATCHDOG] Hung at: '{self._label}' after {self.timeout}s\n")
+        sys.stderr.write(dump_all_stacks())
         sys.stderr.flush()
-        # Force-kill the process so CI doesn't hang forever
-        signal.raise_signal(signal.SIGTERM)
+        os._exit(1)  # Hard kill — works reliably in xdist workers
 
 
 _watchdog = DeadlockWatchdog(TIMEOUT_SECONDS)
 
 
+# Covers setup + call + teardown
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_call(item):
+def pytest_runtest_protocol(item, nextitem):
     _watchdog.start(item.nodeid)
+    try:
+        yield
+    finally:
+        _watchdog.stop()
+
+
+# Separately watch session-scoped fixture setup
+@pytest.hookimpl(hookwrapper=True)
+def pytest_sessionstart(session):
+    _watchdog.start("session startup / session-scoped fixtures")
     try:
         yield
     finally:
