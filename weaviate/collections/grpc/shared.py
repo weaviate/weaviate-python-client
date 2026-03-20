@@ -686,14 +686,16 @@ class _BaseGRPC:
             else:
                 vector_bytes = vector_bytes_tmp
 
-        is_1_37 = self._weaviate_version.is_at_least(1, 37, 0)
+        use_alpha_param = self._weaviate_version.is_at_least(
+            1, 36, 6
+        )  # TODO: change to 1.36.7 once it's released
         return (
             base_search_pb2.Hybrid(
                 properties=properties,
                 query=query,
-                alpha=None if is_1_37 else (alpha if alpha is not None else 0.7),
-                alpha_param=alpha if is_1_37 else None,
-                use_alpha_param=is_1_37,
+                alpha=None if use_alpha_param else (alpha if alpha is not None else 0.7),
+                alpha_param=alpha if use_alpha_param else None,
+                use_alpha_param=use_alpha_param,
                 fusion_type=(
                     cast(
                         base_search_pb2.Hybrid.FusionType,
