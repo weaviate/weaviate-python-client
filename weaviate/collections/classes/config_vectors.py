@@ -1031,6 +1031,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         dimensions: Optional[int] = None,
+        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         location: str,
         model: Optional[str] = None,
@@ -1049,6 +1050,7 @@ class _Vectors:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            audio_fields: The audio fields to use in vectorization.
             image_fields: The image fields to use in vectorization.
             location: Where the model runs. REQUIRED.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
@@ -1063,6 +1065,7 @@ class _Vectors:
             vectorizer=_Multi2VecGoogleConfig(
                 projectId=project_id,
                 location=location,
+                audioFields=_map_multi2vec_fields(audio_fields),
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
@@ -1079,6 +1082,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         dimensions: Optional[int] = None,
+        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         model: Optional[str] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -1095,6 +1099,7 @@ class _Vectors:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            audio_fields: The audio fields to use in vectorization.
             image_fields: The image fields to use in vectorization.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             text_fields: The text fields to use in vectorization.
@@ -1108,6 +1113,7 @@ class _Vectors:
                 projectId=None,
                 location=None,
                 apiEndpoint="generativelanguage.googleapis.com",
+                audioFields=_map_multi2vec_fields(audio_fields),
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
