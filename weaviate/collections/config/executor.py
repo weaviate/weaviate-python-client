@@ -631,3 +631,41 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             error_msg="Property may not exist",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
         )
+
+    def delete_vector_index(
+        self,
+        vector_name: str,
+    ) -> executor.Result[bool]:
+        """Delete a vector index from the collection in Weaviate.
+
+            This is a destructive operation. The index will
+            need to be regenerated if you wish to use it again.
+
+        Args:
+            vector_name: The name of the vector whose index to delete.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the vector does not exist.
+        """
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="vector_name", value=vector_name)]
+        )
+
+        path = (
+            f"/schema/{_capitalize_first_letter(self._name)}"
+            + f"/vectors/{vector_name}"
+            + "/index"
+        )
+
+        def resp(res: Response) -> bool:
+            return res.status_code == 200
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.delete,
+            path=path,
+            error_msg="Vector may not exist",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="vector exists"),
+        )
