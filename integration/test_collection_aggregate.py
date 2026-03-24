@@ -153,7 +153,9 @@ def test_aggregation_groupby_no_results(collection_factory: CollectionFactory) -
         Filter.by_property("uuids").contains_any([UUID2]),
     ],
 )
-def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: FilterReturn) -> None:
+def test_over_all_with_filters(
+    collection_factory: CollectionFactory, filter_: FilterReturn
+) -> None:
     collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
