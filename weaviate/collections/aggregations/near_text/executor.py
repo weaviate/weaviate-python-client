@@ -7,7 +7,7 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
     PropertiesMetrics,
 )
-from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import Move
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect import executor
@@ -27,7 +27,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         target_vector: Optional[str] = None,
         total_count: bool = True,
@@ -44,7 +44,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Union[str, GroupByAggregate],
         target_vector: Optional[str] = None,
         total_count: bool = True,
@@ -61,7 +61,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
         total_count: bool = True,
@@ -77,7 +77,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
         total_count: bool = True,

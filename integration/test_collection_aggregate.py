@@ -23,7 +23,7 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
 )
-from weaviate.collections.classes.filters import Filter, _Filters
+from weaviate.collections.classes.filters import Filter, FilterReturn
 from weaviate.collections.classes.grpc import Move
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
@@ -153,7 +153,7 @@ def test_aggregation_groupby_no_results(collection_factory: CollectionFactory) -
         Filter.by_property("uuids").contains_any([UUID2]),
     ],
 )
-def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: _Filters) -> None:
+def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: FilterReturn) -> None:
     collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
