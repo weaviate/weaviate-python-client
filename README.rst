@@ -51,8 +51,7 @@ Documentation
 Support
 -------
 
-- Use our `Forum <https://forum.weaviate.io>`_ for support or any other question.
-- Use our `Slack Channel <https://weaviate.io/slack>`_ for discussions or any other question.
+- Use our `Community Forum <https://forum.weaviate.io>`_ for support or any other question.
 - Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
 - For bugs or problems, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
 
