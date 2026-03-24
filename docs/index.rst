@@ -70,7 +70,7 @@ Support
 -------
 
 * `Community Forum <https://forum.weaviate.io>`_
-* `Community Slack Channel <https://weaviate.io/slack>`_
+* `Community Forum <https://forum.weaviate.io/>`_
 * Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
 * For bugs or problems, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
 
