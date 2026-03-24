@@ -2,12 +2,12 @@ import uuid as uuid_lib
 from typing import Any, Dict, List, Literal, Optional, cast, overload
 
 from weaviate.collections.classes.filters import (
+    FilterReturn,
     FilterValues,
     _CountRef,
     _FilterAnd,
     _FilterNot,
     _FilterOr,
-    _Filters,
     _FilterTargets,
     _FilterValue,
     _GeoCoordinateFilter,
@@ -27,10 +27,10 @@ class _FilterToGRPC:
 
     @overload
     @staticmethod
-    def convert(weav_filter: _Filters) -> base_pb2.Filters: ...
+    def convert(weav_filter: FilterReturn) -> base_pb2.Filters: ...
 
     @staticmethod
-    def convert(weav_filter: Optional[_Filters]) -> Optional[base_pb2.Filters]:
+    def convert(weav_filter: Optional[FilterReturn]) -> Optional[base_pb2.Filters]:
         if weav_filter is None:
             return None
         elif isinstance(weav_filter, _FilterValue):
@@ -169,7 +169,7 @@ class _FilterToGRPC:
         return base_pb2.IntArray(values=cast(List[int], value))
 
     @staticmethod
-    def __and_or_not_filter(weav_filter: _Filters) -> Optional[base_pb2.Filters]:
+    def __and_or_not_filter(weav_filter: FilterReturn) -> Optional[base_pb2.Filters]:
         assert (
             isinstance(weav_filter, _FilterAnd)
             or isinstance(weav_filter, _FilterOr)
@@ -187,7 +187,7 @@ class _FilterToGRPC:
 
 class _FilterToREST:
     @staticmethod
-    def convert(weav_filter: _Filters) -> Dict[str, Any]:
+    def convert(weav_filter: FilterReturn) -> Dict[str, Any]:
         if isinstance(weav_filter, _FilterValue):
             return _FilterToREST.__value_filter(weav_filter)
         else:
@@ -254,7 +254,7 @@ class _FilterToREST:
         raise ValueError(f"Unknown filter value type: {type(value)}")
 
     @staticmethod
-    def __and_or_not_filter(weav_filter: _Filters) -> Dict[str, Any]:
+    def __and_or_not_filter(weav_filter: FilterReturn) -> Dict[str, Any]:
         assert (
             isinstance(weav_filter, _FilterAnd)
             or isinstance(weav_filter, _FilterOr)

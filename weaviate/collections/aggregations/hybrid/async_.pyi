@@ -6,7 +6,7 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
     PropertiesMetrics,
 )
-from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import BM25OperatorOptions
 from weaviate.connect.v4 import ConnectionAsync
 from weaviate.types import NUMBER
@@ -24,7 +24,7 @@ class _HybridAsync(_HybridExecutor[ConnectionAsync]):
         query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
         bm25_operator: Optional[BM25OperatorOptions] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
@@ -41,7 +41,7 @@ class _HybridAsync(_HybridExecutor[ConnectionAsync]):
         query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
         bm25_operator: Optional[BM25OperatorOptions] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Union[str, GroupByAggregate],
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
@@ -58,7 +58,7 @@ class _HybridAsync(_HybridExecutor[ConnectionAsync]):
         query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
         bm25_operator: Optional[BM25OperatorOptions] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
