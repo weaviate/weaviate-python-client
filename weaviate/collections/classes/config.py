@@ -2325,8 +2325,8 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     ) -> Union[_VectorConfigCreate, List[_VectorConfigCreate], None]:
         if (
             v is None
-            and info.data["vectorizerConfig"] is None
-            and info.data["vectorIndexConfig"] is None
+            and info.data.get("vectorizerConfig") is None
+            and info.data.get("vectorIndexConfig") is None
         ):
             return _VectorConfigCreate(
                 name="default",
