@@ -1772,7 +1772,7 @@ class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
     deletion_strategy: ReplicationDeletionStrategy
-    async_config: Optional[_AsyncReplicationConfig]
+    async_config: Optional[_AsyncReplicationConfig] = None
 
 
 ReplicationConfig = _ReplicationConfig
