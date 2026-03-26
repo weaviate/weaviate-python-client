@@ -4,6 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
+    _AsyncReplicationConfig,
+    _ReplicationConfig,
     _ReplicationConfigUpdate,
     Configure,
     DataType,
@@ -18,6 +20,7 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigCreate,
     ReplicationDeletionStrategy,
 )
+from weaviate.collections.classes.config_methods import _collection_config_from_json
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_vectorizers import (
     Multi2VecField,
@@ -2936,6 +2939,143 @@ TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS = [
 def test_reconfigure_with_replication(config: _ReplicationConfigUpdate, expected: dict) -> None:
     """Test that _ReplicationConfig.to_dict() properly converts replication settings."""
     assert config.model_dump() == expected
+
+
+def test_collection_config_from_json_replication_without_async_config() -> None:
+    """Test that _collection_config_from_json parses replication config without asyncConfig."""
+    from test.collection.schema import multi_vector_schema
+
+    schema = multi_vector_schema()
+    # Schema has: {"asyncEnabled": False, "factor": 1} — no asyncConfig
+    config = _collection_config_from_json(schema)
+    assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is False
+    assert (
+        config.replication_config.deletion_strategy
+        == ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
+    )
+    assert config.replication_config.async_config is None
+
+
+def test_collection_config_from_json_replication_with_async_config() -> None:
+    """Test that _collection_config_from_json parses asyncConfig from replication config."""
+    from test.collection.schema import multi_vector_schema
+
+    schema = multi_vector_schema()
+    schema["replicationConfig"] = {
+        "asyncEnabled": True,
+        "factor": 3,
+        "deletionStrategy": "TimeBasedResolution",
+        "asyncConfig": {
+            "maxWorkers": 8,
+            "hashtreeHeight": 20,
+            "frequency": 60,
+            "frequencyWhilePropagating": 30,
+            "aliveNodesCheckingFrequency": 3,
+            "loggingFrequency": 15,
+            "diffBatchSize": 100,
+            "diffPerNodeTimeout": 10,
+            "prePropagationTimeout": 20,
+            "propagationTimeout": 300,
+            "propagationLimit": 1000,
+            "propagationDelay": 5,
+            "propagationConcurrency": 4,
+            "propagationBatchSize": 50,
+        },
+    }
+    config = _collection_config_from_json(schema)
+    assert config.replication_config.factor == 3
+    assert config.replication_config.async_enabled is True
+    assert (
+        config.replication_config.deletion_strategy
+        == ReplicationDeletionStrategy.TIME_BASED_RESOLUTION
+    )
+    assert config.replication_config.async_config is not None
+    ac = config.replication_config.async_config
+    assert ac.max_workers == 8
+    assert ac.hashtree_height == 20
+    assert ac.frequency == 60
+    assert ac.frequency_while_propagating == 30
+    assert ac.alive_nodes_checking_frequency == 3
+    assert ac.logging_frequency == 15
+    assert ac.diff_batch_size == 100
+    assert ac.diff_per_node_timeout == 10
+    assert ac.pre_propagation_timeout == 20
+    assert ac.propagation_timeout == 300
+    assert ac.propagation_limit == 1000
+    assert ac.propagation_delay == 5
+    assert ac.propagation_concurrency == 4
+    assert ac.propagation_batch_size == 50
+
+
+def test_collection_config_from_json_replication_async_config_partial() -> None:
+    """Test that asyncConfig with only some fields set parses correctly (rest are None)."""
+    from test.collection.schema import multi_vector_schema
+
+    schema = multi_vector_schema()
+    schema["replicationConfig"] = {
+        "asyncEnabled": True,
+        "factor": 3,
+        "asyncConfig": {
+            "maxWorkers": 8,
+            "hashtreeHeight": 20,
+        },
+    }
+    config = _collection_config_from_json(schema)
+    ac = config.replication_config.async_config
+    assert ac is not None
+    assert ac.max_workers == 8
+    assert ac.hashtree_height == 20
+    assert ac.frequency is None
+    assert ac.frequency_while_propagating is None
+    assert ac.alive_nodes_checking_frequency is None
+    assert ac.propagation_batch_size is None
+
+
+def test_replication_config_to_dict_with_async_config() -> None:
+    """Test that _ReplicationConfig.to_dict() includes asyncConfig when present."""
+    config = _ReplicationConfig(
+        factor=3,
+        async_enabled=True,
+        deletion_strategy=ReplicationDeletionStrategy.TIME_BASED_RESOLUTION,
+        async_config=_AsyncReplicationConfig(
+            max_workers=8,
+            hashtree_height=20,
+            frequency=None,
+            frequency_while_propagating=None,
+            alive_nodes_checking_frequency=3,
+            logging_frequency=None,
+            diff_batch_size=None,
+            diff_per_node_timeout=None,
+            pre_propagation_timeout=None,
+            propagation_timeout=None,
+            propagation_limit=None,
+            propagation_delay=None,
+            propagation_concurrency=None,
+            propagation_batch_size=None,
+        ),
+    )
+    d = config.to_dict()
+    assert d["factor"] == 3
+    assert d["asyncEnabled"] is True
+    assert d["deletionStrategy"] == "TimeBasedResolution"
+    assert d["asyncConfig"]["maxWorkers"] == 8
+    assert d["asyncConfig"]["hashtreeHeight"] == 20
+    assert d["asyncConfig"]["aliveNodesCheckingFrequency"] == 3
+
+
+def test_replication_config_to_dict_without_async_config() -> None:
+    """Test that _ReplicationConfig.to_dict() omits asyncConfig when None."""
+    config = _ReplicationConfig(
+        factor=1,
+        async_enabled=False,
+        deletion_strategy=ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION,
+        async_config=None,
+    )
+    d = config.to_dict()
+    assert d["factor"] == 1
+    assert d["asyncEnabled"] is False
+    assert "asyncConfig" not in d
 
 
 def test_nested_property_with_id_name_is_allowed() -> None:

@@ -1747,10 +1747,32 @@ ReferencePropertyConfig = _ReferenceProperty
 
 
 @dataclass
+class _AsyncReplicationConfig(_ConfigBase):
+    max_workers: Optional[int]
+    hashtree_height: Optional[int]
+    frequency: Optional[int]
+    frequency_while_propagating: Optional[int]
+    alive_nodes_checking_frequency: Optional[int]
+    logging_frequency: Optional[int]
+    diff_batch_size: Optional[int]
+    diff_per_node_timeout: Optional[int]
+    pre_propagation_timeout: Optional[int]
+    propagation_timeout: Optional[int]
+    propagation_limit: Optional[int]
+    propagation_delay: Optional[int]
+    propagation_concurrency: Optional[int]
+    propagation_batch_size: Optional[int]
+
+
+AsyncReplicationConfig = _AsyncReplicationConfig
+
+
+@dataclass
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
     deletion_strategy: ReplicationDeletionStrategy
+    async_config: Optional[_AsyncReplicationConfig]
 
 
 ReplicationConfig = _ReplicationConfig
