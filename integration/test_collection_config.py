@@ -39,6 +39,7 @@ from weaviate.collections.classes.config import (
     Tokenization,
     _NamedVectorConfigCreate,
     _VectorizerConfigCreate,
+    IndexName,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
@@ -1950,3 +1951,84 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
     )
     conf = collection.config.get()
     assert conf.object_ttl_config is None
+
+
+def test_object_ttl_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_creation_time(
+            time_to_live=datetime.timedelta(seconds=60),
+            filter_expired_objects=True,
+        ),
+    )
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+
+    name = f"TestObjectTTLRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+@pytest.mark.parametrize("index_name", ["filterable", "searchable", "rangeFilters"])
+def test_delete_property_index(
+    index_name: IndexName, collection_factory: CollectionFactory
+) -> None:
+    """Test delete index works for each index type."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("delete property index not supported before 1.36.0")
+
+    if index_name == "filterable" or index_name == "searchable":
+        _data_type = DataType.TEXT
+        _index_range_filters = False
+        _index_searchable = True
+        _index_filterable = True
+    else:
+        _data_type = DataType.DATE
+        _index_range_filters = True
+        _index_searchable = False
+        _index_filterable = True
+
+    collection = collection_factory(
+        properties=[
+            Property(
+                name="indexed_prop",
+                data_type=_data_type,
+                index_range_filters=_index_range_filters,
+                index_searchable=_index_searchable,
+                index_filterable=_index_filterable,
+            )
+        ],
+    )
+    config = collection.config.get()
+    assert config.properties[0].index_filterable is _index_filterable
+    assert config.properties[0].index_searchable is _index_searchable
+    assert config.properties[0].index_range_filters is _index_range_filters
+
+    with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError):
+        collection.config.delete_property_index("does_not_exist", index_name)
+
+    collection.config.delete_property_index("indexed_prop", index_name)
+
+    config = collection.config.get()
+    if index_name == "filterable":
+        assert config.properties[0].index_filterable is False
+        assert config.properties[0].index_searchable is _index_searchable
+        assert config.properties[0].index_range_filters is _index_range_filters
+    elif index_name == "searchable":
+        assert config.properties[0].index_searchable is False
+        assert config.properties[0].index_filterable is _index_filterable
+        assert config.properties[0].index_range_filters is _index_range_filters
+    elif index_name == "rangeFilters":
+        assert config.properties[0].index_range_filters is False
+        assert config.properties[0].index_searchable is _index_searchable
+        assert config.properties[0].index_filterable is _index_filterable

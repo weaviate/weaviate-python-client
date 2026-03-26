@@ -5,7 +5,7 @@ from weaviate.collections.classes.batch import (
     DeleteManyReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import executor
@@ -29,7 +29,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
         connection: Connection,
         *,
         name: str,
-        filters: _Filters,
+        filters: FilterReturn,
         verbose: bool,
         dry_run: bool,
         tenant: Optional[str],

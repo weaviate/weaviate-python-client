@@ -1,4 +1,6 @@
+import os
 from typing import Callable, Generator, Optional, Tuple, Union
+from unittest import mock
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -417,6 +419,21 @@ def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubReq
         client.collections.delete(request.node.name)
 
 
+def test_client_cluster_statistics(client: weaviate.WeaviateClient) -> None:
+    """GET /v1/cluster/statistics – RAFT cluster statistics."""
+    stats = client.cluster.statistics()
+    assert hasattr(stats, "statistics")
+    assert hasattr(stats, "synchronized")
+    assert isinstance(stats.statistics, list)
+    assert isinstance(stats.synchronized, bool)
+    for node in stats.statistics:
+        assert hasattr(node, "name")
+        assert hasattr(node, "status")
+        assert hasattr(node, "raft")
+        assert hasattr(node.raft, "state")
+        assert node.raft.state in ("Leader", "Follower", "Candidate", "")
+
+
 def test_client_connect_and_close() -> None:
     client = weaviate.WeaviateClient(
         connection_params=weaviate.connect.ConnectionParams.from_url(
@@ -632,6 +649,47 @@ async def test_async_client_is_ready() -> None:
         assert await client.is_ready()
 
 
+def test_client_is_not_live() -> None:
+    assert not weaviate.WeaviateClient(
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
+        skip_init_checks=True,
+    ).is_live()
+
+
+def test_client_is_live() -> None:
+    with weaviate.connect_to_wcs(
+        cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
+    ) as client:
+        assert client.is_live()
+
+
+@pytest.mark.asyncio
+async def test_async_client_is_live() -> None:
+    async with weaviate.use_async_with_weaviate_cloud(
+        cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
+    ) as client:
+        assert await client.is_live()
+
+
+def test_client_is_not_live_with_wrong_rest_port() -> None:
+    with weaviate.connect_to_local(skip_init_checks=True) as client:
+        # Simulate a wrong REST port after connecting.
+        client._connection.url = "http://localhost:9000"
+        assert not client.is_live()
+
+
+def test_client_is_not_live_with_wrong_grpc_port() -> None:
+    with weaviate.connect_to_local(skip_init_checks=True) as client:
+        # Simulate a wrong gRPC port after connecting.
+        client._connection._connection_params.grpc.port = 90000
+        # Clear channel and stub so ping fails and cleanup doesn't break
+        client._connection._grpc_channel = None
+        client._connection._grpc_stub = None
+        assert not client.is_live()
+
+
 def test_local_proxies() -> None:
     with weaviate.connect_to_local(
         additional_config=wvc.init.AdditionalConfig(
@@ -667,3 +725,16 @@ async def test_sync_client_inside_async_client(caplog: pytest.LogCaptureFixture)
             assert client.is_ready()
             assert await aclient.is_ready()
             assert "BlockingIOError: [Errno 35] Resource temporarily unavailable" not in caplog.text
+
+
+def test_sync_client_connects_even_if_pypi_fails():
+    with mock.patch.dict(os.environ, {"PYPI_PACKAGE_URL": "http://does-not-exist"}):
+        with weaviate.connect_to_local() as client:
+            assert client.is_ready()
+
+
+@pytest.mark.asyncio
+async def test_async_client_connects_even_if_pypi_fails():
+    with mock.patch.dict(os.environ, {"PYPI_PACKAGE_URL": "http://does-not-exist"}):
+        async with weaviate.use_async_with_local() as client:
+            assert await client.is_ready()

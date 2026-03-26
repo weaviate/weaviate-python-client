@@ -546,9 +546,11 @@ class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
     )
+    audioFields: Optional[List[Multi2VecField]]
     videoFields: Optional[List[Multi2VecField]]
-    projectId: str
+    projectId: Optional[str]
     location: Optional[str]
+    apiEndpoint: Optional[str] = None
     modelId: Optional[str]
     dimensions: Optional[int]
     videoIntervalSeconds: Optional[int]
@@ -1291,6 +1293,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Multi2VecGoogleConfig(
             projectId=project_id,
             location=location,
+            audioFields=None,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             videoFields=_map_multi2vec_fields(video_fields),
@@ -1332,6 +1335,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Multi2VecGoogleConfig(
             projectId=project_id,
             location=location,
+            audioFields=None,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             videoFields=_map_multi2vec_fields(video_fields),

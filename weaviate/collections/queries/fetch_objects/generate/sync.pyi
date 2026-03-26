@@ -1,6 +1,6 @@
 from typing import Generic, List, Literal, Optional, Type, Union, overload
 
-from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -33,7 +33,7 @@ class _FetchObjectsGenerate(
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -51,7 +51,7 @@ class _FetchObjectsGenerate(
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -69,7 +69,7 @@ class _FetchObjectsGenerate(
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -87,7 +87,7 @@ class _FetchObjectsGenerate(
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -105,7 +105,7 @@ class _FetchObjectsGenerate(
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -123,7 +123,7 @@ class _FetchObjectsGenerate(
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -141,7 +141,7 @@ class _FetchObjectsGenerate(
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,

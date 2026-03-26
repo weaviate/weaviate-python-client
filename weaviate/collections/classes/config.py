@@ -51,6 +51,7 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigCreate,
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHFreshUpdate,
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigUpdate,
 )
@@ -74,7 +75,7 @@ from weaviate.collections.classes.config_vectors import (
     _Vectors,
     _VectorsUpdate,
 )
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInsertInvalidPropertyError, WeaviateInvalidInputError
 from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -100,6 +101,12 @@ OpenAiReasoningEffort: TypeAlias = Literal[
     "low",
     "medium",
     "high",
+]
+
+IndexName: TypeAlias = Literal[
+    "searchable",
+    "filterable",
+    "rangeFilters",
 ]
 
 
@@ -281,15 +288,51 @@ class _ShardingConfigCreate(_ConfigCreateModel):
     function: str = "murmur3"
 
 
+class _AsyncReplicationConfigCreate(_ConfigCreateModel):
+    maxWorkers: Optional[int]
+    hashtreeHeight: Optional[int]
+    frequency: Optional[int]
+    frequencyWhilePropagating: Optional[int]
+    aliveNodesCheckingFrequency: Optional[int]
+    loggingFrequency: Optional[int]
+    diffBatchSize: Optional[int]
+    diffPerNodeTimeout: Optional[int]
+    prePropagationTimeout: Optional[int]
+    propagationTimeout: Optional[int]
+    propagationLimit: Optional[int]
+    propagationDelay: Optional[int]
+    propagationConcurrency: Optional[int]
+    propagationBatchSize: Optional[int]
+
+
+class _AsyncReplicationConfigUpdate(_ConfigUpdateModel):
+    maxWorkers: Optional[int]
+    hashtreeHeight: Optional[int]
+    frequency: Optional[int]
+    frequencyWhilePropagating: Optional[int]
+    aliveNodesCheckingFrequency: Optional[int]
+    loggingFrequency: Optional[int]
+    diffBatchSize: Optional[int]
+    diffPerNodeTimeout: Optional[int]
+    prePropagationTimeout: Optional[int]
+    propagationTimeout: Optional[int]
+    propagationLimit: Optional[int]
+    propagationDelay: Optional[int]
+    propagationConcurrency: Optional[int]
+    propagationBatchSize: Optional[int]
+
+
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    asyncConfig: Optional[_AsyncReplicationConfigCreate]
     deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    asyncConfig: Optional[_AsyncReplicationConfigUpdate]
     deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
@@ -1768,7 +1811,6 @@ class _BQConfig(_ConfigBase):
 
 @dataclass
 class _SQConfig(_ConfigBase):
-    cache: Optional[bool]
     rescore_limit: int
     training_limit: int
 
@@ -1847,6 +1889,27 @@ VectorIndexConfigHNSW = _VectorIndexConfigHNSW
 
 
 @dataclass
+class _VectorIndexConfigHFresh(_VectorIndexConfig):
+    distance_metric: VectorDistances
+    max_posting_size_kb: int
+    replicas: int
+    search_probe: int
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.HFRESH.value
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        if "maxPostingSizeKb" in out:
+            out["maxPostingSizeKB"] = out.pop("maxPostingSizeKb")
+        return out
+
+
+VectorIndexConfigHFresh = _VectorIndexConfigHFresh
+
+
+@dataclass
 class _VectorIndexConfigFlat(_VectorIndexConfig):
     distance_metric: VectorDistances
     vector_cache_max_objects: int
@@ -1919,7 +1982,10 @@ class _NamedVectorizerConfig(_ConfigBase):
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic
+        VectorIndexConfigHNSW,
+        VectorIndexConfigFlat,
+        VectorIndexConfigDynamic,
+        VectorIndexConfigHFresh,
     ]
 
     def to_dict(self) -> Dict:
@@ -1937,6 +2003,22 @@ class _ObjectTTLConfig(_ConfigBase):
     time_to_live: Optional[datetime.timedelta]
     filter_expired_objects: bool
     delete_on: Union[str, Literal["updateTime"], Literal["creationTime"]]
+
+    def to_dict(self) -> dict:
+        delete_on = self.delete_on
+        if delete_on == "creationTime":
+            delete_on = "_creationTimeUnix"
+        elif delete_on == "updateTime":
+            delete_on = "_lastUpdateTimeUnix"
+
+        out: dict = {
+            "enabled": self.enabled,
+            "filterExpiredObjects": self.filter_expired_objects,
+            "deleteOn": delete_on,
+        }
+        if self.time_to_live is not None:
+            out["defaultTtl"] = int(self.time_to_live.total_seconds())
+        return out
 
 
 ObjectTTLConfig = _ObjectTTLConfig
@@ -1956,7 +2038,11 @@ class _CollectionConfig(_ConfigBase):
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
+        VectorIndexConfigHNSW,
+        VectorIndexConfigFlat,
+        VectorIndexConfigDynamic,
+        VectorIndexConfigHFresh,
+        None,
     ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
@@ -2069,7 +2155,7 @@ class Property(_ConfigCreateModel):
 
     @field_validator("name")
     def _check_name(cls, v: str) -> str:
-        if v in ["id", "vector"]:
+        if v == "vector":
             raise ValueError(f"Property name '{v}' is reserved and cannot be used")
         return v
 
@@ -2195,6 +2281,18 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
+
+    @field_validator("properties", mode="after")
+    @classmethod
+    def _check_top_level_property_names(
+        cls, v: Optional[Sequence["Property"]]
+    ) -> Optional[Sequence["Property"]]:
+        if v is None:
+            return v
+        for prop in v:
+            if prop.name == "id":
+                raise WeaviateInsertInvalidPropertyError({"name": prop.name})
+        return v
 
     @field_validator("vectorizerConfig", "vectorConfig", mode="after")
     @classmethod
@@ -2333,6 +2431,88 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         ret_dict["properties"] = existing_props
 
 
+class _Replication:
+    @staticmethod
+    def async_config(
+        *,
+        max_workers: Optional[int] = None,
+        hashtree_height: Optional[int] = None,
+        frequency: Optional[int] = None,
+        frequency_while_propagating: Optional[int] = None,
+        alive_nodes_checking_frequency: Optional[int] = None,
+        logging_frequency: Optional[int] = None,
+        diff_batch_size: Optional[int] = None,
+        diff_per_node_timeout: Optional[int] = None,
+        pre_propagation_timeout: Optional[int] = None,
+        propagation_timeout: Optional[int] = None,
+        propagation_limit: Optional[int] = None,
+        propagation_delay: Optional[int] = None,
+        propagation_concurrency: Optional[int] = None,
+        propagation_batch_size: Optional[int] = None,
+    ) -> _AsyncReplicationConfigCreate:
+        """Create a configuration object create for async replication settings when creating a collection.
+
+        This is only available with WeaviateDB `>=v1.36.0`.
+        """
+        return _AsyncReplicationConfigCreate(
+            maxWorkers=max_workers,
+            hashtreeHeight=hashtree_height,
+            frequency=frequency,
+            frequencyWhilePropagating=frequency_while_propagating,
+            aliveNodesCheckingFrequency=alive_nodes_checking_frequency,
+            loggingFrequency=logging_frequency,
+            diffBatchSize=diff_batch_size,
+            diffPerNodeTimeout=diff_per_node_timeout,
+            prePropagationTimeout=pre_propagation_timeout,
+            propagationTimeout=propagation_timeout,
+            propagationLimit=propagation_limit,
+            propagationDelay=propagation_delay,
+            propagationConcurrency=propagation_concurrency,
+            propagationBatchSize=propagation_batch_size,
+        )
+
+
+class _ReplicationUpdate:
+    @staticmethod
+    def async_config(
+        *,
+        max_workers: Optional[int] = None,
+        hashtree_height: Optional[int] = None,
+        frequency: Optional[int] = None,
+        frequency_while_propagating: Optional[int] = None,
+        alive_nodes_checking_frequency: Optional[int] = None,
+        logging_frequency: Optional[int] = None,
+        diff_batch_size: Optional[int] = None,
+        diff_per_node_timeout: Optional[int] = None,
+        pre_propagation_timeout: Optional[int] = None,
+        propagation_timeout: Optional[int] = None,
+        propagation_limit: Optional[int] = None,
+        propagation_delay: Optional[int] = None,
+        propagation_concurrency: Optional[int] = None,
+        propagation_batch_size: Optional[int] = None,
+    ) -> _AsyncReplicationConfigUpdate:
+        """Create a configuration object for async replication settings when updating a collection.
+
+        This is only available with WeaviateDB `>=v1.36.0`.
+        """
+        return _AsyncReplicationConfigUpdate(
+            maxWorkers=max_workers,
+            hashtreeHeight=hashtree_height,
+            frequency=frequency,
+            frequencyWhilePropagating=frequency_while_propagating,
+            aliveNodesCheckingFrequency=alive_nodes_checking_frequency,
+            loggingFrequency=logging_frequency,
+            diffBatchSize=diff_batch_size,
+            diffPerNodeTimeout=diff_per_node_timeout,
+            prePropagationTimeout=pre_propagation_timeout,
+            propagationTimeout=propagation_timeout,
+            propagationLimit=propagation_limit,
+            propagationDelay=propagation_delay,
+            propagationConcurrency=propagation_concurrency,
+            propagationBatchSize=propagation_batch_size,
+        )
+
+
 class Configure:
     """Use this factory class to generate the correct object for use when using the `collections.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
 
@@ -2348,6 +2528,7 @@ class Configure:
     Vectors = _Vectors
     MultiVectors = _MultiVectors
     ObjectTTL = _ObjectTTL
+    Replication = _Replication
 
     @staticmethod
     def inverted_index(
@@ -2410,6 +2591,7 @@ class Configure:
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
         deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
+        async_config: Optional[_AsyncReplicationConfigCreate] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2419,11 +2601,13 @@ class Configure:
             factor: The replication factor.
             async_enabled: Enabled async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
+            async_config: The configuration for async replication. This is only relevant if `async_enabled` is `True`.
         """
         return _ReplicationConfigCreate(
             factor=factor,
             asyncEnabled=async_enabled,
             deletionStrategy=deletion_strategy,
+            asyncConfig=async_config,
         )
 
     @staticmethod
@@ -2610,6 +2794,25 @@ class _VectorIndexUpdate:
             quantizer=quantizer,
         )
 
+    @staticmethod
+    def hfresh(
+        max_posting_size_kb: Optional[int] = None,
+        search_probe: Optional[int] = None,
+        quantizer: Optional[_RQConfigUpdate] = None,
+    ) -> _VectorIndexConfigHFreshUpdate:
+        """Create an `_VectorIndexConfigHFreshUpdate` object to update the configuration of the HFresh vector index.
+
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
+
+        Args:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigHFreshUpdate(
+            maxPostingSizeKB=max_posting_size_kb,
+            searchProbe=search_probe,
+            quantizer=quantizer,
+        )
+
 
 class Reconfigure:
     """Use this factory class to generate the correct `xxxConfig` object for use when using the `collection.update()` method.
@@ -2626,6 +2829,7 @@ class Reconfigure:
     Generative = _Generative  # config is the same for create and update
     Reranker = _Reranker  # config is the same for create and update
     ObjectTTL = _ObjectTTLUpdate
+    Replication = _ReplicationUpdate
 
     @staticmethod
     def inverted_index(
@@ -2658,6 +2862,7 @@ class Reconfigure:
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
         deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
+        async_config: Optional[_AsyncReplicationConfigUpdate] = None,
     ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
@@ -2667,11 +2872,13 @@ class Reconfigure:
             factor: The replication factor.
             async_enabled: Enable async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
+            async_config: The async replication configuration. This is only applicable if `async_enabled` is set to `True`.
         """
         return _ReplicationConfigUpdate(
             factor=factor,
             asyncEnabled=async_enabled,
             deletionStrategy=deletion_strategy,
+            asyncConfig=async_config,
         )
 
     @staticmethod

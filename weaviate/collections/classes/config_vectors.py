@@ -18,6 +18,8 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigFlatCreate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHFreshCreate,
+    _VectorIndexConfigHFreshUpdate,
     _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigUpdate,
@@ -126,6 +128,17 @@ class _IndexWrappers:
             vectorCacheMaxObjects=None,
             quantizer=quantizer,
             multivector=multivector,
+        )
+
+    @staticmethod
+    def __hfresh(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigHFreshCreate:
+        return _VectorIndexConfigHFreshCreate(
+            maxPostingSizeKB=None,
+            replicas=None,
+            searchProbe=None,
+            quantizer=quantizer,
+            multivector=None,
+            distance=None,
         )
 
     @staticmethod
@@ -1018,6 +1031,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         dimensions: Optional[int] = None,
+        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         location: str,
         model: Optional[str] = None,
@@ -1036,6 +1050,7 @@ class _Vectors:
             name: The name of the vector.
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            audio_fields: The audio fields to use in vectorization.
             image_fields: The image fields to use in vectorization.
             location: Where the model runs. REQUIRED.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
@@ -1050,6 +1065,55 @@ class _Vectors:
             vectorizer=_Multi2VecGoogleConfig(
                 projectId=project_id,
                 location=location,
+                audioFields=_map_multi2vec_fields(audio_fields),
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+                videoFields=_map_multi2vec_fields(video_fields),
+                dimensions=dimensions,
+                modelId=model,
+                videoIntervalSeconds=video_interval_seconds,
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
+    def multi2vec_google_gemini(
+        *,
+        name: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        dimensions: Optional[int] = None,
+        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        model: Optional[str] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_interval_seconds: Optional[int] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `multi2vec-google` module with the Google Gemini API endpoint.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            audio_fields: The audio fields to use in vectorization.
+            image_fields: The image fields to use in vectorization.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            text_fields: The text fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecGoogleConfig(
+                projectId=None,
+                location=None,
+                apiEndpoint="generativelanguage.googleapis.com",
+                audioFields=_map_multi2vec_fields(audio_fields),
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
@@ -1804,6 +1868,7 @@ class _VectorsUpdate:
         name: Optional[str] = None,
         vector_index_config: Union[
             _VectorIndexConfigHNSWUpdate,
+            _VectorIndexConfigHFreshUpdate,
             _VectorIndexConfigFlatUpdate,
             _VectorIndexConfigDynamicUpdate,
         ],

@@ -1,20 +1,22 @@
-from datetime import timedelta
 from typing import List, Union
 
 import pytest
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
+    _ReplicationConfigUpdate,
     Configure,
     DataType,
     Property,
+    Reconfigure,
     ReferenceProperty,
     Vectorizers,
     _CollectionConfigCreate,
     _GenerativeProvider,
-    _ObjectTTLConfig,
     _RerankerProvider,
     _VectorizerConfigCreate,
+    _ReplicationConfigCreate,
+    ReplicationDeletionStrategy,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_vectorizers import (
@@ -22,6 +24,7 @@ from weaviate.collections.classes.config_vectorizers import (
     VectorDistances,
 )
 from weaviate.collections.classes.config_vectors import _VectorConfigCreate
+from weaviate.exceptions import WeaviateInsertInvalidPropertyError
 
 DEFAULTS = {
     "vectorConfig": {
@@ -557,6 +560,66 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "projectId": "project",
                 "location": "us-central1",
                 "videoIntervalSeconds": 1,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_google(
+            image_fields=["image"],
+            text_fields=["text"],
+            video_fields=["video"],
+            project_id="project",
+            location="us-central1",
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_google(
+            image_fields=[Multi2VecField(name="image")],
+            text_fields=[Multi2VecField(name="text")],
+            video_fields=[Multi2VecField(name="video")],
+            project_id="project",
+            location="us-central1",
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_google(
+            image_fields=[Multi2VecField(name="image", weight=0.5)],
+            text_fields=[Multi2VecField(name="text", weight=0.5)],
+            video_fields=[Multi2VecField(name="video", weight=0.5)],
+            project_id="project",
+            location="us-central1",
+            vectorize_collection_name=False,
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+                "weights": {
+                    "imageFields": [0.5],
+                    "textFields": [0.5],
+                    "videoFields": [0.5],
+                },
             }
         },
     ),
@@ -1380,7 +1443,16 @@ def test_config_create_with_properties(
     assert out["properties"] == make_expected_props()
 
 
-@pytest.mark.parametrize("name", ["id", "vector"])
+def test_config_with_invalid_property_id():
+    with pytest.raises(WeaviateInsertInvalidPropertyError):
+        _CollectionConfigCreate(
+            name="test",
+            description="test",
+            properties=[Property(name="id", data_type=DataType.TEXT)],
+        )
+
+
+@pytest.mark.parametrize("name", ["vector"])
 def test_config_with_invalid_property(name: str):
     with pytest.raises(ValidationError):
         _CollectionConfigCreate(
@@ -1900,6 +1972,32 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-palm": {
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.multi2vec_google(
+                name="test",
+                audio_fields=["audio"],
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "audioFields": ["audio"],
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
@@ -2551,6 +2649,112 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
+            Configure.Vectors.multi2vec_google_gemini(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "apiEndpoint": "generativelanguage.googleapis.com",
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_google(
+                name="test",
+                audio_fields=["audio"],
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "audioFields": ["audio"],
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_google_gemini(
+                name="test",
+                audio_fields=["audio"],
+                image_fields=["image"],
+                text_fields=["text"],
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "apiEndpoint": "generativelanguage.googleapis.com",
+                        "audioFields": ["audio"],
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.multi2vec_google_gemini(
+                name="test",
+                audio_fields=[Multi2VecField(name="audio", weight=0.5)],
+                image_fields=[Multi2VecField(name="image", weight=0.5)],
+                text_fields=[Multi2VecField(name="text", weight=0.5)],
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "apiEndpoint": "generativelanguage.googleapis.com",
+                        "audioFields": ["audio"],
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "dimensions": 768,
+                        "weights": {
+                            "audioFields": [0.5],
+                            "imageFields": [0.5],
+                            "textFields": [0.5],
+                        },
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.Vectors.multi2vec_bind(
                 name="test",
                 audio_fields=["audio"],
@@ -2600,85 +2804,147 @@ def test_config_with_vectors(vector_config: List[_VectorConfigCreate], expected:
     }
 
 
-TEST_OBJECT_TTL_CONFIG_TO_DICT_PARAMETERS = [
-    # delete_by_creation_time
+TEST_CONFIGURE_WITH_REPLICATION_PARAMETERS = [
+    (Configure.replication(), {}),
     (
-        _ObjectTTLConfig(
-            enabled=True,
-            time_to_live=timedelta(hours=24),
-            filter_expired_objects=True,
-            delete_on="creationTime",
+        Configure.replication(
+            factor=3,
+            async_enabled=True,
+            deletion_strategy=ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
         ),
         {
-            "enabled": True,
-            "timeToLive": 86400,
-            "filterExpiredObjects": True,
-            "deleteOn": "creationTime",
+            "factor": 3,
+            "asyncEnabled": True,
+            "deletionStrategy": "DeleteOnConflict",
         },
     ),
-    # delete_by_update_time
     (
-        _ObjectTTLConfig(
-            enabled=True,
-            time_to_live=timedelta(days=7),
-            filter_expired_objects=False,
-            delete_on="updateTime",
+        Configure.replication(
+            async_config=Configure.Replication.async_config(
+                max_workers=10,
+                hashtree_height=5,
+                frequency=60,
+                frequency_while_propagating=30,
+                alive_nodes_checking_frequency=120,
+                logging_frequency=15,
+                diff_batch_size=100,
+                diff_per_node_timeout=10,
+                pre_propagation_timeout=20,
+                propagation_timeout=300,
+                propagation_limit=1000,
+                propagation_delay=5,
+                propagation_concurrency=4,
+                propagation_batch_size=50,
+            )
         ),
         {
-            "enabled": True,
-            "timeToLive": 604800,
-            "filterExpiredObjects": False,
-            "deleteOn": "updateTime",
-        },
-    ),
-    # delete_by_date_property
-    (
-        _ObjectTTLConfig(
-            enabled=True,
-            time_to_live=timedelta(hours=1, minutes=30),
-            filter_expired_objects=True,
-            delete_on="releaseDate",
-        ),
-        {
-            "enabled": True,
-            "timeToLive": 5400,
-            "filterExpiredObjects": True,
-            "deleteOn": "releaseDate",
-        },
-    ),
-    # None time_to_live
-    (
-        _ObjectTTLConfig(
-            enabled=True,
-            time_to_live=None,
-            filter_expired_objects=False,
-            delete_on="creationTime",
-        ),
-        {
-            "enabled": True,
-            "filterExpiredObjects": False,
-            "deleteOn": "creationTime",
-        },
-    ),
-    # negative offset (delete_by_date_property with offset before date)
-    (
-        _ObjectTTLConfig(
-            enabled=True,
-            time_to_live=timedelta(seconds=-3600),
-            filter_expired_objects=True,
-            delete_on="eventDate",
-        ),
-        {
-            "enabled": True,
-            "timeToLive": -3600,
-            "filterExpiredObjects": True,
-            "deleteOn": "eventDate",
+            "asyncConfig": {
+                "maxWorkers": 10,
+                "hashtreeHeight": 5,
+                "frequency": 60,
+                "frequencyWhilePropagating": 30,
+                "aliveNodesCheckingFrequency": 120,
+                "loggingFrequency": 15,
+                "diffBatchSize": 100,
+                "diffPerNodeTimeout": 10,
+                "prePropagationTimeout": 20,
+                "propagationTimeout": 300,
+                "propagationLimit": 1000,
+                "propagationDelay": 5,
+                "propagationConcurrency": 4,
+                "propagationBatchSize": 50,
+            }
         },
     ),
 ]
 
 
-@pytest.mark.parametrize("ttl_config,expected", TEST_OBJECT_TTL_CONFIG_TO_DICT_PARAMETERS)
-def test_object_ttl_config_to_dict(ttl_config: _ObjectTTLConfig, expected: dict) -> None:
-    """Test that _ObjectTTLConfig.to_dict() properly converts timedelta to seconds."""
-    assert ttl_config.to_dict() == expected
+@pytest.mark.parametrize("config,expected", TEST_CONFIGURE_WITH_REPLICATION_PARAMETERS)
+def test_configure_with_replication(config: _ReplicationConfigCreate, expected: dict) -> None:
+    """Test that _ReplicationConfig.to_dict() properly converts replication settings."""
+    assert config._to_dict() == expected
+
+
+TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS = [
+    (
+        Reconfigure.replication(),
+        {
+            "factor": None,
+            "asyncEnabled": None,
+            "deletionStrategy": None,
+            "asyncConfig": None,
+        },
+    ),
+    (
+        Reconfigure.replication(
+            factor=3,
+            async_enabled=True,
+            deletion_strategy=ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
+        ),
+        {
+            "factor": 3,
+            "asyncEnabled": True,
+            "deletionStrategy": "DeleteOnConflict",
+            "asyncConfig": None,
+        },
+    ),
+    (
+        Reconfigure.replication(
+            async_config=Reconfigure.Replication.async_config(
+                max_workers=10,
+                hashtree_height=5,
+                frequency=60,
+                frequency_while_propagating=30,
+                alive_nodes_checking_frequency=120,
+                logging_frequency=15,
+                diff_batch_size=100,
+                diff_per_node_timeout=10,
+                pre_propagation_timeout=20,
+                propagation_timeout=300,
+                propagation_limit=1000,
+                propagation_delay=5,
+                propagation_concurrency=4,
+                propagation_batch_size=50,
+            )
+        ),
+        {
+            "factor": None,
+            "asyncEnabled": None,
+            "deletionStrategy": None,
+            "asyncConfig": {
+                "maxWorkers": 10,
+                "hashtreeHeight": 5,
+                "frequency": 60,
+                "frequencyWhilePropagating": 30,
+                "aliveNodesCheckingFrequency": 120,
+                "loggingFrequency": 15,
+                "diffBatchSize": 100,
+                "diffPerNodeTimeout": 10,
+                "prePropagationTimeout": 20,
+                "propagationTimeout": 300,
+                "propagationLimit": 1000,
+                "propagationDelay": 5,
+                "propagationConcurrency": 4,
+                "propagationBatchSize": 50,
+            },
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize("config,expected", TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS)
+def test_reconfigure_with_replication(config: _ReplicationConfigUpdate, expected: dict) -> None:
+    """Test that _ReplicationConfig.to_dict() properly converts replication settings."""
+    assert config.model_dump() == expected
+
+
+def test_nested_property_with_id_name_is_allowed() -> None:
+    """A nested property named 'id' must not raise — only top-level 'id' is reserved."""
+    prop = Property(
+        name="nested_property",
+        data_type=DataType.OBJECT,
+        nested_properties=[
+            Property(name="id", data_type=DataType.TEXT),
+        ],
+    )
+    assert prop.nestedProperties[0].name == "id"

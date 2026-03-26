@@ -7,7 +7,7 @@ from weaviate.collections.aggregate import _AggregateCollection
 from weaviate.collections.backups import _CollectionBackup
 from weaviate.collections.batch.collection import (
     _BatchCollection,
-    _BatchCollectionNew,
+    _BatchCollectionSync,
     _BatchCollectionWrapper,
 )
 from weaviate.collections.classes.cluster import Shard
@@ -29,6 +29,7 @@ from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
 from weaviate.collections.query import _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect.v4 import ConnectionSync
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID
 
 from .base import _CollectionBase
@@ -101,10 +102,8 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
             name,
             tenant,
             config,
-            batch_client=_BatchCollectionNew[Properties]
-            if connection._weaviate_version.is_at_least(
-                1, 32, 0
-            )  # todo: change to 1.33.0 when it lands
+            batch_client=_BatchCollectionSync[Properties]
+            if connection._weaviate_version.is_at_least(1, 36, 0)
             else _BatchCollection[Properties],
         )
         """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
@@ -204,8 +203,10 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
         try:
             self.config.get(simple=True)
             return True
-        except Exception:
-            return False
+        except UnexpectedStatusCodeError as e:
+            if e.status_code == 404:
+                return False
+            raise e
 
     def shards(self) -> List[Shard]:
         """Get the statuses of all the shards of this collection.

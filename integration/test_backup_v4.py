@@ -497,13 +497,13 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
 
 
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
-def test_cancel_backup(
+def test_cancel_backup_create(
     client: weaviate.WeaviateClient,
     dynamic_backup_location: bool,
     tmp_path: pathlib.Path,
     request: SubRequest,
 ) -> None:
-    """Cancel backup without waiting."""
+    """Cancel backup create without waiting."""
     backup_id = unique_backup_id(request.node.name)
     if client._connection._weaviate_version.is_lower_than(1, 24, 25):
         pytest.skip("Cancel backups is only supported from 1.24.25")
@@ -537,6 +537,67 @@ def test_cancel_backup(
             break
         time.sleep(0.1)
     status_resp = client.backup.get_create_status(
+        backup_id=backup_id, backend=BACKEND, backup_location=backup_location
+    )
+    # there can be a race between the cancel and the backup completion
+    assert status_resp.status == BackupStatus.CANCELED or status_resp.status == BackupStatus.SUCCESS
+
+
+@pytest.mark.parametrize("dynamic_backup_location", [False, True])
+def test_cancel_backup_restore(
+    client: weaviate.WeaviateClient,
+    dynamic_backup_location: bool,
+    tmp_path: pathlib.Path,
+    request: SubRequest,
+) -> None:
+    """Cancel backup restore without waiting."""
+    backup_id = unique_backup_id(request.node.name)
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Cancel restores is only supported from 1.36.0")
+
+    backup_location: Optional[wvc.backup.BackupLocationType] = None
+    if dynamic_backup_location:
+        backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
+
+    c_name = "Restore"
+    c = client.collections.create(
+        name=c_name, properties=[Property(name="name", data_type=DataType.TEXT)]
+    )
+    c.data.insert({"name": "test"})
+
+    resp = client.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        backup_location=backup_location,
+        include_collections=[c_name],
+        wait_for_completion=True,
+    )
+    assert resp.status == BackupStatus.SUCCESS
+
+    client.collections.delete(c_name)
+
+    resp = client.backup.restore(
+        backup_id=backup_id,
+        backend=BACKEND,
+        backup_location=backup_location,
+        include_collections=[c_name],
+    )
+    assert resp.status == BackupStatus.STARTED
+
+    assert client.backup.cancel(
+        backup_id=backup_id, backend=BACKEND, backup_location=backup_location, operation="restore"
+    )
+
+    start = time.time()
+    while time.time() - start < 5:
+        status_resp = client.backup.get_restore_status(
+            backup_id=backup_id, backend=BACKEND, backup_location=backup_location
+        )
+        if status_resp.status == BackupStatus.CANCELED:
+            break
+        time.sleep(0.1)
+
+    status_resp = client.backup.get_restore_status(
         backup_id=backup_id, backend=BACKEND, backup_location=backup_location
     )
     # there can be a race between the cancel and the backup completion
@@ -679,6 +740,46 @@ def test_overwrite_alias_true(
     literature = client.alias.get(alias_name="Literature")
     assert literature is not None, "expect alias exists"
     assert literature.collection == "Article", "alias must point to the original collection"
+
+
+def test_incremental_backup(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    """Create and restore incremental backup."""
+    if client._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("List backups is only supported from 1.37.0")
+
+    backup_id = unique_backup_id(request.node.name)
+    base_backup_id = backup_id + "_base"
+
+    # create base backup
+    client.backup.create(
+        backup_id=base_backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+    )
+
+    # create incremental backup
+    client.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+        incremental_backup_base_id=base_backup_id,
+    )
+
+    # remove existing class
+    client.collections.delete("Article")
+
+    # restore incremental backup
+    client.backup.restore(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+    )
+
+    # check data exists again
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
 
 
 # This test has been disabled temporarily until the behaviour of this scenario is clarified.

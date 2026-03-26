@@ -7,10 +7,12 @@ from pytest_httpserver import HTTPServer
 
 import weaviate
 import weaviate.classes as wvc
+from weaviate import __version__ as client_version
 from mock_tests.conftest import (
     MOCK_IP,
     MOCK_PORT,
     MOCK_PORT_GRPC,
+    MockMetadataCaptureWeaviateService,
     MockRetriesWeaviateService,
 )
 from weaviate.backup.backup import BackupStorage
@@ -313,6 +315,59 @@ def test_node_with_timeout(
     assert nodes[0].status == "TIMEOUT"
 
 
+def test_cluster_statistics(httpserver: HTTPServer, start_grpc_server: grpc.Server) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
+    httpserver.expect_request("/v1/cluster/statistics").respond_with_json(
+        {
+            "statistics": [
+                {
+                    "candidates": {},
+                    "dbLoaded": True,
+                    "initialLastAppliedIndex": 119,
+                    "isVoter": True,
+                    "leaderAddress": "172.16.11.11:8300",
+                    "leaderId": "weaviate-0",
+                    "name": "weaviate-0",
+                    "open": True,
+                    "raft": {
+                        "appliedIndex": "144",
+                        "commitIndex": "144",
+                        "fsmPending": "0",
+                        "lastContact": "0",
+                        "lastLogIndex": "144",
+                        "lastLogTerm": "31",
+                        "latestConfiguration": [
+                            {"address": "172.16.11.11:8300", "id": "weaviate-0", "suffrage": 0}
+                        ],
+                        "latestConfigurationIndex": "0",
+                        "numPeers": "2",
+                        "state": "Leader",
+                        "term": "31",
+                    },
+                    "ready": True,
+                    "status": "HEALTHY",
+                }
+            ],
+            "synchronized": True,
+        }
+    )
+
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+    )
+    client.connect()
+
+    stats = client.cluster.statistics()
+    assert stats.synchronized is True
+    assert len(stats.statistics) == 1
+    assert stats.statistics[0].name == "weaviate-0"
+    assert stats.statistics[0].status == "HEALTHY"
+    assert stats.statistics[0].raft.state == "Leader"
+
+
 def test_backup_cancel_while_create_and_restore(
     weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> None:
@@ -406,3 +461,37 @@ def test_grpc_forbidden_exception(forbidden: weaviate.collections.Collection) ->
 
     with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
         forbidden.data.insert_many([{"name": "test"}])
+
+
+def test_collection_exists(weaviate_mock: HTTPServer) -> None:
+    non_existing = "NonExistingCollection"
+    erroring = "ErroringCollection"
+    weaviate_mock.expect_request(f"/v1/schema/{non_existing}").respond_with_json(
+        response_json={"error": [{"message": "collection not found"}]}, status=404
+    )
+    weaviate_mock.expect_request(f"/v1/schema/{erroring}").respond_with_json(
+        response_json={"error": [{"message": "this is an error"}]}, status=500
+    )
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert not client.collections.exists(non_existing)
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+            client.collections.exists("")
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            client.collections.exists(erroring)
+            assert e.value.status_code == 500
+
+
+def test_grpc_client_version_header(
+    metadata_capture_collection: tuple[
+        weaviate.collections.Collection, MockMetadataCaptureWeaviateService
+    ],
+) -> None:
+    collection, service = metadata_capture_collection
+    collection.query.fetch_objects()
+
+    assert "x-weaviate-client" in service.captured_metadata
+    expected = f"weaviate-client-python/{client_version}-sync"
+    assert service.captured_metadata["x-weaviate-client"] == expected

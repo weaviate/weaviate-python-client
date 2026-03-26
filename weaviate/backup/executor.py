@@ -47,6 +47,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        incremental_base_backup_id: Optional[str] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -60,6 +61,8 @@ class _BackupExecutor(Generic[ConnectionType]):
                 collections will be included. Either `include_collections` or `exclude_collections` can be set. By default None.
             exclude_collections: The collection/list of collections to be excluded in the backup.
                 Either `include_collections` or `exclude_collections` can be set. By default None.
+            incremental_base_backup_id: The identifier name of the base backup for an incremental backup. Files that are identical
+                to the base backup will not be included in the incremental backup and restored from the base. By default None.
             wait_for_completion: Whether to wait until the backup is done. By default False.
             config: The configuration of the backup creation. By default None.
             backup_location: The dynamic location of a backup. By default None.
@@ -89,6 +92,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             "id": backup_id,
             "include": include_collections,
             "exclude": exclude_collections,
+            "incremental_base_backup_id": incremental_base_backup_id,
         }
 
         if config is not None:
@@ -427,6 +431,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
+        operation: Literal["create", "restore"] = "create",
     ) -> executor.Result[bool]:
         """Cancels a running backup.
 
@@ -434,6 +439,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             backup_id: The identifier name of the backup. NOTE: Case insensitive.
             backend: The backend storage where to create the backup.
             backup_location: The dynamic location of a backup. By default None.
+            operation: The type of the backup operation to cancel, either "create" or "restore". By default "create".
 
         Raises:
             weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
@@ -445,7 +451,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             backup_id=backup_id,
             backend=backend,
         )
-        path = f"/backups/{backend.value}/{backup_id}"
+        path = f"/backups/{backend.value}/{backup_id}{'/restore' if operation == 'restore' else ''}"
         params: Dict[str, str] = {}
 
         if backup_location is not None:

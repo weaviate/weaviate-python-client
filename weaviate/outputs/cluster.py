@@ -1,4 +1,11 @@
-from weaviate.cluster.models import ShardingState, ShardReplicas
+from weaviate.cluster.models import (
+    ClusterStatistics,
+    NodeStatistics,
+    RaftConfigurationMember,
+    RaftStats,
+    ShardingState,
+    ShardReplicas,
+)
 from weaviate.collections.classes.cluster import (
     Node,
     NodeMinimal,
@@ -9,12 +16,16 @@ from weaviate.collections.classes.cluster import (
 )
 
 __all__ = [
+    "ClusterStatistics",
     "Node",
     "NodeMinimal",
+    "NodeStatistics",
     "NodeVerbose",
+    "RaftConfigurationMember",
+    "RaftStats",
     "Shard",
-    "Shards",
-    "Stats",
     "ShardingState",
     "ShardReplicas",
+    "Shards",
+    "Stats",
 ]
