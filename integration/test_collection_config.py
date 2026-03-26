@@ -1574,6 +1574,73 @@ def test_replication_config(
     assert config.replication_config.deletion_strategy == deletion_strategy
 
 
+def test_replication_config_without_async_config(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("async replication requires Weaviate >= 1.26.0")
+
+    collection = collection_factory(
+        replication_config=Configure.replication(factor=1, async_enabled=False),
+    )
+    config = collection.config.get()
+    assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is False
+    assert config.replication_config.async_config is None
+
+
+def test_replication_config_with_async_config(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("async replication config requires Weaviate >= 1.36.0")
+
+    collection = collection_factory(
+        replication_config=Configure.replication(
+            factor=1,
+            async_enabled=True,
+            async_config=Configure.Replication.async_config(
+                max_workers=8,
+                hashtree_height=20,
+            ),
+        ),
+    )
+    config = collection.config.get()
+    assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is True
+    assert config.replication_config.async_config is not None
+    ac = config.replication_config.async_config
+    assert ac.max_workers == 8
+    assert ac.hashtree_height == 20
+
+
+def test_replication_config_remove_async_config(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("async replication config requires Weaviate >= 1.36.0")
+
+    collection = collection_factory(
+        replication_config=Configure.replication(
+            factor=1,
+            async_enabled=True,
+            async_config=Configure.Replication.async_config(
+                max_workers=8,
+                hashtree_height=20,
+            ),
+        ),
+    )
+    config = collection.config.get()
+    assert config.replication_config.async_config is not None
+    assert config.replication_config.async_config.max_workers == 8
+
+    collection.config.update(
+        replication_config=Reconfigure.replication(
+            async_enabled=False,
+        ),
+    )
+    config = collection.config.get()
+    assert config.replication_config.async_enabled is False
+    assert config.replication_config.async_config is None
+
+
 def test_update_property_descriptions(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),

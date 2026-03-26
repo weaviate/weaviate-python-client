@@ -398,7 +398,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                     propagation_concurrency=async_cfg.get("propagationConcurrency"),
                     propagation_batch_size=async_cfg.get("propagationBatchSize"),
                 )
-                if (async_cfg := schema["replicationConfig"].get("asyncConfig"))
+                if (async_cfg := schema["replicationConfig"].get("asyncConfig")) is not None
                 else None
             ),
         ),
