@@ -2986,6 +2986,31 @@ def test_replication_config_to_dict_without_async_config() -> None:
     assert "asyncConfig" not in d
 
 
+def test_replication_config_update_merge_with_missing_async_config() -> None:
+    """Test that merge_with_existing handles a schema without asyncConfig.
+
+    When a collection was created without async replication config and we
+    update it to add one, the existing schema won't have the asyncConfig key.
+    merge_with_existing must not raise KeyError in this case.
+    """
+    update = Reconfigure.replication(
+        async_config=Reconfigure.Replication.async_config(
+            max_workers=12,
+            propagation_concurrency=4,
+        ),
+    )
+    # Simulate an existing schema that has no asyncConfig key
+    existing_schema = {
+        "factor": 3,
+        "asyncEnabled": True,
+        "deletionStrategy": "NoAutomatedResolution",
+    }
+    result = update.merge_with_existing(existing_schema)
+    assert result["asyncConfig"]["maxWorkers"] == 12
+    assert result["asyncConfig"]["propagationConcurrency"] == 4
+    assert result["factor"] == 3
+
+
 def test_nested_property_with_id_name_is_allowed() -> None:
     """A nested property named 'id' must not raise — only top-level 'id' is reserved."""
     prop = Property(
