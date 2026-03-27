@@ -42,7 +42,7 @@ class _ConfigUpdateModel(BaseModel):
                     )
                     schema[quantizer]["enabled"] = False
             elif isinstance(val, _ConfigUpdateModel):
-                schema[cls_field] = val.merge_with_existing(schema[cls_field])
+                schema[cls_field] = val.merge_with_existing(schema.get(cls_field, {}))
             else:
                 pass  # ignore unknown types so that individual classes can be extended
         return schema

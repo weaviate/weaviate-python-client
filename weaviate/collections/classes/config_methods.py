@@ -14,6 +14,7 @@ from weaviate.collections.classes.config import (
     VectorFilterStrategy,
     VectorIndexType,
     Vectorizers,
+    _AsyncReplicationConfig,
     _BM25Config,
     _BQConfig,
     _CollectionConfig,
@@ -379,6 +380,26 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 ReplicationDeletionStrategy(schema["replicationConfig"]["deletionStrategy"])
                 if "deletionStrategy" in schema["replicationConfig"]
                 else ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
+            ),
+            async_config=(
+                _AsyncReplicationConfig(
+                    max_workers=async_cfg.get("maxWorkers"),
+                    hashtree_height=async_cfg.get("hashtreeHeight"),
+                    frequency=async_cfg.get("frequency"),
+                    frequency_while_propagating=async_cfg.get("frequencyWhilePropagating"),
+                    alive_nodes_checking_frequency=async_cfg.get("aliveNodesCheckingFrequency"),
+                    logging_frequency=async_cfg.get("loggingFrequency"),
+                    diff_batch_size=async_cfg.get("diffBatchSize"),
+                    diff_per_node_timeout=async_cfg.get("diffPerNodeTimeout"),
+                    pre_propagation_timeout=async_cfg.get("prePropagationTimeout"),
+                    propagation_timeout=async_cfg.get("propagationTimeout"),
+                    propagation_limit=async_cfg.get("propagationLimit"),
+                    propagation_delay=async_cfg.get("propagationDelay"),
+                    propagation_concurrency=async_cfg.get("propagationConcurrency"),
+                    propagation_batch_size=async_cfg.get("propagationBatchSize"),
+                )
+                if (async_cfg := schema["replicationConfig"].get("asyncConfig"))
+                else None
             ),
         ),
         reranker_config=__get_rerank_config(schema),
