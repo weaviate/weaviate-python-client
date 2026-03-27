@@ -243,6 +243,23 @@ class Rerank(_WeaviateInput):
 
 
 @dataclass
+class _DiversityMMR:
+    """Define MMR (Maximal Marginal Relevance) diversity selection."""
+
+    limit: Optional[int] = None
+    balance: Optional[float] = None
+
+
+class Diversity:
+    """Use this factory class to apply diversity selection to search results via MMR."""
+
+    def __init__(self) -> None:
+        raise TypeError("Diversity cannot be instantiated directly. Use Diversity.MMR(...).")
+
+    MMR = _DiversityMMR
+
+
+@dataclass
 class BM25OperatorOptions:
     # replace with ClassVar[base_search_pb2.SearchOperatorOptions.Operator] once python 3.10 is removed
     operator: ClassVar[Any]
