@@ -1338,6 +1338,10 @@ def test_config_create_with_properties(
                 data_type=DataType.BLOB,
             ),
             Property(
+                name="blob_hash",
+                data_type=DataType.BLOB_HASH,
+            ),
+            Property(
                 name="phone_number",
                 data_type=DataType.PHONE_NUMBER,
             ),
@@ -1399,6 +1403,10 @@ def test_config_create_with_properties(
         {
             "dataType": ["blob"],
             "name": "blob",
+        },
+        {
+            "dataType": ["blobHash"],
+            "name": "blob_hash",
         },
         {
             "dataType": ["phoneNumber"],
