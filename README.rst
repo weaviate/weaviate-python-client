@@ -29,7 +29,6 @@ We currently support the following versions client versions:
 
 - 4.X: actively supported
 - 3.X: deprecated, receives only critical bug fixes and dependency updates
-- copy of the 3.X branch in v4 releases: Will be removed on 2024-11-30
 
 
 Articles
