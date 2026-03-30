@@ -1,8 +1,42 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Optional, Type, Union
 
-from deprecation import deprecated as docstring_deprecated
+import functools
+import warnings as _warnings
+from typing import Callable
+
 from typing_extensions import deprecated as typing_deprecated
+
+
+def docstring_deprecated(details: str = "", deprecated_in: str = "", **_kwargs: object) -> Callable:
+    """Replacement for ``deprecation.deprecated`` that uses only stdlib.
+
+    The ``deprecation`` package has not been maintained since 2019 and is
+    flagged as a security risk by several dependency scanners.  This
+    in-module helper replicates the behaviour we need:
+
+    1. Prepend a ``.. deprecated::`` note to the docstring.
+    2. Emit a :class:`DeprecationWarning` at call time.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        docstring = func.__doc__ or ""
+        note = f".. deprecated:: {deprecated_in}\n   {details}\n\n" if deprecated_in else ""
+        func.__doc__ = note + docstring
+
+        @functools.wraps(func)
+        def wrapper(*args: object, **kwargs: object) -> object:
+            _warnings.warn(
+                f"{func.__qualname__} is deprecated since {deprecated_in}. {details}",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return func(*args, **kwargs)
+
+        wrapper.__doc__ = func.__doc__
+        return wrapper
+
+    return decorator
 
 from weaviate.collections.batch.async_ import _BatchBaseAsync
 from weaviate.collections.batch.base import (
