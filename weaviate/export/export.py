@@ -51,7 +51,6 @@ class ShardExportStatus(str, Enum):
 class ExportConfig(BaseModel):
     """Configuration for where to write the export."""
 
-    bucket: Optional[str] = None
     path: Optional[str] = None
 
 
@@ -82,6 +81,7 @@ class ExportCreateReturn(BaseModel):
 class ExportStatusReturn(ExportCreateReturn):
     """Return type of the export status method."""
 
+    completed_at: Optional[datetime] = Field(alias="completedAt", default=None)
     shard_status: Optional[Dict[str, Dict[str, ShardProgress]]] = Field(
         alias="shardStatus", default=None
     )

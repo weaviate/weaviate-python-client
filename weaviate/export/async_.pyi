@@ -23,16 +23,8 @@ class _ExportAsync(_ExportExecutor[ConnectionAsync]):
         config: Optional[ExportConfig] = None,
     ) -> ExportCreateReturn: ...
     async def get_status(
-        self,
-        export_id: str,
-        backend: ExportStorage,
-        bucket: Optional[str] = None,
-        path: Optional[str] = None,
+        self, export_id: str, backend: ExportStorage, path: Optional[str] = None
     ) -> ExportStatusReturn: ...
     async def cancel(
-        self,
-        export_id: str,
-        backend: ExportStorage,
-        bucket: Optional[str] = None,
-        path: Optional[str] = None,
+        self, export_id: str, backend: ExportStorage, path: Optional[str] = None
     ) -> bool: ...

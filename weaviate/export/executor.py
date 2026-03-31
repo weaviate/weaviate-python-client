@@ -58,7 +58,7 @@ class _ExportExecutor(Generic[ConnectionType]):
             exclude_collections: The collection/list of collections to be excluded in the export.
                 Either `include_collections` or `exclude_collections` can be set.
             wait_for_completion: Whether to wait until the export is done. By default False.
-            config: The configuration of the export (bucket, path). By default None.
+            config: The configuration of the export (path). By default None.
 
         Returns:
             An `ExportCreateReturn` object that contains the export creation response.
@@ -89,8 +89,6 @@ class _ExportExecutor(Generic[ConnectionType]):
 
         if config is not None:
             config_dict: Dict[str, str] = {}
-            if config.bucket is not None:
-                config_dict["bucket"] = config.bucket
             if config.path is not None:
                 config_dict["path"] = config.path
             if config_dict:
@@ -116,7 +114,6 @@ class _ExportExecutor(Generic[ConnectionType]):
                             self.get_status(
                                 export_id=export_id,
                                 backend=backend,
-                                bucket=config.bucket if config else None,
                                 path=config.path if config else None,
                             )
                         )
@@ -151,7 +148,6 @@ class _ExportExecutor(Generic[ConnectionType]):
                     self.get_status(
                         export_id=export_id,
                         backend=backend,
-                        bucket=config.bucket if config else None,
                         path=config.path if config else None,
                     )
                 )
@@ -173,7 +169,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         self,
         export_id: str,
         backend: ExportStorage,
-        bucket: Optional[str] = None,
         path: Optional[str] = None,
     ) -> executor.Result[ExportStatusReturn]:
         """Check the status of an export.
@@ -181,7 +176,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         Args:
             export_id: The identifier name of the export.
             backend: The backend storage where the export was created.
-            bucket: The bucket of the export location. By default None.
             path: The path of the export location. By default None.
 
         Returns:
@@ -194,8 +188,6 @@ class _ExportExecutor(Generic[ConnectionType]):
 
         url_path = f"/export/{backend.value}/{export_id}"
         params: Dict[str, str] = {}
-        if bucket is not None:
-            params["bucket"] = bucket
         if path is not None:
             params["path"] = path
 
@@ -217,7 +209,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         self,
         export_id: str,
         backend: ExportStorage,
-        bucket: Optional[str] = None,
         path: Optional[str] = None,
     ) -> executor.Result[bool]:
         """Cancel a running export.
@@ -225,7 +216,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         Args:
             export_id: The identifier name of the export.
             backend: The backend storage where the export was created.
-            bucket: The bucket of the export location. By default None.
             path: The path of the export location. By default None.
 
         Returns:
@@ -237,8 +227,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         )
         url_path = f"/export/{backend.value}/{export_id}"
         params: Dict[str, str] = {}
-        if bucket is not None:
-            params["bucket"] = bucket
         if path is not None:
             params["path"] = path
 
