@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from typing import Dict, Generic, List, Optional, Tuple, Union
+from typing import Dict, Generic, List, Literal, Optional, Tuple, Union, overload
 
 from httpx import Response
 
@@ -37,6 +37,31 @@ class _ExportExecutor(Generic[ConnectionType]):
     def __init__(self, connection: Connection):
         self._connection = connection
 
+    @overload
+    def create(
+        self,
+        export_id: str,
+        backend: ExportStorage,
+        file_format: ExportFileFormat,
+        include_collections: Union[List[str], str, None] = None,
+        exclude_collections: Union[List[str], str, None] = None,
+        *,
+        wait_for_completion: Literal[True],
+        config: Optional[ExportConfig] = None,
+    ) -> executor.Result[ExportStatusReturn]: ...
+
+    @overload
+    def create(
+        self,
+        export_id: str,
+        backend: ExportStorage,
+        file_format: ExportFileFormat,
+        include_collections: Union[List[str], str, None] = None,
+        exclude_collections: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[False] = False,
+        config: Optional[ExportConfig] = None,
+    ) -> executor.Result[ExportCreateReturn]: ...
+
     def create(
         self,
         export_id: str,
@@ -46,7 +71,7 @@ class _ExportExecutor(Generic[ConnectionType]):
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
         config: Optional[ExportConfig] = None,
-    ) -> executor.Result[ExportCreateReturn]:
+    ) -> executor.Result[Union[ExportCreateReturn, ExportStatusReturn]]:
         """Create an export of all/per collection Weaviate objects.
 
         Args:
@@ -83,9 +108,11 @@ class _ExportExecutor(Generic[ConnectionType]):
         payload: dict = {
             "id": export_id,
             "file_format": file_format.value,
-            "include": include_collections,
-            "exclude": exclude_collections,
         }
+        if include_collections:
+            payload["include"] = include_collections
+        if exclude_collections:
+            payload["exclude"] = exclude_collections
 
         if config is not None:
             config_dict: Dict[str, str] = {}
@@ -98,7 +125,7 @@ class _ExportExecutor(Generic[ConnectionType]):
 
         if isinstance(self._connection, ConnectionAsync):
 
-            async def _execute() -> ExportCreateReturn:
+            async def _execute() -> Union[ExportCreateReturn, ExportStatusReturn]:
                 res = await executor.aresult(
                     self._connection.post(
                         path=path,
@@ -114,19 +141,16 @@ class _ExportExecutor(Generic[ConnectionType]):
                             self.get_status(
                                 export_id=export_id,
                                 backend=backend,
-                                path=config.path if config else None,
+                                config=config,
                             )
                         )
-                        create_status["status"] = status.status
                         if status.status == ExportStatus.SUCCESS:
-                            break
+                            return status
                         if status.status == ExportStatus.FAILED:
-                            raise ExportFailedError(
-                                f"Export failed: {create_status} with error: {status.error}"
-                            )
+                            raise ExportFailedError(f"Export failed with error: {status.error}")
                         if status.status == ExportStatus.CANCELED:
                             raise ExportCanceledError(
-                                f"Export was canceled: {create_status} with error: {status.error}"
+                                f"Export was canceled with error: {status.error}"
                             )
                         await asyncio.sleep(1)
                 return ExportCreateReturn(**create_status)
@@ -148,20 +172,15 @@ class _ExportExecutor(Generic[ConnectionType]):
                     self.get_status(
                         export_id=export_id,
                         backend=backend,
-                        path=config.path if config else None,
+                        config=config,
                     )
                 )
-                create_status["status"] = status.status
                 if status.status == ExportStatus.SUCCESS:
-                    break
+                    return status
                 if status.status == ExportStatus.FAILED:
-                    raise ExportFailedError(
-                        f"Export failed: {create_status} with error: {status.error}"
-                    )
+                    raise ExportFailedError(f"Export failed with error: {status.error}")
                 if status.status == ExportStatus.CANCELED:
-                    raise ExportCanceledError(
-                        f"Export was canceled: {create_status} with error: {status.error}"
-                    )
+                    raise ExportCanceledError(f"Export was canceled with error: {status.error}")
                 time.sleep(1)
         return ExportCreateReturn(**create_status)
 
@@ -169,14 +188,14 @@ class _ExportExecutor(Generic[ConnectionType]):
         self,
         export_id: str,
         backend: ExportStorage,
-        path: Optional[str] = None,
+        config: Optional[ExportConfig] = None,
     ) -> executor.Result[ExportStatusReturn]:
         """Check the status of an export.
 
         Args:
             export_id: The identifier name of the export.
             backend: The backend storage where the export was created.
-            path: The path of the export location. By default None.
+            config: The configuration of the export (path). By default None.
 
         Returns:
             An `ExportStatusReturn` object that contains the export status response.
@@ -188,8 +207,8 @@ class _ExportExecutor(Generic[ConnectionType]):
 
         url_path = f"/export/{backend.value}/{export_id}"
         params: Dict[str, str] = {}
-        if path is not None:
-            params["path"] = path
+        if config is not None and config.path is not None:
+            params["path"] = config.path
 
         def resp(res: Response) -> ExportStatusReturn:
             typed_response = _decode_json_response_dict(res, "Export status check")
@@ -209,17 +228,17 @@ class _ExportExecutor(Generic[ConnectionType]):
         self,
         export_id: str,
         backend: ExportStorage,
-        path: Optional[str] = None,
+        config: Optional[ExportConfig] = None,
     ) -> executor.Result[bool]:
         """Cancel a running export.
 
         Args:
             export_id: The identifier name of the export.
             backend: The backend storage where the export was created.
-            path: The path of the export location. By default None.
+            config: The configuration of the export (path). By default None.
 
         Returns:
-            A bool indicating if the cancellation was successful.
+            True if the export was cancelled, False if the export had already finished.
         """
         export_id, backend = _get_and_validate_get_status(
             export_id=export_id,
@@ -227,15 +246,15 @@ class _ExportExecutor(Generic[ConnectionType]):
         )
         url_path = f"/export/{backend.value}/{export_id}"
         params: Dict[str, str] = {}
-        if path is not None:
-            params["path"] = path
+        if config is not None and config.path is not None:
+            params["path"] = config.path
 
         def resp(res: Response) -> bool:
             if res.status_code == 204:
                 return True
-            typed_response = _decode_json_response_dict(res, "Export cancel")
-            if typed_response is None:
-                raise EmptyResponseException()
+            # 409 means export already finished — not an error, just already done
+            if res.status_code == 409:
+                return False
             return False
 
         return executor.execute(
@@ -244,7 +263,7 @@ class _ExportExecutor(Generic[ConnectionType]):
             path=url_path,
             params=params,
             error_msg="Export cancel failed due to connection error.",
-            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="cancel export"),
+            status_codes=_ExpectedStatusCodes(ok_in=[204, 409], error="cancel export"),
         )
 
 
