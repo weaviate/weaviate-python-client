@@ -3,7 +3,7 @@
 from typing import Dict, Optional, Tuple, Union
 from urllib.parse import urlparse
 
-from deprecation import deprecated as docstring_deprecated
+from weaviate.util import docstring_deprecated
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.auth import (
