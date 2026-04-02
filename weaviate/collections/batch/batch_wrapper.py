@@ -80,7 +80,7 @@ class _BatchWrapper:
             raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
 
         waiting_count = 0
-        max_attempts = 100  # 1200s/.25s = 4800 attempts for 20 minutes
+        max_attempts = 1000  # 1200s/.25s = 4800 attempts for 20 minutes
         while not self.__is_ready(how_many_failures, shards):
             if waiting_count % 20 == 0:  # print every 5s
                 logger.debug("Waiting for async indexing to finish...")
@@ -184,7 +184,7 @@ class _BatchWrapperAsync:
             raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
 
         waiting_count = 0
-        max_attempts = 100  # 1200s/.25s = 4800 attempts for 20 minutes
+        max_attempts = 1000  # 1200s/.25s = 4800 attempts for 20 minutes
         while not await self.__is_ready(how_many_failures, shards):
             if waiting_count % 20 == 0:  # print every 5s
                 logger.debug("Waiting for async indexing to finish...")
