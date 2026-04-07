@@ -48,12 +48,6 @@ class ShardExportStatus(str, Enum):
     SKIPPED = "SKIPPED"
 
 
-class ExportConfig(BaseModel):
-    """Configuration for where to write the export."""
-
-    path: Optional[str] = None
-
-
 class ShardProgress(BaseModel):
     """Progress of a single shard export."""
 

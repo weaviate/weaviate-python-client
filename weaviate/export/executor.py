@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from typing import Dict, Generic, List, Literal, Optional, Tuple, Union, overload
+from typing import Generic, List, Literal, Tuple, Union, overload
 
 from httpx import Response
 
@@ -20,7 +20,6 @@ from weaviate.exceptions import (
 )
 from weaviate.export.export import (
     STORAGE_NAMES,
-    ExportConfig,
     ExportCreateReturn,
     ExportFileFormat,
     ExportStatus,
@@ -47,7 +46,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         exclude_collections: Union[List[str], str, None] = None,
         *,
         wait_for_completion: Literal[True],
-        config: Optional[ExportConfig] = None,
     ) -> executor.Result[ExportStatusReturn]: ...
 
     @overload
@@ -59,7 +57,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
-        config: Optional[ExportConfig] = None,
     ) -> executor.Result[ExportCreateReturn]: ...
 
     def create(
@@ -70,7 +67,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
-        config: Optional[ExportConfig] = None,
     ) -> executor.Result[Union[ExportCreateReturn, ExportStatusReturn]]:
         """Create an export of all/per collection Weaviate objects.
 
@@ -83,7 +79,6 @@ class _ExportExecutor(Generic[ConnectionType]):
             exclude_collections: The collection/list of collections to be excluded in the export.
                 Either `include_collections` or `exclude_collections` can be set.
             wait_for_completion: Whether to wait until the export is done. By default False.
-            config: The configuration of the export (path). By default None.
 
         Returns:
             An `ExportCreateReturn` object that contains the export creation response.
@@ -114,13 +109,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         if exclude_collections:
             payload["exclude"] = exclude_collections
 
-        if config is not None:
-            config_dict: Dict[str, str] = {}
-            if config.path is not None:
-                config_dict["path"] = config.path
-            if config_dict:
-                payload["config"] = config_dict
-
         path = f"/export/{backend.value}"
 
         if isinstance(self._connection, ConnectionAsync):
@@ -141,7 +129,6 @@ class _ExportExecutor(Generic[ConnectionType]):
                             self.get_status(
                                 export_id=export_id,
                                 backend=backend,
-                                config=config,
                             )
                         )
                         if status.status == ExportStatus.SUCCESS:
@@ -172,7 +159,6 @@ class _ExportExecutor(Generic[ConnectionType]):
                     self.get_status(
                         export_id=export_id,
                         backend=backend,
-                        config=config,
                     )
                 )
                 if status.status == ExportStatus.SUCCESS:
@@ -188,14 +174,12 @@ class _ExportExecutor(Generic[ConnectionType]):
         self,
         export_id: str,
         backend: ExportStorage,
-        config: Optional[ExportConfig] = None,
     ) -> executor.Result[ExportStatusReturn]:
         """Check the status of an export.
 
         Args:
             export_id: The identifier name of the export.
             backend: The backend storage where the export was created.
-            config: The configuration of the export (path). By default None.
 
         Returns:
             An `ExportStatusReturn` object that contains the export status response.
@@ -206,9 +190,6 @@ class _ExportExecutor(Generic[ConnectionType]):
         )
 
         url_path = f"/export/{backend.value}/{export_id}"
-        params: Dict[str, str] = {}
-        if config is not None and config.path is not None:
-            params["path"] = config.path
 
         def resp(res: Response) -> ExportStatusReturn:
             typed_response = _decode_json_response_dict(res, "Export status check")
@@ -220,7 +201,6 @@ class _ExportExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.get,
             path=url_path,
-            params=params,
             error_msg="Export status check failed due to connection error.",
         )
 
@@ -228,14 +208,12 @@ class _ExportExecutor(Generic[ConnectionType]):
         self,
         export_id: str,
         backend: ExportStorage,
-        config: Optional[ExportConfig] = None,
     ) -> executor.Result[bool]:
         """Cancel a running export.
 
         Args:
             export_id: The identifier name of the export.
             backend: The backend storage where the export was created.
-            config: The configuration of the export (path). By default None.
 
         Returns:
             True if the export was cancelled, False if the export had already finished.
@@ -245,9 +223,6 @@ class _ExportExecutor(Generic[ConnectionType]):
             backend=backend,
         )
         url_path = f"/export/{backend.value}/{export_id}"
-        params: Dict[str, str] = {}
-        if config is not None and config.path is not None:
-            params["path"] = config.path
 
         def resp(res: Response) -> bool:
             if res.status_code == 204:
@@ -261,7 +236,6 @@ class _ExportExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.delete,
             path=url_path,
-            params=params,
             error_msg="Export cancel failed due to connection error.",
             status_codes=_ExpectedStatusCodes(ok_in=[204, 409], error="cancel export"),
         )
