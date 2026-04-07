@@ -34,7 +34,7 @@ MINIMUM_NO_WARNING_VERSION = (
 BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
 
 
-def docstring_deprecated(details: str = "", deprecated_in: str = "", **_kwargs: object) -> Callable:
+def docstring_deprecated(details: str = "", deprecated_in: str = "") -> Callable:
     """Stdlib replacement for ``deprecation.deprecated``.
 
     The ``deprecation`` package has not been maintained since 2019 and is
@@ -46,10 +46,6 @@ def docstring_deprecated(details: str = "", deprecated_in: str = "", **_kwargs: 
     """
 
     def decorator(func: Callable) -> Callable:
-        docstring = func.__doc__ or ""
-        note = f".. deprecated:: {deprecated_in}\n   {details}\n\n" if deprecated_in else ""
-        func.__doc__ = note + docstring
-
         @functools.wraps(func)
         def wrapper(*args: object, **kwargs: object) -> object:
             _warnings.warn(
@@ -58,6 +54,10 @@ def docstring_deprecated(details: str = "", deprecated_in: str = "", **_kwargs: 
                 stacklevel=2,
             )
             return func(*args, **kwargs)
+
+        docstring = func.__doc__ or ""
+        note = f".. deprecated:: {deprecated_in}\n   {details}\n\n" if deprecated_in else ""
+        wrapper.__doc__ = note + docstring
 
         return wrapper  # type: ignore[return-value]
 
