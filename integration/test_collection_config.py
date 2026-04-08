@@ -1730,7 +1730,7 @@ def test_replication_config_add_async_config_to_existing_collection(
     collection.config.update(
         replication_config=Reconfigure.replication(
             async_config=Reconfigure.Replication.async_config(
-                max_workers=12,
+                max_workers=8,
                 propagation_concurrency=4,
             ),
         ),
@@ -1738,7 +1738,7 @@ def test_replication_config_add_async_config_to_existing_collection(
     config = collection.config.get()
     assert config.replication_config.async_config is not None
     ac = config.replication_config.async_config
-    assert ac.max_workers == 12
+    assert ac.max_workers == 8
     assert ac.propagation_concurrency == 4
 
 
