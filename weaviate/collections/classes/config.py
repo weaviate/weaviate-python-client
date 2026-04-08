@@ -335,6 +335,21 @@ class _ReplicationConfigUpdate(_ConfigUpdateModel):
     asyncConfig: Optional[_AsyncReplicationConfigUpdate]
     deletionStrategy: Optional[ReplicationDeletionStrategy]
 
+    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        if self.factor is not None:
+            schema["factor"] = self.factor
+        if self.asyncEnabled is not None:
+            schema["asyncEnabled"] = self.asyncEnabled
+            if not self.asyncEnabled:
+                schema.pop("asyncConfig", None)
+        if self.deletionStrategy is not None:
+            schema["deletionStrategy"] = str(self.deletionStrategy.value)
+        if self.asyncConfig is not None:
+            # Replace entire asyncConfig (like generative/reranker pattern)
+            # rather than merging, so omitted fields revert to server defaults
+            schema["asyncConfig"] = self.asyncConfig.model_dump(exclude_none=True)
+        return schema
+
 
 class _BM25ConfigCreate(_ConfigCreateModel):
     b: float
@@ -1747,10 +1762,32 @@ ReferencePropertyConfig = _ReferenceProperty
 
 
 @dataclass
+class _AsyncReplicationConfig(_ConfigBase):
+    max_workers: Optional[int]
+    hashtree_height: Optional[int]
+    frequency: Optional[int]
+    frequency_while_propagating: Optional[int]
+    alive_nodes_checking_frequency: Optional[int]
+    logging_frequency: Optional[int]
+    diff_batch_size: Optional[int]
+    diff_per_node_timeout: Optional[int]
+    pre_propagation_timeout: Optional[int]
+    propagation_timeout: Optional[int]
+    propagation_limit: Optional[int]
+    propagation_delay: Optional[int]
+    propagation_concurrency: Optional[int]
+    propagation_batch_size: Optional[int]
+
+
+AsyncReplicationConfig = _AsyncReplicationConfig
+
+
+@dataclass
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
     deletion_strategy: ReplicationDeletionStrategy
+    async_config: Optional[_AsyncReplicationConfig] = None
 
 
 ReplicationConfig = _ReplicationConfig

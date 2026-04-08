@@ -4,6 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
+    _AsyncReplicationConfig,
+    _ReplicationConfig,
     _ReplicationConfigUpdate,
     Configure,
     DataType,
@@ -2936,6 +2938,77 @@ TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS = [
 def test_reconfigure_with_replication(config: _ReplicationConfigUpdate, expected: dict) -> None:
     """Test that _ReplicationConfig.to_dict() properly converts replication settings."""
     assert config.model_dump() == expected
+
+
+def test_replication_config_to_dict_with_async_config() -> None:
+    """Test that _ReplicationConfig.to_dict() includes asyncConfig when present."""
+    config = _ReplicationConfig(
+        factor=3,
+        async_enabled=True,
+        deletion_strategy=ReplicationDeletionStrategy.TIME_BASED_RESOLUTION,
+        async_config=_AsyncReplicationConfig(
+            max_workers=8,
+            hashtree_height=20,
+            frequency=None,
+            frequency_while_propagating=None,
+            alive_nodes_checking_frequency=3,
+            logging_frequency=None,
+            diff_batch_size=None,
+            diff_per_node_timeout=None,
+            pre_propagation_timeout=None,
+            propagation_timeout=None,
+            propagation_limit=None,
+            propagation_delay=None,
+            propagation_concurrency=None,
+            propagation_batch_size=None,
+        ),
+    )
+    d = config.to_dict()
+    assert d["factor"] == 3
+    assert d["asyncEnabled"] is True
+    assert d["deletionStrategy"] == "TimeBasedResolution"
+    assert d["asyncConfig"]["maxWorkers"] == 8
+    assert d["asyncConfig"]["hashtreeHeight"] == 20
+    assert d["asyncConfig"]["aliveNodesCheckingFrequency"] == 3
+
+
+def test_replication_config_to_dict_without_async_config() -> None:
+    """Test that _ReplicationConfig.to_dict() omits asyncConfig when None."""
+    config = _ReplicationConfig(
+        factor=1,
+        async_enabled=False,
+        deletion_strategy=ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION,
+        async_config=None,
+    )
+    d = config.to_dict()
+    assert d["factor"] == 1
+    assert d["asyncEnabled"] is False
+    assert "asyncConfig" not in d
+
+
+def test_replication_config_update_merge_with_missing_async_config() -> None:
+    """Test that merge_with_existing handles a schema without asyncConfig.
+
+    When a collection was created without async replication config and we
+    update it to add one, the existing schema won't have the asyncConfig key.
+    merge_with_existing must not raise KeyError in this case.
+    """
+    update = Reconfigure.replication(
+        async_config=Reconfigure.Replication.async_config(
+            max_workers=12,
+            propagation_concurrency=4,
+        ),
+    )
+    # Simulate an existing schema that has no asyncConfig key
+    existing_schema = {
+        "factor": 3,
+        "asyncEnabled": True,
+        "deletionStrategy": "NoAutomatedResolution",
+    }
+    result = update.merge_with_existing(existing_schema)
+    assert result["asyncConfig"]["maxWorkers"] == 12
+    assert result["asyncConfig"]["propagationConcurrency"] == 4
+    assert result["factor"] == 3
 
 
 def test_nested_property_with_id_name_is_allowed() -> None:
