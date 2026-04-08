@@ -1585,6 +1585,10 @@ def test_replication_config_without_async_config(collection_factory: CollectionF
 
 
 def test_replication_config_with_async_config(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
