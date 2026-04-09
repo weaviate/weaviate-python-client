@@ -210,6 +210,16 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             ),
         ):
             _Warnings.vectorizer_config_in_config_update()
+        if (
+            inverted_index_config is not None
+            and inverted_index_config.stopwordPresets is not None
+            and not self._connection._weaviate_version.is_at_least(1, 37, 0)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "InvertedIndexConfig stopword_presets",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         try:
             config = _CollectionConfigUpdate(
                 description=description,

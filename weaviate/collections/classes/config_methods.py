@@ -357,6 +357,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 additions=schema["invertedIndexConfig"]["stopwords"]["additions"],
                 removals=schema["invertedIndexConfig"]["stopwords"]["removals"],
             ),
+            stopword_presets=schema["invertedIndexConfig"].get("stopwordPresets"),
         ),
         multi_tenancy_config=_MultiTenancyConfig(
             enabled=schema.get("multiTenancyConfig", {}).get("enabled", False),
@@ -467,11 +468,14 @@ def _text_analyzer_from_config(prop: Dict[str, Any]) -> Optional[_TextAnalyzerCo
     ta = prop.get("textAnalyzer")
     if ta is None:
         return None
-    if "asciiFold" not in ta:
+    # The server normalizes an empty TextAnalyzer to nil (see usecases/schema/validation.go),
+    # so the only meaningful signal is the presence of one of the configured fields.
+    if "asciiFold" not in ta and "stopwordPreset" not in ta:
         return None
     return _TextAnalyzerConfig(
         ascii_fold=ta.get("asciiFold", False),
         ascii_fold_ignore=ta.get("asciiFoldIgnore"),
+        stopword_preset=ta.get("stopwordPreset"),
     )
 
 

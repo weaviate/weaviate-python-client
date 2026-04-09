@@ -229,10 +229,20 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         if properties is not None and _any_property_has_text_analyzer(properties):
             if not self._connection._weaviate_version.is_at_least(1, 37, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "Property text_analyzer (asciiFold)",
+                    "Property text_analyzer (asciiFold / stopword_preset)",
                     str(self._connection._weaviate_version),
                     "1.37.0",
                 )
+        if (
+            inverted_index_config is not None
+            and inverted_index_config.stopwordPresets is not None
+            and not self._connection._weaviate_version.is_at_least(1, 37, 0)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "InvertedIndexConfig stopword_presets",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         try:
             config = _CollectionConfigCreate(
                 description=description,
