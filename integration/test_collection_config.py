@@ -30,6 +30,7 @@ from weaviate.collections.classes.config import (
     PQEncoderType,
     PQEncoderDistribution,
     StopwordsPreset,
+    TextAnalyzerConfig,
     VectorDistances,
     VectorIndexType,
     Vectorizers,
@@ -2196,3 +2197,75 @@ def test_delete_property_index(
         assert config.properties[0].index_range_filters is False
         assert config.properties[0].index_searchable is _index_searchable
         assert config.properties[0].index_filterable is _index_filterable
+
+
+def test_property_text_analyzer_ascii_fold(collection_factory: CollectionFactory) -> None:
+    """Create a collection with ascii folding configured and verify it round-trips."""
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(
+                    ascii_fold=True, ascii_fold_ignore=["é"]
+                ),
+            ),
+            Property(
+                name="body",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    body = next(p for p in config.properties if p.name == "body")
+
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+
+    # Properties without a text_analyzer should not have one in the parsed config.
+    assert body.text_analyzer is None
+
+    # Folding actually takes effect: 'école' is searchable as 'ecole' but 'é' is preserved.
+    collection.data.insert({"title": "école française", "body": "école française"})
+    res = collection.query.bm25(query="ecole", query_properties=["title"])
+    assert len(res.objects) == 1
+    res = collection.query.bm25(query="ecole", query_properties=["body"])
+    assert len(res.objects) == 0
+
+
+def test_property_text_analyzer_ascii_fold_in_nested_property(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="meta",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(
+                        name="title",
+                        data_type=DataType.TEXT,
+                        tokenization=Tokenization.WORD,
+                        text_analyzer=TextAnalyzerConfig(
+                            ascii_fold=True, ascii_fold_ignore=["ñ"]
+                        ),
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    meta = next(p for p in config.properties if p.name == "meta")
+    assert meta.nested_properties is not None
+    nested_title = next(np for np in meta.nested_properties if np.name == "title")
+    assert nested_title.text_analyzer is not None
+    assert nested_title.text_analyzer.ascii_fold is True
+    assert nested_title.text_analyzer.ascii_fold_ignore == ["ñ"]

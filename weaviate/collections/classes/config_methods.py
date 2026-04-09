@@ -39,6 +39,7 @@ from weaviate.collections.classes.config import (
     _ShardingConfig,
     _SQConfig,
     _StopwordsConfig,
+    _TextAnalyzerConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHFresh,
@@ -462,6 +463,16 @@ def _collection_configs_simple_from_json(
     return dict(sorted(configs.items()))
 
 
+def _text_analyzer_from_config(prop: Dict[str, Any]) -> Optional[_TextAnalyzerConfig]:
+    ta = prop.get("textAnalyzer")
+    if ta is None:
+        return None
+    return _TextAnalyzerConfig(
+        ascii_fold=ta.get("asciiFold", False),
+        ascii_fold_ignore=ta.get("asciiFoldIgnore"),
+    )
+
+
 def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedProperty]:
     return [
         _NestedProperty(
@@ -475,6 +486,7 @@ def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedP
                 if prop.get("nestedProperties") is not None
                 else None
             ),
+            text_analyzer=_text_analyzer_from_config(prop),
             tokenization=(
                 Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
             ),
@@ -497,6 +509,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 if prop.get("nestedProperties") is not None
                 else None
             ),
+            text_analyzer=_text_analyzer_from_config(prop),
             tokenization=(
                 Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
             ),

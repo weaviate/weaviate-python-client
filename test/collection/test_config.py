@@ -12,6 +12,8 @@ from weaviate.collections.classes.config import (
     Property,
     Reconfigure,
     ReferenceProperty,
+    TextAnalyzerConfig,
+    Tokenization,
     Vectorizers,
     _CollectionConfigCreate,
     _GenerativeProvider,
@@ -3021,3 +3023,81 @@ def test_nested_property_with_id_name_is_allowed() -> None:
         ],
     )
     assert prop.nestedProperties[0].name == "id"
+
+
+class TestTextAnalyzerConfig:
+    def test_property_without_text_analyzer_omits_key(self) -> None:
+        prop = Property(name="title", data_type=DataType.TEXT)
+        assert "textAnalyzer" not in prop._to_dict()
+
+    def test_property_with_ascii_fold_only(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            text_analyzer=TextAnalyzerConfig(ascii_fold=True),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"asciiFold": True}
+
+    def test_property_with_ascii_fold_and_ignore(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=TextAnalyzerConfig(
+                ascii_fold=True, ascii_fold_ignore=["é", "ñ"]
+            ),
+        )
+        out = prop._to_dict()
+        assert out["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["é", "ñ"],
+        }
+        assert out["tokenization"] == "word"
+
+    def test_text_analyzer_default_omits_unset_fields(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            text_analyzer=TextAnalyzerConfig(),
+        )
+        # exclude_none drops both unset fields, leaving an empty dict
+        assert prop._to_dict()["textAnalyzer"] == {}
+
+    def test_text_analyzer_only_ignore_list(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            text_analyzer=TextAnalyzerConfig(ascii_fold_ignore=["é"]),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"asciiFoldIgnore": ["é"]}
+
+    def test_nested_property_with_text_analyzer(self) -> None:
+        prop = Property(
+            name="meta",
+            data_type=DataType.OBJECT,
+            nested_properties=[
+                Property(
+                    name="title",
+                    data_type=DataType.TEXT,
+                    text_analyzer=TextAnalyzerConfig(
+                        ascii_fold=True, ascii_fold_ignore=["ñ"]
+                    ),
+                ),
+            ],
+        )
+        out = prop._to_dict()
+        assert out["nestedProperties"][0]["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["ñ"],
+        }
+
+    def test_text_analyzer_accepts_snake_case_alias(self) -> None:
+        ta = TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["é"])
+        assert ta.asciiFold is True
+        assert ta.asciiFoldIgnore == ["é"]
+
+    def test_text_analyzer_rejects_wrong_types(self) -> None:
+        with pytest.raises(ValidationError):
+            TextAnalyzerConfig(ascii_fold="yes")  # type: ignore[arg-type]
+        with pytest.raises(ValidationError):
+            TextAnalyzerConfig(ascii_fold_ignore="é")  # type: ignore[arg-type]

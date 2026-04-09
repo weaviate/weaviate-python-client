@@ -1672,6 +1672,12 @@ PropertyVectorizerConfig = _PropertyVectorizerConfig
 
 
 @dataclass
+class _TextAnalyzerConfig(_ConfigBase):
+    ascii_fold: bool
+    ascii_fold_ignore: Optional[List[str]]
+
+
+@dataclass
 class _NestedProperty(_ConfigBase):
     data_type: DataType
     description: Optional[str]
@@ -1679,6 +1685,7 @@ class _NestedProperty(_ConfigBase):
     index_searchable: bool
     name: str
     nested_properties: Optional[List["NestedProperty"]]
+    text_analyzer: Optional[_TextAnalyzerConfig]
     tokenization: Optional[Tokenization]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1712,6 +1719,7 @@ class _Property(_PropertyBase):
     index_range_filters: bool
     index_searchable: bool
     nested_properties: Optional[List[NestedProperty]]
+    text_analyzer: Optional[_TextAnalyzerConfig]
     tokenization: Optional[Tokenization]
     vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
@@ -1724,6 +1732,8 @@ class _Property(_PropertyBase):
         out["indexSearchable"] = self.index_searchable
         out["indexRangeFilters"] = self.index_range_filters
         out["tokenization"] = self.tokenization.value if self.tokenization else None
+        if self.text_analyzer is not None:
+            out["textAnalyzer"] = self.text_analyzer.to_dict()
         if self.nested_properties is not None and len(self.nested_properties) > 0:
             out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
         module_config: Dict[str, Any] = {}
@@ -2161,6 +2171,27 @@ class _ShardStatus:
 ShardStatus = _ShardStatus
 
 
+class TextAnalyzerConfig(_ConfigCreateModel):
+    """Text analysis options for a property.
+
+    Configures ASCII folding behavior for `text` and `text[]` properties that use an
+    inverted index (searchable or filterable). When enabled, accent/diacritic marks are
+    folded to their base characters during indexing and search (e.g. 'école' matches
+    'ecole').
+
+    Attributes:
+        ascii_fold: If True, accent/diacritic marks are folded to their base characters
+            during indexing and search. Defaults to False.
+        ascii_fold_ignore: Optional list of characters that should be excluded from
+            ASCII folding (e.g. ['é'] keeps 'é' from being folded to 'e').
+
+    Both settings are immutable after the property is created.
+    """
+
+    asciiFold: Optional[bool] = Field(default=None, alias="ascii_fold")
+    asciiFoldIgnore: Optional[List[str]] = Field(default=None, alias="ascii_fold_ignore")
+
+
 class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
 
@@ -2173,6 +2204,9 @@ class Property(_ConfigCreateModel):
         index_searchable: Whether the property should be searchable in the inverted index.
         nested_properties: nested properties for data type OBJECT and OBJECT_ARRAY`.
         skip_vectorization: Whether to skip vectorization of the property. Defaults to `False`.
+        text_analyzer: Text analysis options for the property. Configures ASCII folding
+            behavior for text and text[] properties using an inverted index. Immutable
+            after the property is created.
         tokenization: The tokenization method to use for the inverted index. Defaults to `None`.
         vectorize_property_name: Whether to vectorize the property name. Defaults to `True`.
     """
@@ -2187,6 +2221,7 @@ class Property(_ConfigCreateModel):
         default=None, alias="nested_properties"
     )
     skip_vectorization: bool = Field(default=False)
+    textAnalyzer: Optional[TextAnalyzerConfig] = Field(default=None, alias="text_analyzer")
     tokenization: Optional[Tokenization] = Field(default=None)
     vectorize_property_name: bool = Field(default=True)
 
