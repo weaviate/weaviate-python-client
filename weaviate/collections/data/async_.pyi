@@ -11,7 +11,7 @@ from weaviate.collections.classes.batch import (
     DeleteManyReturn,
 )
 from weaviate.collections.classes.data import DataObject, DataReferences
-from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.internal import (
     ReferenceInput,
     ReferenceInputs,
@@ -69,15 +69,15 @@ class _DataCollectionAsync(
     async def delete_by_id(self, uuid: UUID) -> bool: ...
     @overload
     async def delete_many(
-        self, where: _Filters, *, verbose: Literal[False] = False, dry_run: bool = False
+        self, where: FilterReturn, *, verbose: Literal[False] = False, dry_run: bool = False
     ) -> DeleteManyReturn[None]: ...
     @overload
     async def delete_many(
-        self, where: _Filters, *, verbose: Literal[True], dry_run: bool = False
+        self, where: FilterReturn, *, verbose: Literal[True], dry_run: bool = False
     ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
     @overload
     async def delete_many(
-        self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
+        self, where: FilterReturn, *, verbose: bool = False, dry_run: bool = False
     ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...
     async def ingest(
         self, objs: Iterable[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]]

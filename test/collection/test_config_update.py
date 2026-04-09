@@ -1,7 +1,10 @@
 import pytest
 
 from test.collection.schema import multi_vector_schema
-from weaviate.collections.classes.config import Reconfigure, _CollectionConfigUpdate
+from weaviate.collections.classes.config import (
+    Reconfigure,
+    _CollectionConfigUpdate,
+)
 from weaviate.exceptions import WeaviateInvalidInputError
 
 
@@ -102,3 +105,58 @@ def test_enabling_sq_multi_vector(schema: dict, should_error: bool) -> None:
     assert new_schema["vectorConfig"]["boi"]["vectorIndexConfig"]["sq"]["enabled"]
 
     assert new_schema["vectorConfig"]["yeh"] == schema["vectorConfig"]["yeh"]
+
+
+def test_replication_async_config_replace_on_update() -> None:
+    """Test asyncConfig is replaced (not merged) when provided in an update."""
+    schema = {
+        "factor": 1,
+        "asyncEnabled": True,
+        "asyncConfig": {"maxWorkers": 8, "hashtreeHeight": 20},
+    }
+    update = Reconfigure.replication(
+        async_config=Reconfigure.Replication.async_config(max_workers=16),
+    )
+    result = update.merge_with_existing(schema)
+    assert result["asyncConfig"] == {"maxWorkers": 16}
+    assert "hashtreeHeight" not in result["asyncConfig"]
+
+
+def test_replication_async_config_cleared_when_async_disabled() -> None:
+    """Test asyncConfig is removed from schema when asyncEnabled is set to False."""
+    schema = {
+        "factor": 1,
+        "asyncEnabled": True,
+        "asyncConfig": {"maxWorkers": 8, "hashtreeHeight": 20},
+    }
+    update = Reconfigure.replication(async_enabled=False)
+    result = update.merge_with_existing(schema)
+    assert result["asyncEnabled"] is False
+    assert "asyncConfig" not in result
+
+
+def test_replication_async_config_preserved_when_not_provided() -> None:
+    """Test asyncConfig is preserved when not provided in update."""
+    schema = {
+        "factor": 1,
+        "asyncEnabled": True,
+        "asyncConfig": {"maxWorkers": 8, "hashtreeHeight": 20},
+    }
+    update = Reconfigure.replication(factor=2)
+    result = update.merge_with_existing(schema)
+    assert result["factor"] == 2
+    assert result["asyncConfig"] == {"maxWorkers": 8, "hashtreeHeight": 20}
+
+
+def test_replication_async_config_reset_all_fields() -> None:
+    """Passing empty async_config should replace with empty dict (server uses defaults)."""
+    schema = {
+        "factor": 1,
+        "asyncEnabled": True,
+        "asyncConfig": {"maxWorkers": 8, "hashtreeHeight": 20},
+    }
+    update = Reconfigure.replication(
+        async_config=Reconfigure.Replication.async_config(),
+    )
+    result = update.merge_with_existing(schema)
+    assert result["asyncConfig"] == {}
