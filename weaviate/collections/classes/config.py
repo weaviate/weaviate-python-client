@@ -2181,9 +2181,11 @@ class TextAnalyzerConfig(_ConfigCreateModel):
 
     Attributes:
         ascii_fold: If True, accent/diacritic marks are folded to their base characters
-            during indexing and search. Defaults to False.
+            during indexing and search. If omitted, the field is not sent to the server
+            and the server default (False) applies.
         ascii_fold_ignore: Optional list of characters that should be excluded from
-            ASCII folding (e.g. ['é'] keeps 'é' from being folded to 'e').
+            ASCII folding (e.g. ['é'] keeps 'é' from being folded to 'e'). If omitted,
+            the field is not sent to the server.
 
     Both settings are immutable after the property is created.
     """
