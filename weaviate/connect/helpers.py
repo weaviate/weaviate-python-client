@@ -3,7 +3,6 @@
 from typing import Dict, Optional, Tuple, Union
 from urllib.parse import urlparse
 
-from weaviate.util import docstring_deprecated
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.auth import (
@@ -18,6 +17,7 @@ from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import WEAVIATE_VERSION, EmbeddedOptions
+from weaviate.util import docstring_deprecated
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 

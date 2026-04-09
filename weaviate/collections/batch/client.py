@@ -3,8 +3,6 @@ from typing import TYPE_CHECKING, Optional, Type, Union
 
 from typing_extensions import deprecated as typing_deprecated
 
-from weaviate.util import docstring_deprecated
-
 from weaviate.collections.batch.async_ import _BatchBaseAsync
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -31,6 +29,7 @@ from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
 from weaviate.types import UUID, VECTORS
+from weaviate.util import docstring_deprecated
 
 if TYPE_CHECKING:
     from weaviate.collections.collections.sync import _Collections

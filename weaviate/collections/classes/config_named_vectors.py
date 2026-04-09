@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from weaviate.util import docstring_deprecated
 from pydantic import AnyHttpUrl, Field
 from typing_extensions import deprecated as typing_deprecated
 
@@ -64,6 +63,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _VectorizerConfigCreate,
     _VectorizerCustomConfig,
 )
+from weaviate.util import docstring_deprecated
 
 from ...warnings import _Warnings
 
