@@ -43,7 +43,11 @@ from weaviate.collections.classes.config import (
     IndexName,
 )
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
+from weaviate.exceptions import (
+    UnexpectedStatusCodeError,
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+)
 from integration.conftest import retry_on_http_error
 
 
@@ -2201,6 +2205,10 @@ def test_delete_property_index(
 
 def test_property_text_analyzer_ascii_fold(collection_factory: CollectionFactory) -> None:
     """Create a collection with ascii folding configured and verify it round-trips."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("Property text_analyzer (asciiFold) requires Weaviate >= 1.37.0")
+
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
@@ -2240,6 +2248,10 @@ def test_property_text_analyzer_ascii_fold(collection_factory: CollectionFactory
 def test_property_text_analyzer_ascii_fold_in_nested_property(
     collection_factory: CollectionFactory,
 ) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("Property text_analyzer (asciiFold) requires Weaviate >= 1.37.0")
+
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
@@ -2265,3 +2277,25 @@ def test_property_text_analyzer_ascii_fold_in_nested_property(
     assert nested_title.text_analyzer is not None
     assert nested_title.text_analyzer.ascii_fold is True
     assert nested_title.text_analyzer.ascii_fold_ignore == ["ñ"]
+
+
+def test_property_text_analyzer_ascii_fold_version_gate(
+    collection_factory: CollectionFactory,
+) -> None:
+    """On Weaviate < 1.37 the client must raise before sending the request."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_at_least(1, 37, 0):
+        pytest.skip("Version gate only applies to Weaviate < 1.37.0")
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        collection_factory(
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=[
+                Property(
+                    name="title",
+                    data_type=DataType.TEXT,
+                    tokenization=Tokenization.WORD,
+                    text_analyzer=TextAnalyzerConfig(ascii_fold=True),
+                ),
+            ],
+        )
