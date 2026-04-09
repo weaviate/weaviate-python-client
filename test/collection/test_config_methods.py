@@ -116,18 +116,17 @@ def test_properties_from_config_parses_text_analyzer() -> None:
     assert "textAnalyzer" not in body.to_dict()
 
 
-def test_properties_from_config_text_analyzer_defaults_when_partial() -> None:
+def test_properties_from_config_text_analyzer_omitted_when_no_ascii_fold() -> None:
+    """If the server response omits asciiFold, the client treats text_analyzer as unset."""
     schema = {
         "vectorizer": "none",
         "properties": [
+            # Server response with textAnalyzer present but no asciiFold key
             _make_text_prop("title", textAnalyzer={"asciiFoldIgnore": ["é"]}),
         ],
     }
     title = _properties_from_config(schema)[0]
-    assert title.text_analyzer is not None
-    # asciiFold defaults to False when omitted from the server response
-    assert title.text_analyzer.ascii_fold is False
-    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    assert title.text_analyzer is None
 
 
 def test_nested_properties_from_config_parses_text_analyzer() -> None:

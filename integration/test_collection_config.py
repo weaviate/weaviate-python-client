@@ -2212,14 +2212,23 @@ def test_property_text_analyzer_ascii_fold(collection_factory: CollectionFactory
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
+            # Folds all accents.
             Property(
-                name="title",
+                name="folded",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(ascii_fold=True),
+            ),
+            # Folds all accents EXCEPT 'é'.
+            Property(
+                name="folded_except_e_acute",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
                 text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["é"]),
             ),
+            # No folding at all.
             Property(
-                name="body",
+                name="plain",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
             ),
@@ -2227,21 +2236,51 @@ def test_property_text_analyzer_ascii_fold(collection_factory: CollectionFactory
     )
 
     config = collection.config.get()
-    title = next(p for p in config.properties if p.name == "title")
-    body = next(p for p in config.properties if p.name == "body")
+    folded = next(p for p in config.properties if p.name == "folded")
+    folded_ignore = next(p for p in config.properties if p.name == "folded_except_e_acute")
+    plain = next(p for p in config.properties if p.name == "plain")
 
-    assert title.text_analyzer is not None
-    assert title.text_analyzer.ascii_fold is True
-    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    assert folded.text_analyzer is not None
+    assert folded.text_analyzer.ascii_fold is True
+    assert folded.text_analyzer.ascii_fold_ignore is None
 
-    # Properties without a text_analyzer should not have one in the parsed config.
-    assert body.text_analyzer is None
+    assert folded_ignore.text_analyzer is not None
+    assert folded_ignore.text_analyzer.ascii_fold is True
+    assert folded_ignore.text_analyzer.ascii_fold_ignore == ["é"]
 
-    # Folding actually takes effect: 'école' is searchable as 'ecole' but 'é' is preserved.
-    collection.data.insert({"title": "école française", "body": "école française"})
-    res = collection.query.bm25(query="ecole", query_properties=["title"])
+    assert plain.text_analyzer is None
+
+    # Insert one doc that contains both an ignored accent ('é') and a non-ignored
+    # accent ('ç') so the test can distinguish "folded" from "ignored" behavior.
+    collection.data.insert(
+        {
+            "folded": "école française",
+            "folded_except_e_acute": "école française",
+            "plain": "école française",
+        }
+    )
+
+    # `folded` folds everything → both 'ecole' and 'francaise' match.
+    res = collection.query.bm25(query="ecole", query_properties=["folded"])
     assert len(res.objects) == 1
-    res = collection.query.bm25(query="ecole", query_properties=["body"])
+    res = collection.query.bm25(query="francaise", query_properties=["folded"])
+    assert len(res.objects) == 1
+
+    # `folded_except_e_acute` preserves 'é' but still folds 'ç' → 'c'.
+    # Querying 'ecole' must NOT match because 'é' is in the ignore list.
+    res = collection.query.bm25(query="ecole", query_properties=["folded_except_e_acute"])
+    assert len(res.objects) == 0
+    # Querying the original 'école' still matches.
+    res = collection.query.bm25(query="école", query_properties=["folded_except_e_acute"])
+    assert len(res.objects) == 1
+    # 'ç' is not in the ignore list, so it still folds and 'francaise' matches.
+    res = collection.query.bm25(query="francaise", query_properties=["folded_except_e_acute"])
+    assert len(res.objects) == 1
+
+    # `plain` does no folding at all → ASCII queries don't match accented tokens.
+    res = collection.query.bm25(query="ecole", query_properties=["plain"])
+    assert len(res.objects) == 0
+    res = collection.query.bm25(query="francaise", query_properties=["plain"])
     assert len(res.objects) == 0
 
 
