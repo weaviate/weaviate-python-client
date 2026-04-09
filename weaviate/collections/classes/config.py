@@ -14,7 +14,6 @@ from typing import (
     cast,
 )
 
-from weaviate.util import docstring_deprecated
 from pydantic import AnyHttpUrl, Field, TypeAdapter, ValidationInfo, field_validator
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
@@ -77,7 +76,7 @@ from weaviate.collections.classes.config_vectors import (
 )
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError, WeaviateInvalidInputError
 from weaviate.str_enum import BaseEnum
-from weaviate.util import _capitalize_first_letter
+from weaviate.util import _capitalize_first_letter, docstring_deprecated
 from weaviate.warnings import _Warnings
 
 # BC for direct imports
