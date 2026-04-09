@@ -2208,9 +2208,7 @@ def test_property_text_analyzer_ascii_fold(collection_factory: CollectionFactory
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=TextAnalyzerConfig(
-                    ascii_fold=True, ascii_fold_ignore=["é"]
-                ),
+                text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["é"]),
             ),
             Property(
                 name="body",
@@ -2253,9 +2251,7 @@ def test_property_text_analyzer_ascii_fold_in_nested_property(
                         name="title",
                         data_type=DataType.TEXT,
                         tokenization=Tokenization.WORD,
-                        text_analyzer=TextAnalyzerConfig(
-                            ascii_fold=True, ascii_fold_ignore=["ñ"]
-                        ),
+                        text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["ñ"]),
                     ),
                 ],
             ),

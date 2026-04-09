@@ -3043,9 +3043,7 @@ class TestTextAnalyzerConfig:
             name="title",
             data_type=DataType.TEXT,
             tokenization=Tokenization.WORD,
-            text_analyzer=TextAnalyzerConfig(
-                ascii_fold=True, ascii_fold_ignore=["é", "ñ"]
-            ),
+            text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["é", "ñ"]),
         )
         out = prop._to_dict()
         assert out["textAnalyzer"] == {
@@ -3079,9 +3077,7 @@ class TestTextAnalyzerConfig:
                 Property(
                     name="title",
                     data_type=DataType.TEXT,
-                    text_analyzer=TextAnalyzerConfig(
-                        ascii_fold=True, ascii_fold_ignore=["ñ"]
-                    ),
+                    text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["ñ"]),
                 ),
             ],
         )
