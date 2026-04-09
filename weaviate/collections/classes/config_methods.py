@@ -467,6 +467,8 @@ def _text_analyzer_from_config(prop: Dict[str, Any]) -> Optional[_TextAnalyzerCo
     ta = prop.get("textAnalyzer")
     if ta is None:
         return None
+    if "asciiFold" not in ta:
+        return None
     return _TextAnalyzerConfig(
         ascii_fold=ta.get("asciiFold", False),
         ascii_fold_ignore=ta.get("asciiFoldIgnore"),
