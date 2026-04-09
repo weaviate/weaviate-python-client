@@ -2,7 +2,7 @@ import warnings
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from deprecation import deprecated as docstring_deprecated
+from weaviate.util import docstring_deprecated
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated

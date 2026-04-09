@@ -1,8 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Optional, Type, Union
 
-from deprecation import deprecated as docstring_deprecated
 from typing_extensions import deprecated as typing_deprecated
+
+from weaviate.util import docstring_deprecated
 
 from weaviate.collections.batch.async_ import _BatchBaseAsync
 from weaviate.collections.batch.base import (

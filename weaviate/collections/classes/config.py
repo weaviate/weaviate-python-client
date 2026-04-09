@@ -14,7 +14,7 @@ from typing import (
     cast,
 )
 
-from deprecation import deprecated as docstring_deprecated
+from weaviate.util import docstring_deprecated
 from pydantic import AnyHttpUrl, Field, TypeAdapter, ValidationInfo, field_validator
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
