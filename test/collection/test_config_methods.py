@@ -1,4 +1,5 @@
 from weaviate.collections.classes.config_methods import (
+    _collection_config_from_json,
     _collection_configs_simple_from_json,
     _nested_properties_from_config,
     _properties_from_config,
@@ -145,3 +146,102 @@ def test_nested_properties_from_config_parses_text_analyzer() -> None:
         "asciiFold": True,
         "asciiFoldIgnore": ["ñ"],
     }
+
+
+def test_properties_from_config_parses_stopword_preset_only() -> None:
+    """A property with only stopwordPreset (no asciiFold) must still produce a text_analyzer."""
+    schema = {
+        "vectorizer": "none",
+        "properties": [
+            _make_text_prop("title", textAnalyzer={"stopwordPreset": "fr"}),
+        ],
+    }
+    title = _properties_from_config(schema)[0]
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is False
+    assert title.text_analyzer.ascii_fold_ignore is None
+    assert title.text_analyzer.stopword_preset == "fr"
+
+
+def test_properties_from_config_parses_combined_text_analyzer() -> None:
+    schema = {
+        "vectorizer": "none",
+        "properties": [
+            _make_text_prop(
+                "title",
+                textAnalyzer={
+                    "asciiFold": True,
+                    "asciiFoldIgnore": ["é"],
+                    "stopwordPreset": "fr",
+                },
+            ),
+        ],
+    }
+    title = _properties_from_config(schema)[0]
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    assert title.text_analyzer.stopword_preset == "fr"
+
+
+def _full_schema(class_name: str, **inverted_overrides) -> dict:
+    inverted = {
+        "bm25": {"b": 0.75, "k1": 1.2},
+        "cleanupIntervalSeconds": 60,
+        "stopwords": {"preset": "en", "additions": None, "removals": None},
+    }
+    inverted.update(inverted_overrides)
+    return {
+        "class": class_name,
+        "vectorizer": "none",
+        "properties": [],
+        "invertedIndexConfig": inverted,
+        "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
+        "shardingConfig": {
+            "virtualPerPhysical": 128,
+            "desiredCount": 1,
+            "actualCount": 1,
+            "desiredVirtualCount": 128,
+            "actualVirtualCount": 128,
+            "key": "_id",
+            "strategy": "hash",
+            "function": "murmur3",
+        },
+        "vectorIndexType": "hnsw",
+        "vectorIndexConfig": {
+            "skip": False,
+            "cleanupIntervalSeconds": 300,
+            "maxConnections": 64,
+            "efConstruction": 128,
+            "ef": -1,
+            "dynamicEfMin": 100,
+            "dynamicEfMax": 500,
+            "dynamicEfFactor": 8,
+            "vectorCacheMaxObjects": 1000000000000,
+            "flatSearchCutoff": 40000,
+            "distance": "cosine",
+        },
+    }
+
+
+def test_collection_config_parses_stopword_presets() -> None:
+    """The inverted index config exposes stopwordPresets when present in the schema."""
+    schema = _full_schema(
+        "TestStopwordPresets",
+        stopwordPresets={
+            "fr": ["le", "la", "les"],
+            "es": ["el", "la", "los"],
+        },
+    )
+    full = _collection_config_from_json(schema)
+    assert full.inverted_index_config.stopword_presets == {
+        "fr": ["le", "la", "les"],
+        "es": ["el", "la", "los"],
+    }
+
+
+def test_collection_config_stopword_presets_absent() -> None:
+    """If the server response omits stopwordPresets, the parsed value is None."""
+    schema = _full_schema("TestNoStopwordPresets")
+    full = _collection_config_from_json(schema)
+    assert full.inverted_index_config.stopword_presets is None

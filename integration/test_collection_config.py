@@ -42,6 +42,7 @@ from weaviate.collections.classes.config import (
     _VectorizerConfigCreate,
     IndexName,
 )
+from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
@@ -2338,3 +2339,571 @@ def test_property_text_analyzer_ascii_fold_version_gate(
                 ),
             ],
         )
+
+
+def test_collection_stopword_presets(collection_factory: CollectionFactory) -> None:
+    """User-defined stopword presets defined at collection level apply to properties
+    that reference them via text_analyzer.stopword_preset, and built-in presets can
+    coexist with user-defined ones."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            # User-defined French preset.
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+            ),
+            # Built-in English preset, set per property.
+            Property(
+                name="title_en",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(stopword_preset=StopwordsPreset.EN),
+            ),
+            # No stopword override → uses the collection-level default.
+            Property(
+                name="plain",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+    title_fr = next(p for p in config.properties if p.name == "title_fr")
+    title_en = next(p for p in config.properties if p.name == "title_en")
+    plain = next(p for p in config.properties if p.name == "plain")
+    assert title_fr.text_analyzer is not None
+    assert title_fr.text_analyzer.stopword_preset == "fr"
+    assert title_en.text_analyzer is not None
+    assert title_en.text_analyzer.stopword_preset == "en"
+    assert plain.text_analyzer is None
+
+    collection.data.insert(
+        {
+            "title_fr": "le chat noir",
+            "title_en": "the black cat",
+            "plain": "the black cat",
+        }
+    )
+
+    # title_fr filters 'le' (in user preset) → BM25 for 'le' yields no match,
+    # but 'chat' still matches.
+    res = collection.query.bm25(query="le", query_properties=["title_fr"])
+    assert len(res.objects) == 0
+    res = collection.query.bm25(query="chat", query_properties=["title_fr"])
+    assert len(res.objects) == 1
+
+    # title_en filters 'the' (built-in en) but matches 'cat'.
+    res = collection.query.bm25(query="the", query_properties=["title_en"])
+    assert len(res.objects) == 0
+    res = collection.query.bm25(query="cat", query_properties=["title_en"])
+    assert len(res.objects) == 1
+
+
+def test_collection_stopword_presets_update(collection_factory: CollectionFactory) -> None:
+    """Updating the contents of an existing user-defined stopword preset takes effect
+    immediately for queries against properties that reference it."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le"]},
+        ),
+        properties=[
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    collection.data.insert({"title_fr": "le chat et la souris"})
+
+    # Baseline: 'le' is filtered, 'la' is not (it isn't in the preset yet).
+    res = collection.query.bm25(query="le", query_properties=["title_fr"])
+    assert len(res.objects) == 0
+    res = collection.query.bm25(query="la", query_properties=["title_fr"])
+    assert len(res.objects) == 1
+
+    # Replace the preset contents: drop 'le', add 'la'.
+    collection.config.update(
+        inverted_index_config=Reconfigure.inverted_index(
+            stopword_presets={"fr": ["la"]},
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["la"]}
+
+    # After update: 'le' now passes through, 'la' is filtered.
+    res = collection.query.bm25(query="le", query_properties=["title_fr"])
+    assert len(res.objects) == 1
+    res = collection.query.bm25(query="la", query_properties=["title_fr"])
+    assert len(res.objects) == 0
+
+
+def test_collection_stopword_presets_remove_in_use_is_rejected(
+    collection_factory: CollectionFactory,
+) -> None:
+    """The server rejects removing a stopword preset still referenced by a property."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.config.update(
+            inverted_index_config=Reconfigure.inverted_index(stopword_presets={}),
+        )
+
+    # The original preset must still be present after the rejected update.
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_inverted_index_stopword_presets_version_gate(
+    collection_factory: CollectionFactory,
+) -> None:
+    """On Weaviate < 1.37 the client must raise before sending the request."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_at_least(1, 37, 0):
+        pytest.skip("Version gate only applies to Weaviate < 1.37.0")
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        collection_factory(
+            vectorizer_config=Configure.Vectorizer.none(),
+            inverted_index_config=Configure.inverted_index(
+                stopword_presets={"fr": ["le", "la"]},
+            ),
+        )
+
+
+def test_collection_stopword_presets_remove_unused_is_allowed(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Removing a preset that no property references must succeed."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={
+                "fr": ["le", "la", "les"],
+                "es": ["el", "la", "los"],
+            },
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    # Drop only 'es' (unused). 'fr' is still referenced by title.
+    collection.config.update(
+        inverted_index_config=Reconfigure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+    )
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_collection_stopword_presets_remove_referenced_by_nested_property_is_rejected(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A removed preset still referenced by a nested property must be rejected by the server."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="doc",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(
+                        name="body",
+                        data_type=DataType.TEXT,
+                        tokenization=Tokenization.WORD,
+                        text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.config.update(
+            inverted_index_config=Reconfigure.inverted_index(stopword_presets={}),
+        )
+
+    # The original preset must still be present after the rejected update.
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_collection_user_defined_stopword_preset_overrides_builtin(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A user-defined preset named 'en' replaces the built-in 'en' for properties of this collection."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            # Shadow the built-in 'en' with a user-defined preset that filters
+            # 'hello' but NOT 'the'.
+            stopword_presets={"en": ["hello"]},
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(stopword_preset="en"),
+            ),
+        ],
+    )
+
+    collection.data.insert({"title": "the quick hello world"})
+
+    # 'the' is no longer filtered (built-in en is overridden) → matches.
+    res = collection.query.bm25(query="the", query_properties=["title"])
+    assert len(res.objects) == 1
+    # 'hello' was added by the override → filtered.
+    res = collection.query.bm25(query="hello", query_properties=["title"])
+    assert len(res.objects) == 0
+    # 'quick' is in neither list → matches.
+    res = collection.query.bm25(query="quick", query_properties=["title"])
+    assert len(res.objects) == 1
+
+
+def test_property_text_analyzer_combined_ascii_fold_and_stopword_preset(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A single property may combine ascii_fold and stopword_preset."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(
+                    ascii_fold=True,
+                    stopword_preset=StopwordsPreset.EN,
+                ),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.stopword_preset == "en"
+
+    collection.data.insert({"title": "The école française"})
+
+    # 'the' is filtered by built-in en → no match.
+    res = collection.query.bm25(query="the", query_properties=["title"])
+    assert len(res.objects) == 0
+    # 'ecole' matches because ascii_fold folds 'école'.
+    res = collection.query.bm25(query="ecole", query_properties=["title"])
+    assert len(res.objects) == 1
+    # 'francaise' matches because ascii_fold folds 'française'.
+    res = collection.query.bm25(query="francaise", query_properties=["title"])
+    assert len(res.objects) == 1
+
+
+def test_property_text_analyzer_ascii_fold_immutable(
+    collection_factory: CollectionFactory,
+) -> None:
+    """The asciiFold setting is immutable; updating it via add_property on a renamed
+    property is the only way to change behavior, but the original property cannot
+    have its analyzer mutated."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["é"]),
+            ),
+        ],
+    )
+
+    # The config exposes the original ignore list and there's no client API
+    # surface to mutate text_analyzer on an existing property — it can only be
+    # set at create time.
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+
+    # Adding a *new* property with a different analyzer is allowed.
+    collection.config.add_property(
+        Property(
+            name="title2",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["ñ"]),
+        ),
+    )
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    title2 = next(p for p in config.properties if p.name == "title2")
+    # Original property's analyzer is unchanged.
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    # New property has its own analyzer.
+    assert title2.text_analyzer is not None
+    assert title2.text_analyzer.ascii_fold_ignore == ["ñ"]
+
+
+@pytest.mark.parametrize(
+    "tokenization,query_match,query_no_match",
+    [
+        (Tokenization.WORD, "école", "ecole"),
+        (Tokenization.LOWERCASE, "l'école", "l'ecole"),
+        (Tokenization.WHITESPACE, "L'école", "L'ecole"),
+        (Tokenization.FIELD, "L'école est fermée", "L'ecole est fermee"),
+        (Tokenization.TRIGRAM, "éco", "eco"),
+    ],
+    ids=["word", "lowercase", "whitespace", "field", "trigram"],
+)
+def test_property_ascii_fold_across_tokenizations(
+    collection_factory: CollectionFactory,
+    tokenization: Tokenization,
+    query_match: str,
+    query_no_match: str,
+) -> None:
+    """ascii_fold + ignore list ['é'] preserves é under every supported tokenization."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="prop",
+                data_type=DataType.TEXT,
+                tokenization=tokenization,
+                text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["é"]),
+            ),
+            Property(
+                name="prop_no_ignore",
+                data_type=DataType.TEXT,
+                tokenization=tokenization,
+                text_analyzer=TextAnalyzerConfig(ascii_fold=True),
+            ),
+        ],
+    )
+    collection.data.insert(
+        {
+            "prop": "L'école est fermée",
+            "prop_no_ignore": "L'école est fermée",
+        }
+    )
+
+    # On the property with the ignore list, the accented form matches but the
+    # ASCII-folded form does not.
+    res = collection.query.bm25(query=query_match, query_properties=["prop"])
+    assert len(res.objects) == 1
+    res = collection.query.bm25(query=query_no_match, query_properties=["prop"])
+    assert len(res.objects) == 0
+
+    # On the property without the ignore list, both forms match.
+    res = collection.query.bm25(query=query_match, query_properties=["prop_no_ignore"])
+    assert len(res.objects) == 1
+    res = collection.query.bm25(query=query_no_match, query_properties=["prop_no_ignore"])
+    assert len(res.objects) == 1
+
+
+def test_property_ascii_fold_multi_char_ignore(
+    collection_factory: CollectionFactory,
+) -> None:
+    """An ignore list with multiple characters preserves all of them while still
+    folding the rest."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="multi_ignore",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(
+                    ascii_fold=True,
+                    ascii_fold_ignore=["é", "ü", "ñ", "ø"],
+                ),
+            ),
+        ],
+    )
+    collection.data.insert_many(
+        [
+            {"multi_ignore": "résumé"},
+            {"multi_ignore": "über"},
+            {"multi_ignore": "El Niño"},
+            {"multi_ignore": "Ørsted"},
+            {"multi_ignore": "São Paulo"},
+            {"multi_ignore": "naïve café"},
+        ]
+    )
+
+    # All four ignored chars are preserved → ASCII-folded form does not match,
+    # but the accented form does.
+    for accented, folded in [
+        ("résumé", "resume"),
+        ("über", "uber"),
+        ("niño", "nino"),
+        ("ørsted", "orsted"),
+    ]:
+        match = collection.query.bm25(query=accented, query_properties=["multi_ignore"])
+        no_match = collection.query.bm25(query=folded, query_properties=["multi_ignore"])
+        assert len(match.objects) == 1, f"{accented} should match"
+        assert len(no_match.objects) == 0, f"{folded} should not match (char in ignore list)"
+
+    # Non-ignored accents (ã, ï) still fold normally.
+    res = collection.query.bm25(query="sao", query_properties=["multi_ignore"])
+    assert len(res.objects) == 1
+    res = collection.query.bm25(query="naive", query_properties=["multi_ignore"])
+    assert len(res.objects) == 1
+
+    # The "naïve café" doc has both an ignored char (é) and a non-ignored one (ï):
+    # 'naive' matches (ï folded), 'cafe' does not (é preserved).
+    res = collection.query.fetch_objects(
+        filters=Filter.by_property("multi_ignore").equal("naive café"),
+        limit=10,
+    )
+    assert len(res.objects) == 1
+
+
+def test_property_ascii_fold_with_filters(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Equal and Like filters respect ascii_fold and ascii_fold_ignore."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            # Folds everything.
+            Property(
+                name="body",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(ascii_fold=True),
+            ),
+            # Folds everything except 'é'.
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["é"]),
+            ),
+        ],
+    )
+    collection.data.insert_many(
+        [
+            {"title": "L'école est fermée", "body": "L'école est fermée"},
+            {"title": "cafe résumé", "body": "cafe résumé"},
+        ]
+    )
+
+    # Equal on body (full fold): 'ecole' matches.
+    res = collection.query.fetch_objects(
+        filters=Filter.by_property("body").equal("ecole"),
+        limit=5,
+    )
+    assert len(res.objects) == 1
+
+    # Equal on title (é preserved): 'ecole' does not, but 'école' does.
+    res = collection.query.fetch_objects(
+        filters=Filter.by_property("title").equal("école"),
+        limit=5,
+    )
+    assert len(res.objects) == 1
+    res = collection.query.fetch_objects(
+        filters=Filter.by_property("title").equal("ecole"),
+        limit=5,
+    )
+    assert len(res.objects) == 0
+
+    # Like on body (full fold): 'ecol*' matches.
+    res = collection.query.fetch_objects(
+        filters=Filter.by_property("body").like("ecol*"),
+        limit=5,
+    )
+    assert len(res.objects) == 1
+
+    # Like on title (é preserved): 'écol*' matches, 'ecol*' does not.
+    res = collection.query.fetch_objects(
+        filters=Filter.by_property("title").like("écol*"),
+        limit=5,
+    )
+    assert len(res.objects) == 1
+    res = collection.query.fetch_objects(
+        filters=Filter.by_property("title").like("ecol*"),
+        limit=5,
+    )
+    assert len(res.objects) == 0

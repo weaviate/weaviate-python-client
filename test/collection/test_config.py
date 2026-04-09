@@ -12,6 +12,7 @@ from weaviate.collections.classes.config import (
     Property,
     Reconfigure,
     ReferenceProperty,
+    StopwordsPreset,
     TextAnalyzerConfig,
     Tokenization,
     Vectorizers,
@@ -3097,3 +3098,100 @@ class TestTextAnalyzerConfig:
             TextAnalyzerConfig(ascii_fold="yes")  # type: ignore[arg-type]
         with pytest.raises(ValidationError):
             TextAnalyzerConfig(ascii_fold_ignore="é")  # type: ignore[arg-type]
+
+    def test_text_analyzer_stopword_preset_builtin_enum(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=TextAnalyzerConfig(stopword_preset=StopwordsPreset.EN),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"stopwordPreset": "en"}
+
+    def test_text_analyzer_stopword_preset_user_defined_string(self) -> None:
+        prop = Property(
+            name="title_fr",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"stopwordPreset": "fr"}
+
+    def test_text_analyzer_combined_ascii_fold_and_stopword_preset(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=TextAnalyzerConfig(
+                ascii_fold=True, ascii_fold_ignore=["é"], stopword_preset="fr"
+            ),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["é"],
+            "stopwordPreset": "fr",
+        }
+
+    def test_text_analyzer_stopword_preset_only_omits_other_keys(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+        )
+        out = prop._to_dict()
+        assert "asciiFold" not in out["textAnalyzer"]
+        assert "asciiFoldIgnore" not in out["textAnalyzer"]
+
+
+class TestInvertedIndexStopwordPresets:
+    def test_configure_inverted_index_with_stopword_presets(self) -> None:
+        ic = Configure.inverted_index(
+            stopword_presets={
+                "fr": ["le", "la", "les"],
+                "es": ["el", "la", "los"],
+            },
+        )
+        out = ic._to_dict()
+        assert out["stopwordPresets"] == {
+            "fr": ["le", "la", "les"],
+            "es": ["el", "la", "los"],
+        }
+
+    def test_configure_inverted_index_without_stopword_presets_omits_key(self) -> None:
+        ic = Configure.inverted_index()
+        assert "stopwordPresets" not in ic._to_dict()
+
+    def test_reconfigure_inverted_index_merges_stopword_presets(self) -> None:
+        rc = Reconfigure.inverted_index(stopword_presets={"fr": ["le", "la"]})
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "cleanupIntervalSeconds": 60,
+        }
+        merged = rc.merge_with_existing(existing)
+        assert merged["stopwordPresets"] == {"fr": ["le", "la"]}
+        # other fields untouched
+        assert merged["stopwords"]["preset"] == "en"
+        assert merged["bm25"]["b"] == 0.75
+
+    def test_reconfigure_inverted_index_replaces_existing_stopword_presets(self) -> None:
+        rc = Reconfigure.inverted_index(stopword_presets={"fr": ["le"]})
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "stopwordPresets": {"fr": ["le", "la", "les"], "es": ["el"]},
+        }
+        merged = rc.merge_with_existing(existing)
+        # The new value fully replaces the prior dict (this matches the server-side
+        # PUT semantics — see test_tokenize.py::test_remove_unused_preset_is_allowed).
+        assert merged["stopwordPresets"] == {"fr": ["le"]}
+
+    def test_reconfigure_inverted_index_without_stopword_presets_leaves_existing(self) -> None:
+        rc = Reconfigure.inverted_index(bm25_b=0.7, bm25_k1=1.1)
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "stopwordPresets": {"fr": ["le", "la"]},
+        }
+        merged = rc.merge_with_existing(existing)
+        assert merged["stopwordPresets"] == {"fr": ["le", "la"]}
