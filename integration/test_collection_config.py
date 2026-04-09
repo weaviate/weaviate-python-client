@@ -2342,9 +2342,11 @@ def test_property_text_analyzer_ascii_fold_version_gate(
 
 
 def test_collection_stopword_presets(collection_factory: CollectionFactory) -> None:
-    """User-defined stopword presets defined at collection level apply to properties
-    that reference them via text_analyzer.stopword_preset, and built-in presets can
-    coexist with user-defined ones."""
+    """User-defined stopword presets apply to properties that reference them.
+
+    Properties can reference user-defined presets via text_analyzer.stopword_preset,
+    and built-in presets can coexist with user-defined ones.
+    """
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
         pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
@@ -2413,8 +2415,11 @@ def test_collection_stopword_presets(collection_factory: CollectionFactory) -> N
 
 
 def test_collection_stopword_presets_update(collection_factory: CollectionFactory) -> None:
-    """Updating the contents of an existing user-defined stopword preset takes effect
-    immediately for queries against properties that reference it."""
+    """Updating the contents of an existing stopword preset takes effect immediately.
+
+    Queries against properties that reference the preset see the new contents on the
+    next request.
+    """
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
         pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
@@ -2667,9 +2672,11 @@ def test_property_text_analyzer_combined_ascii_fold_and_stopword_preset(
 def test_property_text_analyzer_ascii_fold_immutable(
     collection_factory: CollectionFactory,
 ) -> None:
-    """The asciiFold setting is immutable; updating it via add_property on a renamed
-    property is the only way to change behavior, but the original property cannot
-    have its analyzer mutated."""
+    """The asciiFold setting is immutable on an existing property.
+
+    Adding a new property via add_property is the only way to introduce a different
+    analyzer; the original property's analyzer cannot be mutated.
+    """
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
         pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
@@ -2777,8 +2784,10 @@ def test_property_ascii_fold_across_tokenizations(
 def test_property_ascii_fold_multi_char_ignore(
     collection_factory: CollectionFactory,
 ) -> None:
-    """An ignore list with multiple characters preserves all of them while still
-    folding the rest."""
+    """An ignore list with multiple characters preserves all of them.
+
+    Characters not in the ignore list are still folded normally.
+    """
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
         pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
