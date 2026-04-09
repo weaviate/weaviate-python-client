@@ -92,7 +92,11 @@ class _BackupExecutor(Generic[ConnectionType]):
             "id": backup_id,
             "include": include_collections,
             "exclude": exclude_collections,
-            "incremental_base_backup_id": incremental_base_backup_id,
+            "incremental_base_backup_id": (
+                incremental_base_backup_id.lower()
+                if incremental_base_backup_id is not None
+                else None
+            ),
         }
 
         if config is not None:
