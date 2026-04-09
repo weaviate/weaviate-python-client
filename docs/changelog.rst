@@ -8,7 +8,7 @@ This patch version includes:
     - Add support for audio modality in multi2vec-google
     - Export FilterReturn from weaviate.classes.query
     - Fix updating async replication config
-    - Remove unmantained ``deprecated`` dependency
+    - Remove unmaintained ``deprecated`` dependency
     - Throw exception on empty time filters
 
 Version 4.20.4
