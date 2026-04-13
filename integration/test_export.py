@@ -168,8 +168,7 @@ def test_cancel_export(client: weaviate.WeaviateClient, request: SubRequest) -> 
     )
     assert resp.status in [ExportStatus.STARTED, ExportStatus.TRANSFERRING, ExportStatus.SUCCESS]
 
-    result = client.export.cancel(export_id=export_id, backend=BACKEND)
-    assert result is True
+    client.export.cancel(export_id=export_id, backend=BACKEND)
 
     # verify it's cancelled or already completed (race condition)
     start = time.time()

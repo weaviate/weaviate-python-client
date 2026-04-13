@@ -82,7 +82,8 @@ class _ExportExecutor(Generic[ConnectionType]):
             wait_for_completion: Whether to wait until the export is done. By default False.
 
         Returns:
-            An `ExportCreateReturn` object that contains the export creation response.
+            An `ExportCreateReturn` when `wait_for_completion=False`, or an `ExportStatusReturn`
+            when `wait_for_completion=True` and the export completes successfully.
 
         Raises:
             weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a non-OK status.
@@ -272,7 +273,7 @@ def _get_and_validate_create_arguments(
     if isinstance(backend, str):
         try:
             backend = ExportStorage(backend.lower())
-        except KeyError:
+        except ValueError:
             raise ValueError(
                 f"'backend' must have one of these values: {STORAGE_NAMES}. Given value: {backend}."
             )
@@ -323,7 +324,7 @@ def _get_and_validate_get_status(
     if isinstance(backend, str):
         try:
             backend = ExportStorage(backend.lower())
-        except KeyError:
+        except ValueError:
             raise ValueError(
                 f"'backend' must have one of these values: {STORAGE_NAMES}. Given value: {backend}."
             )
