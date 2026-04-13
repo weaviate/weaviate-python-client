@@ -30,7 +30,6 @@ from weaviate.collections.classes.config import (
     PQEncoderType,
     PQEncoderDistribution,
     StopwordsPreset,
-    TextAnalyzerConfig,
     VectorDistances,
     VectorIndexType,
     Vectorizers,
@@ -2204,121 +2203,6 @@ def test_delete_property_index(
         assert config.properties[0].index_filterable is _index_filterable
 
 
-def test_property_text_analyzer_ascii_fold(collection_factory: CollectionFactory) -> None:
-    """Create a collection with ascii folding configured and verify it round-trips."""
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
-        pytest.skip("Property text_analyzer (asciiFold) requires Weaviate >= 1.37.0")
-
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            # Folds all accents.
-            Property(
-                name="folded",
-                data_type=DataType.TEXT,
-                tokenization=Tokenization.WORD,
-                text_analyzer=TextAnalyzerConfig(ascii_fold=True),
-            ),
-            # Folds all accents EXCEPT 'é'.
-            Property(
-                name="folded_except_e_acute",
-                data_type=DataType.TEXT,
-                tokenization=Tokenization.WORD,
-                text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["é"]),
-            ),
-            # No folding at all.
-            Property(
-                name="plain",
-                data_type=DataType.TEXT,
-                tokenization=Tokenization.WORD,
-            ),
-        ],
-    )
-
-    config = collection.config.get()
-    folded = next(p for p in config.properties if p.name == "folded")
-    folded_ignore = next(p for p in config.properties if p.name == "folded_except_e_acute")
-    plain = next(p for p in config.properties if p.name == "plain")
-
-    assert folded.text_analyzer is not None
-    assert folded.text_analyzer.ascii_fold is True
-    assert folded.text_analyzer.ascii_fold_ignore is None
-
-    assert folded_ignore.text_analyzer is not None
-    assert folded_ignore.text_analyzer.ascii_fold is True
-    assert folded_ignore.text_analyzer.ascii_fold_ignore == ["é"]
-
-    assert plain.text_analyzer is None
-
-    # Insert one doc that contains both an ignored accent ('é') and a non-ignored
-    # accent ('ç') so the test can distinguish "folded" from "ignored" behavior.
-    collection.data.insert(
-        {
-            "folded": "école française",
-            "folded_except_e_acute": "école française",
-            "plain": "école française",
-        }
-    )
-
-    # `folded` folds everything → both 'ecole' and 'francaise' match.
-    res = collection.query.bm25(query="ecole", query_properties=["folded"])
-    assert len(res.objects) == 1
-    res = collection.query.bm25(query="francaise", query_properties=["folded"])
-    assert len(res.objects) == 1
-
-    # `folded_except_e_acute` preserves 'é' but still folds 'ç' → 'c'.
-    # Querying 'ecole' must NOT match because 'é' is in the ignore list.
-    res = collection.query.bm25(query="ecole", query_properties=["folded_except_e_acute"])
-    assert len(res.objects) == 0
-    # Querying the original 'école' still matches.
-    res = collection.query.bm25(query="école", query_properties=["folded_except_e_acute"])
-    assert len(res.objects) == 1
-    # 'ç' is not in the ignore list, so it still folds and 'francaise' matches.
-    res = collection.query.bm25(query="francaise", query_properties=["folded_except_e_acute"])
-    assert len(res.objects) == 1
-
-    # `plain` does no folding at all → ASCII queries don't match accented tokens.
-    res = collection.query.bm25(query="ecole", query_properties=["plain"])
-    assert len(res.objects) == 0
-    res = collection.query.bm25(query="francaise", query_properties=["plain"])
-    assert len(res.objects) == 0
-
-
-def test_property_text_analyzer_ascii_fold_in_nested_property(
-    collection_factory: CollectionFactory,
-) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
-        pytest.skip("Property text_analyzer (asciiFold) requires Weaviate >= 1.37.0")
-
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            Property(
-                name="meta",
-                data_type=DataType.OBJECT,
-                nested_properties=[
-                    Property(
-                        name="title",
-                        data_type=DataType.TEXT,
-                        tokenization=Tokenization.WORD,
-                        text_analyzer=TextAnalyzerConfig(ascii_fold=True, ascii_fold_ignore=["ñ"]),
-                    ),
-                ],
-            ),
-        ],
-    )
-
-    config = collection.config.get()
-    meta = next(p for p in config.properties if p.name == "meta")
-    assert meta.nested_properties is not None
-    nested_title = next(np for np in meta.nested_properties if np.name == "title")
-    assert nested_title.text_analyzer is not None
-    assert nested_title.text_analyzer.ascii_fold is True
-    assert nested_title.text_analyzer.ascii_fold_ignore == ["ñ"]
-
-
 def test_property_text_analyzer_ascii_fold_version_gate(
     collection_factory: CollectionFactory,
 ) -> None:
@@ -2335,7 +2219,7 @@ def test_property_text_analyzer_ascii_fold_version_gate(
                     name="title",
                     data_type=DataType.TEXT,
                     tokenization=Tokenization.WORD,
-                    text_analyzer=TextAnalyzerConfig(ascii_fold=True),
+                    text_analyzer=Configure.TextAnalyzer.ascii_fold(),
                 ),
             ],
         )
@@ -2916,3 +2800,26 @@ def test_property_ascii_fold_with_filters(
         limit=5,
     )
     assert len(res.objects) == 0
+
+
+def test_stopwords_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        inverted_index_config=Configure.inverted_index(
+            stopwords_additions=["a"],
+            stopwords_preset=StopwordsPreset.EN,
+            stopwords_removals=["the"],
+        ),
+    )
+    config = collection.config.get()
+    assert config.inverted_index_config.stopwords.preset == StopwordsPreset.EN
+    assert config.inverted_index_config.stopwords.removals == ["the"]
+
+    name = f"TestStopwordsRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)

@@ -15,7 +15,14 @@ from typing import (
 )
 
 from deprecation import deprecated as docstring_deprecated
-from pydantic import AnyHttpUrl, Field, TypeAdapter, ValidationInfo, field_validator
+from pydantic import (
+    AnyHttpUrl,
+    Field,
+    TypeAdapter,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
@@ -1681,6 +1688,9 @@ class _TextAnalyzerConfig(_ConfigBase):
     stopword_preset: Optional[str]
 
 
+TextAnalyzerConfig = _TextAnalyzerConfig
+
+
 @dataclass
 class _NestedProperty(_ConfigBase):
     data_type: DataType
@@ -2175,7 +2185,7 @@ class _ShardStatus:
 ShardStatus = _ShardStatus
 
 
-class TextAnalyzerConfig(_ConfigCreateModel):
+class _TextAnalyzerConfigCreate(_ConfigCreateModel):
     """Text analysis options for a property.
 
     Configures per-property text analysis for `text` and `text[]` properties that use an
@@ -2215,6 +2225,31 @@ class TextAnalyzerConfig(_ConfigCreateModel):
             return v.value
         return v
 
+    @model_validator(mode="after")
+    def _validate_ascii_fold_ignore(self) -> "_TextAnalyzerConfigCreate":
+        if self.asciiFold is not True and self.asciiFoldIgnore is not None:
+            raise ValueError("asciiFoldIgnore cannot be set when asciiFold is not enabled")
+        return self
+
+
+class _TextAnalyzer:
+    """Factory class for creating text analyzer configurations.
+
+    Use ``Configure.TextAnalyzer`` to access these methods.
+    """
+
+    @staticmethod
+    def ascii_fold(
+        ignore: Optional[List[str]] = None,
+    ) -> _TextAnalyzerConfigCreate:
+        """Create a text analyzer config with ASCII folding enabled.
+
+        Args:
+            ignore: Optional list of characters that should be excluded from
+                ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to 'e').
+        """
+        return _TextAnalyzerConfigCreate(ascii_fold=True, ascii_fold_ignore=ignore)
+
 
 class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
@@ -2245,7 +2280,7 @@ class Property(_ConfigCreateModel):
         default=None, alias="nested_properties"
     )
     skip_vectorization: bool = Field(default=False)
-    textAnalyzer: Optional[TextAnalyzerConfig] = Field(default=None, alias="text_analyzer")
+    textAnalyzer: Optional[_TextAnalyzerConfigCreate] = Field(default=None, alias="text_analyzer")
     tokenization: Optional[Tokenization] = Field(default=None)
     vectorize_property_name: bool = Field(default=True)
 
@@ -2625,6 +2660,7 @@ class Configure:
     MultiVectors = _MultiVectors
     ObjectTTL = _ObjectTTL
     Replication = _Replication
+    TextAnalyzer = _TextAnalyzer
 
     @staticmethod
     def inverted_index(
