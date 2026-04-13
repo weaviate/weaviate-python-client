@@ -50,25 +50,13 @@ from weaviate.connect.v4 import (
     ConnectionType,
     _ExpectedStatusCodes,
 )
+from weaviate.collections.config.executor import _any_property_has_text_analyzer
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 CollectionType = TypeVar("CollectionType", Collection, CollectionAsync)
-
-
-def _any_property_has_text_analyzer(properties: Sequence[Property]) -> bool:
-    for prop in properties:
-        if prop.textAnalyzer is not None:
-            return True
-        nested = prop.nestedProperties
-        if nested is None:
-            continue
-        nested_list = nested if isinstance(nested, list) else [nested]
-        if _any_property_has_text_analyzer(nested_list):
-            return True
-    return False
 
 
 class _CollectionsExecutor(Generic[ConnectionType]):

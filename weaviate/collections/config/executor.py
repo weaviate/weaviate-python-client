@@ -5,6 +5,7 @@ from typing import (
     Generic,
     List,
     Literal,
+    Sequence,
     Optional,
     Tuple,
     Union,
@@ -62,6 +63,10 @@ from weaviate.util import (
 )
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
+
+
+def _any_property_has_text_analyzer(properties: Sequence[Property]) -> bool:
+    return any(_property_has_text_analyzer(p) for p in properties)
 
 
 def _property_has_text_analyzer(prop: Property) -> bool:
