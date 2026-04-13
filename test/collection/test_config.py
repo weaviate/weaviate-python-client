@@ -3178,4 +3178,3 @@ class TestInvertedIndexStopwordPresets:
         }
         merged = rc.merge_with_existing(existing)
         assert merged["stopwordPresets"] == {"fr": ["le", "la"]}
-
