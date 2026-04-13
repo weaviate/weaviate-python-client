@@ -2239,16 +2239,29 @@ class _TextAnalyzer:
     """
 
     @staticmethod
-    def ascii_fold(
-        ignore: Optional[List[str]] = None,
+    def custom(
+        ascii_fold: Optional[bool] = None,
+        ascii_fold_ignore: Optional[List[str]] = None,
+        stopword_preset: Optional[Union[StopwordsPreset, str]] = None,
     ) -> _TextAnalyzerConfigCreate:
-        """Create a text analyzer config with ASCII folding enabled.
+        """Create a text analyzer config with custom settings.
 
         Args:
-            ignore: Optional list of characters that should be excluded from
-                ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to 'e').
+            ascii_fold: If True, accent/diacritic marks are folded to their base
+                characters during indexing and search (e.g. 'école' matches 'ecole').
+            ascii_fold_ignore: Optional list of characters that should be excluded
+                from ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to
+                'e'). Requires ``ascii_fold=True``.
+            stopword_preset: Stopword preset name to override the collection-level
+                stopwords for this property. Accepts a ``StopwordsPreset`` or a
+                user-defined preset name.
         """
-        return _TextAnalyzerConfigCreate(ascii_fold=True, ascii_fold_ignore=ignore)
+        return _TextAnalyzerConfigCreate(
+            ascii_fold=ascii_fold,
+            ascii_fold_ignore=ascii_fold_ignore,
+            stopword_preset=stopword_preset,
+        )
+
 
 
 class Property(_ConfigCreateModel):

@@ -10,7 +10,6 @@ from weaviate.collections.classes.config import (
     Reconfigure,
     ReferenceProperty,
     StopwordsPreset,
-    TextAnalyzerConfig,
     Tokenization,
     Vectorizers,
     _AsyncReplicationConfig,
@@ -3036,7 +3035,7 @@ class Test_TextAnalyzerConfigCreate:
         prop = Property(
             name="title",
             data_type=DataType.TEXT,
-            text_analyzer=Configure.TextAnalyzer.ascii_fold(),
+            text_analyzer=Configure.TextAnalyzer.custom(ascii_fold=True),
         )
         assert prop._to_dict()["textAnalyzer"] == {"asciiFold": True}
 
@@ -3045,7 +3044,7 @@ class Test_TextAnalyzerConfigCreate:
             name="title",
             data_type=DataType.TEXT,
             tokenization=Tokenization.WORD,
-            text_analyzer=Configure.TextAnalyzer.ascii_fold(ignore=["é", "ñ"]),
+            text_analyzer=Configure.TextAnalyzer.custom(ascii_fold=True, ascii_fold_ignore=["é", "ñ"]),
         )
         out = prop._to_dict()
         assert out["textAnalyzer"] == {
@@ -3066,7 +3065,7 @@ class Test_TextAnalyzerConfigCreate:
                 Property(
                     name="title",
                     data_type=DataType.TEXT,
-                    text_analyzer=Configure.TextAnalyzer.ascii_fold(ignore=["ñ"]),
+                    text_analyzer=Configure.TextAnalyzer.custom(ascii_fold=True, ascii_fold_ignore=["ñ"]),
                 ),
             ],
         )
@@ -3087,7 +3086,7 @@ class Test_TextAnalyzerConfigCreate:
             name="title",
             data_type=DataType.TEXT,
             tokenization=Tokenization.WORD,
-            text_analyzer=TextAnalyzerConfig(stopword_preset=StopwordsPreset.EN),
+            text_analyzer=Configure.TextAnalyzer.custom(stopword_preset=StopwordsPreset.EN),
         )
         assert prop._to_dict()["textAnalyzer"] == {"stopwordPreset": "en"}
 
@@ -3096,7 +3095,7 @@ class Test_TextAnalyzerConfigCreate:
             name="title_fr",
             data_type=DataType.TEXT,
             tokenization=Tokenization.WORD,
-            text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+            text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="fr"),
         )
         assert prop._to_dict()["textAnalyzer"] == {"stopwordPreset": "fr"}
 
@@ -3105,7 +3104,7 @@ class Test_TextAnalyzerConfigCreate:
             name="title",
             data_type=DataType.TEXT,
             tokenization=Tokenization.WORD,
-            text_analyzer=TextAnalyzerConfig(
+            text_analyzer=Configure.TextAnalyzer.custom(
                 ascii_fold=True, ascii_fold_ignore=["é"], stopword_preset="fr"
             ),
         )
@@ -3120,7 +3119,7 @@ class Test_TextAnalyzerConfigCreate:
             name="title",
             data_type=DataType.TEXT,
             tokenization=Tokenization.WORD,
-            text_analyzer=TextAnalyzerConfig(stopword_preset="fr"),
+            text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="fr"),
         )
         out = prop._to_dict()
         assert "asciiFold" not in out["textAnalyzer"]
