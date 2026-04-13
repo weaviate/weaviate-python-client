@@ -36,6 +36,9 @@ OBJECT_IDS = [
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local()
+    if client._connection._weaviate_version.is_lower_than(1, 37, 0):
+        client.close()
+        pytest.skip("Collection export is not supported in versions lower than 1.37.0")
     client.collections.delete(COLLECTION_NAME)
 
     col = client.collections.create(
