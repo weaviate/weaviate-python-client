@@ -30,7 +30,6 @@ from weaviate.collections.classes.config import (
     PQEncoderType,
     PQEncoderDistribution,
     StopwordsPreset,
-    TextAnalyzerConfig,
     VectorDistances,
     VectorIndexType,
     Vectorizers,
@@ -2219,7 +2218,7 @@ def test_property_text_analyzer_ascii_fold_version_gate(
                     name="title",
                     data_type=DataType.TEXT,
                     tokenization=Tokenization.WORD,
-                    text_analyzer=TextAnalyzerConfig(ascii_fold=True),
+                    text_analyzer=Configure.TextAnalyzer.ascii_fold(),
                 ),
             ],
         )
