@@ -2223,3 +2223,26 @@ def test_property_text_analyzer_ascii_fold_version_gate(
                 ),
             ],
         )
+
+
+def test_stopwords_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        inverted_index_config=Configure.inverted_index(
+            stopwords_additions=["a"],
+            stopwords_preset=StopwordsPreset.EN,
+            stopwords_removals=["the"],
+        ),
+    )
+    config = collection.config.get()
+    assert config.inverted_index_config.stopwords.preset == StopwordsPreset.EN
+    assert config.inverted_index_config.stopwords.removals == ["the"]
+
+    name = f"TestStopwordsRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
