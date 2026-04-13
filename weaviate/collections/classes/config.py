@@ -2200,6 +2200,25 @@ class TextAnalyzerConfig(_ConfigCreateModel):
         return self
 
 
+class _TextAnalyzer:
+    """Factory class for creating text analyzer configurations.
+
+    Use ``Configure.TextAnalyzer`` to access these methods.
+    """
+
+    @staticmethod
+    def ascii_fold(
+        ignore: Optional[List[str]] = None,
+    ) -> _TextAnalyzerConfig:
+        """Create a text analyzer config with ASCII folding enabled.
+
+        Args:
+            ignore: Optional list of characters that should be excluded from
+                ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to 'e').
+        """
+        return _TextAnalyzerConfig(asciiFold=True, asciiFoldIgnore=ignore)
+
+
 class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
 
@@ -2609,6 +2628,7 @@ class Configure:
     MultiVectors = _MultiVectors
     ObjectTTL = _ObjectTTL
     Replication = _Replication
+    TextAnalyzer = _TextAnalyzer
 
     @staticmethod
     def inverted_index(
