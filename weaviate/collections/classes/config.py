@@ -15,7 +15,7 @@ from typing import (
 )
 
 from deprecation import deprecated as docstring_deprecated
-from pydantic import AnyHttpUrl, Field, TypeAdapter, ValidationInfo, field_validator
+from pydantic import AnyHttpUrl, Field, TypeAdapter, ValidationInfo, field_validator, model_validator
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
@@ -2192,6 +2192,12 @@ class TextAnalyzerConfig(_ConfigCreateModel):
 
     asciiFold: Optional[bool] = Field(default=None, alias="ascii_fold")
     asciiFoldIgnore: Optional[List[str]] = Field(default=None, alias="ascii_fold_ignore")
+
+    @model_validator(mode="after")
+    def _validate_ascii_fold_ignore(self) -> "TextAnalyzerConfig":
+        if self.asciiFold is not True and self.asciiFoldIgnore is not None:
+            raise ValueError("asciiFoldIgnore cannot be set when asciiFold is not enabled")
+        return self
 
 
 class Property(_ConfigCreateModel):
