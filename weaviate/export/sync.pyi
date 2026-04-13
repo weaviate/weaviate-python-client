@@ -1,6 +1,8 @@
 from typing import List, Literal, Union, overload
 
-from weaviate.connect.v4 import ConnectionSync
+from weaviate.connect.v4 import (
+    ConnectionSync,
+)
 from weaviate.export.export import (
     ExportCreateReturn,
     ExportFileFormat,

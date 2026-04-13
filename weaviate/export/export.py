@@ -6,21 +6,9 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-STORAGE_NAMES = {
-    "filesystem",
-    "s3",
-    "gcs",
-    "azure",
-}
+from weaviate.backup.backup import BackupStorage
 
-
-class ExportStorage(str, Enum):
-    """Which backend should be used to write the export to."""
-
-    FILESYSTEM = "filesystem"
-    S3 = "s3"
-    GCS = "gcs"
-    AZURE = "azure"
+ExportStorage = BackupStorage
 
 
 class ExportFileFormat(str, Enum):

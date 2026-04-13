@@ -6,6 +6,7 @@ from typing import Generic, List, Literal, Tuple, Union, overload
 
 from httpx import Response
 
+from weaviate.backup.backup import STORAGE_NAMES
 from weaviate.connect import executor
 from weaviate.connect.v4 import (
     Connection,
@@ -17,9 +18,9 @@ from weaviate.exceptions import (
     EmptyResponseException,
     ExportCanceledError,
     ExportFailedError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.export.export import (
-    STORAGE_NAMES,
     ExportCreateReturn,
     ExportFileFormat,
     ExportStatus,
@@ -87,6 +88,12 @@ class _ExportExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a non-OK status.
             TypeError: One of the arguments have a wrong type.
         """
+        if self._connection._weaviate_version.is_lower_than(1, 37, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Collection export",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         (
             export_id,
             backend,
@@ -184,6 +191,12 @@ class _ExportExecutor(Generic[ConnectionType]):
         Returns:
             An `ExportStatusReturn` object that contains the export status response.
         """
+        if self._connection._weaviate_version.is_lower_than(1, 37, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Collection export",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         export_id, backend = _get_and_validate_get_status(
             export_id=export_id,
             backend=backend,
@@ -218,6 +231,12 @@ class _ExportExecutor(Generic[ConnectionType]):
         Returns:
             True if the export was cancelled, False if the export had already finished.
         """
+        if self._connection._weaviate_version.is_lower_than(1, 37, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Collection export",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         export_id, backend = _get_and_validate_get_status(
             export_id=export_id,
             backend=backend,
@@ -286,7 +305,7 @@ def _get_and_validate_create_arguments(
         exclude_classes = []
 
     if include_classes and exclude_classes:
-        raise TypeError(
+        raise ValueError(
             "Either 'include_collections' OR 'exclude_collections' can be set, not both."
         )
 

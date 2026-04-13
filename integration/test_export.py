@@ -201,7 +201,7 @@ def test_fail_on_both_include_and_exclude(
 ) -> None:
     """Fail when both include and exclude collections are set."""
     export_id = unique_export_id(request.node.name)
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         client.export.create(
             export_id=export_id,
             backend=BACKEND,
