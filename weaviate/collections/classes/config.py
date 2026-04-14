@@ -2222,30 +2222,6 @@ class _TextAnalyzerConfigCreate(_ConfigCreateModel):
         return self
 
 
-def _text_analyzer(
-    ascii_fold: Optional[bool] = None,
-    ascii_fold_ignore: Optional[List[str]] = None,
-    stopword_preset: Optional[Union[StopwordsPreset, str]] = None,
-) -> _TextAnalyzerConfigCreate:
-    """Create a text analyzer config for a property.
-
-    Args:
-        ascii_fold: If True, accent/diacritic marks are folded to their base
-            characters during indexing and search (e.g. 'école' matches 'ecole').
-        ascii_fold_ignore: Optional list of characters that should be excluded
-            from ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to
-            'e'). Requires ``ascii_fold=True``.
-        stopword_preset: Stopword preset name to override the collection-level
-            stopwords for this property. Accepts a ``StopwordsPreset`` or a
-            user-defined preset name.
-    """
-    return _TextAnalyzerConfigCreate(
-        ascii_fold=ascii_fold,
-        ascii_fold_ignore=ascii_fold_ignore,
-        stopword_preset=stopword_preset,
-    )
-
-
 class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
 
@@ -2657,7 +2633,30 @@ class Configure:
     MultiVectors = _MultiVectors
     ObjectTTL = _ObjectTTL
     Replication = _Replication
-    TextAnalyzer = staticmethod(_text_analyzer)
+
+    @staticmethod
+    def text_analyzer(
+        ascii_fold: Optional[bool] = None,
+        ascii_fold_ignore: Optional[List[str]] = None,
+        stopword_preset: Optional[Union[StopwordsPreset, str]] = None,
+    ) -> _TextAnalyzerConfigCreate:
+        """Create a text analyzer config for a property.
+
+        Args:
+            ascii_fold: If True, accent/diacritic marks are folded to their base
+                characters during indexing and search (e.g. 'école' matches 'ecole').
+            ascii_fold_ignore: Optional list of characters that should be excluded
+                from ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to
+                'e'). Requires ``ascii_fold=True``.
+            stopword_preset: Stopword preset name to override the collection-level
+                stopwords for this property. Accepts a ``StopwordsPreset`` or a
+                user-defined preset name.
+        """
+        return _TextAnalyzerConfigCreate(
+            ascii_fold=ascii_fold,
+            ascii_fold_ignore=ascii_fold_ignore,
+            stopword_preset=stopword_preset,
+        )
 
     @staticmethod
     def inverted_index(
