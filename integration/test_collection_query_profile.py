@@ -37,6 +37,8 @@ def client():
 
 @pytest.fixture(scope="module")
 def collection_with_data(client: weaviate.WeaviateClient):
+    if client._connection._weaviate_version.is_lower_than(1, 36, 9):
+        pytest.skip("Query profiling requires Weaviate >= 1.36.9")
     name = "TestQueryProfile"
     client.collections.delete(name)
     collection = client.collections.create(
