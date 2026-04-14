@@ -30,7 +30,7 @@ from weaviate.collections.classes.aggregate import (
     _MetricsText,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import Move
 from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.filters import _FilterToREST
@@ -326,13 +326,13 @@ class _BaseExecutor(Generic[ConnectionType]):
     def _base(
         self,
         return_metrics: Optional[List[_Metrics]],
-        filters: Optional[_Filters],
+        filters: Optional[FilterReturn],
         total_count: bool,
     ) -> AggregateBuilder:
         _validate_input(
             [
                 _ValidateArgument([List[_Metrics], None], "return_metrics", return_metrics),
-                _ValidateArgument([_Filters, None], "filters", filters),
+                _ValidateArgument([FilterReturn, None], "filters", filters),
                 _ValidateArgument([bool], "total_count", total_count),
             ]
         )

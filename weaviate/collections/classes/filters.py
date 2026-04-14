@@ -220,18 +220,42 @@ class _FilterByProperty(_FilterBase):
 
     def equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is equal to the given value."""
+        if isinstance(val, list) and len(val) == 0:
+            raise WeaviateInvalidInputError(
+                "Filtering on empty lists is not supported by Weaviate. "
+                "To filter by property length, use "
+                "Filter.by_property('prop', length=True).equal(0)"
+            )
         return _FilterValue(target=self._target_path(), value=val, operator=_Operator.EQUAL)
 
     def not_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is not equal to the given value."""
+        if isinstance(val, list) and len(val) == 0:
+            raise WeaviateInvalidInputError(
+                "Filtering on empty lists is not supported by Weaviate. "
+                "To filter by property length, use "
+                "Filter.by_property('prop', length=True).equal(0)"
+            )
         return _FilterValue(target=self._target_path(), value=val, operator=_Operator.NOT_EQUAL)
 
     def less_than(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is less than the given value."""
+        if isinstance(val, list) and len(val) == 0:
+            raise WeaviateInvalidInputError(
+                "Filtering on empty lists is not supported by Weaviate. "
+                "To filter by property length, use "
+                "Filter.by_property('prop', length=True).equal(0)"
+            )
         return _FilterValue(target=self._target_path(), value=val, operator=_Operator.LESS_THAN)
 
     def less_or_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is less than or equal to the given value."""
+        if isinstance(val, list) and len(val) == 0:
+            raise WeaviateInvalidInputError(
+                "Filtering on empty lists is not supported by Weaviate. "
+                "To filter by property length, use "
+                "Filter.by_property('prop', length=True).equal(0)"
+            )
         return _FilterValue(
             target=self._target_path(),
             value=val,
@@ -240,6 +264,12 @@ class _FilterByProperty(_FilterBase):
 
     def greater_than(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is greater than the given value."""
+        if isinstance(val, list) and len(val) == 0:
+            raise WeaviateInvalidInputError(
+                "Filtering on empty lists is not supported by Weaviate. "
+                "To filter by property length, use "
+                "Filter.by_property('prop', length=True).equal(0)"
+            )
         return _FilterValue(
             target=self._target_path(),
             value=val,
@@ -248,6 +278,12 @@ class _FilterByProperty(_FilterBase):
 
     def greater_or_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is greater than or equal to the given value."""
+        if isinstance(val, list) and len(val) == 0:
+            raise WeaviateInvalidInputError(
+                "Filtering on empty lists is not supported by Weaviate. "
+                "To filter by property length, use "
+                "Filter.by_property('prop', length=True).equal(0)"
+            )
         return _FilterValue(
             target=self._target_path(),
             value=val,
@@ -284,6 +320,8 @@ class _FilterByTime(_FilterBase):
         Args:
             dates: List of dates to filter on.
         """
+        if len(dates) == 0:
+            raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
         return _FilterValue(
             target=self._target_path(),
             value=dates,
@@ -296,6 +334,8 @@ class _FilterByTime(_FilterBase):
         Args:
             dates: List of dates to filter on.
         """
+        if len(dates) == 0:
+            raise WeaviateInvalidInputError("Filter contains_none must have at least one value")
         return _FilterValue(
             target=self._target_path(),
             value=dates,

@@ -20,6 +20,7 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        incremental_base_backup_id: Optional[str] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -54,6 +55,7 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
+        operation: Literal["create", "restore"] = "create",
     ) -> bool: ...
     def list_backups(
         self, backend: BackupStorage, sort_by_starting_time_asc: Optional[bool] = None

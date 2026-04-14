@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Literal, Optional, Union, overload
 
-from weaviate.cluster.models import ReplicationType, ShardingState
+from weaviate.cluster.models import ClusterStatistics, ReplicationType, ShardingState
 from weaviate.cluster.replicate import _Replicate
 from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import NodeMinimal, NodeVerbose
@@ -57,6 +57,7 @@ class _Cluster(_ClusterExecutor[ConnectionSync]):
         collection: str,
         shard: Optional[str] = None,
     ) -> Optional[ShardingState]: ...
+    def statistics(self) -> ClusterStatistics: ...
     @property
     def replications(self) -> _Replicate:
         """replication (_Replication): Replication object instance connected to the same Weaviate instance as the Client.

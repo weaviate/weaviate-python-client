@@ -1,4 +1,5 @@
 from weaviate.collections.classes.config import (
+    AsyncReplicationConfig,
     BM25Config,
     CollectionConfig,
     CollectionConfigSimple,
@@ -22,6 +23,7 @@ from weaviate.collections.classes.config import (
     ShardTypes,
     VectorDistances,
     VectorIndexConfigFlat,
+    VectorIndexConfigHFresh,
     VectorIndexConfigHNSW,
     VectorIndexType,
     VectorizerConfig,
@@ -29,6 +31,7 @@ from weaviate.collections.classes.config import (
 )
 
 __all__ = [
+    "AsyncReplicationConfig",
     "BM25Config",
     "CollectionConfig",
     "CollectionConfigSimple",
@@ -52,6 +55,7 @@ __all__ = [
     "ShardTypes",
     "VectorDistances",
     "VectorIndexConfigHNSW",
+    "VectorIndexConfigHFresh",
     "VectorIndexConfigFlat",
     "VectorIndexType",
     "Vectorizers",

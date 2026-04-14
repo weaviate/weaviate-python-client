@@ -2,6 +2,7 @@ import os
 import warnings
 from typing import Dict, Optional
 
+import grpc
 import httpx
 import pytest
 from _pytest.fixtures import SubRequest
@@ -232,6 +233,20 @@ def test_api_key() -> None:
         port=WCS_PORT, auth_credentials=wvc.init.Auth.api_key(api_key="my-secret-key")
     ) as client:
         client.collections.list_all()
+
+
+@pytest.mark.parametrize("creds", [None, grpc.ssl_channel_credentials()])
+def test_custom_grpc_credentials(creds: Optional[grpc.ChannelCredentials]) -> None:
+    assert is_auth_enabled(f"localhost:{WCS_PORT}")
+    with weaviate.connect_to_local(
+        port=WCS_PORT,
+        grpc_port=WCS_PORT_GRPC,
+        auth_credentials=wvc.init.Auth.api_key(api_key="my-secret-key"),
+        additional_config=wvc.init.AdditionalConfig(
+            grpc_config=wvc.init.GrpcConfig(credentials=creds)
+        ),
+    ) as client:
+        assert client.is_live()
 
 
 @pytest.mark.parametrize("header_name", ["Authorization", "authorization"])

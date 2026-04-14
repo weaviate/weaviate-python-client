@@ -152,7 +152,6 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
     temperature: Optional[float]
 
     def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
-        self._validate_multi_modal(opts)
         return generative_pb2.GenerativeProvider(
             return_metadata=opts.return_metadata,
             cohere=generative_pb2.GenerativeCohere(
@@ -164,6 +163,8 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
                 presence_penalty=self.presence_penalty,
                 stop_sequences=_to_text_array(self.stop_sequences),
                 temperature=self.temperature,
+                images=_to_text_array(opts.images),
+                image_properties=_to_text_array(opts.image_properties),
             ),
         )
 

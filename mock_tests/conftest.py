@@ -55,15 +55,17 @@ def ready_mock(httpserver: HTTPServer):
 
 @pytest.fixture(scope="function")
 def weaviate_mock(ready_mock: HTTPServer):
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
-    ready_mock.expect_request("/v1/nodes").respond_with_json({"nodes": [{"gitHash": "ABC"}]})
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.36"})
+    ready_mock.expect_request("/v1/nodes").respond_with_json(
+        {"nodes": [{"gitHash": "ABC", "status": "HEALTHY"}]}
+    )
 
     yield ready_mock
 
 
 @pytest.fixture(scope="function")
 def weaviate_no_auth_mock(weaviate_mock: HTTPServer):
-    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
+    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.36"})
     weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
         Response(json.dumps({}), status=404)
     )
@@ -248,6 +250,25 @@ def timeouts_collection(
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
     return weaviate_timeouts_client.collections.use(mock_class["class"])
+
+
+class MockMetadataCaptureWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    captured_metadata: dict = {}
+
+    def Search(
+        self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
+    ) -> search_get_pb2.SearchReply:
+        self.captured_metadata = dict(context.invocation_metadata())
+        return search_get_pb2.SearchReply()
+
+
+@pytest.fixture(scope="function")
+def metadata_capture_collection(
+    weaviate_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+) -> tuple[weaviate.collections.Collection, MockMetadataCaptureWeaviateService]:
+    service = MockMetadataCaptureWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return weaviate_client.collections.use("MetadataCaptureCollection"), service
 
 
 class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):

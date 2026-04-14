@@ -5,6 +5,7 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    IndexName,
     Property,
     ReferenceProperty,
     ShardStatus,
@@ -20,6 +21,7 @@ from weaviate.collections.classes.config import (
     _VectorConfigCreate,
     _VectorConfigUpdate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHFreshUpdate,
     _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
@@ -47,13 +49,18 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         object_ttl_config: Optional[_ObjectTTLConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
+            Union[
+                _VectorIndexConfigHNSWUpdate,
+                _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigHFreshUpdate,
+            ]
         ] = None,
         vectorizer_config: Optional[
             Union[
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
                 _VectorIndexConfigDynamicUpdate,
+                _VectorIndexConfigHFreshUpdate,
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
@@ -82,3 +89,4 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     async def add_vector(
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...
+    async def delete_property_index(self, property_name: str, index_name: IndexName) -> bool: ...

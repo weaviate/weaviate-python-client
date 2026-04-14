@@ -5,6 +5,7 @@ from typing import (
     Any,
     Dict,
     Generic,
+    Iterable,
     List,
     Literal,
     Mapping,
@@ -19,6 +20,13 @@ from typing import (
 
 from httpx import Response
 
+from weaviate.collections.batch.base import _BatchDataWrapper
+from weaviate.collections.batch.collection import (
+    BatchCollectionAsync,
+    BatchCollectionSync,
+    CollectionBatchingContextManager,
+    CollectionBatchingContextManagerAsync,
+)
 from weaviate.collections.batch.grpc_batch import _BatchGRPC
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 from weaviate.collections.batch.rest import _BatchREST
@@ -32,7 +40,7 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
-from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.internal import (
     ReferenceInput,
     ReferenceInputs,
@@ -57,6 +65,10 @@ from weaviate.validator import _validate_input, _ValidateArgument
 
 
 class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
+    __batch_delete: _BatchDeleteGRPC
+    __batch_grpc: _BatchGRPC
+    __batch_rest: _BatchREST
+
     def __init__(
         self,
         connection: ConnectionType,
@@ -597,23 +609,23 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
 
     @overload
     def delete_many(
-        self, where: _Filters, *, verbose: Literal[False] = False, dry_run: bool = False
+        self, where: FilterReturn, *, verbose: Literal[False] = False, dry_run: bool = False
     ) -> executor.Result[DeleteManyReturn[None]]: ...
 
     @overload
     def delete_many(
-        self, where: _Filters, *, verbose: Literal[True], dry_run: bool = False
+        self, where: FilterReturn, *, verbose: Literal[True], dry_run: bool = False
     ) -> executor.Result[DeleteManyReturn[List[DeleteManyObject]]]: ...
 
     @overload
     def delete_many(
-        self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
+        self, where: FilterReturn, *, verbose: bool = False, dry_run: bool = False
     ) -> executor.Result[
         Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]
     ]: ...
 
     def delete_many(
-        self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
+        self, where: FilterReturn, *, verbose: bool = False, dry_run: bool = False
     ) -> executor.Result[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
         """Delete multiple objects from the collection based on a filter.
 
@@ -628,7 +640,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-        _ValidateArgument(expected=[_Filters], name="where", value=where)
+        _ValidateArgument(expected=[FilterReturn], name="where", value=where)
         return self.__batch_delete.batch_delete(
             self._connection,
             name=self.name,
@@ -698,3 +710,78 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
         else:
             obj["vector"] = _get_vector_v4(vector)
         return obj
+
+    def ingest(
+        self, objs: Iterable[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]]
+    ) -> executor.Result[BatchObjectReturn]:
+        """Ingest multiple objects into the collection in batches. The batching is handled automatically for you by Weaviate.
+
+        This is different from `insert_many` which sends all objects in a single batch request. Use this method when you want to insert a large number of objects without worrying about batch sizes
+        and whether they will fit into the maximum allowed batch size of your Weaviate instance. In addition, use this instead of `client.batch.dynamic()` or `collection.batch.dynamic()` for a more
+        performant dynamic batching algorithm that utilizes server-side batching.
+
+        Args:
+            objs: An iterable of objects to insert. This can be either a sequence of `Properties` or `DataObject[Properties, ReferenceInputs]`
+                If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
+        """
+        if isinstance(self._connection, ConnectionAsync):
+            con = self._connection
+
+            async def execute() -> BatchObjectReturn:
+                results = _BatchDataWrapper()
+                ctx = CollectionBatchingContextManagerAsync(
+                    BatchCollectionAsync(
+                        connection=con,
+                        results=results,
+                        consistency_level=self._consistency_level,
+                        name=self.name,
+                        tenant=self._tenant,
+                    )
+                )
+                async with ctx as batch:
+                    for obj in objs:
+                        if isinstance(obj, DataObject):
+                            await batch.add_object(
+                                properties=cast(dict, obj.properties),
+                                references=obj.references,
+                                uuid=obj.uuid,
+                                vector=obj.vector,
+                            )
+                        else:
+                            await batch.add_object(
+                                properties=cast(dict, obj),
+                                references=None,
+                                uuid=None,
+                                vector=None,
+                            )
+                return results.results.objs
+
+            return execute()
+
+        results = _BatchDataWrapper()
+        ctx = CollectionBatchingContextManager(
+            BatchCollectionSync(
+                connection=self._connection,
+                results=results,
+                consistency_level=self._consistency_level,
+                name=self.name,
+                tenant=self._tenant,
+            )
+        )
+        with ctx as batch:
+            for obj in objs:
+                if isinstance(obj, DataObject):
+                    batch.add_object(
+                        properties=cast(dict, obj.properties),
+                        references=obj.references,
+                        uuid=obj.uuid,
+                        vector=obj.vector,
+                    )
+                else:
+                    batch.add_object(
+                        properties=cast(dict, obj),
+                        references=None,
+                        uuid=None,
+                        vector=None,
+                    )
+        return results.results.objs

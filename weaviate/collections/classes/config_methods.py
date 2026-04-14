@@ -14,6 +14,7 @@ from weaviate.collections.classes.config import (
     VectorFilterStrategy,
     VectorIndexType,
     Vectorizers,
+    _AsyncReplicationConfig,
     _BM25Config,
     _BQConfig,
     _CollectionConfig,
@@ -40,6 +41,7 @@ from weaviate.collections.classes.config import (
     _StopwordsConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
+    _VectorIndexConfigHFresh,
     _VectorIndexConfigHNSW,
     _VectorizerConfig,
 )
@@ -133,7 +135,6 @@ def __get_quantizer_config(
     elif "sq" in config and config["sq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _SQConfig(
-            cache=config["sq"].get("cache"),
             rescore_limit=config["sq"].get("rescoreLimit"),
             training_limit=config["sq"].get("trainingLimit"),
         )
@@ -213,6 +214,18 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
     )
 
 
+def __get_hfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigHFresh:
+    quantizer = __get_quantizer_config(config)
+    return _VectorIndexConfigHFresh(
+        distance_metric=VectorDistances(config.get("distance")),
+        max_posting_size_kb=config["maxPostingSizeKB"],
+        replicas=config["replicas"],
+        search_probe=config["searchProbe"],
+        quantizer=quantizer,
+        multi_vector=None,
+    )
+
+
 def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigFlat(
@@ -225,7 +238,13 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
 
 def __get_vector_index_config(
     schema: Dict[str, Any],
-) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None]:
+) -> Union[
+    _VectorIndexConfigHNSW,
+    _VectorIndexConfigFlat,
+    _VectorIndexConfigDynamic,
+    _VectorIndexConfigHFresh,
+    None,
+]:
     if "vectorIndexConfig" not in schema:
         return None
     if schema["vectorIndexType"] == "hnsw":
@@ -239,6 +258,8 @@ def __get_vector_index_config(
             hnsw=__get_hnsw_config(schema["vectorIndexConfig"]["hnsw"]),
             flat=__get_flat_config(schema["vectorIndexConfig"]["flat"]),
         )
+    elif schema["vectorIndexType"] == "hfresh":
+        return __get_hfresh_config(schema["vectorIndexConfig"])
     else:
         return None
 
@@ -256,6 +277,8 @@ def __get_vector_config(
 
             vectorizer_str: str = str(list(vectorizer)[0])
             vec_config: Dict[str, Any] = named_vector["vectorizer"][vectorizer_str]
+            if vec_config is None:
+                vec_config = {}
             props = vec_config.pop("properties", None)
 
             vector_index_config = __get_vector_index_config(named_vector)
@@ -357,6 +380,26 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 ReplicationDeletionStrategy(schema["replicationConfig"]["deletionStrategy"])
                 if "deletionStrategy" in schema["replicationConfig"]
                 else ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
+            ),
+            async_config=(
+                _AsyncReplicationConfig(
+                    max_workers=async_cfg.get("maxWorkers"),
+                    hashtree_height=async_cfg.get("hashtreeHeight"),
+                    frequency=async_cfg.get("frequency"),
+                    frequency_while_propagating=async_cfg.get("frequencyWhilePropagating"),
+                    alive_nodes_checking_frequency=async_cfg.get("aliveNodesCheckingFrequency"),
+                    logging_frequency=async_cfg.get("loggingFrequency"),
+                    diff_batch_size=async_cfg.get("diffBatchSize"),
+                    diff_per_node_timeout=async_cfg.get("diffPerNodeTimeout"),
+                    pre_propagation_timeout=async_cfg.get("prePropagationTimeout"),
+                    propagation_timeout=async_cfg.get("propagationTimeout"),
+                    propagation_limit=async_cfg.get("propagationLimit"),
+                    propagation_delay=async_cfg.get("propagationDelay"),
+                    propagation_concurrency=async_cfg.get("propagationConcurrency"),
+                    propagation_batch_size=async_cfg.get("propagationBatchSize"),
+                )
+                if (async_cfg := schema["replicationConfig"].get("asyncConfig"))
+                else None
             ),
         ),
         reranker_config=__get_rerank_config(schema),
