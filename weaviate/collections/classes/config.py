@@ -14,7 +14,14 @@ from typing import (
     cast,
 )
 
-from pydantic import AnyHttpUrl, Field, TypeAdapter, ValidationInfo, field_validator
+from pydantic import (
+    AnyHttpUrl,
+    Field,
+    TypeAdapter,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
@@ -379,12 +386,14 @@ class _InvertedIndexConfigCreate(_ConfigCreateModel):
     indexPropertyLength: Optional[bool]
     indexNullState: Optional[bool]
     stopwords: _StopwordsCreate
+    stopwordPresets: Optional[Dict[str, List[str]]] = None
 
 
 class _InvertedIndexConfigUpdate(_ConfigUpdateModel):
     bm25: Optional[_BM25ConfigUpdate]
     cleanupIntervalSeconds: Optional[int]
     stopwords: Optional[_StopwordsUpdate]
+    stopwordPresets: Optional[Dict[str, List[str]]] = None
 
 
 class _MultiTenancyConfigCreate(_ConfigCreateModel):
@@ -1646,6 +1655,7 @@ class _InvertedIndexConfig(_ConfigBase):
     index_property_length: bool
     index_timestamps: bool
     stopwords: StopwordsConfig
+    stopword_presets: Optional[Dict[str, List[str]]] = None
 
 
 InvertedIndexConfig = _InvertedIndexConfig
@@ -1671,6 +1681,16 @@ PropertyVectorizerConfig = _PropertyVectorizerConfig
 
 
 @dataclass
+class _TextAnalyzerConfig(_ConfigBase):
+    ascii_fold: bool
+    ascii_fold_ignore: Optional[List[str]]
+    stopword_preset: Optional[str]
+
+
+TextAnalyzerConfig = _TextAnalyzerConfig
+
+
+@dataclass
 class _NestedProperty(_ConfigBase):
     data_type: DataType
     description: Optional[str]
@@ -1678,6 +1698,7 @@ class _NestedProperty(_ConfigBase):
     index_searchable: bool
     name: str
     nested_properties: Optional[List["NestedProperty"]]
+    text_analyzer: Optional[_TextAnalyzerConfig]
     tokenization: Optional[Tokenization]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1711,6 +1732,7 @@ class _Property(_PropertyBase):
     index_range_filters: bool
     index_searchable: bool
     nested_properties: Optional[List[NestedProperty]]
+    text_analyzer: Optional[_TextAnalyzerConfig]
     tokenization: Optional[Tokenization]
     vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
@@ -1723,6 +1745,8 @@ class _Property(_PropertyBase):
         out["indexSearchable"] = self.index_searchable
         out["indexRangeFilters"] = self.index_range_filters
         out["tokenization"] = self.tokenization.value if self.tokenization else None
+        if self.text_analyzer is not None:
+            out["textAnalyzer"] = self.text_analyzer.to_dict()
         if self.nested_properties is not None and len(self.nested_properties) > 0:
             out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
         module_config: Dict[str, Any] = {}
@@ -2160,6 +2184,44 @@ class _ShardStatus:
 ShardStatus = _ShardStatus
 
 
+class _TextAnalyzerConfigCreate(_ConfigCreateModel):
+    """Text analysis options for a property.
+
+    Configures per-property text analysis for `text` and `text[]` properties that use an
+    inverted index (searchable or filterable). Supports ASCII folding (accent/diacritic
+    handling) and selecting a stopword preset that overrides the collection-level
+    `invertedIndexConfig.stopwords` setting for this property only.
+
+    Attributes:
+        ascii_fold: If True, accent/diacritic marks are folded to their base characters
+            during indexing and search (e.g. 'école' matches 'ecole'). If omitted, the
+            field is not sent to the server and the server default (False) applies.
+        ascii_fold_ignore: Optional list of characters that should be excluded from
+            ASCII folding (e.g. ['é'] keeps 'é' from being folded to 'e'). If omitted,
+            the field is not sent to the server.
+        stopword_preset: Stopword preset name. Overrides the collection-level
+            `invertedIndexConfig.stopwords` for this property. Only applies to
+            properties using `Tokenization.WORD`. Accepts a built-in preset
+            (`StopwordsPreset.EN` or `StopwordsPreset.NONE`) or the name of a
+            user-defined preset declared in
+            `Configure.inverted_index(stopword_presets=...)`.
+
+    All settings are immutable after the property is created.
+    """
+
+    asciiFold: Optional[bool] = Field(default=None, alias="ascii_fold")
+    asciiFoldIgnore: Optional[List[str]] = Field(default=None, alias="ascii_fold_ignore")
+    stopwordPreset: Optional[Union[StopwordsPreset, str]] = Field(
+        default=None, alias="stopword_preset"
+    )
+
+    @model_validator(mode="after")
+    def _validate_ascii_fold_ignore(self) -> "_TextAnalyzerConfigCreate":
+        if self.asciiFold is not True and self.asciiFoldIgnore is not None:
+            raise ValueError("asciiFoldIgnore cannot be set when asciiFold is not enabled")
+        return self
+
+
 class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
 
@@ -2172,6 +2234,9 @@ class Property(_ConfigCreateModel):
         index_searchable: Whether the property should be searchable in the inverted index.
         nested_properties: nested properties for data type OBJECT and OBJECT_ARRAY`.
         skip_vectorization: Whether to skip vectorization of the property. Defaults to `False`.
+        text_analyzer: Text analysis options for the property. Configures ASCII folding
+            behavior for text and text[] properties using an inverted index. Immutable
+            after the property is created.
         tokenization: The tokenization method to use for the inverted index. Defaults to `None`.
         vectorize_property_name: Whether to vectorize the property name. Defaults to `True`.
     """
@@ -2186,6 +2251,7 @@ class Property(_ConfigCreateModel):
         default=None, alias="nested_properties"
     )
     skip_vectorization: bool = Field(default=False)
+    textAnalyzer: Optional[_TextAnalyzerConfigCreate] = Field(default=None, alias="text_analyzer")
     tokenization: Optional[Tokenization] = Field(default=None)
     vectorize_property_name: bool = Field(default=True)
 
@@ -2217,6 +2283,8 @@ class Property(_ConfigCreateModel):
                 if isinstance(self.nestedProperties, list)
                 else [self.nestedProperties._to_dict()]
             )
+        if self.textAnalyzer is not None:
+            ret_dict["textAnalyzer"] = self.textAnalyzer._to_dict()
         return ret_dict
 
 
@@ -2567,6 +2635,30 @@ class Configure:
     Replication = _Replication
 
     @staticmethod
+    def text_analyzer(
+        ascii_fold: Optional[bool] = None,
+        ascii_fold_ignore: Optional[List[str]] = None,
+        stopword_preset: Optional[Union[StopwordsPreset, str]] = None,
+    ) -> _TextAnalyzerConfigCreate:
+        """Create a text analyzer config for a property.
+
+        Args:
+            ascii_fold: If True, accent/diacritic marks are folded to their base
+                characters during indexing and search (e.g. 'école' matches 'ecole').
+            ascii_fold_ignore: Optional list of characters that should be excluded
+                from ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to
+                'e'). Requires ``ascii_fold=True``.
+            stopword_preset: Stopword preset name to override the collection-level
+                stopwords for this property. Accepts a ``StopwordsPreset`` or a
+                user-defined preset name.
+        """
+        return _TextAnalyzerConfigCreate(
+            ascii_fold=ascii_fold,
+            ascii_fold_ignore=ascii_fold_ignore,
+            stopword_preset=stopword_preset,
+        )
+
+    @staticmethod
     def inverted_index(
         bm25_b: Optional[float] = None,
         bm25_k1: Optional[float] = None,
@@ -2577,11 +2669,17 @@ class Configure:
         stopwords_preset: Optional[StopwordsPreset] = None,
         stopwords_additions: Optional[List[str]] = None,
         stopwords_removals: Optional[List[str]] = None,
+        stopword_presets: Optional[Dict[str, List[str]]] = None,
     ) -> _InvertedIndexConfigCreate:
         """Create an `InvertedIndexConfigCreate` object to be used when defining the configuration of the keyword searching algorithm of Weaviate.
 
         Args:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details!
+            stopword_presets: User-defined named stopword lists keyed by preset name. Each value
+                is a flat list of stopword strings. A preset can be referenced from a property's
+                `text_analyzer.stopword_preset` to override the collection-level stopwords for
+                that property only. Requires Weaviate >= 1.37.0.
+
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details on the other parameters.
         """  # noqa: D417 (missing argument descriptions in the docstring)
         if bm25_b is None and bm25_k1 is not None or bm25_k1 is None and bm25_b is not None:
             raise ValueError("bm25_b and bm25_k1 must be specified together")
@@ -2601,6 +2699,7 @@ class Configure:
                 additions=stopwords_additions,
                 removals=stopwords_removals,
             ),
+            stopwordPresets=stopword_presets,
         )
 
     @staticmethod
@@ -2875,13 +2974,19 @@ class Reconfigure:
         stopwords_additions: Optional[List[str]] = None,
         stopwords_preset: Optional[StopwordsPreset] = None,
         stopwords_removals: Optional[List[str]] = None,
+        stopword_presets: Optional[Dict[str, List[str]]] = None,
     ) -> _InvertedIndexConfigUpdate:
         """Create an `InvertedIndexConfigUpdate` object.
 
         Use this method when defining the `inverted_index_config` argument in `collection.update()`.
 
         Args:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+            stopword_presets: User-defined named stopword lists keyed by preset name. Each value
+                is a flat list of stopword strings. Passing this replaces the entire user-defined
+                stopword preset map for the collection. Removing a preset still referenced by a
+                property is rejected by the server. Requires Weaviate >= 1.37.0.
+
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details on the other parameters.
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _InvertedIndexConfigUpdate(
             bm25=_BM25ConfigUpdate(b=bm25_b, k1=bm25_k1),
@@ -2891,6 +2996,7 @@ class Reconfigure:
                 additions=stopwords_additions,
                 removals=stopwords_removals,
             ),
+            stopwordPresets=stopword_presets,
         )
 
     @staticmethod

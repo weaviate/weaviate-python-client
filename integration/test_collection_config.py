@@ -42,7 +42,11 @@ from weaviate.collections.classes.config import (
     IndexName,
 )
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
+from weaviate.exceptions import (
+    UnexpectedStatusCodeError,
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+)
 from integration.conftest import retry_on_http_error
 
 
@@ -2200,3 +2204,473 @@ def test_delete_property_index(
         assert config.properties[0].index_range_filters is False
         assert config.properties[0].index_searchable is _index_searchable
         assert config.properties[0].index_filterable is _index_filterable
+
+
+def test_property_text_analyzer_ascii_fold_version_gate(
+    collection_factory: CollectionFactory,
+) -> None:
+    """On Weaviate < 1.37 the client must raise before sending the request."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_at_least(1, 37, 0):
+        pytest.skip("Version gate only applies to Weaviate < 1.37.0")
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        collection_factory(
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=[
+                Property(
+                    name="title",
+                    data_type=DataType.TEXT,
+                    tokenization=Tokenization.WORD,
+                    text_analyzer=Configure.text_analyzer(ascii_fold=True),
+                ),
+            ],
+        )
+
+
+def test_collection_stopword_presets(collection_factory: CollectionFactory) -> None:
+    """User-defined stopword presets apply to properties that reference them.
+
+    Properties can reference user-defined presets via text_analyzer.stopword_preset,
+    and built-in presets can coexist with user-defined ones.
+    """
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            # User-defined French preset.
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+            # Built-in English preset, set per property.
+            Property(
+                name="title_en",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset=StopwordsPreset.EN),
+            ),
+            # No stopword override → uses the collection-level default.
+            Property(
+                name="plain",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+    title_fr = next(p for p in config.properties if p.name == "title_fr")
+    title_en = next(p for p in config.properties if p.name == "title_en")
+    plain = next(p for p in config.properties if p.name == "plain")
+    assert title_fr.text_analyzer is not None
+    assert title_fr.text_analyzer.stopword_preset == "fr"
+    assert title_en.text_analyzer is not None
+    assert title_en.text_analyzer.stopword_preset == "en"
+    assert plain.text_analyzer is None
+
+
+def test_collection_stopword_presets_update(collection_factory: CollectionFactory) -> None:
+    """Updating a stopword preset is reflected in the config."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le"]},
+        ),
+        properties=[
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le"]}
+
+    collection.config.update(
+        inverted_index_config=Reconfigure.inverted_index(
+            stopword_presets={"fr": ["la"]},
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["la"]}
+
+
+def test_collection_stopword_presets_remove_in_use_is_rejected(
+    collection_factory: CollectionFactory,
+) -> None:
+    """The server rejects removing a stopword preset still referenced by a property."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.config.update(
+            inverted_index_config=Reconfigure.inverted_index(stopword_presets={}),
+        )
+
+    # The original preset must still be present after the rejected update.
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_inverted_index_stopword_presets_version_gate(
+    collection_factory: CollectionFactory,
+) -> None:
+    """On Weaviate < 1.37 the client must raise before sending the request."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_at_least(1, 37, 0):
+        pytest.skip("Version gate only applies to Weaviate < 1.37.0")
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        collection_factory(
+            vectorizer_config=Configure.Vectorizer.none(),
+            inverted_index_config=Configure.inverted_index(
+                stopword_presets={"fr": ["le", "la"]},
+            ),
+        )
+
+
+def test_collection_stopword_presets_remove_unused_is_allowed(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Removing a preset that no property references must succeed."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={
+                "fr": ["le", "la", "les"],
+                "es": ["el", "la", "los"],
+            },
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    # Drop only 'es' (unused). 'fr' is still referenced by title.
+    collection.config.update(
+        inverted_index_config=Reconfigure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+    )
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_collection_stopword_presets_remove_referenced_by_nested_property_is_rejected(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A removed preset still referenced by a nested property must be rejected by the server."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="doc",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(
+                        name="body",
+                        data_type=DataType.TEXT,
+                        tokenization=Tokenization.WORD,
+                        text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.config.update(
+            inverted_index_config=Reconfigure.inverted_index(stopword_presets={}),
+        )
+
+    # The original preset must still be present after the rejected update.
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_collection_user_defined_stopword_preset_overrides_builtin(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A user-defined preset named 'en' is accepted and reflected in the config."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"en": ["hello"]},
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="en"),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"en": ["hello"]}
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.stopword_preset == "en"
+
+
+def test_property_text_analyzer_combined_ascii_fold_and_stopword_preset(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A single property may combine ascii_fold and stopword_preset."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(
+                    ascii_fold=True,
+                    stopword_preset=StopwordsPreset.EN,
+                ),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.stopword_preset == "en"
+
+
+def test_property_text_analyzer_ascii_fold_immutable(
+    collection_factory: CollectionFactory,
+) -> None:
+    """The asciiFold setting is immutable on an existing property.
+
+    Adding a new property via add_property is the only way to introduce a different
+    analyzer; the original property's analyzer cannot be mutated.
+    """
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(ascii_fold=True, ascii_fold_ignore=["é"]),
+            ),
+        ],
+    )
+
+    # The config exposes the original ignore list and there's no client API
+    # surface to mutate text_analyzer on an existing property — it can only be
+    # set at create time.
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+
+    # Adding a *new* property with a different analyzer is allowed.
+    collection.config.add_property(
+        Property(
+            name="title2",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(ascii_fold=True, ascii_fold_ignore=["ñ"]),
+        ),
+    )
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    title2 = next(p for p in config.properties if p.name == "title2")
+    # Original property's analyzer is unchanged.
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    # New property has its own analyzer.
+    assert title2.text_analyzer is not None
+    assert title2.text_analyzer.ascii_fold_ignore == ["ñ"]
+
+
+def test_stopwords_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopwords_additions=["a"],
+            stopwords_preset=StopwordsPreset.EN,
+            stopwords_removals=["the"],
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(
+                    ascii_fold=True, ascii_fold_ignore=["é"], stopword_preset="fr"
+                ),
+            ),
+        ],
+    )
+    config = collection.config.get()
+    assert config.inverted_index_config.stopwords.preset == StopwordsPreset.EN
+    assert config.inverted_index_config.stopwords.removals == ["the"]
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    assert title.text_analyzer.stopword_preset == "fr"
+
+    name = f"TestStopwordsRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+def test_stopword_presets_roundtrip_from_dict(
+    collection_factory: CollectionFactory,
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.stopword_preset == "fr"
+
+    name = f"TestPresetRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+def test_text_analyzer_roundtrip_from_dict(
+    collection_factory: CollectionFactory,
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(
+                    ascii_fold=True,
+                    ascii_fold_ignore=["é"],
+                    stopword_preset=StopwordsPreset.EN,
+                ),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    assert title.text_analyzer.stopword_preset == "en"
+
+    name = f"TestAnalyzerRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)

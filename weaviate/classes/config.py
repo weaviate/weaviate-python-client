@@ -12,6 +12,7 @@ from weaviate.collections.classes.config import (
     ReplicationDeletionStrategy,
     Rerankers,
     StopwordsPreset,
+    TextAnalyzerConfig,
     Tokenization,
     VectorDistances,
 )
@@ -39,6 +40,7 @@ __all__ = [
     "ReferenceProperty",
     "Rerankers",
     "StopwordsPreset",
+    "TextAnalyzerConfig",
     "Tokenization",
     "Vectorizers",
     "VectorDistances",
