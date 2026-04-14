@@ -320,6 +320,8 @@ class _FilterByTime(_FilterBase):
         Args:
             dates: List of dates to filter on.
         """
+        if len(dates) == 0:
+            raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
         return _FilterValue(
             target=self._target_path(),
             value=dates,
@@ -332,6 +334,8 @@ class _FilterByTime(_FilterBase):
         Args:
             dates: List of dates to filter on.
         """
+        if len(dates) == 0:
+            raise WeaviateInvalidInputError("Filter contains_none must have at least one value")
         return _FilterValue(
             target=self._target_path(),
             value=dates,

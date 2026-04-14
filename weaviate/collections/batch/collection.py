@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Generic, List, Optional, Type, Union
 
-from deprecation import deprecated as docstring_deprecated
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.batch.async_ import _BatchBaseAsync
@@ -29,6 +28,7 @@ from weaviate.collections.classes.types import Properties
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
 from weaviate.types import UUID, VECTORS
+from weaviate.util import docstring_deprecated
 
 if TYPE_CHECKING:
     from weaviate.collections.config import _ConfigCollection

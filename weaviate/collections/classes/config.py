@@ -84,7 +84,7 @@ from weaviate.collections.classes.config_vectors import (
 )
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError, WeaviateInvalidInputError
 from weaviate.str_enum import BaseEnum
-from weaviate.util import _capitalize_first_letter
+from weaviate.util import _capitalize_first_letter, docstring_deprecated
 from weaviate.warnings import _Warnings
 
 # BC for direct imports
@@ -2434,8 +2434,8 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     ) -> Union[_VectorConfigCreate, List[_VectorConfigCreate], None]:
         if (
             v is None
-            and info.data["vectorizerConfig"] is None
-            and info.data["vectorIndexConfig"] is None
+            and info.data.get("vectorizerConfig") is None
+            and info.data.get("vectorIndexConfig") is None
         ):
             return _VectorConfigCreate(
                 name="default",

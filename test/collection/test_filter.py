@@ -21,6 +21,17 @@ def test_empty_input_contains_any() -> None:
         wvc.query.Filter.by_id().contains_any([])
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
         wvc.query.Filter.by_property("test").contains_any([])
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_creation_time().contains_any([])
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_update_time().contains_any([])
+
+
+def test_empty_input_contains_none_time() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_creation_time().contains_none([])
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_update_time().contains_none([])
 
 
 def test_empty_input_contains_all() -> None:
