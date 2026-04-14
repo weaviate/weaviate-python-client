@@ -2216,15 +2216,6 @@ class _TextAnalyzerConfigCreate(_ConfigCreateModel):
         default=None, alias="stopword_preset"
     )
 
-    @field_validator("stopwordPreset", mode="before")
-    @classmethod
-    def _coerce_stopword_preset(cls, v: Any) -> Any:
-        # Pydantic preserves the StopwordsPreset enum instance through model_dump,
-        # but the wire format must be a plain string. Coerce at construction time.
-        if isinstance(v, StopwordsPreset):
-            return v.value
-        return v
-
     @model_validator(mode="after")
     def _validate_ascii_fold_ignore(self) -> "_TextAnalyzerConfigCreate":
         if self.asciiFold is not True and self.asciiFoldIgnore is not None:
@@ -2324,6 +2315,8 @@ class Property(_ConfigCreateModel):
                 if isinstance(self.nestedProperties, list)
                 else [self.nestedProperties._to_dict()]
             )
+        if self.textAnalyzer is not None:
+            ret_dict["textAnalyzer"] = self.textAnalyzer._to_dict()
         return ret_dict
 
 
