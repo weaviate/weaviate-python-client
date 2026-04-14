@@ -90,6 +90,7 @@ class MetadataQuery(_WeaviateInput):
     score: bool = Field(default=False)
     explain_score: bool = Field(default=False)
     is_consistent: bool = Field(default=False)
+    query_profile: bool = Field(default=False)
 
     @classmethod
     def full(cls) -> "MetadataQuery":
@@ -117,6 +118,7 @@ class _MetadataQuery:
     explain_score: bool = False
     is_consistent: bool = False
     vectors: Optional[List[str]] = None
+    query_profile: bool = False
 
     @classmethod
     def from_public(
@@ -138,6 +140,7 @@ class _MetadataQuery:
                 score=public.score,
                 explain_score=public.explain_score,
                 is_consistent=public.is_consistent,
+                query_profile=public.query_profile,
             )
         )
 
@@ -152,6 +155,7 @@ METADATA = Union[
             "score",
             "explain_score",
             "is_consistent",
+            "query_profile",
         ]
     ],
     MetadataQuery,
