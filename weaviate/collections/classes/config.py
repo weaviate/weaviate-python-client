@@ -2223,35 +2223,28 @@ class _TextAnalyzerConfigCreate(_ConfigCreateModel):
         return self
 
 
-class _TextAnalyzer:
-    """Factory class for creating text analyzer configurations.
+def _text_analyzer(
+    ascii_fold: Optional[bool] = None,
+    ascii_fold_ignore: Optional[List[str]] = None,
+    stopword_preset: Optional[Union[StopwordsPreset, str]] = None,
+) -> _TextAnalyzerConfigCreate:
+    """Create a text analyzer config for a property.
 
-    Use ``Configure.TextAnalyzer`` to access these methods.
+    Args:
+        ascii_fold: If True, accent/diacritic marks are folded to their base
+            characters during indexing and search (e.g. 'école' matches 'ecole').
+        ascii_fold_ignore: Optional list of characters that should be excluded
+            from ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to
+            'e'). Requires ``ascii_fold=True``.
+        stopword_preset: Stopword preset name to override the collection-level
+            stopwords for this property. Accepts a ``StopwordsPreset`` or a
+            user-defined preset name.
     """
-
-    @staticmethod
-    def custom(
-        ascii_fold: Optional[bool] = None,
-        ascii_fold_ignore: Optional[List[str]] = None,
-        stopword_preset: Optional[Union[StopwordsPreset, str]] = None,
-    ) -> _TextAnalyzerConfigCreate:
-        """Create a text analyzer config with custom settings.
-
-        Args:
-            ascii_fold: If True, accent/diacritic marks are folded to their base
-                characters during indexing and search (e.g. 'école' matches 'ecole').
-            ascii_fold_ignore: Optional list of characters that should be excluded
-                from ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to
-                'e'). Requires ``ascii_fold=True``.
-            stopword_preset: Stopword preset name to override the collection-level
-                stopwords for this property. Accepts a ``StopwordsPreset`` or a
-                user-defined preset name.
-        """
-        return _TextAnalyzerConfigCreate(
-            ascii_fold=ascii_fold,
-            ascii_fold_ignore=ascii_fold_ignore,
-            stopword_preset=stopword_preset,
-        )
+    return _TextAnalyzerConfigCreate(
+        ascii_fold=ascii_fold,
+        ascii_fold_ignore=ascii_fold_ignore,
+        stopword_preset=stopword_preset,
+    )
 
 
 class Property(_ConfigCreateModel):
@@ -2665,7 +2658,7 @@ class Configure:
     MultiVectors = _MultiVectors
     ObjectTTL = _ObjectTTL
     Replication = _Replication
-    TextAnalyzer = _TextAnalyzer
+    TextAnalyzer = staticmethod(_text_analyzer)
 
     @staticmethod
     def inverted_index(

@@ -2218,7 +2218,7 @@ def test_property_text_analyzer_ascii_fold_version_gate(
                     name="title",
                     data_type=DataType.TEXT,
                     tokenization=Tokenization.WORD,
-                    text_analyzer=Configure.TextAnalyzer.custom(ascii_fold=True),
+                    text_analyzer=Configure.TextAnalyzer(ascii_fold=True),
                 ),
             ],
         )
@@ -2245,14 +2245,14 @@ def test_collection_stopword_presets(collection_factory: CollectionFactory) -> N
                 name="title_fr",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="fr"),
+                text_analyzer=Configure.TextAnalyzer(stopword_preset="fr"),
             ),
             # Built-in English preset, set per property.
             Property(
                 name="title_en",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(stopword_preset=StopwordsPreset.EN),
+                text_analyzer=Configure.TextAnalyzer(stopword_preset=StopwordsPreset.EN),
             ),
             # No stopword override → uses the collection-level default.
             Property(
@@ -2292,7 +2292,7 @@ def test_collection_stopword_presets_update(collection_factory: CollectionFactor
                 name="title_fr",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="fr"),
+                text_analyzer=Configure.TextAnalyzer(stopword_preset="fr"),
             ),
         ],
     )
@@ -2328,7 +2328,7 @@ def test_collection_stopword_presets_remove_in_use_is_rejected(
                 name="title_fr",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="fr"),
+                text_analyzer=Configure.TextAnalyzer(stopword_preset="fr"),
             ),
         ],
     )
@@ -2381,7 +2381,7 @@ def test_collection_stopword_presets_remove_unused_is_allowed(
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="fr"),
+                text_analyzer=Configure.TextAnalyzer(stopword_preset="fr"),
             ),
         ],
     )
@@ -2418,7 +2418,7 @@ def test_collection_stopword_presets_remove_referenced_by_nested_property_is_rej
                         name="body",
                         data_type=DataType.TEXT,
                         tokenization=Tokenization.WORD,
-                        text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="fr"),
+                        text_analyzer=Configure.TextAnalyzer(stopword_preset="fr"),
                     ),
                 ],
             ),
@@ -2453,7 +2453,7 @@ def test_collection_user_defined_stopword_preset_overrides_builtin(
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="en"),
+                text_analyzer=Configure.TextAnalyzer(stopword_preset="en"),
             ),
         ],
     )
@@ -2480,7 +2480,7 @@ def test_property_text_analyzer_combined_ascii_fold_and_stopword_preset(
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(
+                text_analyzer=Configure.TextAnalyzer(
                     ascii_fold=True,
                     stopword_preset=StopwordsPreset.EN,
                 ),
@@ -2514,9 +2514,7 @@ def test_property_text_analyzer_ascii_fold_immutable(
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(
-                    ascii_fold=True, ascii_fold_ignore=["é"]
-                ),
+                text_analyzer=Configure.TextAnalyzer(ascii_fold=True, ascii_fold_ignore=["é"]),
             ),
         ],
     )
@@ -2535,7 +2533,7 @@ def test_property_text_analyzer_ascii_fold_immutable(
             name="title2",
             data_type=DataType.TEXT,
             tokenization=Tokenization.WORD,
-            text_analyzer=Configure.TextAnalyzer.custom(ascii_fold=True, ascii_fold_ignore=["ñ"]),
+            text_analyzer=Configure.TextAnalyzer(ascii_fold=True, ascii_fold_ignore=["ñ"]),
         ),
     )
     config = collection.config.get()
@@ -2589,7 +2587,7 @@ def test_stopword_presets_roundtrip_from_dict(
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(stopword_preset="fr"),
+                text_analyzer=Configure.TextAnalyzer(stopword_preset="fr"),
             ),
         ],
     )
@@ -2625,7 +2623,7 @@ def test_text_analyzer_roundtrip_from_dict(
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(
+                text_analyzer=Configure.TextAnalyzer(
                     ascii_fold=True,
                     ascii_fold_ignore=["é"],
                     stopword_preset=StopwordsPreset.EN,
