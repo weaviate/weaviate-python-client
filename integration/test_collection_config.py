@@ -2552,16 +2552,38 @@ def test_property_text_analyzer_ascii_fold_immutable(
 
 
 def test_stopwords_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
     collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(
             stopwords_additions=["a"],
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
+            stopword_presets={"fr": ["le", "la", "les"]},
         ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(
+                    ascii_fold=True, ascii_fold_ignore=["é"], stopword_preset="fr"
+                ),
+            ),
+        ],
     )
     config = collection.config.get()
     assert config.inverted_index_config.stopwords.preset == StopwordsPreset.EN
     assert config.inverted_index_config.stopwords.removals == ["the"]
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    assert title.text_analyzer.stopword_preset == "fr"
 
     name = f"TestStopwordsRoundtrip{collection.name}"
     config.name = name
