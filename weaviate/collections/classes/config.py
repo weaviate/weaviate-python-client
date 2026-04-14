@@ -2263,7 +2263,6 @@ class _TextAnalyzer:
         )
 
 
-
 class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
 

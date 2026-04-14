@@ -2572,7 +2572,9 @@ def test_property_text_analyzer_ascii_fold_immutable(
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(ascii_fold=True, ascii_fold_ignore=["é"]),
+                text_analyzer=Configure.TextAnalyzer.custom(
+                    ascii_fold=True, ascii_fold_ignore=["é"]
+                ),
             ),
         ],
     )
@@ -2634,7 +2636,9 @@ def test_property_ascii_fold_across_tokenizations(
                 name="prop",
                 data_type=DataType.TEXT,
                 tokenization=tokenization,
-                text_analyzer=Configure.TextAnalyzer.custom(ascii_fold=True, ascii_fold_ignore=["é"]),
+                text_analyzer=Configure.TextAnalyzer.custom(
+                    ascii_fold=True, ascii_fold_ignore=["é"]
+                ),
             ),
             Property(
                 name="prop_no_ignore",
@@ -2752,7 +2756,9 @@ def test_property_ascii_fold_with_filters(
                 name="title",
                 data_type=DataType.TEXT,
                 tokenization=Tokenization.WORD,
-                text_analyzer=Configure.TextAnalyzer.custom(ascii_fold=True, ascii_fold_ignore=["é"]),
+                text_analyzer=Configure.TextAnalyzer.custom(
+                    ascii_fold=True, ascii_fold_ignore=["é"]
+                ),
             ),
         ],
     )
