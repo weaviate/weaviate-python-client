@@ -13,9 +13,9 @@ GO_DURATION_RE = re.compile(r"[\d.]+(ns|µs|ms|s|m|h)")
 
 def assert_go_duration(value: str, label: str = "") -> None:
     """Assert that a string looks like a Go duration (e.g. '1.234ms', '5.458µs')."""
-    assert GO_DURATION_RE.fullmatch(
-        value
-    ), f"Expected Go duration format for {label!r}, got {value!r}"
+    assert GO_DURATION_RE.fullmatch(value), (
+        f"Expected Go duration format for {label!r}, got {value!r}"
+    )
 
 
 def assert_common_profile(profile: SearchProfileReturn) -> None:
@@ -91,16 +91,12 @@ def test_near_vector_with_query_profile(collection_with_data):
     assert_common_profile(vector_profile)
 
     assert "vector_search_took" in vector_profile.details
-    assert_go_duration(
-        vector_profile.details["vector_search_took"], "vector_search_took"
-    )
+    assert_go_duration(vector_profile.details["vector_search_took"], "vector_search_took")
 
     assert "hnsw_flat_search" in vector_profile.details
     assert vector_profile.details["hnsw_flat_search"] in ("true", "false")
 
-    layer_keys = [
-        k for k in vector_profile.details if k.startswith("knn_search_layer_")
-    ]
+    layer_keys = [k for k in vector_profile.details if k.startswith("knn_search_layer_")]
     assert len(layer_keys) > 0, "Expected at least one knn_search_layer_*_took key"
     for k in layer_keys:
         assert_go_duration(vector_profile.details[k], k)
