@@ -22,6 +22,7 @@ from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
 from .groups import _Groups, _GroupsAsync
 from .rbac import _Roles, _RolesAsync
+from .tokenize import _Tokenize, _TokenizeAsync
 from .types import NUMBER
 from .users import _Users, _UsersAsync
 
@@ -82,6 +83,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         self.debug = _DebugAsync(self._connection)
         self.groups = _GroupsAsync(self._connection)
         self.roles = _RolesAsync(self._connection)
+        self.tokenize = _TokenizeAsync(self._connection)
         self.users = _UsersAsync(self._connection)
 
     async def __aenter__(self) -> "WeaviateAsyncClient":
@@ -157,6 +159,7 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         self.debug = _Debug(self._connection)
         self.groups = _Groups(self._connection)
         self.roles = _Roles(self._connection)
+        self.tokenize = _Tokenize(self._connection)
         self.users = _Users(self._connection)
 
     def __enter__(self) -> "WeaviateClient":
