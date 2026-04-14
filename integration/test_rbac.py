@@ -14,6 +14,7 @@ from weaviate.rbac.models import (
     CollectionsPermissionOutput,
     DataPermissionOutput,
     GroupsPermissionOutput,
+    MCPPermissionOutput,
     NodesPermissionOutput,
     Role,
     ReplicatePermissionOutput,
@@ -44,6 +45,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 backups_permissions=[
                     BackupsPermissionOutput(collection="Test", actions={Actions.Backups.MANAGE})
                 ],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -62,6 +64,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -84,6 +87,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -104,6 +108,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                     DataPermissionOutput(collection="*", tenant="*", actions={Actions.Data.CREATE})
                 ],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -137,6 +142,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                     ),
                 ],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -155,6 +161,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[
                     NodesPermissionOutput(
                         verbosity="verbose", actions={Actions.Nodes.READ}, collection="Test"
@@ -177,6 +184,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[
                     NodesPermissionOutput(
                         verbosity="minimal", actions={Actions.Nodes.READ}, collection="*"
@@ -203,6 +211,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 ],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -221,6 +230,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[
                     TenantsPermissionOutput(
@@ -247,6 +257,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[
                     TenantsPermissionOutput(
@@ -290,6 +301,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -310,6 +322,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[
@@ -355,6 +368,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -379,6 +393,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
@@ -403,12 +418,34 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
                 groups_permissions=[],
             ),
             32,  # Minimum version for alias permissions
+        ),
+        (
+            Permissions.mcp(manage=True),
+            Role(
+                name="ManageMCP",
+                alias_permissions=[],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                mcp_permissions=[
+                    MCPPermissionOutput(actions={Actions.MCP.MANAGE})
+                ],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            ),
+            37,  # Minimum version for MCP permissions
         ),
         (
             Permissions.Groups.oidc(group="MyGroup", read=True),
@@ -421,6 +458,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
+                mcp_permissions=[],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
