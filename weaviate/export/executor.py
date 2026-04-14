@@ -270,6 +270,7 @@ def _get_and_validate_create_arguments(
 ) -> Tuple[str, ExportStorage, List[str], List[str]]:
     if not isinstance(export_id, str):
         raise TypeError(f"'export_id' must be of type str. Given type: {type(export_id)}.")
+    export_id = export_id.lower()
     if isinstance(backend, str):
         try:
             backend = ExportStorage(backend.lower())
@@ -321,6 +322,7 @@ def _get_and_validate_get_status(
 ) -> Tuple[str, ExportStorage]:
     if not isinstance(export_id, str):
         raise TypeError(f"'export_id' must be of type str. Given type: {type(export_id)}.")
+    export_id = export_id.lower()
     if isinstance(backend, str):
         try:
             backend = ExportStorage(backend.lower())
