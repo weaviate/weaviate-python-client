@@ -14,7 +14,6 @@ from typing import (
     cast,
 )
 
-from deprecation import deprecated as docstring_deprecated
 from pydantic import (
     AnyHttpUrl,
     Field,
