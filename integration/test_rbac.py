@@ -437,9 +437,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
-                mcp_permissions=[
-                    MCPPermissionOutput(actions={Actions.MCP.MANAGE})
-                ],
+                mcp_permissions=[MCPPermissionOutput(actions={Actions.MCP.MANAGE})],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
