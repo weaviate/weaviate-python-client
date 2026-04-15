@@ -50,7 +50,8 @@ from weaviate.connect.v4 import (
     ConnectionType,
     _ExpectedStatusCodes,
 )
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.collections.config.executor import _any_property_has_text_analyzer
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
@@ -213,6 +214,23 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             _Warnings.vectorizer_config_in_config_create()
         if vector_index_config is not None:
             _Warnings.vector_index_config_in_config_create()
+        if properties is not None and _any_property_has_text_analyzer(properties):
+            if not self._connection._weaviate_version.is_at_least(1, 37, 0):
+                raise WeaviateUnsupportedFeatureError(
+                    "Property text_analyzer (asciiFold / stopword_preset)",
+                    str(self._connection._weaviate_version),
+                    "1.37.0",
+                )
+        if (
+            inverted_index_config is not None
+            and inverted_index_config.stopwordPresets is not None
+            and not self._connection._weaviate_version.is_at_least(1, 37, 0)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "InvertedIndexConfig stopword_presets",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         try:
             config = _CollectionConfigCreate(
                 description=description,
