@@ -44,13 +44,13 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import Collection, CollectionAsync
+from weaviate.collections.config.executor import _any_property_has_text_analyzer
 from weaviate.connect import executor
 from weaviate.connect.v4 import (
     ConnectionAsync,
     ConnectionType,
     _ExpectedStatusCodes,
 )
-from weaviate.collections.config.executor import _any_property_has_text_analyzer
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 from weaviate.validator import _validate_input, _ValidateArgument
