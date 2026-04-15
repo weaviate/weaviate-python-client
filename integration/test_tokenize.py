@@ -36,6 +36,12 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     c.close()
 
 
+@pytest.fixture(autouse=False)
+def require_1_37(client: weaviate.WeaviateClient) -> None:
+    if client._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("Tokenization requires Weaviate >= 1.37.0")
+
+
 @pytest_asyncio.fixture
 async def async_client() -> AsyncGenerator[weaviate.WeaviateAsyncClient, None]:
     c = weaviate.use_async_with_local(
@@ -51,6 +57,7 @@ async def async_client() -> AsyncGenerator[weaviate.WeaviateAsyncClient, None]:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.usefixtures("require_1_37")
 class TestSerialization:
     """Verify the client correctly serializes different input forms."""
 
@@ -167,6 +174,7 @@ class TestSerialization:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.usefixtures("require_1_37")
 class TestDeserialization:
     """Verify the client correctly deserializes response fields into typed objects."""
 
@@ -311,6 +319,7 @@ class TestVersionGate:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.usefixtures("require_1_37")
 class TestAsyncClient:
     """Verify text() and tokenize_property() work through the async client."""
 
