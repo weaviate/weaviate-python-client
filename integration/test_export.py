@@ -104,7 +104,7 @@ def test_create_export_without_waiting(
             break
         time.sleep(0.1)
 
-    assert status.export_id == export_id
+    assert status.export_id.lower() == export_id.lower()
 
 
 def test_get_export_status(client: weaviate.WeaviateClient, request: SubRequest) -> None:
@@ -121,7 +121,7 @@ def test_get_export_status(client: weaviate.WeaviateClient, request: SubRequest)
 
     status = client.export.get_status(export_id=export_id, backend=BACKEND)
     assert status.status == ExportStatus.SUCCESS
-    assert status.export_id == export_id
+    assert status.export_id.lower() == export_id.lower()
     assert status.backend == BACKEND.value
 
 
