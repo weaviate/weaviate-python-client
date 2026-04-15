@@ -1,14 +1,17 @@
-import random
-
 import pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
-from integration.conftest import ClientFactory
+from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.rbac.models import Role, RoleBase, UserTypes
 
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
+
+
+def _unique_user_id(name: str) -> str:
+    return _sanitize_collection_name(name).lower()
 
 
 def test_own_user(client_factory: ClientFactory) -> None:
@@ -75,12 +78,12 @@ def test_get_static_db_user(client_factory: ClientFactory) -> None:
         assert user.user_type == UserTypes.DB_STATIC
 
 
-def test_create_user_and_get(client_factory: ClientFactory) -> None:
+def test_create_user_and_get(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=(RBAC_PORTS), auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         apiKey = client.users.db.create(user_id=randomUserName)
         with weaviate.connect_to_local(
             port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(apiKey)
@@ -94,24 +97,24 @@ def test_create_user_and_get(client_factory: ClientFactory) -> None:
         assert client.users.db.delete(user_id=randomUserName)
 
 
-def test_delete_user(client_factory: ClientFactory) -> None:
+def test_delete_user(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         client.users.db.create(user_id=randomUserName)
         assert client.users.db.delete(user_id=randomUserName)
 
         assert not client.users.db.delete(user_id="I-do-not-exist")
 
 
-def test_rotate_user_key(client_factory: ClientFactory) -> None:
+def test_rotate_user_key(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         apiKey = client.users.db.create(user_id=randomUserName)
         with weaviate.connect_to_local(
             port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(apiKey)
@@ -129,12 +132,12 @@ def test_rotate_user_key(client_factory: ClientFactory) -> None:
         assert client.users.db.delete(user_id=randomUserName)
 
 
-def test_de_activate(client_factory: ClientFactory) -> None:
+def test_de_activate(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         client.users.db.create(user_id=randomUserName)
 
         assert client.users.db.deactivate(user_id=randomUserName)
@@ -153,12 +156,12 @@ def test_de_activate(client_factory: ClientFactory) -> None:
         client.users.db.delete(user_id=randomUserName)
 
 
-def test_deactivate_and_revoke(client_factory: ClientFactory) -> None:
+def test_deactivate_and_revoke(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         apiKeyOld = client.users.db.create(user_id=randomUserName)
         assert client.users.db.deactivate(user_id=randomUserName, revoke_key=True)
 
@@ -189,11 +192,11 @@ def test_deactivate_and_revoke(client_factory: ClientFactory) -> None:
         client.users.db.delete(user_id=randomUserName)
 
 
-def test_deprecated_syntax(client_factory: ClientFactory) -> None:
+def test_deprecated_syntax(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         client.users.db.create(user_id=randomUserName)
         roles = client.users.db.get_assigned_roles(user_id=randomUserName)
         assert len(roles) == 0
@@ -216,12 +219,14 @@ def test_list_all_users(client_factory: ClientFactory) -> None:
             client.users.db.delete(user_id=f"list-all-{i}")
 
 
-def test_get_user_created_at_and_api_key_first_letters(client_factory: ClientFactory) -> None:
+def test_get_user_created_at_and_api_key_first_letters(
+    client_factory: ClientFactory, request: SubRequest
+) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         client.users.db.create(user_id=randomUserName)
         try:
             user = client.users.db.get(user_id=randomUserName)
@@ -233,12 +238,14 @@ def test_get_user_created_at_and_api_key_first_letters(client_factory: ClientFac
             client.users.db.delete(user_id=randomUserName)
 
 
-def test_get_user_include_last_used_time(client_factory: ClientFactory) -> None:
+def test_get_user_include_last_used_time(
+    client_factory: ClientFactory, request: SubRequest
+) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         apiKey = client.users.db.create(user_id=randomUserName)
         try:
             # log in with the new user to generate a lastUsedAt timestamp
@@ -262,12 +269,14 @@ def test_get_user_include_last_used_time(client_factory: ClientFactory) -> None:
             client.users.db.delete(user_id=randomUserName)
 
 
-def test_list_all_include_last_used_time(client_factory: ClientFactory) -> None:
+def test_list_all_include_last_used_time(
+    client_factory: ClientFactory, request: SubRequest
+) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
-        randomUserName = "new-user" + str(random.randint(1, 1000))
+        randomUserName = _unique_user_id(request.node.name)
         apiKey = client.users.db.create(user_id=randomUserName)
         try:
             # log in with the new user to generate a lastUsedAt timestamp
