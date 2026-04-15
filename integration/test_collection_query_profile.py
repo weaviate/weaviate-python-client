@@ -1,12 +1,14 @@
 import re
+from typing import Any
 
 import pytest
 
-import weaviate
-from weaviate.collections.classes.config import Configure, DataType, Property
+from weaviate.collections import Collection
+from weaviate.collections.classes.config import DataType, Property
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.grpc import MetadataQuery
+from weaviate.collections.classes.grpc import GroupBy, MetadataQuery
 from weaviate.collections.classes.internal import SearchProfileReturn
+from integration.conftest import CollectionFactory
 
 GO_DURATION_RE = re.compile(r"[\d.]+(ns|µs|ms|s|m|h)")
 
@@ -28,26 +30,12 @@ def assert_common_profile(profile: SearchProfileReturn) -> None:
         assert isinstance(value, str) and value != ""
 
 
-@pytest.fixture(scope="module")
-def client():
-    client = weaviate.connect_to_local()
-    yield client
-    client.close()
-
-
-@pytest.fixture(scope="module")
-def collection_with_data(client: weaviate.WeaviateClient):
-    if client._connection._weaviate_version.is_lower_than(1, 36, 9):
-        pytest.skip("Query profiling requires Weaviate >= 1.36.9")
-    name = "TestQueryProfile"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            Property(name="text", data_type=DataType.TEXT),
-        ],
+def _create_and_populate(collection_factory: CollectionFactory) -> Collection[Any, Any]:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
     )
+    if collection._connection._weaviate_version.is_lower_than(1, 36, 9):
+        pytest.skip("Query profiling requires Weaviate >= 1.36.9")
     collection.data.insert_many(
         [
             DataObject(properties={"text": "hello world"}, vector=[1.0, 0.0, 0.0]),
@@ -55,13 +43,13 @@ def collection_with_data(client: weaviate.WeaviateClient):
             DataObject(properties={"text": "foo bar baz"}, vector=[0.0, 0.0, 1.0]),
         ]
     )
-    yield collection
-    client.collections.delete(name)
+    return collection
 
 
-def test_fetch_objects_with_query_profile(collection_with_data):
+def test_fetch_objects_with_query_profile(collection_factory: CollectionFactory) -> None:
     """Test that query profiling works with fetch_objects (object lookup)."""
-    result = collection_with_data.query.fetch_objects(
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.fetch_objects(
         return_metadata=MetadataQuery(query_profile=True),
     )
     assert len(result.objects) == 3
@@ -76,9 +64,10 @@ def test_fetch_objects_with_query_profile(collection_with_data):
     assert_common_profile(shard.searches["object"])
 
 
-def test_near_vector_with_query_profile(collection_with_data):
+def test_near_vector_with_query_profile(collection_factory: CollectionFactory) -> None:
     """Test that query profiling works with near_vector search."""
-    result = collection_with_data.query.near_vector(
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
         return_metadata=MetadataQuery(query_profile=True, distance=True),
         limit=2,
@@ -107,9 +96,10 @@ def test_near_vector_with_query_profile(collection_with_data):
     assert_go_duration(vector_profile.details["objects_took"], "objects_took")
 
 
-def test_bm25_with_query_profile(collection_with_data):
+def test_bm25_with_query_profile(collection_factory: CollectionFactory) -> None:
     """Test that query profiling works with BM25 keyword search."""
-    result = collection_with_data.query.bm25(
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.bm25(
         query="hello",
         return_metadata=MetadataQuery(query_profile=True, score=True),
     )
@@ -135,9 +125,10 @@ def test_bm25_with_query_profile(collection_with_data):
     assert int(keyword_profile.details["kwd_6_res_count"]) >= 0
 
 
-def test_hybrid_with_query_profile(collection_with_data):
+def test_hybrid_with_query_profile(collection_factory: CollectionFactory) -> None:
     """Test that query profiling works with hybrid search (both vector and keyword)."""
-    result = collection_with_data.query.hybrid(
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.hybrid(
         query="hello",
         vector=[1.0, 0.0, 0.0],
         return_metadata=MetadataQuery(query_profile=True),
@@ -157,11 +148,12 @@ def test_hybrid_with_query_profile(collection_with_data):
     assert "kwd_method" in shard.searches["keyword"].details
 
 
-def test_near_vector_group_by_with_query_profile(collection_with_data):
-    """Test that query profiling works with group_by (mirrors C# QueryProfiling_NearText_GroupBy_Returns_Profile)."""
-    from weaviate.collections.classes.grpc import GroupBy
-
-    result = collection_with_data.query.near_vector(
+def test_near_vector_group_by_with_query_profile(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Test that query profiling works with group_by."""
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
         return_metadata=MetadataQuery(query_profile=True),
         group_by=GroupBy(prop="text", objects_per_group=1, number_of_groups=3),
@@ -174,17 +166,23 @@ def test_near_vector_group_by_with_query_profile(collection_with_data):
     assert_common_profile(shard.searches["vector"])
 
 
-def test_no_query_profile_when_not_requested(collection_with_data):
+def test_no_query_profile_when_not_requested(
+    collection_factory: CollectionFactory,
+) -> None:
     """Test that query_profile is None when not requested."""
-    result = collection_with_data.query.fetch_objects(
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.fetch_objects(
         return_metadata=MetadataQuery(distance=True),
     )
     assert result.query_profile is None
 
 
-def test_query_profile_with_metadata_list(collection_with_data):
+def test_query_profile_with_metadata_list(
+    collection_factory: CollectionFactory,
+) -> None:
     """Test that query profiling works when using list-style metadata."""
-    result = collection_with_data.query.near_vector(
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
         return_metadata=["query_profile", "distance"],
         limit=2,
@@ -197,9 +195,12 @@ def test_query_profile_with_metadata_list(collection_with_data):
     assert_common_profile(shard.searches["vector"])
 
 
-def test_query_profile_details_are_strings(collection_with_data):
+def test_query_profile_details_are_strings(
+    collection_factory: CollectionFactory,
+) -> None:
     """Test that all detail keys and values are non-empty strings."""
-    result = collection_with_data.query.near_vector(
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
         return_metadata=MetadataQuery(query_profile=True),
         limit=1,
