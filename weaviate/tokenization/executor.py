@@ -79,39 +79,3 @@ class _TokenizationExecutor(Generic[ConnectionType]):
             error_msg="Tokenization failed",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="tokenize text"),
         )
-
-    def for_property(
-        self,
-        collection_name: str,
-        property_name: str,
-        text: str,
-    ) -> executor.Result[TokenizeResult]:
-        """Tokenize text using a property's configured tokenization settings.
-
-        Args:
-            collection_name: The collection (class) name.
-            property_name: The property name whose tokenization config to use.
-            text: The text to tokenize.
-
-        Returns:
-            A TokenizeResult with indexed and query token lists.
-
-        Raises:
-            WeaviateUnsupportedFeatureError: If the server version is below 1.37.0.
-        """
-        self._check_version()
-        path = f"/schema/{collection_name}/properties/{property_name}/tokenize"
-
-        payload: Dict[str, Any] = {"text": text}
-
-        def resp(response: Response) -> TokenizeResult:
-            return TokenizeResult.model_validate(response.json())
-
-        return executor.execute(
-            response_callback=resp,
-            method=self._connection.post,
-            path=path,
-            weaviate_object=payload,
-            error_msg="Property tokenization failed",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="tokenize property text"),
-        )
