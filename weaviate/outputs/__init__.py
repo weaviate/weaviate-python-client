@@ -9,7 +9,7 @@ from . import (
     query,
     replication,
     tenants,
-    tokenization,  
+    tokenization,
     users,
 )
 
