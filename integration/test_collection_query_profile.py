@@ -61,6 +61,8 @@ def test_fetch_objects_with_query_profile(collection_factory: CollectionFactory)
     assert shard.node != ""
 
     assert "object" in shard.searches
+    assert "vector" not in shard.searches
+    assert "keyword" not in shard.searches
     assert_common_profile(shard.searches["object"])
 
 
@@ -78,6 +80,8 @@ def test_near_vector_with_query_profile(collection_factory: CollectionFactory) -
 
     shard = result.query_profile.shards[0]
     assert "vector" in shard.searches
+    assert "keyword" not in shard.searches
+    assert "object" not in shard.searches
     vector_profile = shard.searches["vector"]
     assert_common_profile(vector_profile)
 
@@ -108,6 +112,8 @@ def test_bm25_with_query_profile(collection_factory: CollectionFactory) -> None:
 
     shard = result.query_profile.shards[0]
     assert "keyword" in shard.searches
+    assert "vector" not in shard.searches
+    assert "object" not in shard.searches
     keyword_profile = shard.searches["keyword"]
     assert_common_profile(keyword_profile)
 
@@ -140,6 +146,7 @@ def test_hybrid_with_query_profile(collection_factory: CollectionFactory) -> Non
     shard = result.query_profile.shards[0]
     assert "vector" in shard.searches, "Hybrid should produce a 'vector' profile"
     assert "keyword" in shard.searches, "Hybrid should produce a 'keyword' profile"
+    assert "object" not in shard.searches
 
     assert_common_profile(shard.searches["vector"])
     assert "vector_search_took" in shard.searches["vector"].details
