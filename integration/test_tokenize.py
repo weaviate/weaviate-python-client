@@ -22,6 +22,7 @@ from weaviate.collections.classes.config import (
     _TextAnalyzerConfigCreate,
 )
 from weaviate.config import AdditionalConfig
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.tokenization.models import TokenizeResult
 
 
@@ -290,6 +291,29 @@ class TestClientSideValidation:
         assert cfg.asciiFold is None
         assert cfg.asciiFoldIgnore is None
         assert cfg.stopwordPreset is None
+
+
+# ---------------------------------------------------------------------------
+# Version gate
+# ---------------------------------------------------------------------------
+
+
+class TestVersionGate:
+    """On Weaviate < 1.37 the client must raise before sending the request."""
+
+    def test_text_raises_on_old_server(self, client: weaviate.WeaviateClient) -> None:
+        if client._connection._weaviate_version.is_at_least(1, 37, 0):
+            pytest.skip("Version gate only applies to Weaviate < 1.37.0")
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            client.tokenization.text(text="hello", tokenization=Tokenization.WORD)
+
+    def test_for_property_raises_on_old_server(self, client: weaviate.WeaviateClient) -> None:
+        if client._connection._weaviate_version.is_at_least(1, 37, 0):
+            pytest.skip("Version gate only applies to Weaviate < 1.37.0")
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            client.tokenization.for_property(
+                collection_name="Any", property_name="title", text="hello"
+            )
 
 
 # ---------------------------------------------------------------------------

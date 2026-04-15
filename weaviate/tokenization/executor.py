@@ -14,6 +14,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.tokenization.models import TokenizeResult
 
 
@@ -55,6 +56,14 @@ class _TokenizationExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
 
+    def _check_version(self) -> None:
+        if self._connection._weaviate_version.is_lower_than(1, 37, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Tokenization",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
+
     def text(
         self,
         text: str,
@@ -87,7 +96,11 @@ class _TokenizationExecutor(Generic[ConnectionType]):
 
         Returns:
             A TokenizeResult with indexed and query token lists.
+
+        Raises:
+            WeaviateUnsupportedFeatureError: If the server version is below 1.37.0.
         """
+        self._check_version()
         tokenization_str = (
             tokenization.value if isinstance(tokenization, Tokenization) else tokenization
         )
@@ -148,7 +161,11 @@ class _TokenizationExecutor(Generic[ConnectionType]):
 
         Returns:
             A TokenizeResult with indexed and query token lists.
+
+        Raises:
+            WeaviateUnsupportedFeatureError: If the server version is below 1.37.0.
         """
+        self._check_version()
         path = f"/schema/{collection_name}/properties/{property_name}/tokenize"
 
         payload: Dict[str, Any] = {"text": text}
