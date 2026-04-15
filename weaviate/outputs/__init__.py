@@ -5,10 +5,11 @@ from . import (
     cluster,
     config,
     data,
+    export,
     query,
     replication,
     tenants,
-    tokenization,
+    tokenization,  
     users,
 )
 
@@ -19,6 +20,7 @@ __all__ = [
     "cluster",
     "config",
     "data",
+    "export",
     "query",
     "replication",
     "tenants",

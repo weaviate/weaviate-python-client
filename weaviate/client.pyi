@@ -20,6 +20,7 @@ from .backup import _Backup, _BackupAsync
 from .cluster import _Cluster, _ClusterAsync
 from .collections.batch.client import _BatchClientWrapper, _BatchClientWrapperAsync
 from .debug import _Debug, _DebugAsync
+from .export import _Export, _ExportAsync
 from .rbac import _Roles, _RolesAsync
 from .tokenization import _Tokenization, _TokenizationAsync
 from .types import NUMBER
@@ -30,6 +31,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
     _connection: ConnectionAsync
     alias: _AliasAsync
     backup: _BackupAsync
+    export: _ExportAsync
     batch: _BatchClientWrapperAsync
     collections: _CollectionsAsync
     cluster: _ClusterAsync
@@ -54,6 +56,7 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
     _connection: ConnectionSync
     alias: _Alias
     backup: _Backup
+    export: _Export
     batch: _BatchClientWrapper
     collections: _Collections
     cluster: _Cluster
