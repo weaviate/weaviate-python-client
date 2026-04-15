@@ -14,7 +14,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
-from weaviate.tokenize.types import TokenizeResult
+from weaviate.tokenization.models import TokenizeResult
 
 
 def _parse_analyzer_config(body: Dict[str, Any]) -> Optional[TextAnalyzerConfig]:
@@ -51,7 +51,7 @@ def _parse_tokenize_result(body: Dict[str, Any]) -> TokenizeResult:
     )
 
 
-class _TokenizeExecutor(Generic[ConnectionType]):
+class _TokenizationExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
 
@@ -133,7 +133,7 @@ class _TokenizeExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="tokenize text"),
         )
 
-    def property(
+    def for_property(
         self,
         collection_name: str,
         property_name: str,

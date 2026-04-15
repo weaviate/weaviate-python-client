@@ -21,7 +21,7 @@ from . import (
     embedded,
     exceptions,
     outputs,
-    tokenize,
+    tokenization,
     types,
 )
 from .client import Client, WeaviateAsyncClient, WeaviateClient
@@ -68,7 +68,7 @@ __all__ = [
     "embedded",
     "exceptions",
     "outputs",
-    "tokenize",
+    "tokenization",
     "types",
     "use_async_with_custom",
     "use_async_with_embedded",
