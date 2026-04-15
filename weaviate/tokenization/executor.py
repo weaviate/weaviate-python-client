@@ -44,7 +44,7 @@ def _parse_stopword_config(body: Dict[str, Any]) -> Optional[StopwordsConfig]:
 
 def _parse_tokenize_result(body: Dict[str, Any]) -> TokenizeResult:
     return TokenizeResult(
-        tokenization=body["tokenization"],
+        tokenization=Tokenization(body["tokenization"]),
         indexed=body["indexed"],
         query=body["query"],
         analyzer_config=_parse_analyzer_config(body),

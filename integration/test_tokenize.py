@@ -72,13 +72,13 @@ class TestSerialization:
     ) -> None:
         result = client.tokenization.text(text=text, tokenization=tokenization)
         assert isinstance(result, TokenizeResult)
-        assert result.tokenization == tokenization.value
+        assert result.tokenization == tokenization
         assert result.indexed == expected_tokens
         assert result.query == expected_tokens
 
     def test_tokenization_string(self, client: weaviate.WeaviateClient) -> None:
         result = client.tokenization.text(text="hello world", tokenization="word")
-        assert result.tokenization == "word"
+        assert result.tokenization == Tokenization.WORD
         assert result.indexed == ["hello", "world"]
 
     def test_stopword_preset_enum(self, client: weaviate.WeaviateClient) -> None:
@@ -221,7 +221,7 @@ class TestDeserialization:
                 text="the quick",
             )
             assert isinstance(result, TokenizeResult)
-            assert result.tokenization == "word"
+            assert result.tokenization == Tokenization.WORD
             # Stopword config should be deserialized when present
             if result.stopword_config is not None:
                 assert isinstance(result.stopword_config, StopwordsConfig)
@@ -250,7 +250,7 @@ class TestDeserialization:
                 text="  Hello World  ",
             )
             assert isinstance(result, TokenizeResult)
-            assert result.tokenization == "field"
+            assert result.tokenization == Tokenization.FIELD
             assert result.indexed == ["Hello World"]
         finally:
             client.collections.delete("TestDeserPropTypes")
@@ -371,7 +371,7 @@ class TestAsyncClient:
                 text="The quick brown fox",
             )
             assert isinstance(result, TokenizeResult)
-            assert result.tokenization == "word"
+            assert result.tokenization == Tokenization.WORD
             assert result.indexed == ["the", "quick", "brown", "fox"]
             assert "the" not in result.query
             assert "quick" in result.query

@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from weaviate.collections.classes.config import StopwordsConfig, TextAnalyzerConfig
+from weaviate.collections.classes.config import StopwordsConfig, TextAnalyzerConfig, Tokenization
 
 
 @dataclass
@@ -18,7 +18,7 @@ class TokenizeResult:
         stopword_config: The stopword configuration that was used, if any.
     """
 
-    tokenization: str
+    tokenization: Tokenization
     indexed: List[str]
     query: List[str]
     analyzer_config: Optional[TextAnalyzerConfig] = field(default=None)
