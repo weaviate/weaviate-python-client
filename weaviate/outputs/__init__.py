@@ -9,6 +9,7 @@ from . import (
     query,
     replication,
     tenants,
+    tokenization,
     users,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "query",
     "replication",
     "tenants",
+    "tokenization",
     "users",
 ]
