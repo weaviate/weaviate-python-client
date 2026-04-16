@@ -94,7 +94,11 @@ class MetadataQuery(_WeaviateInput):
 
     @classmethod
     def full(cls) -> "MetadataQuery":
-        """Return a MetadataQuery with all fields set to True."""
+        """Return a MetadataQuery with all fields set to True.
+
+        NOTE: `query_profile` is excluded because it adds performance overhead.
+        Use `full_with_profile()` to include it.
+        """
         return cls(
             creation_time=True,
             last_update_time=True,
@@ -103,6 +107,24 @@ class MetadataQuery(_WeaviateInput):
             score=True,
             explain_score=True,
             is_consistent=True,
+        )
+
+    @classmethod
+    def full_with_profile(cls) -> "MetadataQuery":
+        """Return a MetadataQuery with all fields set to True, including query profiling.
+
+        Query profiling adds per-shard execution timing breakdowns to the response
+        but has performance overhead. Requires Weaviate >= 1.36.9.
+        """
+        return cls(
+            creation_time=True,
+            last_update_time=True,
+            distance=True,
+            certainty=True,
+            score=True,
+            explain_score=True,
+            is_consistent=True,
+            query_profile=True,
         )
 
 

@@ -173,6 +173,36 @@ def test_near_vector_group_by_with_query_profile(
     assert_common_profile(shard.searches["vector"])
 
 
+def test_full_with_profile(collection_factory: CollectionFactory) -> None:
+    """Test that MetadataQuery.full_with_profile() returns profiling and all other metadata."""
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.near_vector(
+        near_vector=[1.0, 0.0, 0.0],
+        return_metadata=MetadataQuery.full_with_profile(),
+        limit=1,
+    )
+    assert len(result.objects) == 1
+    obj = result.objects[0]
+    assert obj.metadata.distance is not None
+    assert obj.metadata.creation_time is not None
+    assert obj.metadata.last_update_time is not None
+    assert obj.metadata.score is not None
+    assert obj.metadata.explain_score is not None
+
+    assert result.query_profile is not None
+    assert len(result.query_profile.shards) > 0
+    assert_common_profile(result.query_profile.shards[0].searches["vector"])
+
+
+def test_full_excludes_query_profile(collection_factory: CollectionFactory) -> None:
+    """Test that MetadataQuery.full() does not include query profiling."""
+    collection = _create_and_populate(collection_factory)
+    result = collection.query.fetch_objects(
+        return_metadata=MetadataQuery.full(),
+    )
+    assert result.query_profile is None
+
+
 def test_no_query_profile_when_not_requested(
     collection_factory: CollectionFactory,
 ) -> None:
