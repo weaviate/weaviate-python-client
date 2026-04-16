@@ -1,29 +1,59 @@
 import faulthandler
+import os
+import threading
 
 import pytest
 
+DEFAULT_TIMEOUT = 300  # 5 minutes
 
-def pytest_runtest_setup(item: pytest.Item) -> None:
-    """Set faulthandler alarm as a backup timeout mechanism.
+_timeout_timer: threading.Timer | None = None
 
-    This fires even if the process is stuck in C code (e.g., gRPC core).
-    Set to pytest-timeout value + 30s so pytest-timeout handles it first.
 
-    Uses exit=False to avoid killing xdist worker processes — a killed worker
-    causes 'node down: Not properly terminated' and loses the stack trace output.
-    With exit=False, faulthandler dumps tracebacks to stderr (relayed by xdist)
-    without terminating the process, letting pytest-timeout handle the interruption.
-    """
+def _get_timeout(item: pytest.Item) -> float:
     marker = item.get_closest_marker("timeout")
     if marker and marker.args:
-        test_timeout = marker.args[0]
-    else:
-        test_timeout = item.config.getini("timeout") or 300
+        return float(marker.args[0])
+    return float(DEFAULT_TIMEOUT)
 
-    if test_timeout and float(test_timeout) > 0:
-        faulthandler.dump_traceback_later(float(test_timeout) + 30, exit=False)
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Start a watchdog timer that dumps all thread stack traces on timeout.
+
+    Unlike pytest-timeout, this does NOT raise KeyboardInterrupt (which crashes
+    xdist workers and corrupts asyncio event loops). Instead it:
+    1. Writes the test name + all thread tracebacks directly to fd 2 (stderr).
+       With --capture=sys in pytest.ini, fd 2 is the real stderr (not captured),
+       so the output goes directly to the CI log even under xdist.
+    2. Calls os._exit(1) to terminate the worker process.
+
+    xdist will report 'node down: Not properly terminated' which is expected —
+    the diagnostic output will already be in the CI logs above that message.
+    """
+    global _timeout_timer
+    timeout = _get_timeout(item)
+    if timeout <= 0:
+        return
+
+    def _on_timeout() -> None:
+        banner = "=" * 70
+        os.write(2, f"\n\n{banner}\n".encode())
+        os.write(2, f"TIMEOUT: {item.nodeid} exceeded {timeout}s\n".encode())
+        os.write(2, f"{banner}\n\n".encode())
+        # faulthandler needs a file object — wrap a dup of fd 2 to avoid closing it
+        with os.fdopen(os.dup(2), "w") as f:
+            faulthandler.dump_traceback(file=f)
+            f.flush()
+        os.write(2, f"\n{banner}\n\n".encode())
+        os._exit(1)
+
+    _timeout_timer = threading.Timer(timeout, _on_timeout)
+    _timeout_timer.daemon = True
+    _timeout_timer.start()
 
 
 def pytest_runtest_teardown(item: pytest.Item, nextitem: pytest.Item | None) -> None:
-    """Cancel the faulthandler alarm after each test."""
-    faulthandler.cancel_dump_traceback_later()
+    """Cancel the watchdog timer after each test completes."""
+    global _timeout_timer
+    if _timeout_timer is not None:
+        _timeout_timer.cancel()
+        _timeout_timer = None
