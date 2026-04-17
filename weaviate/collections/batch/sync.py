@@ -13,6 +13,7 @@ from weaviate.collections.batch.base import (
     ReferencesBatchRequest,
     _BatchDataWrapper,
     _BatchMode,
+    _BatchStreamRequest,
     _BgThreads,
     _ClusterBatch,
 )
@@ -109,7 +110,7 @@ class _BatchBaseSync:
 
         # maxsize=1 so that __loop does not run faster than generator for __recv
         # thereby using too much buffer in case of server-side shutdown
-        self.__reqs: Queue[Optional[batch_pb2.BatchStreamRequest]] = Queue(maxsize=1)
+        self.__reqs: Queue[Optional[_BatchStreamRequest]] = Queue(maxsize=1)
 
     @property
     def number_errors(self) -> int:
@@ -214,7 +215,7 @@ class _BatchBaseSync:
         self,
         objects: List[BatchObject],
         references: List[BatchReference],
-    ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
+    ) -> Generator[_BatchStreamRequest, None, None]:
         per_object_overhead = 4  # extra overhead bytes per object in the request
 
         def request_maker():
@@ -223,8 +224,7 @@ class _BatchBaseSync:
         request = request_maker()
         total_size = request.ByteSize()
 
-        inflight_objs = set()
-        inflight_refs = set()
+        uuids, beacons = set(), set()
         for object_ in objects:
             obj = self.__batch_grpc.grpc_object(object_._to_internal())
             obj_size = obj.ByteSize() + per_object_overhead
@@ -235,33 +235,31 @@ class _BatchBaseSync:
                 )
 
             if total_size + obj_size >= self.__batch_grpc.grpc_max_msg_size:
-                yield request
+                yield _BatchStreamRequest(request, uuids, beacons)
                 request = request_maker()
                 total_size = request.ByteSize()
+                uuids, beacons = set(), set()
 
             request.data.objects.values.append(obj)
             total_size += obj_size
-            inflight_objs.add(obj.uuid)
+            uuids.add(obj.uuid)
 
         for reference in references:
             ref = self.__batch_grpc.grpc_reference(reference._to_internal())
             ref_size = ref.ByteSize() + per_object_overhead
 
             if total_size + ref_size >= self.__batch_grpc.grpc_max_msg_size:
-                yield request
+                yield _BatchStreamRequest(request, uuids, beacons)
                 request = request_maker()
                 total_size = request.ByteSize()
+                uuids, beacons = set(), set()
 
             request.data.references.values.append(ref)
             total_size += ref_size
-            inflight_refs.add(reference._to_beacon())
-
-        with self.__acks_lock:
-            self.__inflight_objs.update(inflight_objs)
-            self.__inflight_refs.update(inflight_refs)
+            beacons.add(reference._to_beacon())
 
         if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
-            yield request
+            yield _BatchStreamRequest(request, uuids, beacons)
 
     def __send(
         self,
@@ -291,7 +289,10 @@ class _BatchBaseSync:
                     )
                     yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     return
-                yield req
+                yield req.proto
+                with self.__acks_lock:
+                    self.__inflight_objs.update(req.uuids)
+                    self.__inflight_refs.update(req.beacons)
                 continue
             except Empty:
                 if self.__is_shutting_down.is_set():
@@ -513,6 +514,8 @@ class _BatchBaseSync:
                     self.__batch_objects.prepend(list(self.__objs_cache.values()))
                 with self.__refs_cache_lock:
                     self.__batch_references.prepend(list(self.__refs_cache.values()))
+                self.__inflight_objs.clear()
+                self.__inflight_refs.clear()
                 # start a new stream with a newly reconnected channel
                 return recv_wrapper()
 

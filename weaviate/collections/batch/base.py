@@ -43,6 +43,7 @@ from weaviate.exceptions import (
     WeaviateBatchValidationError,
 )
 from weaviate.logger import logger
+from weaviate.proto.v1 import batch_pb2
 from weaviate.types import UUID, VECTORS
 from weaviate.util import _decode_json_response_dict
 from weaviate.warnings import _Warnings
@@ -225,6 +226,13 @@ class ObjectsBatchRequest(Generic[Obj], BatchRequest[Obj, BatchObjectReturn]):
         """
         async with self._alock:
             return self.__head()
+
+
+@dataclass
+class _BatchStreamRequest:
+    proto: batch_pb2.BatchStreamRequest
+    uuids: set[str]
+    beacons: set[str]
 
 
 @dataclass
