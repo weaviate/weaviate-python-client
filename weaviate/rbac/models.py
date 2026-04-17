@@ -253,7 +253,9 @@ class BackupsAction(str, _Action, Enum):
 
 
 class MCPAction(str, _Action, Enum):
-    MANAGE = "manage_mcp"
+    CREATE = "create_mcp"
+    READ = "read_mcp"
+    UPDATE = "update_mcp"
 
     @staticmethod
     def values() -> List[str]:
@@ -1053,9 +1055,18 @@ class Permissions:
         return permissions
 
     @staticmethod
-    def mcp(*, manage: bool = False) -> PermissionsCreateType:
-        if manage:
-            return [_MCPPermission(actions={MCPAction.MANAGE})]
+    def mcp(
+        *, create: bool = False, read: bool = False, update: bool = False
+    ) -> PermissionsCreateType:
+        actions: Set[MCPAction] = set()
+        if create:
+            actions.add(MCPAction.CREATE)
+        if read:
+            actions.add(MCPAction.READ)
+        if update:
+            actions.add(MCPAction.UPDATE)
+        if len(actions) > 0:
+            return [_MCPPermission(actions=actions)]
         return []
 
     @staticmethod

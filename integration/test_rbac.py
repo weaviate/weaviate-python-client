@@ -427,9 +427,9 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             32,  # Minimum version for alias permissions
         ),
         (
-            Permissions.mcp(manage=True),
+            Permissions.mcp(create=True, read=True, update=True),
             Role(
-                name="ManageMCP",
+                name="MCPAll",
                 alias_permissions=[],
                 cluster_permissions=[],
                 users_permissions=[],
@@ -437,7 +437,30 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 roles_permissions=[],
                 data_permissions=[],
                 backups_permissions=[],
-                mcp_permissions=[MCPPermissionOutput(actions={Actions.MCP.MANAGE})],
+                mcp_permissions=[
+                    MCPPermissionOutput(
+                        actions={Actions.MCP.CREATE, Actions.MCP.READ, Actions.MCP.UPDATE}
+                    )
+                ],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            ),
+            37,  # Minimum version for MCP permissions
+        ),
+        (
+            Permissions.mcp(read=True),
+            Role(
+                name="MCPRead",
+                alias_permissions=[],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                mcp_permissions=[MCPPermissionOutput(actions={Actions.MCP.READ})],
                 nodes_permissions=[],
                 tenants_permissions=[],
                 replicate_permissions=[],
