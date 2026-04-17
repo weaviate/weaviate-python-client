@@ -521,6 +521,7 @@ class _QueryGRPC(_BaseGRPC):
             score=metadata.score,
             is_consistent=metadata.is_consistent,
             vectors=metadata.vectors,
+            query_profile=metadata.query_profile,
         )
 
     def __resolve_property(self, prop: QueryNested) -> search_get_pb2.ObjectPropertiesRequest:
