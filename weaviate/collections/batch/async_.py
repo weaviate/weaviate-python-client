@@ -272,7 +272,7 @@ class _BatchBaseAsync:
         request = request_maker()
         total_size = request.ByteSize()
 
-        uuids, beacons = set()
+        uuids, beacons = set(), set()
         for object_ in objects:
             obj = self.__batch_grpc.grpc_object(object_._to_internal())
             obj_size = obj.ByteSize() + per_object_overhead
