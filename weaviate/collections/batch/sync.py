@@ -577,11 +577,6 @@ class _BatchBaseSync:
         self.__objs_count += 1
 
         while self.__is_blocked():
-            logger.warning("Batch is blocked, waiting to add more objects...")
-            if len(self.__inflight_objs) >= self.__batch_size:
-                logger.info(
-                    f"Too many inflight_objs, waiting for acknowledgements from the server: {len(self.__inflight_objs)}, {self.__batch_size}"
-                )
             self.__check_bg_threads_alive()
             time.sleep(0.01)
 
