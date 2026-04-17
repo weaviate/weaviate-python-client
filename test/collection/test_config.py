@@ -4,18 +4,21 @@ import pytest
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
-    _AsyncReplicationConfig,
-    _ReplicationConfig,
-    _ReplicationConfigUpdate,
     Configure,
     DataType,
     Property,
     Reconfigure,
     ReferenceProperty,
+    StopwordsPreset,
+    Tokenization,
     Vectorizers,
+    _AsyncReplicationConfig,
     _CollectionConfigCreate,
     _GenerativeProvider,
+    _ReplicationConfig,
+    _ReplicationConfigUpdate,
     _RerankerProvider,
+    _TextAnalyzerConfigCreate,
     _VectorizerConfigCreate,
     _ReplicationConfigCreate,
     ReplicationDeletionStrategy,
@@ -1338,6 +1341,10 @@ def test_config_create_with_properties(
                 data_type=DataType.BLOB,
             ),
             Property(
+                name="blob_hash",
+                data_type=DataType.BLOB_HASH,
+            ),
+            Property(
                 name="phone_number",
                 data_type=DataType.PHONE_NUMBER,
             ),
@@ -1399,6 +1406,10 @@ def test_config_create_with_properties(
         {
             "dataType": ["blob"],
             "name": "blob",
+        },
+        {
+            "dataType": ["blobHash"],
+            "name": "blob_hash",
         },
         {
             "dataType": ["phoneNumber"],
@@ -3021,3 +3032,156 @@ def test_nested_property_with_id_name_is_allowed() -> None:
         ],
     )
     assert prop.nestedProperties[0].name == "id"
+
+
+class Test_TextAnalyzerConfigCreate:
+    def test_property_without_text_analyzer_omits_key(self) -> None:
+        prop = Property(name="title", data_type=DataType.TEXT)
+        assert "textAnalyzer" not in prop._to_dict()
+
+    def test_property_with_ascii_fold_only(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            text_analyzer=Configure.text_analyzer(ascii_fold=True),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"asciiFold": True}
+
+    def test_property_with_ascii_fold_and_ignore(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(ascii_fold=True, ascii_fold_ignore=["é", "ñ"]),
+        )
+        out = prop._to_dict()
+        assert out["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["é", "ñ"],
+        }
+        assert out["tokenization"] == "word"
+
+    def test_text_analyzer_rejects_ignore_without_ascii_fold(self) -> None:
+        with pytest.raises(ValidationError):
+            _TextAnalyzerConfigCreate(ascii_fold_ignore=["é"])
+
+    def test_nested_property_with_text_analyzer(self) -> None:
+        prop = Property(
+            name="meta",
+            data_type=DataType.OBJECT,
+            nested_properties=[
+                Property(
+                    name="title",
+                    data_type=DataType.TEXT,
+                    text_analyzer=Configure.text_analyzer(ascii_fold=True, ascii_fold_ignore=["ñ"]),
+                ),
+            ],
+        )
+        out = prop._to_dict()
+        assert out["nestedProperties"][0]["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["ñ"],
+        }
+
+    def test_text_analyzer_rejects_wrong_types(self) -> None:
+        with pytest.raises(ValidationError):
+            _TextAnalyzerConfigCreate(ascii_fold="yes")  # type: ignore[arg-type]
+        with pytest.raises(ValidationError):
+            _TextAnalyzerConfigCreate(ascii_fold_ignore="é")
+
+    def test_text_analyzer_stopword_preset_builtin_enum(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(stopword_preset=StopwordsPreset.EN),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"stopwordPreset": "en"}
+
+    def test_text_analyzer_stopword_preset_user_defined_string(self) -> None:
+        prop = Property(
+            name="title_fr",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"stopwordPreset": "fr"}
+
+    def test_text_analyzer_combined_ascii_fold_and_stopword_preset(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(
+                ascii_fold=True, ascii_fold_ignore=["é"], stopword_preset="fr"
+            ),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["é"],
+            "stopwordPreset": "fr",
+        }
+
+    def test_text_analyzer_stopword_preset_only_omits_other_keys(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+        )
+        out = prop._to_dict()
+        assert "asciiFold" not in out["textAnalyzer"]
+        assert "asciiFoldIgnore" not in out["textAnalyzer"]
+
+
+class TestInvertedIndexStopwordPresets:
+    def test_configure_inverted_index_with_stopword_presets(self) -> None:
+        ic = Configure.inverted_index(
+            stopword_presets={
+                "fr": ["le", "la", "les"],
+                "es": ["el", "la", "los"],
+            },
+        )
+        out = ic._to_dict()
+        assert out["stopwordPresets"] == {
+            "fr": ["le", "la", "les"],
+            "es": ["el", "la", "los"],
+        }
+
+    def test_configure_inverted_index_without_stopword_presets_omits_key(self) -> None:
+        ic = Configure.inverted_index()
+        assert "stopwordPresets" not in ic._to_dict()
+
+    def test_reconfigure_inverted_index_merges_stopword_presets(self) -> None:
+        rc = Reconfigure.inverted_index(stopword_presets={"fr": ["le", "la"]})
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "cleanupIntervalSeconds": 60,
+        }
+        merged = rc.merge_with_existing(existing)
+        assert merged["stopwordPresets"] == {"fr": ["le", "la"]}
+        # other fields untouched
+        assert merged["stopwords"]["preset"] == "en"
+        assert merged["bm25"]["b"] == 0.75
+
+    def test_reconfigure_inverted_index_replaces_existing_stopword_presets(self) -> None:
+        rc = Reconfigure.inverted_index(stopword_presets={"fr": ["le"]})
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "stopwordPresets": {"fr": ["le", "la", "les"], "es": ["el"]},
+        }
+        merged = rc.merge_with_existing(existing)
+        # The new value fully replaces the prior dict (this matches the server-side
+        # PUT semantics — see test_tokenize.py::test_remove_unused_preset_is_allowed).
+        assert merged["stopwordPresets"] == {"fr": ["le"]}
+
+    def test_reconfigure_inverted_index_without_stopword_presets_leaves_existing(self) -> None:
+        rc = Reconfigure.inverted_index(bm25_b=0.7, bm25_k1=1.1)
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "stopwordPresets": {"fr": ["le", "la"]},
+        }
+        merged = rc.merge_with_existing(existing)
+        assert merged["stopwordPresets"] == {"fr": ["le", "la"]}

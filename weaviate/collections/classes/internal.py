@@ -91,6 +91,29 @@ class MetadataReturn:
 
 
 @dataclass
+class SearchProfileReturn:
+    """Profiling details for a single search type within a shard."""
+
+    details: Dict[str, str]
+
+
+@dataclass
+class ShardProfileReturn:
+    """Profiling data for a single shard."""
+
+    name: str
+    node: str
+    searches: Dict[str, SearchProfileReturn]
+
+
+@dataclass
+class QueryProfileReturn:
+    """Per-shard query profiling data returned when `query_profile=True` is set in metadata."""
+
+    shards: List[ShardProfileReturn]
+
+
+@dataclass
 class GroupByMetadataReturn:
     """Metadata of an object returned by a group by query."""
 
@@ -210,6 +233,7 @@ class GenerativeReturn(Generic[P, R]):
     __generated: Optional[str]
     objects: List[GenerativeObject[P, R]]
     generative: Optional[GenerativeGrouped]
+    query_profile: Optional[QueryProfileReturn]
 
     # init required because of nuances of dataclass when defining @property generated and private var __generated
     def __init__(
@@ -217,10 +241,12 @@ class GenerativeReturn(Generic[P, R]):
         generated: Optional[str],
         objects: List[GenerativeObject[P, R]],
         generative: Optional[GenerativeGrouped],
+        query_profile: Optional[QueryProfileReturn] = None,
     ) -> None:
         self.__generated = generated
         self.objects = objects
         self.generative = generative
+        self.query_profile = query_profile
 
     @property
     @deprecated(
@@ -257,6 +283,7 @@ class GenerativeGroupByReturn(Generic[P, R]):
     objects: List[GroupByObject[P, R]]
     groups: Dict[str, GenerativeGroup[P, R]]
     generated: Optional[str]
+    query_profile: Optional[QueryProfileReturn] = None
 
 
 @dataclass
@@ -265,6 +292,7 @@ class GroupByReturn(Generic[P, R]):
 
     objects: List[GroupByObject[P, R]]
     groups: Dict[str, Group[P, R]]
+    query_profile: Optional[QueryProfileReturn] = None
 
 
 @dataclass
@@ -272,6 +300,7 @@ class QueryReturn(Generic[P, R]):
     """The return type of a query within the `.query` namespace of a collection."""
 
     objects: List[Object[P, R]]
+    query_profile: Optional[QueryProfileReturn] = None
 
 
 _GQLEntryReturnType: TypeAlias = Dict[str, List[Dict[str, Any]]]

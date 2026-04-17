@@ -90,10 +90,15 @@ class MetadataQuery(_WeaviateInput):
     score: bool = Field(default=False)
     explain_score: bool = Field(default=False)
     is_consistent: bool = Field(default=False)
+    query_profile: bool = Field(default=False)
 
     @classmethod
     def full(cls) -> "MetadataQuery":
-        """Return a MetadataQuery with all fields set to True."""
+        """Return a MetadataQuery with all fields set to True.
+
+        NOTE: `query_profile` is excluded because it adds performance overhead.
+        Use `full_with_profile()` to include it.
+        """
         return cls(
             creation_time=True,
             last_update_time=True,
@@ -102,6 +107,24 @@ class MetadataQuery(_WeaviateInput):
             score=True,
             explain_score=True,
             is_consistent=True,
+        )
+
+    @classmethod
+    def full_with_profile(cls) -> "MetadataQuery":
+        """Return a MetadataQuery with all fields set to True, including query profiling.
+
+        Query profiling adds per-shard execution timing breakdowns to the response
+        but has performance overhead. Requires Weaviate >= 1.36.9.
+        """
+        return cls(
+            creation_time=True,
+            last_update_time=True,
+            distance=True,
+            certainty=True,
+            score=True,
+            explain_score=True,
+            is_consistent=True,
+            query_profile=True,
         )
 
 
@@ -117,6 +140,7 @@ class _MetadataQuery:
     explain_score: bool = False
     is_consistent: bool = False
     vectors: Optional[List[str]] = None
+    query_profile: bool = False
 
     @classmethod
     def from_public(
@@ -138,6 +162,7 @@ class _MetadataQuery:
                 score=public.score,
                 explain_score=public.explain_score,
                 is_consistent=public.is_consistent,
+                query_profile=public.query_profile,
             )
         )
 
@@ -152,6 +177,7 @@ METADATA = Union[
             "score",
             "explain_score",
             "is_consistent",
+            "query_profile",
         ]
     ],
     MetadataQuery,

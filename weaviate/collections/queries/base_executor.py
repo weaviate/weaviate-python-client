@@ -40,9 +40,12 @@ from weaviate.collections.classes.internal import (
     GroupByReturn,
     MetadataReturn,
     Object,
+    QueryProfileReturn,
     QueryReturn,
     ReturnProperties,
     ReturnReferences,
+    SearchProfileReturn,
+    ShardProfileReturn,
     WeaviateProperties,
     _CrossReference,
     _extract_properties_from_data_model,
@@ -53,7 +56,7 @@ from weaviate.collections.classes.types import GeoCoordinate, TReferences, _Phon
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect.v4 import ConnectionType
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import base_pb2, generative_pb2, properties_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR
 from weaviate.util import (
@@ -452,6 +455,25 @@ class _BaseExecutor(Generic[ConnectionType]):
             belongs_to_group=group_name,
         )
 
+    def __extract_query_profile(
+        self, res: search_get_pb2.SearchReply
+    ) -> Optional[QueryProfileReturn]:
+        if not res.HasField("query_profile"):
+            return None
+        return QueryProfileReturn(
+            shards=[
+                ShardProfileReturn(
+                    name=shard.name,
+                    node=shard.node,
+                    searches={
+                        key: SearchProfileReturn(details=dict(profile.details))
+                        for key, profile in shard.searches.items()
+                    },
+                )
+                for shard in res.query_profile.shards
+            ]
+        )
+
     def _result_to_query_return(
         self,
         res: search_get_pb2.SearchReply,
@@ -461,7 +483,8 @@ class _BaseExecutor(Generic[ConnectionType]):
             objects=[
                 self.__result_to_query_object(obj.properties, obj.metadata, options)
                 for obj in res.results
-            ]
+            ],
+            query_profile=self.__extract_query_profile(res),
         )
 
     def _result_to_generative_query_return(
@@ -480,6 +503,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             generative=self.__extract_generative_grouped_from_generative(
                 res.generative_grouped_results
             ),
+            query_profile=self.__extract_query_profile(res),
         )
 
     def _result_to_generative_return(
@@ -507,7 +531,11 @@ class _BaseExecutor(Generic[ConnectionType]):
         objects_group_by: List[GroupByObject] = [
             obj for group in groups.values() for obj in group.objects
         ]
-        return GroupByReturn(objects=objects_group_by, groups=groups)
+        return GroupByReturn(
+            objects=objects_group_by,
+            groups=groups,
+            query_profile=self.__extract_query_profile(res),
+        )
 
     def _result_to_generative_groupby_return(
         self,
@@ -537,6 +565,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             generated=(
                 res.generative_grouped_result if res.generative_grouped_result != "" else None
             ),
+            query_profile=self.__extract_query_profile(res),
         )
 
     def _result_to_query_or_groupby_return(
@@ -615,6 +644,13 @@ class _BaseExecutor(Generic[ConnectionType]):
             ret_md = cast(MetadataQuery, return_metadata)
         else:
             ret_md = MetadataQuery(**{str(prop): True for prop in return_metadata})
+
+        if ret_md is not None and ret_md.query_profile:
+            if self._connection._weaviate_version.is_lower_than(1, 36, 9):
+                raise WeaviateUnsupportedFeatureError(
+                    "Query profiling", str(self._connection._weaviate_version), "1.36.9"
+                )
+
         return _MetadataQuery.from_public(ret_md, include_vector)
 
     def _parse_return_references(
