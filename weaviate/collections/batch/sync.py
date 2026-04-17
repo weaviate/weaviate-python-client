@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Empty, Full, Queue
 from typing import Generator, List, Optional, Set, Union
 
+from grpc import Call
 from pydantic import ValidationError
 
 from weaviate.collections.batch.base import (
@@ -98,7 +99,6 @@ class _BatchBaseSync:
         self.__oom_wait_time = 300
 
         self.__shutdown_loop = threading.Event()
-        self.__sent_sentinel = threading.Event()
 
         self.__objs_cache_lock = threading.Lock()
         self.__refs_cache_lock = threading.Lock()
@@ -112,6 +112,8 @@ class _BatchBaseSync:
         # maxsize=1 so that __loop does not run faster than generator for __recv
         # thereby using too much buffer in case of server-side shutdown
         self.__reqs: Queue[Optional[_BatchStreamRequest]] = Queue(maxsize=1)
+        self.__stream_lock = threading.Lock()
+        self.__active_stream: Optional[Call] = None
 
     @property
     def number_errors(self) -> int:
@@ -122,6 +124,26 @@ class _BatchBaseSync:
 
     def __all_threads_alive(self) -> bool:
         return self.__bg_threads.is_alive()
+
+    def __any_threads_alive(self) -> bool:
+        return self.__bg_threads.any_alive()
+
+    def __set_active_stream(self, call: Call) -> None:
+        with self.__stream_lock:
+            self.__active_stream = call
+
+    def __clear_active_stream(self) -> None:
+        with self.__stream_lock:
+            self.__active_stream = None
+
+    def __cancel_active_stream(self) -> bool:
+        with self.__stream_lock:
+            stream = self.__active_stream
+
+        if stream is None:
+            return False
+
+        return stream.cancel()
 
     def _start(self) -> None:
         self.__start_bg_threads()
@@ -138,18 +160,28 @@ class _BatchBaseSync:
     def _wait(self) -> None:
         deadline = time.time() + SHUTDOWN_TIMEOUT
         while time.time() < deadline:
-            if not self.__bg_threads.is_alive():
+            if not self.__any_threads_alive():
                 break
             time.sleep(0.1)
-        if self.__bg_threads.is_alive():
+        if self.__any_threads_alive():
             logger.warning(
                 f"Background batch threads did not exit within {SHUTDOWN_TIMEOUT}s. "
                 f"Forcing shutdown. inflight_objs={len(self.__inflight_objs)}, "
-                f"inflight_refs={len(self.__inflight_refs)}"
+                f"inflight_refs={len(self.__inflight_refs)}, "
+                f"loop_alive={self.__bg_threads.loop_alive()}, "
+                f"recv_alive={self.__bg_threads.recv_alive()}"
             )
             self.__shutdown_loop.set()  # force __loop to exit
+            self.__is_stopped.set()
+            self.__cancel_active_stream()  # force __recv to exit by cancelling the stream
 
-        self.__bg_threads.join()
+        self.__bg_threads.join(timeout=5)
+        if self.__any_threads_alive():
+            raise WeaviateBatchStreamError(
+                "Background batch threads did not terminate after forced shutdown. "
+                f"loop_alive={self.__bg_threads.loop_alive()}, "
+                f"recv_alive={self.__bg_threads.recv_alive()}"
+            )
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -216,13 +248,11 @@ class _BatchBaseSync:
                         return
             elif (
                 self.__is_stopped.is_set()
-                and not self.__sent_sentinel.is_set()
                 and not self.__is_hungup.is_set()
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
                 self.__reqs.put(None)
-                self.__sent_sentinel.set()
             time.sleep(refresh_time)
 
     def __generate_stream_requests(
@@ -278,7 +308,6 @@ class _BatchBaseSync:
     def __send(
         self,
     ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
-        self.__sent_sentinel.clear()
         yield batch_pb2.BatchStreamRequest(
             start=batch_pb2.BatchStreamRequest.Start(
                 consistency_level=self.__batch_grpc._consistency_level,
@@ -309,7 +338,11 @@ class _BatchBaseSync:
                 yield req.proto
                 continue
             except Empty:
-                if self.__is_shutting_down.is_set():
+                if self.__shutdown_loop.is_set() or self.__is_stopped.is_set():
+                    logger.info("Batch shutdown requested, stopping and closing the stream")
+                    yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
+                    return
+                elif self.__is_shutting_down.is_set():
                     logger.info("Server shutting down, closing the client-side of the stream")
                     return
                 elif self.__is_oom.is_set():
@@ -324,14 +357,16 @@ class _BatchBaseSync:
         logger.info("Batch send thread exiting due to exception...")
 
     def __recv(self) -> None:
-        stream = self.__batch_grpc.stream(
+        gen, call = self.__batch_grpc.stream(
             connection=self.__connection,
             requests=self.__send(),
         )
+        self.__set_active_stream(call)
+
         self.__is_renewing_stream.clear()
         self.__is_shutting_down.clear()
         self.__is_hungup.clear()
-        for message in stream:
+        for message in gen:
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
 

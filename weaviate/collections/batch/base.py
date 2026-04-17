@@ -895,6 +895,10 @@ class _BgThreads:
         """Check if the background threads are still alive."""
         return self.loop_alive() and self.recv_alive()
 
+    def any_alive(self) -> bool:
+        """Check if any background thread is still alive."""
+        return self.loop_alive() or self.recv_alive()
+
     def loop_alive(self) -> bool:
         """Check if the loop background thread is still alive."""
         if self.__started_loop:
@@ -907,10 +911,10 @@ class _BgThreads:
             return self.recv.is_alive()
         return True  # not started yet so considered alive
 
-    def join(self) -> None:
+    def join(self, timeout: Optional[float] = None) -> None:
         """Join the background threads."""
-        self.loop.join()
-        self.recv.join()
+        self.loop.join(timeout=timeout)
+        self.recv.join(timeout=timeout)
 
 
 class _ClusterBatch:

@@ -61,9 +61,18 @@ class _BgTasks:
     def all_alive(self) -> bool:
         return all([not self.recv.done(), not self.loop.done()])
 
+    def any_alive(self) -> bool:
+        return not self.recv.done() or not self.loop.done()
+
+    def recv_alive(self) -> bool:
+        return not self.recv.done()
+
+    def loop_alive(self) -> bool:
+        return not self.loop.done()
+
     async def gather(self) -> None:
         tasks = [self.recv, self.loop]
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 class _BatchBaseAsync:
@@ -187,17 +196,32 @@ class _BatchBaseAsync:
         assert self.__bg_tasks is not None
         deadline = time.time() + SHUTDOWN_TIMEOUT
         while time.time() < deadline:
-            if not self.__bg_tasks.all_alive():
+            if not self.__bg_tasks.any_alive():
                 break
             await asyncio.sleep(0.1)
-        if self.__bg_tasks.all_alive():
+        if self.__bg_tasks.any_alive():
             logger.warning(
                 f"Background batch tasks did not exit within {SHUTDOWN_TIMEOUT}s. "
                 f"Forcing shutdown. inflight_objs={len(self.__inflight_objs)}, "
-                f"inflight_refs={len(self.__inflight_refs)}"
+                f"inflight_refs={len(self.__inflight_refs)}, "
+                f"loop_alive={self.__bg_tasks.loop_alive()}, "
+                f"recv_alive={self.__bg_tasks.recv_alive()}"
             )
             self.__shutdown_loop.set()  # force __loop to exit
-        await self.__bg_tasks.gather()
+            self.__bg_tasks.recv.cancel()
+            self.__bg_tasks.loop.cancel()
+        try:
+            await asyncio.wait_for(self.__bg_tasks.gather(), timeout=5)
+        except asyncio.TimeoutError as e:
+            raise WeaviateBatchStreamError(
+                "Background batch tasks did not terminate after forced shutdown."
+            ) from e
+        if self.__bg_tasks.any_alive():
+            raise WeaviateBatchStreamError(
+                "Background batch tasks did not terminate after forced shutdown. "
+                f"loop_alive={self.__bg_tasks.loop_alive()}, "
+                f"recv_alive={self.__bg_tasks.recv_alive()}"
+            )
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -355,7 +379,11 @@ class _BatchBaseAsync:
                 yield req.proto
                 continue
             except asyncio.TimeoutError:
-                if self.__is_shutting_down.is_set():
+                if self.__shutdown_loop.is_set() or self.__is_stopped.is_set():
+                    logger.info("Batch shutdown requested, stopping and closing the stream")
+                    yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
+                    return
+                elif self.__is_shutting_down.is_set():
                     logger.info("Server shutting down, closing the client-side of the stream")
                     return
                 elif self.__is_oom.is_set():
