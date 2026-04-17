@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from weaviate.collections.batch.base import (
     GCP_STREAM_TIMEOUT,
+    SHUTDOWN_TIMEOUT,
     ObjectsBatchRequest,
     ReferencesBatchRequest,
     _BatchDataWrapper,
@@ -182,8 +183,20 @@ class _BatchBaseAsync:
             loop=loop,
         )
 
-    async def _wait(self):
+    async def _wait(self) -> None:
         assert self.__bg_tasks is not None
+        deadline = time.time() + SHUTDOWN_TIMEOUT
+        while time.time() < deadline:
+            if not self.__bg_tasks.all_alive():
+                break
+            await asyncio.sleep(0.1)
+        if self.__bg_tasks.all_alive():
+            logger.warning(
+                f"Background batch tasks did not exit within {SHUTDOWN_TIMEOUT}s. "
+                f"Forcing shutdown. inflight_objs={len(self.__inflight_objs)}, "
+                f"inflight_refs={len(self.__inflight_refs)}"
+            )
+            self.__shutdown_loop.set()  # force __loop to exit
         await self.__bg_tasks.gather()
 
         # copy the results to the public results

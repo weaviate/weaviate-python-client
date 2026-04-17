@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from weaviate.collections.batch.base import (
     GCP_STREAM_TIMEOUT,
+    SHUTDOWN_TIMEOUT,
     ObjectsBatchRequest,
     ReferencesBatchRequest,
     _BatchDataWrapper,
@@ -135,6 +136,19 @@ class _BatchBaseSync:
                 )
 
     def _wait(self) -> None:
+        deadline = time.time() + SHUTDOWN_TIMEOUT
+        while time.time() < deadline:
+            if not self.__bg_threads.is_alive():
+                break
+            time.sleep(0.1)
+        if self.__bg_threads.is_alive():
+            logger.warning(
+                f"Background batch threads did not exit within {SHUTDOWN_TIMEOUT}s. "
+                f"Forcing shutdown. inflight_objs={len(self.__inflight_objs)}, "
+                f"inflight_refs={len(self.__inflight_refs)}"
+            )
+            self.__shutdown_loop.set()  # force __loop to exit
+
         self.__bg_threads.join()
 
         # copy the results to the public results

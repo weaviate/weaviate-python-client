@@ -64,6 +64,7 @@ MAX_RETRIES = float(
 GCP_STREAM_TIMEOUT = (
     160  # GCP connections have a max lifetime of 180s, leave 20s of buffer as safety
 )
+SHUTDOWN_TIMEOUT = 300  # time to wait for background threads to exit after shutdown is initiated, in seconds, in the event the server never hangs up
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
