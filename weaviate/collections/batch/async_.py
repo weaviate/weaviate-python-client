@@ -337,9 +337,9 @@ class _BatchBaseAsync:
                     )
                     yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     return
-                yield req.proto
                 self.__inflight_objs.update(req.uuids)
                 self.__inflight_refs.update(req.beacons)
+                yield req.proto
                 continue
             except asyncio.TimeoutError:
                 if self.__is_shutting_down.is_set():

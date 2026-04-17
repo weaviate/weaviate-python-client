@@ -289,10 +289,10 @@ class _BatchBaseSync:
                     )
                     yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     return
-                yield req.proto
                 with self.__acks_lock:
                     self.__inflight_objs.update(req.uuids)
                     self.__inflight_refs.update(req.beacons)
+                yield req.proto
                 continue
             except Empty:
                 if self.__is_shutting_down.is_set():
@@ -304,7 +304,9 @@ class _BatchBaseSync:
                 elif self.__is_hungup.is_set():
                     logger.info("Detected hung up stream, closing the client-side of the stream")
                     return
-                logger.info("Timed out getting request from queue, but not stopping, continuing...")
+                logger.debug(
+                    "Timed out getting request from queue, but not stopping, continuing..."
+                )
         logger.info("Batch send thread exiting due to exception...")
 
     def __recv(self) -> None:
@@ -575,6 +577,11 @@ class _BatchBaseSync:
         self.__objs_count += 1
 
         while self.__is_blocked():
+            logger.warning("Batch is blocked, waiting to add more objects...")
+            if len(self.__inflight_objs) >= self.__batch_size:
+                logger.info(
+                    f"Too many inflight_objs, waiting for acknowledgements from the server: {len(self.__inflight_objs)}, {self.__batch_size}"
+                )
             self.__check_bg_threads_alive()
             time.sleep(0.01)
 
@@ -617,6 +624,7 @@ class _BatchBaseSync:
                 self.__refs_cache[batch_reference._to_beacon()] = batch_reference
                 self.__refs_count += 1
             while self.__is_blocked():
+                logger.warning("Batch is blocked, waiting to add more references...")
                 self.__check_bg_threads_alive()
                 time.sleep(0.01)
 
