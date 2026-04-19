@@ -36,8 +36,8 @@ jobs:
     name: Run Linter and Formatter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -66,13 +66,13 @@ jobs:
         version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         folder: ["weaviate", "integration", "integration_embedded"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
-      - uses: jakebailey/pyright-action@v2
+      - uses: jakebailey/pyright-action@6cabc0f01c4994be48fd45cd9dbacdd6e1ee6e5e # v2
         with:
           version: 1.1.399
           working-directory: ${{ matrix.folder }}
@@ -86,8 +86,8 @@ jobs:
         version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         folder: ["test", "mock_tests"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
@@ -96,7 +96,7 @@ jobs:
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
         if: matrix.version == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
@@ -110,8 +110,8 @@ jobs:
         grpc: ["1.59.5", "1.63.0", "1.65.0", "1.66.0", "1.68.0", "1.72.1", "1.73.0", "1.74.0"]
         protobuf: ["4.25.8", "5.26.0", "5.27.4", "5.28.3", "5.29.0", "6.30.0", "6.31.1", "6.32.0"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -129,11 +129,11 @@ jobs:
         version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         optional_dependencies: [false]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
@@ -145,7 +145,7 @@ jobs:
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
       - name: Archive code coverage results
         if: matrix.version == '3.10' && (github.ref_name != 'main') && !github.event.pull_request.head.repo.fork
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-integration-embedded
           path: coverage-integration-embedded.xml
@@ -165,16 +165,16 @@ jobs:
         ]
         optional_dependencies: [false]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
         if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
@@ -198,7 +198,7 @@ jobs:
         run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-integration
           path: coverage-integration.xml
@@ -220,13 +220,13 @@ jobs:
         ]
         optional_dependencies: [false]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
         if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
@@ -245,25 +245,25 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref_name != 'main' && !github.event.pull_request.head.repo.fork
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Download coverage artifacts mock
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: coverage-report-mock_tests
       - name: Download coverage artifacts unit
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: coverage-report-test
       - name: Download coverage integration
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: coverage-report-integration
       - name: Download coverage integration embedded
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: coverage-report-integration-embedded
       - name: Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
         with:
           fail_ci_if_error: true
           files: ./coverage-integration.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
@@ -275,11 +275,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -288,7 +288,7 @@ jobs:
       - name: Build a binary wheel
         run: python -m build
       - name: Create Wheel Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           path: "dist/*.whl"
           name: weaviate-python-client-wheel
@@ -315,17 +315,17 @@ jobs:
         ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
         if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Download build artifact to append to release
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: weaviate-python-client-wheel
       - run: |
@@ -343,11 +343,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -357,7 +357,7 @@ jobs:
         run: python -m build
       - name: Publish distribution 📦 to PyPI on new tags
         if: startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
         with:
           verbose: true
           password: ${{ secrets.PYPI_API_TOKEN }}
@@ -369,12 +369,12 @@ jobs:
     needs: [build-and-publish]
     steps:
       - name: Download build artifact to append to release
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: weaviate-python-client-wheel
           path: dist
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           generate_release_notes: true
           draft: true
