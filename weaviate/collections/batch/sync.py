@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Empty, Full, Queue
 from typing import Generator, List, Optional, Set, Union
 
-from grpc import Call
 from pydantic import ValidationError
 
 from weaviate.collections.batch.base import (
@@ -110,8 +109,6 @@ class _BatchBaseSync:
         # maxsize=1 so that __loop does not run faster than generator for __recv
         # thereby using too much buffer in case of server-side shutdown
         self.__reqs: Queue[Optional[_BatchStreamRequest]] = Queue(maxsize=1)
-        self.__stream_lock = threading.Lock()
-        self.__active_stream: Optional[Call] = None
 
     @property
     def number_errors(self) -> int:

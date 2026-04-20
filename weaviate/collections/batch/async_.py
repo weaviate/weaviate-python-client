@@ -60,15 +60,6 @@ class _BgTasks:
     def all_alive(self) -> bool:
         return all([not self.recv.done(), not self.loop.done()])
 
-    def any_alive(self) -> bool:
-        return not self.recv.done() or not self.loop.done()
-
-    def recv_alive(self) -> bool:
-        return not self.recv.done()
-
-    def loop_alive(self) -> bool:
-        return not self.loop.done()
-
     async def gather(self) -> None:
         tasks = [self.recv, self.loop]
         await asyncio.gather(*tasks, return_exceptions=True)

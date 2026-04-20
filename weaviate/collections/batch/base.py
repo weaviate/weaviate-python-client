@@ -894,10 +894,6 @@ class _BgThreads:
         """Check if the background threads are still alive."""
         return self.loop_alive() and self.recv_alive()
 
-    def any_alive(self) -> bool:
-        """Check if any background thread is still alive."""
-        return self.loop_alive() or self.recv_alive()
-
     def loop_alive(self) -> bool:
         """Check if the loop background thread is still alive."""
         if self.__started_loop:
