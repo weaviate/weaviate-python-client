@@ -17,6 +17,7 @@ from weaviate.collections.batch.base import (
     ObjectsBatchRequest,
     ReferencesBatchRequest,
     _BatchDataWrapper,
+    _BatchStreamRequest,
     _ClusterBatchAsync,
 )
 from weaviate.collections.batch.grpc_batch import _BatchGRPC
@@ -59,9 +60,9 @@ class _BgTasks:
     def all_alive(self) -> bool:
         return all([not self.recv.done(), not self.loop.done()])
 
-    async def gather(self) -> None:
+    async def gather(self, timeout: float | None = None) -> None:
         tasks = [self.recv, self.loop]
-        await asyncio.gather(*tasks)
+        await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=timeout)
 
 
 class _BatchBaseAsync:
@@ -105,7 +106,6 @@ class _BatchBaseAsync:
         self.__oom_wait_time = 300
 
         self.__shutdown_loop = asyncio.Event()
-        self.__sent_sentinel = asyncio.Event()
 
         self.__objs_cache_lock = asyncio.Lock()
         self.__objs_cache: dict[str, BatchObject] = {}
@@ -117,9 +117,7 @@ class _BatchBaseAsync:
 
         # maxsize=1 so that __send does not run faster than generator for __recv
         # thereby using too much buffer in case of server-side shutdown
-        self.__reqs: asyncio.Queue[Optional[batch_pb2.BatchStreamRequest]] = asyncio.Queue(
-            maxsize=1
-        )
+        self.__reqs: asyncio.Queue[Optional[_BatchStreamRequest]] = asyncio.Queue(maxsize=1)
 
         self.__bg_exception: Optional[Exception] = None
         self.__bg_tasks: Optional[_BgTasks] = None
@@ -170,6 +168,8 @@ class _BatchBaseAsync:
                     await self.__batch_objects.aprepend(list(self.__objs_cache.values()))
                 async with self.__refs_cache_lock:
                     await self.__batch_references.aprepend(list(self.__refs_cache.values()))
+                self.__inflight_objs.clear()
+                self.__inflight_refs.clear()
                 # start a new stream with a newly reconnected channel
                 return await recv_wrapper()
 
@@ -181,9 +181,16 @@ class _BatchBaseAsync:
             loop=loop,
         )
 
-    async def _wait(self):
+    async def _wait(self) -> None:
         assert self.__bg_tasks is not None
-        await self.__bg_tasks.gather()
+        # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
+        shutdown_timeout = self.__connection.timeout_config.insert + 5
+        try:
+            await self.__bg_tasks.gather(timeout=shutdown_timeout)
+        except asyncio.TimeoutError as e:
+            raise WeaviateBatchStreamError(
+                "Background batch tasks did not terminate after forced shutdown."
+            ) from e
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -197,6 +204,15 @@ class _BatchBaseAsync:
 
     async def _shutdown(self) -> None:
         self.__is_stopped.set()
+
+    async def __put(self, req: _BatchStreamRequest | None):
+        try:
+            await asyncio.wait_for(self.__reqs.put(req), timeout=1)
+            return True
+        except asyncio.TimeoutError:
+            if self.__bg_exception is not None or self.__shutdown_loop.is_set():
+                return False
+            return await self.__put(req)
 
     async def __loop(self) -> None:
         refresh_time: float = 0.01
@@ -239,37 +255,25 @@ class _BatchBaseAsync:
                     if paused:
                         logger.info("Server is back up, resuming batching loop...")
                         paused = False
-                    try:
-                        await asyncio.wait_for(self.__reqs.put(req), timeout=60)
-                    except asyncio.TimeoutError as e:
-                        logger.warning(
-                            "Batch queue is blocked for more than 60 seconds. Exiting the loop"
-                        )
-                        self.__bg_exception = e
+                    if not await self.__put(req):
+                        logger.info("Batch loop is shutting down, stopping putting new requests...")
                         return
             elif (
                 self.__is_stopped.is_set()
-                and not self.__sent_sentinel.is_set()
                 and not self.__is_hungup.is_set()
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
-                try:
-                    await asyncio.wait_for(self.__reqs.put(None), timeout=60)
-                except asyncio.TimeoutError as e:
-                    logger.warning(
-                        "Batch queue is blocked for more than 60 seconds while trying to send shutdown signal. Exiting the loop"
-                    )
-                    self.__bg_exception = e
-                    return
-                self.__sent_sentinel.set()
+                await self.__put(None)
+                logger.info("Sent sentinel, stopping batch loop...")
+                return
             await asyncio.sleep(refresh_time)
 
     def __generate_stream_requests(
         self,
         objects: List[BatchObject],
         references: List[BatchReference],
-    ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
+    ) -> Generator[_BatchStreamRequest, None, None]:
         per_object_overhead = 4  # extra overhead bytes per object in the request
 
         def request_maker():
@@ -278,8 +282,7 @@ class _BatchBaseAsync:
         request = request_maker()
         total_size = request.ByteSize()
 
-        inflight_objs = set()
-        inflight_refs = set()
+        uuids, beacons = set(), set()
         for object_ in objects:
             obj = self.__batch_grpc.grpc_object(object_._to_internal())
             obj_size = obj.ByteSize() + per_object_overhead
@@ -290,40 +293,33 @@ class _BatchBaseAsync:
                 )
 
             if total_size + obj_size >= self.__batch_grpc.grpc_max_msg_size:
-                self.__inflight_objs.update(inflight_objs)
-                self.__inflight_refs.update(inflight_refs)
-                yield request
+                yield _BatchStreamRequest(request, uuids, beacons)
                 request = request_maker()
                 total_size = request.ByteSize()
+                uuids, beacons = set(), set()
 
             request.data.objects.values.append(obj)
             total_size += obj_size
-            inflight_objs.add(obj.uuid)
+            uuids.add(obj.uuid)
 
         for reference in references:
             ref = self.__batch_grpc.grpc_reference(reference._to_internal())
             ref_size = ref.ByteSize() + per_object_overhead
 
             if total_size + ref_size >= self.__batch_grpc.grpc_max_msg_size:
-                self.__inflight_objs.update(inflight_objs)
-                self.__inflight_refs.update(inflight_refs)
-                yield request
+                yield _BatchStreamRequest(request, uuids, beacons)
                 request = request_maker()
                 total_size = request.ByteSize()
+                uuids, beacons = set(), set()
 
             request.data.references.values.append(ref)
             total_size += ref_size
-            inflight_refs.add(reference._to_beacon())
+            beacons.add(reference._to_beacon())
 
         if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
-            self.__inflight_objs.update(inflight_objs)
-            self.__inflight_refs.update(inflight_refs)
-            yield request
+            yield _BatchStreamRequest(request, uuids, beacons)
 
-    async def __send(
-        self,
-    ) -> AsyncGenerator[batch_pb2.BatchStreamRequest, None]:
-        self.__sent_sentinel.clear()
+    async def __send(self) -> AsyncGenerator[batch_pb2.BatchStreamRequest, None]:
         yield batch_pb2.BatchStreamRequest(
             start=batch_pb2.BatchStreamRequest.Start(
                 consistency_level=self.__batch_grpc._consistency_level,
@@ -348,7 +344,9 @@ class _BatchBaseAsync:
                     )
                     yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     return
-                yield req
+                self.__inflight_objs.update(req.uuids)
+                self.__inflight_refs.update(req.beacons)
+                yield req.proto
                 continue
             except asyncio.TimeoutError:
                 if self.__is_shutting_down.is_set():
@@ -364,14 +362,13 @@ class _BatchBaseAsync:
         logger.info("Batch send thread exiting due to exception...")
 
     async def __recv(self) -> None:
-        stream = self.__batch_grpc.astream(
-            connection=self.__connection,
-            requests=self.__send(),
-        )
         self.__is_renewing_stream.clear()
         self.__is_shutting_down.clear()
         self.__is_hungup.clear()
-        async for message in stream:
+        async for message in self.__batch_grpc.astream(
+            connection=self.__connection,
+            requests=self.__send(),
+        ):
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
 
