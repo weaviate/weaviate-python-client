@@ -115,7 +115,6 @@ class _BatchBaseAsync:
         self.__oom_wait_time = 300
 
         self.__shutdown_loop = asyncio.Event()
-        self.__sent_sentinel = asyncio.Event()
 
         self.__objs_cache_lock = asyncio.Lock()
         self.__objs_cache: dict[str, BatchObject] = {}
@@ -195,34 +194,12 @@ class _BatchBaseAsync:
         assert self.__bg_tasks is not None
         # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
         shutdown_timeout = self.__connection.timeout_config.insert + 5
-        deadline = time.time() + shutdown_timeout
-        while time.time() < deadline:
-            if not self.__bg_tasks.any_alive():
-                break
-            await asyncio.sleep(0.1)
-        if self.__bg_tasks.any_alive():
-            logger.warning(
-                f"Background batch tasks did not exit within {shutdown_timeout}s. "
-                f"Forcing shutdown. inflight_objs={len(self.__inflight_objs)}, "
-                f"inflight_refs={len(self.__inflight_refs)}, "
-                f"loop_alive={self.__bg_tasks.loop_alive()}, "
-                f"recv_alive={self.__bg_tasks.recv_alive()}"
-            )
-            self.__shutdown_loop.set()  # force __loop to exit
-            self.__bg_tasks.recv.cancel()
-            self.__bg_tasks.loop.cancel()
         try:
-            await asyncio.wait_for(self.__bg_tasks.gather(), timeout=None)
+            await asyncio.wait_for(self.__bg_tasks.gather(), timeout=shutdown_timeout)
         except asyncio.TimeoutError as e:
             raise WeaviateBatchStreamError(
                 "Background batch tasks did not terminate after forced shutdown."
             ) from e
-        if self.__bg_tasks.any_alive():
-            raise WeaviateBatchStreamError(
-                "Background batch tasks did not terminate after forced shutdown. "
-                f"loop_alive={self.__bg_tasks.loop_alive()}, "
-                f"recv_alive={self.__bg_tasks.recv_alive()}"
-            )
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -236,6 +213,15 @@ class _BatchBaseAsync:
 
     async def _shutdown(self) -> None:
         self.__is_stopped.set()
+
+    async def __put(self, req: _BatchStreamRequest | None):
+        try:
+            await asyncio.wait_for(self.__reqs.put(req), timeout=1)
+            return True
+        except asyncio.TimeoutError:
+            if self.__bg_exception is not None or self.__shutdown_loop.is_set():
+                return False
+            return await self.__put(req)
 
     async def __loop(self) -> None:
         refresh_time: float = 0.01
@@ -278,23 +264,18 @@ class _BatchBaseAsync:
                     if paused:
                         logger.info("Server is back up, resuming batching loop...")
                         paused = False
-                    try:
-                        await asyncio.wait_for(self.__reqs.put(req), timeout=60)
-                    except asyncio.TimeoutError as e:
-                        logger.warning(
-                            "Batch queue is blocked for more than 60 seconds. Exiting the loop"
-                        )
-                        self.__bg_exception = e
+                    if not self.__put(req):
+                        logger.info("Batch loop is shutting down, stopping putting new requests...")
                         return
             elif (
                 self.__is_stopped.is_set()
-                and not self.__sent_sentinel.is_set()
                 and not self.__is_hungup.is_set()
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
-                await self.__reqs.put(None)
-                self.__sent_sentinel.set()
+                await self.__put(None)
+                logger.info("Sent sentinel, stopping batch loop...")
+                return
             await asyncio.sleep(refresh_time)
 
     def __generate_stream_requests(
@@ -347,10 +328,7 @@ class _BatchBaseAsync:
         if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
             yield _BatchStreamRequest(request, uuids, beacons)
 
-    async def __send(
-        self,
-    ) -> AsyncGenerator[batch_pb2.BatchStreamRequest, None]:
-        self.__sent_sentinel.clear()
+    async def __send(self) -> AsyncGenerator[batch_pb2.BatchStreamRequest, None]:
         yield batch_pb2.BatchStreamRequest(
             start=batch_pb2.BatchStreamRequest.Start(
                 consistency_level=self.__batch_grpc._consistency_level,
@@ -393,14 +371,13 @@ class _BatchBaseAsync:
         logger.info("Batch send thread exiting due to exception...")
 
     async def __recv(self) -> None:
-        stream = self.__batch_grpc.astream(
-            connection=self.__connection,
-            requests=self.__send(),
-        )
         self.__is_renewing_stream.clear()
         self.__is_shutting_down.clear()
         self.__is_hungup.clear()
-        async for message in stream:
+        async for message in self.__batch_grpc.astream(
+            connection=self.__connection,
+            requests=self.__send(),
+        ):
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
 

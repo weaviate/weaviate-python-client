@@ -910,10 +910,10 @@ class _BgThreads:
             return self.recv.is_alive()
         return True  # not started yet so considered alive
 
-    def join(self) -> None:
+    def join(self, timeout: float | None = None) -> None:
         """Join the background threads."""
-        self.loop.join()
-        self.recv.join()
+        self.loop.join(timeout=timeout)
+        self.recv.join(timeout=timeout)
 
 
 class _ClusterBatch:

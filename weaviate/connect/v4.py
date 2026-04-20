@@ -1018,27 +1018,22 @@ class ConnectionSync(_ConnectionBase):
     def grpc_batch_stream(
         self,
         requests: Generator[batch_pb2.BatchStreamRequest, None, None],
-    ) -> tuple[Generator[batch_pb2.BatchStreamReply, None, None], Call]:
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
         assert self.grpc_stub is not None
-        call = self.grpc_stub.BatchStream(
-            request_iterator=requests,
-            timeout=self.timeout_config.stream,
-            metadata=self.grpc_headers(),
-        )
-
-        def generator():
-            try:
-                for msg in call:
-                    yield msg
-            except RpcError as e:
-                error = cast(Call, e)
-                if error.code() == StatusCode.PERMISSION_DENIED:
-                    raise InsufficientPermissionsError(error)
-                if error.code() == StatusCode.ABORTED:
-                    raise _BatchStreamShutdownError()
-                raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
-
-        return generator(), call
+        try:
+            for msg in self.grpc_stub.BatchStream(
+                request_iterator=requests,
+                timeout=self.timeout_config.stream,
+                metadata=self.grpc_headers(),
+            ):
+                yield msg
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest

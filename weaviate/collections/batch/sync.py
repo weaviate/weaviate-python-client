@@ -66,7 +66,6 @@ class _BatchBaseSync:
 
         self.__connection = connection
         self.__is_gcp_on_wcd = connection._connection_params.is_gcp_on_wcd()
-        self.__stream_start: Optional[float] = None
         self.__is_renewing_stream = threading.Event()
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
         self.__batch_size = 100
@@ -124,26 +123,6 @@ class _BatchBaseSync:
     def __all_threads_alive(self) -> bool:
         return self.__bg_threads.is_alive()
 
-    def __any_threads_alive(self) -> bool:
-        return self.__bg_threads.any_alive()
-
-    def __set_active_stream(self, call: Call) -> None:
-        with self.__stream_lock:
-            self.__active_stream = call
-
-    def __clear_active_stream(self) -> None:
-        with self.__stream_lock:
-            self.__active_stream = None
-
-    def __cancel_active_stream(self) -> bool:
-        with self.__stream_lock:
-            stream = self.__active_stream
-
-        if stream is None:
-            return False
-
-        return stream.cancel()
-
     def _start(self) -> None:
         self.__start_bg_threads()
         logger.info("Provisioned stream to the server for batch processing")
@@ -159,30 +138,12 @@ class _BatchBaseSync:
     def _wait(self) -> None:
         # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
         shutdown_timeout = self.__connection.timeout_config.insert + 5
-        deadline = time.time() + shutdown_timeout
-        while time.time() < deadline:
-            if not self.__any_threads_alive():
-                break
-            time.sleep(0.1)
-        if self.__any_threads_alive():
-            logger.warning(
-                f"Background batch threads did not exit within {shutdown_timeout}s. "
-                f"Forcing shutdown. inflight_objs={len(self.__inflight_objs)}, "
-                f"inflight_refs={len(self.__inflight_refs)}, "
-                f"loop_alive={self.__bg_threads.loop_alive()}, "
-                f"recv_alive={self.__bg_threads.recv_alive()}"
-            )
-            self.__shutdown_loop.set()  # force __loop to exit
-            self.__is_stopped.set()
-            self.__cancel_active_stream()  # force __recv to exit by cancelling the stream
-
-        self.__bg_threads.join()
-        if self.__any_threads_alive():
+        try:
+            self.__bg_threads.join(shutdown_timeout)
+        except TimeoutError as e:
             raise WeaviateBatchStreamError(
-                "Background batch threads did not terminate after forced shutdown. "
-                f"loop_alive={self.__bg_threads.loop_alive()}, "
-                f"recv_alive={self.__bg_threads.recv_alive()}"
-            )
+                "Background batch threads did not terminate after forced shutdown."
+            ) from e
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -193,15 +154,6 @@ class _BatchBaseSync:
         self.__results_for_wrapper_backup.imported_shards = (
             self.__results_for_wrapper.imported_shards
         )
-
-        if self.__bg_exception is not None:
-            if "StatusCode.CANCELLED(Locally cancelled by application!)" in str(
-                self.__bg_exception
-            ):
-                raise WeaviateBatchStreamError(
-                    "The server did not hangup its side of the stream gracefully in time"
-                )
-            raise self.__bg_exception
 
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished
@@ -267,9 +219,9 @@ class _BatchBaseSync:
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
-                if not self.__put(None):
-                    logger.info("Batch loop is shutting down, stopping putting shutdown signal...")
-                    return
+                self.__put(None)
+                logger.info("Sent sentinel, stopping batch loop...")
+                return
             time.sleep(refresh_time)
 
     def __generate_stream_requests(
@@ -370,16 +322,13 @@ class _BatchBaseSync:
         logger.info("Batch send thread exiting due to exception...")
 
     def __recv(self) -> None:
-        gen, call = self.__batch_grpc.stream(
-            connection=self.__connection,
-            requests=self.__send(),
-        )
-        self.__set_active_stream(call)
-
         self.__is_renewing_stream.clear()
         self.__is_shutting_down.clear()
         self.__is_hungup.clear()
-        for message in gen:
+        for message in self.__batch_grpc.stream(
+            connection=self.__connection,
+            requests=self.__send(),
+        ):
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
 
