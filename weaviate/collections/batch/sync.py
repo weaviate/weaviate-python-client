@@ -355,11 +355,7 @@ class _BatchBaseSync:
                 yield req.proto
                 continue
             except Empty:
-                if self.__shutdown_loop.is_set() or self.__is_stopped.is_set():
-                    logger.info("Batch shutdown requested, stopping and closing the stream")
-                    yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
-                    return
-                elif self.__is_shutting_down.is_set():
+                if self.__is_shutting_down.is_set():
                     logger.info("Server shutting down, closing the client-side of the stream")
                     return
                 elif self.__is_oom.is_set():
