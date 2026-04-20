@@ -10,7 +10,6 @@ from pydantic import ValidationError
 
 from weaviate.collections.batch.base import (
     GCP_STREAM_TIMEOUT,
-    SHUTDOWN_TIMEOUT,
     ObjectsBatchRequest,
     ReferencesBatchRequest,
     _BatchDataWrapper,
@@ -158,14 +157,16 @@ class _BatchBaseSync:
                 )
 
     def _wait(self) -> None:
-        deadline = time.time() + SHUTDOWN_TIMEOUT
+        # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
+        shutdown_timeout = self.__connection.timeout_config.insert + 5
+        deadline = time.time() + shutdown_timeout
         while time.time() < deadline:
             if not self.__any_threads_alive():
                 break
             time.sleep(0.1)
         if self.__any_threads_alive():
             logger.warning(
-                f"Background batch threads did not exit within {SHUTDOWN_TIMEOUT}s. "
+                f"Background batch threads did not exit within {shutdown_timeout}s. "
                 f"Forcing shutdown. inflight_objs={len(self.__inflight_objs)}, "
                 f"inflight_refs={len(self.__inflight_refs)}, "
                 f"loop_alive={self.__bg_threads.loop_alive()}, "
@@ -175,7 +176,7 @@ class _BatchBaseSync:
             self.__is_stopped.set()
             self.__cancel_active_stream()  # force __recv to exit by cancelling the stream
 
-        self.__bg_threads.join(timeout=5)
+        self.__bg_threads.join()
         if self.__any_threads_alive():
             raise WeaviateBatchStreamError(
                 "Background batch threads did not terminate after forced shutdown. "
@@ -193,9 +194,28 @@ class _BatchBaseSync:
             self.__results_for_wrapper.imported_shards
         )
 
+        if self.__bg_exception is not None:
+            if "StatusCode.CANCELLED(Locally cancelled by application!)" in str(
+                self.__bg_exception
+            ):
+                raise WeaviateBatchStreamError(
+                    "The server did not hangup its side of the stream gracefully in time"
+                )
+            raise self.__bg_exception
+
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished
         self.__is_stopped.set()
+
+    def __put(self, req: _BatchStreamRequest | None):
+        while True:
+            try:
+                self.__reqs.put(req, timeout=1)
+                return True
+            except Full:
+                if self.__bg_exception is not None or self.__shutdown_loop.is_set():
+                    return False
+                return self.__put(req)
 
     def __loop(self) -> None:
         refresh_time: float = 0.01
@@ -238,13 +258,8 @@ class _BatchBaseSync:
                     if paused:
                         logger.info("Server is back up, resuming batching loop...")
                         paused = False
-                    try:
-                        self.__reqs.put(req, timeout=60)
-                    except Full as e:
-                        logger.warning(
-                            "Batch queue is blocked for more than 60 seconds. Exiting the loop"
-                        )
-                        self.__bg_exception = e
+                    if not self.__put(req):
+                        logger.info("Batch loop is shutting down, stopping putting requests...")
                         return
             elif (
                 self.__is_stopped.is_set()
@@ -252,7 +267,9 @@ class _BatchBaseSync:
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
-                self.__reqs.put(None)
+                if not self.__put(None):
+                    logger.info("Batch loop is shutting down, stopping putting shutdown signal...")
+                    return
             time.sleep(refresh_time)
 
     def __generate_stream_requests(

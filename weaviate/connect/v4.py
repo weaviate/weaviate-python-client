@@ -1024,7 +1024,7 @@ class ConnectionSync(_ConnectionBase):
             request_iterator=requests,
             timeout=self.timeout_config.stream,
             metadata=self.grpc_headers(),
-        )()
+        )
 
         def generator():
             try:

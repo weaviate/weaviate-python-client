@@ -14,7 +14,6 @@ from pydantic import ValidationError
 
 from weaviate.collections.batch.base import (
     GCP_STREAM_TIMEOUT,
-    SHUTDOWN_TIMEOUT,
     ObjectsBatchRequest,
     ReferencesBatchRequest,
     _BatchDataWrapper,
@@ -194,14 +193,16 @@ class _BatchBaseAsync:
 
     async def _wait(self) -> None:
         assert self.__bg_tasks is not None
-        deadline = time.time() + SHUTDOWN_TIMEOUT
+        # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
+        shutdown_timeout = self.__connection.timeout_config.insert + 5
+        deadline = time.time() + shutdown_timeout
         while time.time() < deadline:
             if not self.__bg_tasks.any_alive():
                 break
             await asyncio.sleep(0.1)
         if self.__bg_tasks.any_alive():
             logger.warning(
-                f"Background batch tasks did not exit within {SHUTDOWN_TIMEOUT}s. "
+                f"Background batch tasks did not exit within {shutdown_timeout}s. "
                 f"Forcing shutdown. inflight_objs={len(self.__inflight_objs)}, "
                 f"inflight_refs={len(self.__inflight_refs)}, "
                 f"loop_alive={self.__bg_tasks.loop_alive()}, "
@@ -211,7 +212,7 @@ class _BatchBaseAsync:
             self.__bg_tasks.recv.cancel()
             self.__bg_tasks.loop.cancel()
         try:
-            await asyncio.wait_for(self.__bg_tasks.gather(), timeout=5)
+            await asyncio.wait_for(self.__bg_tasks.gather(), timeout=None)
         except asyncio.TimeoutError as e:
             raise WeaviateBatchStreamError(
                 "Background batch tasks did not terminate after forced shutdown."

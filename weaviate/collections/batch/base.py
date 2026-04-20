@@ -64,7 +64,6 @@ MAX_RETRIES = float(
 GCP_STREAM_TIMEOUT = (
     160  # GCP connections have a max lifetime of 180s, leave 20s of buffer as safety
 )
-SHUTDOWN_TIMEOUT = 300  # time to wait for background threads to exit after shutdown is initiated, in seconds, in the event the server never hangs up
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
@@ -911,10 +910,10 @@ class _BgThreads:
             return self.recv.is_alive()
         return True  # not started yet so considered alive
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self) -> None:
         """Join the background threads."""
-        self.loop.join(timeout=timeout)
-        self.recv.join(timeout=timeout)
+        self.loop.join()
+        self.recv.join()
 
 
 class _ClusterBatch:
