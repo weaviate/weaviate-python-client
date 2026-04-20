@@ -19,7 +19,7 @@ class _TokenizationExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
 
-    def _check_version(self) -> None:
+    def __check_version(self) -> None:
         if self._connection._weaviate_version.is_lower_than(1, 37, 0):
             raise WeaviateUnsupportedFeatureError(
                 "Tokenization",
@@ -72,12 +72,10 @@ class _TokenizationExecutor(Generic[ConnectionType]):
             WeaviateUnsupportedFeatureError: If the server version is below 1.37.0.
             ValueError: If both ``stopwords`` and ``stopword_presets`` are passed.
         """
-        self._check_version()
+        self.__check_version()
 
         if stopwords is not None and stopword_presets is not None:
-            raise ValueError(
-                "stopwords and stopword_presets are mutually exclusive; pass only one"
-            )
+            raise ValueError("stopwords and stopword_presets are mutually exclusive; pass only one")
 
         payload: Dict[str, Any] = {
             "text": text,

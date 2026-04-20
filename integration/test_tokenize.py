@@ -110,8 +110,7 @@ class TestSerialization:
         assert result.tokenization is None
 
     def test_default_en_applied_for_word(self, client: weaviate.WeaviateClient) -> None:
-        """Word tokenization defaults to the 'en' preset when no stopword
-        config is supplied."""
+        """Word tokenization defaults to the 'en' preset when no stopword config is supplied."""
         result = client.tokenization.text(
             text="The quick brown fox", tokenization=Tokenization.WORD
         )
@@ -180,11 +179,8 @@ class TestSerialization:
         assert "école" in result.query
 
     def test_stopwords_fallback(self, client: weaviate.WeaviateClient) -> None:
-        """Top-level stopwords acts as the fallback detector when no
-        analyzerConfig.stopwordPreset is set."""
-        sw = _StopwordsCreate(
-            preset=StopwordsPreset.EN, additions=["quick"], removals=None
-        )
+        """Top-level stopwords acts as the fallback detector when no analyzerConfig.stopwordPreset is set."""
+        sw = _StopwordsCreate(preset=StopwordsPreset.EN, additions=["quick"], removals=None)
         result = client.tokenization.text(
             text="the quick brown fox",
             tokenization=Tokenization.WORD,
@@ -197,8 +193,7 @@ class TestSerialization:
     def test_stopwords_additions_default_preset_to_en(
         self, client: weaviate.WeaviateClient
     ) -> None:
-        """Caller omits preset, passes only additions. Server defaults preset
-        to 'en' and builds detector from en + additions."""
+        """Caller omits preset, passes only additions. Server defaults preset to 'en' and builds detector from en + additions."""
         sw = _StopwordsCreate(preset=None, additions=["hello"], removals=None)
         result = client.tokenization.text(
             text="the quick hello world",
@@ -207,11 +202,8 @@ class TestSerialization:
         )
         assert result.query == ["quick", "world"]
 
-    def test_stopwords_removals_default_preset_to_en(
-        self, client: weaviate.WeaviateClient
-    ) -> None:
-        """Caller omits preset, passes only removals. 'the' is removed from
-        the en list so it passes through."""
+    def test_stopwords_removals_default_preset_to_en(self, client: weaviate.WeaviateClient) -> None:
+        """Caller omits preset, passes only removals. 'the' is removed from the en list so it passes through."""
         sw = _StopwordsCreate(preset=None, additions=None, removals=["the"])
         result = client.tokenization.text(
             text="the quick is fast",
@@ -222,8 +214,7 @@ class TestSerialization:
         assert result.query == ["the", "quick", "fast"]
 
     def test_stopword_presets_named_reference(self, client: weaviate.WeaviateClient) -> None:
-        """Define a named preset via stopword_presets, select it via
-        analyzerConfig.stopwordPreset. Word lists use the collection shape."""
+        """Define a named preset via stopword_presets, select it via analyzerConfig.stopwordPreset. Word lists use the collection shape."""
         result = client.tokenization.text(
             text="hello world test",
             tokenization=Tokenization.WORD,
@@ -233,12 +224,8 @@ class TestSerialization:
         assert result.indexed == ["hello", "world", "test"]
         assert result.query == ["hello", "world"]
 
-    def test_stopword_presets_override_builtin_en(
-        self, client: weaviate.WeaviateClient
-    ) -> None:
-        """A user-defined preset sharing a name with a built-in replaces the
-        built-in entirely, including on the default-en path for word
-        tokenization."""
+    def test_stopword_presets_override_builtin_en(self, client: weaviate.WeaviateClient) -> None:
+        """A user-defined preset sharing a name with a built-in replaces the built-in entirely, including on the default-en path for word tokenization."""
         result = client.tokenization.text(
             text="the quick hello world",
             tokenization=Tokenization.WORD,
@@ -256,23 +243,18 @@ class TestSerialization:
 
 @pytest.mark.usefixtures("require_1_37")
 class TestDeserialization:
-    """Verify the client correctly deserializes response fields into
-    TokenizeResult."""
+    """Verify the client correctly deserializes response fields into TokenizeResult."""
 
     def test_generic_result_shape(self, client: weaviate.WeaviateClient) -> None:
-        """Generic endpoint returns only indexed and query; tokenization is
-        not echoed back."""
+        """Generic endpoint returns only indexed and query; tokenization is not echoed back."""
         result = client.tokenization.text(text="hello", tokenization=Tokenization.WORD)
         assert isinstance(result, TokenizeResult)
         assert isinstance(result.indexed, list)
         assert isinstance(result.query, list)
         assert result.tokenization is None
 
-    def test_property_result_populates_tokenization(
-        self, client: weaviate.WeaviateClient
-    ) -> None:
-        """Property endpoint returns tokenization — the server resolved it
-        from the property's schema rather than the caller sending it."""
+    def test_property_result_populates_tokenization(self, client: weaviate.WeaviateClient) -> None:
+        """Property endpoint returns tokenization — the server resolved it from the property's schema rather than the caller sending it."""
         client.collections.delete("TestDeserPropTypes")
         try:
             client.collections.create_from_dict(
@@ -303,8 +285,7 @@ class TestDeserialization:
 
 
 class TestClientSideValidation:
-    """Verify that client-side validation rejects invalid input before
-    hitting the server."""
+    """Verify that client-side validation rejects invalid input before hitting the server."""
 
     def test_ascii_fold_ignore_without_fold_raises(self) -> None:
         with pytest.raises(ValueError, match="asciiFoldIgnore"):
@@ -334,11 +315,8 @@ class TestClientSideValidation:
         assert cfg.asciiFoldIgnore is None
         assert cfg.stopwordPreset is None
 
-    def test_stopwords_and_stopword_presets_mutex(
-        self, client: weaviate.WeaviateClient
-    ) -> None:
-        """Client rejects the mutex violation locally with ValueError, before
-        sending the request (which the server would also reject with 422)."""
+    def test_stopwords_and_stopword_presets_mutex(self, client: weaviate.WeaviateClient) -> None:
+        """Client rejects the mutex violation locally with ValueError, before sending the request (which the server would also reject with 422)."""
         if client._connection._weaviate_version.is_lower_than(1, 37, 0):
             pytest.skip("Tokenization requires Weaviate >= 1.37.0")
         with pytest.raises(ValueError, match="mutually exclusive"):

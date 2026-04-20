@@ -1,7 +1,7 @@
 import json
 import time
 from concurrent import futures
-from typing import Generator, Mapping
+from typing import AsyncGenerator, Generator, Mapping
 
 import grpc
 import pytest
@@ -139,6 +139,16 @@ def weaviate_client(
     client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
     yield client
     client.close()
+
+
+@pytest.fixture(scope="function")
+async def weaviate_client_async(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> AsyncGenerator[weaviate.WeaviateAsyncClient, None]:
+    client = weaviate.use_async_with_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    await client.connect()
+    yield client
+    await client.close()
 
 
 @pytest.fixture(scope="function")
@@ -368,3 +378,39 @@ def forbidden(
     service = MockForbiddenWeaviateService()
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
     return weaviate_client.collections.use("ForbiddenCollection")
+
+
+class MockWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    def BatchStream(
+        self,
+        request_iterator: Generator[batch_pb2.BatchStreamRequest, None, None],
+        context: grpc.ServicerContext,
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        while True:
+            if context.is_active():
+                time.sleep(0.1)
+            else:
+                raise grpc.RpcError(grpc.StatusCode.DEADLINE_EXCEEDED, "Deadline exceeded")
+
+
+@pytest.fixture(scope="function")
+def stream_cancel(
+    weaviate_client: weaviate.WeaviateClient,
+    weaviate_mock: HTTPServer,
+    start_grpc_server: grpc.Server,
+) -> Generator[weaviate.collections.Collection, None, None]:
+    name = "StreamCancelCollection"
+    weaviate_mock.expect_request(f"/v1/schema/{name}").respond_with_response(
+        Response(status=404)
+    )  # skips __create_batch_reset vectorizer logic
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+        additional_config=weaviate.classes.init.AdditionalConfig(
+            timeout=weaviate.classes.init.Timeout(insert=1)
+        ),
+    )
+    yield client.collections.use(name)
+    client.close()
