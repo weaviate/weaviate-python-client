@@ -60,9 +60,9 @@ class _BgTasks:
     def all_alive(self) -> bool:
         return all([not self.recv.done(), not self.loop.done()])
 
-    async def gather(self) -> None:
+    async def gather(self, timeout: float | None = None) -> None:
         tasks = [self.recv, self.loop]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=timeout)
 
 
 class _BatchBaseAsync:
@@ -186,7 +186,7 @@ class _BatchBaseAsync:
         # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
         shutdown_timeout = self.__connection.timeout_config.insert + 5
         try:
-            await asyncio.wait_for(self.__bg_tasks.gather(), timeout=shutdown_timeout)
+            await self.__bg_tasks.gather(timeout=shutdown_timeout)
         except asyncio.TimeoutError as e:
             raise WeaviateBatchStreamError(
                 "Background batch tasks did not terminate after forced shutdown."
