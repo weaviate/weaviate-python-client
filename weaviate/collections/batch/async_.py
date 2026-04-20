@@ -264,7 +264,7 @@ class _BatchBaseAsync:
                     if paused:
                         logger.info("Server is back up, resuming batching loop...")
                         paused = False
-                    if not self.__put(req):
+                    if not await self.__put(req):
                         logger.info("Batch loop is shutting down, stopping putting new requests...")
                         return
             elif (
