@@ -109,131 +109,146 @@ class TestSerialization:
         # Generic endpoint does not echo tokenization back.
         assert result.tokenization is None
 
-    def test_default_en_applied_for_word(self, client: weaviate.WeaviateClient) -> None:
-        """Word tokenization defaults to the 'en' preset when no stopword config is supplied."""
-        result = client.tokenization.text(
-            text="The quick brown fox", tokenization=Tokenization.WORD
-        )
-        assert result.indexed == ["the", "quick", "brown", "fox"]
-        # "the" removed by the server's default en preset.
-        assert result.query == ["quick", "brown", "fox"]
-
-    def test_opt_out_of_default_en(self, client: weaviate.WeaviateClient) -> None:
-        """analyzerConfig.stopwordPreset='none' disables the default en."""
-        cfg = _TextAnalyzerConfigCreate(stopword_preset=StopwordsPreset.NONE)
-        result = client.tokenization.text(
-            text="The quick brown fox",
-            tokenization=Tokenization.WORD,
-            analyzer_config=cfg,
-        )
-        assert result.query == ["the", "quick", "brown", "fox"]
-
-    def test_ascii_fold(self, client: weaviate.WeaviateClient) -> None:
-        cfg = _TextAnalyzerConfigCreate(ascii_fold=True)
-        result = client.tokenization.text(
-            text="L'école est fermée",
-            tokenization=Tokenization.WORD,
-            analyzer_config=cfg,
-        )
-        assert result.indexed == ["l", "ecole", "est", "fermee"]
-
-    def test_ascii_fold_with_ignore(self, client: weaviate.WeaviateClient) -> None:
-        cfg = _TextAnalyzerConfigCreate(ascii_fold=True, ascii_fold_ignore=["é"])
-        result = client.tokenization.text(
-            text="L'école est fermée",
-            tokenization=Tokenization.WORD,
-            analyzer_config=cfg,
-        )
-        assert result.indexed == ["l", "école", "est", "fermée"]
-
-    def test_stopword_preset_enum(self, client: weaviate.WeaviateClient) -> None:
-        cfg = _TextAnalyzerConfigCreate(stopword_preset=StopwordsPreset.EN)
-        result = client.tokenization.text(
-            text="The quick brown fox",
-            tokenization=Tokenization.WORD,
-            analyzer_config=cfg,
-        )
-        assert "the" not in result.query
-        assert "quick" in result.query
-
-    def test_stopword_preset_string(self, client: weaviate.WeaviateClient) -> None:
-        cfg = _TextAnalyzerConfigCreate(stopword_preset="en")
-        result = client.tokenization.text(
-            text="The quick brown fox",
-            tokenization=Tokenization.WORD,
-            analyzer_config=cfg,
-        )
-        assert "the" not in result.query
-
-    def test_ascii_fold_combined_with_stopwords(self, client: weaviate.WeaviateClient) -> None:
-        cfg = _TextAnalyzerConfigCreate(
-            ascii_fold=True, ascii_fold_ignore=["é"], stopword_preset=StopwordsPreset.EN
-        )
-        result = client.tokenization.text(
-            text="The école est fermée",
-            tokenization=Tokenization.WORD,
-            analyzer_config=cfg,
-        )
-        assert result.indexed == ["the", "école", "est", "fermée"]
-        assert "the" not in result.query
-        assert "école" in result.query
-
-    def test_stopwords_fallback(self, client: weaviate.WeaviateClient) -> None:
-        """Top-level stopwords acts as the fallback detector when no analyzerConfig.stopwordPreset is set."""
-        sw = _StopwordsCreate(preset=StopwordsPreset.EN, additions=["quick"], removals=None)
-        result = client.tokenization.text(
-            text="the quick brown fox",
-            tokenization=Tokenization.WORD,
-            stopwords=sw,
-        )
-        assert result.indexed == ["the", "quick", "brown", "fox"]
-        # "the" (en) and "quick" (addition) filtered.
-        assert result.query == ["brown", "fox"]
-
-    def test_stopwords_additions_default_preset_to_en(
-        self, client: weaviate.WeaviateClient
+    @pytest.mark.parametrize(
+        "call_kwargs,expected_indexed,expected_query",
+        [
+            (
+                {"text": "The quick brown fox"},
+                ["the", "quick", "brown", "fox"],
+                ["quick", "brown", "fox"],
+            ),
+            (
+                {
+                    "text": "The quick brown fox",
+                    "analyzer_config": _TextAnalyzerConfigCreate(
+                        stopword_preset=StopwordsPreset.NONE
+                    ),
+                },
+                ["the", "quick", "brown", "fox"],
+                ["the", "quick", "brown", "fox"],
+            ),
+            (
+                {
+                    "text": "L'école est fermée",
+                    "analyzer_config": _TextAnalyzerConfigCreate(ascii_fold=True),
+                },
+                ["l", "ecole", "est", "fermee"],
+                ["l", "ecole", "fermee"],
+            ),
+            (
+                {
+                    "text": "L'école est fermée",
+                    "analyzer_config": _TextAnalyzerConfigCreate(
+                        ascii_fold=True, ascii_fold_ignore=["é"]
+                    ),
+                },
+                ["l", "école", "est", "fermée"],
+                ["l", "école", "fermée"],
+            ),
+            (
+                {
+                    "text": "The quick brown fox",
+                    "analyzer_config": _TextAnalyzerConfigCreate(
+                        stopword_preset=StopwordsPreset.EN
+                    ),
+                },
+                ["the", "quick", "brown", "fox"],
+                ["quick", "brown", "fox"],
+            ),
+            (
+                {
+                    "text": "The quick brown fox",
+                    "analyzer_config": _TextAnalyzerConfigCreate(stopword_preset="en"),
+                },
+                ["the", "quick", "brown", "fox"],
+                ["quick", "brown", "fox"],
+            ),
+            (
+                {
+                    "text": "The école est fermée",
+                    "analyzer_config": _TextAnalyzerConfigCreate(
+                        ascii_fold=True,
+                        ascii_fold_ignore=["é"],
+                        stopword_preset=StopwordsPreset.EN,
+                    ),
+                },
+                ["the", "école", "est", "fermée"],
+                ["école", "est", "fermée"],
+            ),
+            (
+                {
+                    "text": "the quick brown fox",
+                    "stopwords": _StopwordsCreate(
+                        preset=StopwordsPreset.EN, additions=["quick"], removals=None
+                    ),
+                },
+                ["the", "quick", "brown", "fox"],
+                ["brown", "fox"],
+            ),
+            (
+                {
+                    "text": "the quick hello world",
+                    "stopwords": _StopwordsCreate(
+                        preset=None, additions=["hello"], removals=None
+                    ),
+                },
+                ["the", "quick", "hello", "world"],
+                ["quick", "world"],
+            ),
+            (
+                {
+                    "text": "the quick is fast",
+                    "stopwords": _StopwordsCreate(
+                        preset=None, additions=None, removals=["the"]
+                    ),
+                },
+                ["the", "quick", "is", "fast"],
+                ["the", "quick", "fast"],
+            ),
+            (
+                {
+                    "text": "hello world test",
+                    "analyzer_config": _TextAnalyzerConfigCreate(stopword_preset="custom"),
+                    "stopword_presets": {"custom": ["test"]},
+                },
+                ["hello", "world", "test"],
+                ["hello", "world"],
+            ),
+            (
+                {
+                    "text": "the quick hello world",
+                    "stopword_presets": {"en": ["hello"]},
+                },
+                ["the", "quick", "hello", "world"],
+                ["the", "quick", "world"],
+            ),
+        ],
+        ids=[
+            "default_en_applied_for_word",
+            "opt_out_of_default_en",
+            "ascii_fold",
+            "ascii_fold_with_ignore",
+            "stopword_preset_enum",
+            "stopword_preset_string",
+            "ascii_fold_combined_with_stopwords",
+            "stopwords_fallback",
+            "stopwords_additions_default_preset_to_en",
+            "stopwords_removals_default_preset_to_en",
+            "stopword_presets_named_reference",
+            "stopword_presets_override_builtin_en",
+        ],
+    )
+    def test_text_tokenize(
+        self,
+        client: weaviate.WeaviateClient,
+        call_kwargs: dict,
+        expected_indexed: list,
+        expected_query: list,
     ) -> None:
-        """Caller omits preset, passes only additions. Server defaults preset to 'en' and builds detector from en + additions."""
-        sw = _StopwordsCreate(preset=None, additions=["hello"], removals=None)
-        result = client.tokenization.text(
-            text="the quick hello world",
-            tokenization=Tokenization.WORD,
-            stopwords=sw,
-        )
-        assert result.query == ["quick", "world"]
-
-    def test_stopwords_removals_default_preset_to_en(self, client: weaviate.WeaviateClient) -> None:
-        """Caller omits preset, passes only removals. 'the' is removed from the en list so it passes through."""
-        sw = _StopwordsCreate(preset=None, additions=None, removals=["the"])
-        result = client.tokenization.text(
-            text="the quick is fast",
-            tokenization=Tokenization.WORD,
-            stopwords=sw,
-        )
-        # "is" still in en, "the" removed.
-        assert result.query == ["the", "quick", "fast"]
-
-    def test_stopword_presets_named_reference(self, client: weaviate.WeaviateClient) -> None:
-        """Define a named preset via stopword_presets, select it via analyzerConfig.stopwordPreset. Word lists use the collection shape."""
-        result = client.tokenization.text(
-            text="hello world test",
-            tokenization=Tokenization.WORD,
-            analyzer_config=_TextAnalyzerConfigCreate(stopword_preset="custom"),
-            stopword_presets={"custom": ["test"]},
-        )
-        assert result.indexed == ["hello", "world", "test"]
-        assert result.query == ["hello", "world"]
-
-    def test_stopword_presets_override_builtin_en(self, client: weaviate.WeaviateClient) -> None:
-        """A user-defined preset sharing a name with a built-in replaces the built-in entirely, including on the default-en path for word tokenization."""
-        result = client.tokenization.text(
-            text="the quick hello world",
-            tokenization=Tokenization.WORD,
-            stopword_presets={"en": ["hello"]},
-        )
-        assert result.indexed == ["the", "quick", "hello", "world"]
-        # "the" no longer filtered (built-in en replaced), "hello" is.
-        assert result.query == ["the", "quick", "world"]
+        result = client.tokenization.text(tokenization=Tokenization.WORD, **call_kwargs)
+        assert isinstance(result, TokenizeResult)
+        assert result.indexed == expected_indexed
+        assert result.query == expected_query
 
 
 # ---------------------------------------------------------------------------
@@ -287,33 +302,44 @@ class TestDeserialization:
 class TestClientSideValidation:
     """Verify that client-side validation rejects invalid input before hitting the server."""
 
-    def test_ascii_fold_ignore_without_fold_raises(self) -> None:
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"ascii_fold": False, "ascii_fold_ignore": ["é"]},
+            {"ascii_fold_ignore": ["é"]},
+        ],
+        ids=["explicit_false", "default"],
+    )
+    def test_ascii_fold_ignore_without_fold_raises(self, kwargs: dict) -> None:
         with pytest.raises(ValueError, match="asciiFoldIgnore"):
-            _TextAnalyzerConfigCreate(ascii_fold=False, ascii_fold_ignore=["é"])
+            _TextAnalyzerConfigCreate(**kwargs)
 
-    def test_ascii_fold_ignore_without_fold_default_raises(self) -> None:
-        with pytest.raises(ValueError, match="asciiFoldIgnore"):
-            _TextAnalyzerConfigCreate(ascii_fold_ignore=["é"])
-
-    def test_valid_config_does_not_raise(self) -> None:
-        cfg = _TextAnalyzerConfigCreate(ascii_fold=True, ascii_fold_ignore=["é", "ñ"])
-        assert cfg.asciiFold is True
-        assert cfg.asciiFoldIgnore == ["é", "ñ"]
-
-    def test_fold_without_ignore_is_valid(self) -> None:
-        cfg = _TextAnalyzerConfigCreate(ascii_fold=True)
-        assert cfg.asciiFold is True
-        assert cfg.asciiFoldIgnore is None
-
-    def test_stopword_preset_only_is_valid(self) -> None:
-        cfg = _TextAnalyzerConfigCreate(stopword_preset="en")
-        assert cfg.stopwordPreset == "en"
-
-    def test_empty_config_is_valid(self) -> None:
-        cfg = _TextAnalyzerConfigCreate()
-        assert cfg.asciiFold is None
-        assert cfg.asciiFoldIgnore is None
-        assert cfg.stopwordPreset is None
+    @pytest.mark.parametrize(
+        "kwargs,expected",
+        [
+            (
+                {"ascii_fold": True, "ascii_fold_ignore": ["é", "ñ"]},
+                {"asciiFold": True, "asciiFoldIgnore": ["é", "ñ"]},
+            ),
+            (
+                {"ascii_fold": True},
+                {"asciiFold": True, "asciiFoldIgnore": None},
+            ),
+            (
+                {"stopword_preset": "en"},
+                {"stopwordPreset": "en"},
+            ),
+            (
+                {},
+                {"asciiFold": None, "asciiFoldIgnore": None, "stopwordPreset": None},
+            ),
+        ],
+        ids=["fold_with_ignore", "fold_without_ignore", "stopword_preset_only", "empty"],
+    )
+    def test_valid_config(self, kwargs: dict, expected: dict) -> None:
+        cfg = _TextAnalyzerConfigCreate(**kwargs)
+        for attr, value in expected.items():
+            assert getattr(cfg, attr) == value
 
     def test_stopwords_and_stopword_presets_mutex(self, client: weaviate.WeaviateClient) -> None:
         """Client rejects the mutex violation locally with ValueError, before sending the request (which the server would also reject with 422)."""
@@ -411,7 +437,6 @@ class TestAsyncClient:
             assert isinstance(result, TokenizeResult)
             assert result.tokenization == Tokenization.WORD
             assert result.indexed == ["the", "quick", "brown", "fox"]
-            assert "the" not in result.query
-            assert "quick" in result.query
+            assert result.query == ["quick", "brown", "fox"]
         finally:
             await async_client.collections.delete("TestAsyncPropTokenize")
