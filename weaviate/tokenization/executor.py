@@ -5,9 +5,9 @@ from typing import Any, Dict, Generic, List, Optional
 from httpx import Response
 
 from weaviate.collections.classes.config import (
+    StopwordsCreate,
+    TextAnalyzerConfigCreate,
     Tokenization,
-    _StopwordsCreate,
-    _TextAnalyzerConfigCreate,
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
@@ -32,8 +32,8 @@ class _TokenizationExecutor(Generic[ConnectionType]):
         text: str,
         tokenization: Tokenization,
         *,
-        analyzer_config: Optional[_TextAnalyzerConfigCreate] = None,
-        stopwords: Optional[_StopwordsCreate] = None,
+        analyzer_config: Optional[TextAnalyzerConfigCreate] = None,
+        stopwords: Optional[StopwordsCreate] = None,
         stopword_presets: Optional[Dict[str, List[str]]] = None,
     ) -> executor.Result[TokenizeResult]:
         """Tokenize text using the generic /v1/tokenize endpoint.

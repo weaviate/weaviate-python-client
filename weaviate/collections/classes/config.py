@@ -1647,6 +1647,7 @@ class _StopwordsConfig(_ConfigBase):
 
 
 StopwordsConfig = _StopwordsConfig
+StopwordsCreate = _StopwordsCreate
 
 
 @dataclass
@@ -2222,6 +2223,9 @@ class _TextAnalyzerConfigCreate(_ConfigCreateModel):
         if self.asciiFold is not True and self.asciiFoldIgnore is not None:
             raise ValueError("asciiFoldIgnore cannot be set when asciiFold is not enabled")
         return self
+
+
+TextAnalyzerConfigCreate = _TextAnalyzerConfigCreate
 
 
 class Property(_ConfigCreateModel):

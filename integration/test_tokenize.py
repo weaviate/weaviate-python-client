@@ -1,9 +1,9 @@
 """Integration tests for the tokenization module.
 
 These tests cover the client's responsibilities:
-- Correct serialization of inputs (enums, _TextAnalyzerConfigCreate, _StopwordsCreate)
+- Correct serialization of inputs (enums, TextAnalyzerConfigCreate, StopwordsCreate)
 - Correct deserialization of responses into the TokenizeResult object
-- Client-side validation (_TextAnalyzerConfigCreate, stopwords/stopword_presets mutex)
+- Client-side validation (TextAnalyzerConfigCreate, stopwords/stopword_presets mutex)
 - Version gate (>= 1.37.0)
 - Both sync and async client paths
 
@@ -20,15 +20,15 @@ import pytest
 import pytest_asyncio
 
 import weaviate
-from weaviate.collections.classes.config import (
+from weaviate.classes.tokenization import (
+    StopwordsCreate,
     StopwordsPreset,
+    TextAnalyzerConfigCreate,
     Tokenization,
-    _StopwordsCreate,
-    _TextAnalyzerConfigCreate,
+    TokenizeResult,
 )
 from weaviate.config import AdditionalConfig
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
-from weaviate.tokenization.models import TokenizeResult
 
 
 @pytest.fixture(scope="module")
@@ -140,7 +140,7 @@ class TestSerialization:
             (
                 {
                     "text": "The quick brown fox",
-                    "analyzer_config": _TextAnalyzerConfigCreate(
+                    "analyzer_config": TextAnalyzerConfigCreate(
                         stopword_preset=StopwordsPreset.NONE
                     ),
                 },
@@ -150,7 +150,7 @@ class TestSerialization:
             (
                 {
                     "text": "L'école est fermée",
-                    "analyzer_config": _TextAnalyzerConfigCreate(ascii_fold=True),
+                    "analyzer_config": TextAnalyzerConfigCreate(ascii_fold=True),
                 },
                 ["l", "ecole", "est", "fermee"],
                 ["l", "ecole", "est", "fermee"],
@@ -158,7 +158,7 @@ class TestSerialization:
             (
                 {
                     "text": "L'école est fermée",
-                    "analyzer_config": _TextAnalyzerConfigCreate(
+                    "analyzer_config": TextAnalyzerConfigCreate(
                         ascii_fold=True, ascii_fold_ignore=["é"]
                     ),
                 },
@@ -168,9 +168,7 @@ class TestSerialization:
             (
                 {
                     "text": "The quick brown fox",
-                    "analyzer_config": _TextAnalyzerConfigCreate(
-                        stopword_preset=StopwordsPreset.EN
-                    ),
+                    "analyzer_config": TextAnalyzerConfigCreate(stopword_preset=StopwordsPreset.EN),
                 },
                 ["the", "quick", "brown", "fox"],
                 ["quick", "brown", "fox"],
@@ -178,7 +176,7 @@ class TestSerialization:
             (
                 {
                     "text": "The quick brown fox",
-                    "analyzer_config": _TextAnalyzerConfigCreate(stopword_preset="en"),
+                    "analyzer_config": TextAnalyzerConfigCreate(stopword_preset="en"),
                 },
                 ["the", "quick", "brown", "fox"],
                 ["quick", "brown", "fox"],
@@ -186,7 +184,7 @@ class TestSerialization:
             (
                 {
                     "text": "The école est fermée",
-                    "analyzer_config": _TextAnalyzerConfigCreate(
+                    "analyzer_config": TextAnalyzerConfigCreate(
                         ascii_fold=True,
                         ascii_fold_ignore=["é"],
                         stopword_preset=StopwordsPreset.EN,
@@ -198,7 +196,7 @@ class TestSerialization:
             (
                 {
                     "text": "the quick brown fox",
-                    "stopwords": _StopwordsCreate(
+                    "stopwords": StopwordsCreate(
                         preset=StopwordsPreset.EN, additions=["quick"], removals=None
                     ),
                 },
@@ -208,7 +206,7 @@ class TestSerialization:
             (
                 {
                     "text": "the quick hello world",
-                    "stopwords": _StopwordsCreate(preset=None, additions=["hello"], removals=None),
+                    "stopwords": StopwordsCreate(preset=None, additions=["hello"], removals=None),
                 },
                 ["the", "quick", "hello", "world"],
                 ["quick", "world"],
@@ -216,7 +214,7 @@ class TestSerialization:
             (
                 {
                     "text": "the quick is fast",
-                    "stopwords": _StopwordsCreate(preset=None, additions=None, removals=["the"]),
+                    "stopwords": StopwordsCreate(preset=None, additions=None, removals=["the"]),
                 },
                 ["the", "quick", "is", "fast"],
                 ["the", "quick", "fast"],
@@ -224,7 +222,7 @@ class TestSerialization:
             (
                 {
                     "text": "hello world test",
-                    "analyzer_config": _TextAnalyzerConfigCreate(stopword_preset="custom"),
+                    "analyzer_config": TextAnalyzerConfigCreate(stopword_preset="custom"),
                     "stopword_presets": {"custom": ["test"]},
                 },
                 ["hello", "world", "test"],
@@ -276,7 +274,7 @@ class TestSerialization:
         result = client.tokenization.text(
             text="the quick brown fox",
             tokenization=recipe.tokenization,
-            stopwords=_StopwordsCreate(**stopwords.__dict__),
+            stopwords=StopwordsCreate(**stopwords.__dict__),
         )
         assert result.indexed == ["the", "quick", "brown", "fox"]
         assert result.query == ["brown", "fox"]
@@ -294,7 +292,7 @@ class TestSerialization:
         via_generic = client.tokenization.text(
             text=text,
             tokenization=recipe.tokenization,
-            stopwords=_StopwordsCreate(**stopwords.__dict__),
+            stopwords=StopwordsCreate(**stopwords.__dict__),
         )
 
         assert via_property.indexed == via_generic.indexed
@@ -360,7 +358,7 @@ class TestClientSideValidation:
     )
     def test_ascii_fold_ignore_without_fold_raises(self, kwargs: dict) -> None:
         with pytest.raises(ValueError, match="asciiFoldIgnore"):
-            _TextAnalyzerConfigCreate(**kwargs)
+            TextAnalyzerConfigCreate(**kwargs)
 
     @pytest.mark.parametrize(
         "kwargs,expected",
@@ -385,7 +383,7 @@ class TestClientSideValidation:
         ids=["fold_with_ignore", "fold_without_ignore", "stopword_preset_only", "empty"],
     )
     def test_valid_config(self, kwargs: dict, expected: dict) -> None:
-        cfg = _TextAnalyzerConfigCreate(**kwargs)
+        cfg = TextAnalyzerConfigCreate(**kwargs)
         for attr, value in expected.items():
             assert getattr(cfg, attr) == value
 
@@ -397,9 +395,7 @@ class TestClientSideValidation:
             client.tokenization.text(
                 text="hello",
                 tokenization=Tokenization.WORD,
-                stopwords=_StopwordsCreate(
-                    preset=StopwordsPreset.EN, additions=None, removals=None
-                ),
+                stopwords=StopwordsCreate(preset=StopwordsPreset.EN, additions=None, removals=None),
                 stopword_presets={"custom": ["hello"]},
             )
 
@@ -482,7 +478,7 @@ class TestAsyncClient:
     async def test_text_with_stopwords_fallback(
         self, async_client: weaviate.WeaviateAsyncClient
     ) -> None:
-        sw = _StopwordsCreate(preset=StopwordsPreset.EN, additions=["quick"], removals=None)
+        sw = StopwordsCreate(preset=StopwordsPreset.EN, additions=["quick"], removals=None)
         result = await async_client.tokenization.text(
             text="the quick brown fox",
             tokenization=Tokenization.WORD,

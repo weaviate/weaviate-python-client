@@ -1,9 +1,9 @@
 from typing import Dict, List, Optional
 
 from weaviate.collections.classes.config import (
+    StopwordsCreate,
+    TextAnalyzerConfigCreate,
     Tokenization,
-    _StopwordsCreate,
-    _TextAnalyzerConfigCreate,
 )
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.tokenization.models import TokenizeResult
@@ -16,7 +16,7 @@ class _Tokenization(_TokenizationExecutor[ConnectionSync]):
         text: str,
         tokenization: Tokenization,
         *,
-        analyzer_config: Optional[_TextAnalyzerConfigCreate] = None,
-        stopwords: Optional[_StopwordsCreate] = None,
+        analyzer_config: Optional[TextAnalyzerConfigCreate] = None,
+        stopwords: Optional[StopwordsCreate] = None,
         stopword_presets: Optional[Dict[str, List[str]]] = None,
     ) -> TokenizeResult: ...
