@@ -1,6 +1,7 @@
-from typing import Dict, List, Optional, overload
+from typing import Dict, List, Optional, Union, overload
 
 from weaviate.collections.classes.config import (
+    StopwordsConfig,
     StopwordsCreate,
     TextAnalyzerConfigCreate,
     Tokenization,
@@ -18,7 +19,7 @@ class _TokenizationAsync(_TokenizationExecutor[ConnectionAsync]):
         tokenization: Tokenization,
         *,
         analyzer_config: Optional[TextAnalyzerConfigCreate] = ...,
-        stopwords: Optional[StopwordsCreate] = ...,
+        stopwords: Optional[Union[StopwordsCreate, StopwordsConfig]] = ...,
     ) -> TokenizeResult: ...
     @overload
     async def text(

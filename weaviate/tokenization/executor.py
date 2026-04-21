@@ -1,10 +1,11 @@
 """Tokenize executor."""
 
-from typing import Any, Dict, Generic, List, Optional, overload
+from typing import Any, Dict, Generic, List, Optional, Union, overload
 
 from httpx import Response
 
 from weaviate.collections.classes.config import (
+    StopwordsConfig,
     StopwordsCreate,
     TextAnalyzerConfigCreate,
     Tokenization,
@@ -29,7 +30,10 @@ class _TokenizationExecutor(Generic[ConnectionType]):
 
     # Overloads make ``stopwords`` and ``stopword_presets`` mutually exclusive
     # at type-check time. Passing both is additionally rejected at runtime with
-    # ``ValueError`` in the implementation below.
+    # ``ValueError`` in the implementation below. ``stopwords`` accepts either a
+    # ``StopwordsCreate`` (the write-side shape) or a ``StopwordsConfig`` (the
+    # read-side shape returned by ``collection.config.get()``), so values round-
+    # tripped through config reads can be passed back in directly.
     @overload
     def text(
         self,
@@ -37,7 +41,7 @@ class _TokenizationExecutor(Generic[ConnectionType]):
         tokenization: Tokenization,
         *,
         analyzer_config: Optional[TextAnalyzerConfigCreate] = ...,
-        stopwords: Optional[StopwordsCreate] = ...,
+        stopwords: Optional[Union[StopwordsCreate, StopwordsConfig]] = ...,
     ) -> executor.Result[TokenizeResult]: ...
 
     @overload
@@ -56,7 +60,7 @@ class _TokenizationExecutor(Generic[ConnectionType]):
         tokenization: Tokenization,
         *,
         analyzer_config: Optional[TextAnalyzerConfigCreate] = None,
-        stopwords: Optional[StopwordsCreate] = None,
+        stopwords: Optional[Union[StopwordsCreate, StopwordsConfig]] = None,
         stopword_presets: Optional[Dict[str, List[str]]] = None,
     ) -> executor.Result[TokenizeResult]:
         """Tokenize text using the generic /v1/tokenize endpoint.
@@ -134,6 +138,15 @@ class _TokenizationExecutor(Generic[ConnectionType]):
                 payload["analyzerConfig"] = ac_dict
 
         if stopwords is not None:
+            if isinstance(stopwords, StopwordsConfig):
+                # Widen from the read-side shape returned by config.get() to the
+                # write-side shape the server expects. Field parity between the
+                # two classes is enforced at import time in
+                # ``weaviate/collections/classes/config.py``, so iterating
+                # ``StopwordsCreate.model_fields`` copies every field.
+                stopwords = StopwordsCreate(
+                    **{name: getattr(stopwords, name) for name in StopwordsCreate.model_fields}
+                )
             sw_dict = stopwords._to_dict()
             if sw_dict:
                 payload["stopwords"] = sw_dict

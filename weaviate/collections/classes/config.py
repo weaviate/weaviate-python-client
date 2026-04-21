@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from dataclasses import fields as _dataclass_fields
 from typing import (
     Any,
     ClassVar,
@@ -1648,6 +1649,25 @@ class _StopwordsConfig(_ConfigBase):
 
 StopwordsConfig = _StopwordsConfig
 StopwordsCreate = _StopwordsCreate
+
+# Invariant: the read-side dataclass (_StopwordsConfig) and the write-side
+# pydantic model (_StopwordsCreate) must carry the same set of field names so
+# that values round-tripped from ``collection.config.get()`` can flow back into
+# ``tokenization.text()`` without silent data loss. If a field is added to one
+# but not the other, importing this module fails loudly; the read→write
+# conversion in ``weaviate/tokenization/executor.py::_TokenizationExecutor.text``
+# depends on this parity.
+_read_fields = {f.name for f in _dataclass_fields(_StopwordsConfig)}
+_write_fields = set(_StopwordsCreate.model_fields.keys())
+if _read_fields != _write_fields:
+    raise RuntimeError(
+        "_StopwordsConfig / _StopwordsCreate field drift detected — "
+        f"read-only={_read_fields - _write_fields}, "
+        f"write-only={_write_fields - _read_fields}. "
+        "Update both classes together, or adapt the read→write conversion in "
+        "weaviate/tokenization/executor.py::_TokenizationExecutor.text."
+    )
+del _read_fields, _write_fields
 
 
 @dataclass
