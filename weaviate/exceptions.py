@@ -30,7 +30,29 @@ class WeaviateBaseError(Exception):
         super().__init__(message)
 
 
-class UnexpectedStatusCodeError(WeaviateBaseError):
+class WeaviateServerError(WeaviateBaseError):
+    """Base for all errors originating from the Weaviate server.
+
+    This error can be used to catch any server-side Weaviate exceptions, such as
+    unexpected status codes, query failures, connection issues, and timeouts.
+    """
+
+    def __str__(self) -> str:
+        return f"[Server Error] {super().__str__()}"
+
+
+class WeaviateClientError(WeaviateBaseError):
+    """Base for all errors originating from invalid client-side input or configuration.
+
+    This error can be used to catch any client-side Weaviate exceptions, such as
+    invalid inputs, validation errors, and misconfiguration.
+    """
+
+    def __str__(self) -> str:
+        return f"[Client Error] {super().__str__()}"
+
+
+class UnexpectedStatusCodeError(WeaviateServerError):
     def __init__(self, message: str, response: Union[httpx.Response, AioRpcError, Call]):
         """Is raised in case the status code returned from Weaviate is not handled in the client implementation and suggests an error.
 
@@ -89,7 +111,7 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
 UnexpectedStatusCodeException = UnexpectedStatusCodeError
 
 
-class ResponseCannotBeDecodedError(WeaviateBaseError):
+class ResponseCannotBeDecodedError(WeaviateServerError):
     def __init__(self, location: str, response: httpx.Response):
         """Raised when a weaviate response cannot be decoded to json.
 
@@ -109,53 +131,53 @@ class ResponseCannotBeDecodedError(WeaviateBaseError):
 ResponseCannotBeDecodedException = ResponseCannotBeDecodedError
 
 
-class ObjectAlreadyExistsError(WeaviateBaseError):
+class ObjectAlreadyExistsError(WeaviateServerError):
     """Object Already Exists Exception."""
 
 
 ObjectAlreadyExistsException = ObjectAlreadyExistsError
 
 
-class AuthenticationFailedError(WeaviateBaseError):
+class AuthenticationFailedError(WeaviateClientError):
     """Authentication Failed Exception."""
 
 
 AuthenticationFailedException = AuthenticationFailedError
 
 
-class SchemaValidationError(WeaviateBaseError):
+class SchemaValidationError(WeaviateClientError):
     """Schema Validation Exception."""
 
 
 SchemaValidationException = SchemaValidationError
 
 
-class BackupFailedError(WeaviateBaseError):
+class BackupFailedError(WeaviateServerError):
     """Backup Failed Exception."""
 
 
 BackupFailedException = BackupFailedError
 
 
-class BackupCanceledError(WeaviateBaseError):
+class BackupCanceledError(WeaviateServerError):
     """Backup canceled Exception."""
 
 
-class EmptyResponseError(WeaviateBaseError):
+class EmptyResponseError(WeaviateServerError):
     """Occurs when an HTTP request unexpectedly returns an empty response."""
 
 
 EmptyResponseException = EmptyResponseError
 
 
-class MissingScopeError(WeaviateBaseError):
+class MissingScopeError(WeaviateClientError):
     """Scope was not provided with client credential flow."""
 
 
 MissingScopeException = MissingScopeError
 
 
-class AdditionalPropertiesError(WeaviateBaseError):
+class AdditionalPropertiesError(WeaviateClientError):
     """Additional properties were provided multiple times."""
 
     def __init__(self, additional_dict: str, additional_dataclass: str):
@@ -172,7 +194,7 @@ class AdditionalPropertiesError(WeaviateBaseError):
 AdditionalPropertiesException = AdditionalPropertiesError
 
 
-class InvalidDataModelError(WeaviateBaseError):
+class InvalidDataModelError(WeaviateClientError):
     """Is raised when the user provides a generic that is not supported."""
 
     def __init__(self, type_: str) -> None:
@@ -183,11 +205,11 @@ class InvalidDataModelError(WeaviateBaseError):
 InvalidDataModelException = InvalidDataModelError
 
 
-class WeaviateStartUpError(WeaviateBaseError):
+class WeaviateStartUpError(WeaviateServerError):
     """Is raised if weaviate is not available on the given url+port."""
 
 
-class WeaviateEmbeddedInvalidVersionError(WeaviateBaseError):
+class WeaviateEmbeddedInvalidVersionError(WeaviateClientError):
     """Invalid version provided to Weaviate embedded."""
 
     def __init__(self, url: str):
@@ -204,7 +226,7 @@ class WeaviateEmbeddedInvalidVersionError(WeaviateBaseError):
 WeaviateEmbeddedInvalidVersionException = WeaviateEmbeddedInvalidVersionError
 
 
-class WeaviateInvalidInputError(WeaviateBaseError):
+class WeaviateInvalidInputError(WeaviateClientError):
     """Is raised if the input to a function is invalid."""
 
     def __init__(self, message: str):
@@ -216,7 +238,7 @@ class WeaviateInvalidInputError(WeaviateBaseError):
 WeaviateInvalidInputException = WeaviateInvalidInputError
 
 
-class WeaviateQueryError(WeaviateBaseError):
+class WeaviateQueryError(WeaviateServerError):
     """Is raised if a query (either gRPC or GraphQL) to Weaviate fails in any way."""
 
     def __init__(self, message: str, protocol_type: str):
@@ -273,7 +295,7 @@ class WeaviateTenantGetError(WeaviateQueryError):
         self.message = message
 
 
-class WeaviateAddInvalidPropertyError(WeaviateBaseError):
+class WeaviateAddInvalidPropertyError(WeaviateClientError):
     """Is raised when adding an invalid new property."""
 
     def __init__(self, message: str):
@@ -283,7 +305,7 @@ class WeaviateAddInvalidPropertyError(WeaviateBaseError):
         self.message = message
 
 
-class WeaviateBatchValidationError(WeaviateBaseError):
+class WeaviateBatchValidationError(WeaviateClientError):
     """Is raised when a batch validation error occurs."""
 
     def __init__(self, message: str):
@@ -292,7 +314,7 @@ class WeaviateBatchValidationError(WeaviateBaseError):
         self.message = message
 
 
-class WeaviateBatchFailedToReestablishStreamError(WeaviateBaseError):
+class WeaviateBatchFailedToReestablishStreamError(WeaviateServerError):
     """Is raised when the batch stream fails to re-establish within a timeout period."""
 
     def __init__(self, message: str):
@@ -301,7 +323,7 @@ class WeaviateBatchFailedToReestablishStreamError(WeaviateBaseError):
         self.message = message
 
 
-class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
+class WeaviateInsertInvalidPropertyError(WeaviateClientError):
     """Is raised when inserting an invalid property."""
 
     def __init__(self, data: dict):
@@ -309,7 +331,7 @@ class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateGRPCUnavailableError(WeaviateBaseError):
+class WeaviateGRPCUnavailableError(WeaviateServerError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
     def __init__(
@@ -339,7 +361,7 @@ This error could be due to one of several reasons:
 WeaviateGrpcUnavailable = WeaviateGRPCUnavailableError
 
 
-class WeaviateInsertManyAllFailedError(WeaviateBaseError):
+class WeaviateInsertManyAllFailedError(WeaviateServerError):
     """Is raised when all objects fail to be inserted."""
 
     def __init__(self, message: str = "") -> None:
@@ -347,7 +369,7 @@ class WeaviateInsertManyAllFailedError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateClosedClientError(WeaviateBaseError):
+class WeaviateClosedClientError(WeaviateClientError):
     """Is raised when a client is closed and a method is called on it."""
 
     def __init__(self) -> None:
@@ -355,7 +377,7 @@ class WeaviateClosedClientError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateConnectionError(WeaviateBaseError):
+class WeaviateConnectionError(WeaviateServerError):
     """Is raised when the connection to Weaviate fails."""
 
     def __init__(self, message: str = "") -> None:
@@ -363,7 +385,7 @@ class WeaviateConnectionError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateUnsupportedFeatureError(WeaviateBaseError):
+class WeaviateUnsupportedFeatureError(WeaviateClientError):
     """Is raised when a client method tries to use a new feature with an old Weaviate version."""
 
     def __init__(self, feature: str, current: str, minimum: str) -> None:
@@ -371,7 +393,7 @@ class WeaviateUnsupportedFeatureError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateTimeoutError(WeaviateBaseError):
+class WeaviateTimeoutError(WeaviateServerError):
     """Is raised when a request to Weaviate times out."""
 
     def __init__(self, message: str = "") -> None:
@@ -379,7 +401,7 @@ class WeaviateTimeoutError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateRetryError(WeaviateBaseError):
+class WeaviateRetryError(WeaviateServerError):
     """Is raised when a request to Weaviate fails and is retried multiple times."""
 
     def __init__(self, message: str, count: int) -> None:
@@ -394,7 +416,7 @@ class InsufficientPermissionsError(UnexpectedStatusCodeError):
         super().__init__("forbidden", res)
 
 
-class WeaviateAgentsNotInstalledError(WeaviateBaseError):
+class WeaviateAgentsNotInstalledError(WeaviateClientError):
     """Error raised when trying to use Weaviate Agents without the required dependencies."""
 
     def __init__(self) -> None:

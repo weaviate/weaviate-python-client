@@ -295,7 +295,7 @@ class TestUtil(unittest.TestCase):
 
         # invalid calls
 
-        invalid_sub_schema_msg = "The sub schema class/es MUST have a 'class' keyword each!"
+        invalid_sub_schema_msg = "[Client Error] The sub schema class/es MUST have a 'class' keyword each!"
 
         with self.assertRaises(SchemaValidationException) as error:
             _is_sub_schema({}, schema_set)
