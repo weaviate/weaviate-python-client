@@ -13,6 +13,7 @@ from . import (
     rbac,
     replication,
     tenants,
+    tokenization,
 )  # noqa: F401
 from .config import ConsistencyLevel
 
@@ -29,6 +30,7 @@ __all__ = [
     "init",
     "query",
     "tenants",
+    "tokenization",
     "rbac",
     "replication",
 ]

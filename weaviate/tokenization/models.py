@@ -2,7 +2,7 @@
 
 from typing import List
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class TokenizeResult(BaseModel):
@@ -12,8 +12,6 @@ class TokenizeResult(BaseModel):
         indexed: Tokens as they would be stored in the inverted index.
         query: Tokens as they would be used for querying (after stopword removal).
     """
-
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
     indexed: List[str]
     query: List[str]
