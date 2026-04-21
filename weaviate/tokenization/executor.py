@@ -1,6 +1,6 @@
 """Tokenize executor."""
 
-from typing import Any, Dict, Generic, List, Optional
+from typing import Any, Dict, Generic, List, Optional, overload
 
 from httpx import Response
 
@@ -27,6 +27,29 @@ class _TokenizationExecutor(Generic[ConnectionType]):
                 "1.37.0",
             )
 
+    # Overloads make ``stopwords`` and ``stopword_presets`` mutually exclusive
+    # at type-check time. Passing both is additionally rejected at runtime with
+    # ``ValueError`` in the implementation below.
+    @overload
+    def text(
+        self,
+        text: str,
+        tokenization: Tokenization,
+        *,
+        analyzer_config: Optional[TextAnalyzerConfigCreate] = ...,
+        stopwords: Optional[StopwordsCreate] = ...,
+    ) -> executor.Result[TokenizeResult]: ...
+
+    @overload
+    def text(
+        self,
+        text: str,
+        tokenization: Tokenization,
+        *,
+        analyzer_config: Optional[TextAnalyzerConfigCreate] = ...,
+        stopword_presets: Optional[Dict[str, List[str]]] = ...,
+    ) -> executor.Result[TokenizeResult]: ...
+
     def text(
         self,
         text: str,
@@ -40,33 +63,55 @@ class _TokenizationExecutor(Generic[ConnectionType]):
 
         For ``word`` tokenization the server defaults to the built-in ``en``
         stopword preset when no stopword configuration is supplied. Pass
-        ``analyzer_config=Configure.text_analyzer(stopword_preset=StopwordsPreset.NONE)``
-        (or equivalent) to opt out.
+        ``analyzer_config=TextAnalyzerConfigCreate(stopword_preset="none")``
+        or equivalent to opt out.
+
+        Call patterns for stopword handling (``stopwords`` and
+        ``stopword_presets`` are mutually exclusive — pass at most one):
+
+        1. **No stopword config** — rely on the server default (``en`` for
+           word tokenization, none otherwise)::
+
+               client.tokenization.text(text=..., tokenization=Tokenization.WORD)
+
+        2. **Apply a one-off stopwords block** via ``stopwords`` — the block
+           filters the query tokens directly, same shape as a collection's
+           ``invertedIndexConfig.stopwords``::
+
+               client.tokenization.text(
+                   text=...,
+                   tokenization=Tokenization.WORD,
+                   stopwords=StopwordsCreate(preset=StopwordsPreset.EN, additions=["foo"]),
+               )
+
+        3. **Register a named-preset catalog** via ``stopword_presets`` and
+           reference one by name from ``analyzer_config.stopword_preset``.
+           The catalog can also override built-in presets such as ``en``::
+
+               client.tokenization.text(
+                   text=...,
+                   tokenization=Tokenization.WORD,
+                   analyzer_config=TextAnalyzerConfigCreate(stopword_preset="custom"),
+                   stopword_presets={"custom": ["foo", "bar"]},
+               )
 
         Args:
             text: The text to tokenize.
-            tokenization: The tokenization method to use (e.g. Tokenization.WORD).
+            tokenization: The tokenization method to use (e.g. ``Tokenization.WORD``).
             analyzer_config: Text analyzer settings (ASCII folding, stopword
                 preset name), built via ``Configure.text_analyzer(...)``.
                 ``stopword_preset`` may reference a built-in preset
                 (``en`` / ``none``) or a name defined in ``stopword_presets``.
-            stopwords: Fallback stopword config applied when
-                ``analyzer_config.stopword_preset`` is not set. Same shape as a
-                collection's ``invertedIndexConfig.stopwords`` — a base preset
-                optionally tweaked with ``additions`` / ``removals``. An empty
-                ``preset`` defaults to ``en``.
-            stopword_presets: User-defined named stopword presets, each a plain
-                list of words. A name matching a built-in (``en`` / ``none``)
-                replaces the built-in entirely.
-
-        Note:
-            ``stopwords`` and ``stopword_presets`` are mutually exclusive on the
-            server — pass one or the other, not both. The server returns HTTP
-            422 if both are supplied.
+            stopwords: One-off stopwords block applied directly to this request.
+                Mutually exclusive with ``stopword_presets``.
+            stopword_presets: Named-preset catalog (name → word list). Entries
+                can be referenced from ``analyzer_config.stopword_preset`` or
+                override built-ins like ``en``. Mutually exclusive with
+                ``stopwords``.
 
         Returns:
-            A TokenizeResult with indexed and query token lists. The response
-            does not echo request fields back.
+            A ``TokenizeResult`` with indexed and query token lists. The generic
+            endpoint does not echo request fields back in the response.
 
         Raises:
             WeaviateUnsupportedFeatureError: If the server version is below 1.37.0.

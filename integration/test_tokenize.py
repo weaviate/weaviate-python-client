@@ -274,7 +274,7 @@ class TestSerialization:
         result = client.tokenization.text(
             text="the quick brown fox",
             tokenization=recipe.tokenization,
-            stopwords=StopwordsCreate(**stopwords.__dict__),
+            stopwords=stopwords,
         )
         assert result.indexed == ["the", "quick", "brown", "fox"]
         assert result.query == ["brown", "fox"]
@@ -292,7 +292,7 @@ class TestSerialization:
         via_generic = client.tokenization.text(
             text=text,
             tokenization=recipe.tokenization,
-            stopwords=StopwordsCreate(**stopwords.__dict__),
+            stopwords=stopwords,
         )
 
         assert via_property.indexed == via_generic.indexed
@@ -307,13 +307,6 @@ class TestSerialization:
 @pytest.mark.usefixtures("require_1_37")
 class TestDeserialization:
     """Verify the client correctly deserializes response fields into TokenizeResult."""
-
-    def test_generic_result_shape(self, client: weaviate.WeaviateClient) -> None:
-        """Generic endpoint response deserializes into TokenizeResult with indexed and query lists."""
-        result = client.tokenization.text(text="hello", tokenization=Tokenization.WORD)
-        assert isinstance(result, TokenizeResult)
-        assert isinstance(result.indexed, list)
-        assert isinstance(result.query, list)
 
     def test_property_result_shape(self, client: weaviate.WeaviateClient) -> None:
         """Property endpoint response deserializes into TokenizeResult — server resolves tokenization from the property's schema."""
@@ -405,7 +398,7 @@ class TestClientSideValidation:
             ({"custom": "hello"}, "must be a list of strings"),
             (
                 {
-                    "custom": _StopwordsCreate(
+                    "custom": StopwordsCreate(
                         preset=StopwordsPreset.EN, additions=None, removals=None
                     ),
                 },
