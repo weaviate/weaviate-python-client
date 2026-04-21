@@ -208,9 +208,7 @@ class TestSerialization:
             (
                 {
                     "text": "the quick hello world",
-                    "stopwords": _StopwordsCreate(
-                        preset=None, additions=["hello"], removals=None
-                    ),
+                    "stopwords": _StopwordsCreate(preset=None, additions=["hello"], removals=None),
                 },
                 ["the", "quick", "hello", "world"],
                 ["quick", "world"],
@@ -218,9 +216,7 @@ class TestSerialization:
             (
                 {
                     "text": "the quick is fast",
-                    "stopwords": _StopwordsCreate(
-                        preset=None, additions=None, removals=["the"]
-                    ),
+                    "stopwords": _StopwordsCreate(preset=None, additions=None, removals=["the"]),
                 },
                 ["the", "quick", "is", "fast"],
                 ["the", "quick", "fast"],
@@ -294,9 +290,7 @@ class TestSerialization:
         stopwords = config.inverted_index_config.stopwords
 
         text = "the quick brown fox"
-        via_property = recipe_collection.config.tokenize_property(
-            property_name="recipe", text=text
-        )
+        via_property = recipe_collection.config.tokenize_property(property_name="recipe", text=text)
         via_generic = client.tokenization.text(
             text=text,
             tokenization=recipe.tokenization,
