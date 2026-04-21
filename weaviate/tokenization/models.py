@@ -1,10 +1,8 @@
 """Return types for tokenization operations."""
 
-from typing import List, Optional
+from typing import List
 
 from pydantic import BaseModel, ConfigDict
-
-from weaviate.collections.classes.config import Tokenization
 
 
 class TokenizeResult(BaseModel):

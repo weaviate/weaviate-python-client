@@ -112,9 +112,7 @@ class _TokenizationExecutor(Generic[ConnectionType]):
                         f"got {type(words).__name__}"
                     )
                 if not all(isinstance(w, str) for w in words):
-                    raise ValueError(
-                        f"stopword_presets[{name!r}] must contain only strings"
-                    )
+                    raise ValueError(f"stopword_presets[{name!r}] must contain only strings")
                 validated[name] = list(words)
             payload["stopwordPresets"] = validated
 
