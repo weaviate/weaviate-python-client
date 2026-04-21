@@ -403,6 +403,38 @@ class TestClientSideValidation:
                 stopword_presets={"custom": ["hello"]},
             )
 
+    @pytest.mark.parametrize(
+        "stopword_presets,match",
+        [
+            ({"custom": "hello"}, "must be a list of strings"),
+            (
+                {
+                    "custom": _StopwordsCreate(
+                        preset=StopwordsPreset.EN, additions=None, removals=None
+                    ),
+                },
+                "must be a list of strings",
+            ),
+            ({"custom": ["hello", 123]}, "must contain only strings"),
+        ],
+        ids=["str_value", "pydantic_model_value", "non_string_element"],
+    )
+    def test_stopword_presets_invalid_shape_raises(
+        self,
+        client: weaviate.WeaviateClient,
+        stopword_presets: dict,
+        match: str,
+    ) -> None:
+        """Client rejects malformed stopword_presets values locally before sending — str would silently split into characters; a pydantic model would serialize to field tuples."""
+        if client._connection._weaviate_version.is_lower_than(1, 37, 0):
+            pytest.skip("Tokenization requires Weaviate >= 1.37.0")
+        with pytest.raises(ValueError, match=match):
+            client.tokenization.text(
+                text="hello",
+                tokenization=Tokenization.WORD,
+                stopword_presets=stopword_presets,
+            )
+
 
 # ---------------------------------------------------------------------------
 # Version gate
