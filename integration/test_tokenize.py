@@ -9,8 +9,7 @@ These tests cover the client's responsibilities:
 
 Server-side behavior this client relies on:
 - Word tokenization defaults to preset "en" when no stopword config is sent.
-- The generic /v1/tokenize response is minimal: only ``indexed`` and ``query``
-  are returned. The property-level endpoint additionally returns ``tokenization``.
+- Both endpoints return only ``indexed`` and ``query``.
 - ``stopwords`` and ``stopword_presets`` are mutually exclusive on the generic
   endpoint — the server rejects requests that set both.
 """
@@ -55,6 +54,29 @@ async def async_client() -> AsyncGenerator[weaviate.WeaviateAsyncClient, None]:
     await c.connect()
     yield c
     await c.close()
+
+
+@pytest.fixture
+def recipe_collection(client: weaviate.WeaviateClient) -> Generator:
+    """Collection with a `recipe` word-tokenized property and an en + ["quick"] stopwords config."""
+    name = "TestTokenizeRecipe"
+    client.collections.delete(name)
+    client.collections.create_from_dict(
+        {
+            "class": name,
+            "vectorizer": "none",
+            "invertedIndexConfig": {
+                "stopwords": {"preset": "en", "additions": ["quick"]},
+            },
+            "properties": [
+                {"name": "recipe", "dataType": ["text"], "tokenization": "word"},
+            ],
+        }
+    )
+    try:
+        yield client.collections.get(name)
+    finally:
+        client.collections.delete(name)
 
 
 # ---------------------------------------------------------------------------
@@ -106,8 +128,6 @@ class TestSerialization:
         assert isinstance(result, TokenizeResult)
         assert result.indexed == expected_indexed
         assert result.query == expected_query
-        # Generic endpoint does not echo tokenization back.
-        assert result.tokenization is None
 
     @pytest.mark.parametrize(
         "call_kwargs,expected_indexed,expected_query",
@@ -133,7 +153,7 @@ class TestSerialization:
                     "analyzer_config": _TextAnalyzerConfigCreate(ascii_fold=True),
                 },
                 ["l", "ecole", "est", "fermee"],
-                ["l", "ecole", "fermee"],
+                ["l", "ecole", "est", "fermee"],
             ),
             (
                 {
@@ -143,7 +163,7 @@ class TestSerialization:
                     ),
                 },
                 ["l", "école", "est", "fermée"],
-                ["l", "école", "fermée"],
+                ["l", "école", "est", "fermée"],
             ),
             (
                 {
@@ -250,6 +270,42 @@ class TestSerialization:
         assert result.indexed == expected_indexed
         assert result.query == expected_query
 
+    def test_text_from_collection_config(
+        self, client: weaviate.WeaviateClient, recipe_collection
+    ) -> None:
+        """Values round-tripped through config.get() feed back into tokenization.text()."""
+        config = recipe_collection.config.get()
+        recipe = next(p for p in config.properties if p.name == "recipe")
+        stopwords = config.inverted_index_config.stopwords
+        result = client.tokenization.text(
+            text="the quick brown fox",
+            tokenization=recipe.tokenization,
+            stopwords=_StopwordsCreate(**stopwords.__dict__),
+        )
+        assert result.indexed == ["the", "quick", "brown", "fox"]
+        assert result.query == ["brown", "fox"]
+
+    def test_property_and_generic_endpoints_agree(
+        self, client: weaviate.WeaviateClient, recipe_collection
+    ) -> None:
+        """Property endpoint (server resolves config from schema) produces the same indexed/query as the generic endpoint fed the same config."""
+        config = recipe_collection.config.get()
+        recipe = next(p for p in config.properties if p.name == "recipe")
+        stopwords = config.inverted_index_config.stopwords
+
+        text = "the quick brown fox"
+        via_property = recipe_collection.config.tokenize_property(
+            property_name="recipe", text=text
+        )
+        via_generic = client.tokenization.text(
+            text=text,
+            tokenization=recipe.tokenization,
+            stopwords=_StopwordsCreate(**stopwords.__dict__),
+        )
+
+        assert via_property.indexed == via_generic.indexed
+        assert via_property.query == via_generic.query
+
 
 # ---------------------------------------------------------------------------
 # Deserialization
@@ -261,15 +317,14 @@ class TestDeserialization:
     """Verify the client correctly deserializes response fields into TokenizeResult."""
 
     def test_generic_result_shape(self, client: weaviate.WeaviateClient) -> None:
-        """Generic endpoint returns only indexed and query; tokenization is not echoed back."""
+        """Generic endpoint response deserializes into TokenizeResult with indexed and query lists."""
         result = client.tokenization.text(text="hello", tokenization=Tokenization.WORD)
         assert isinstance(result, TokenizeResult)
         assert isinstance(result.indexed, list)
         assert isinstance(result.query, list)
-        assert result.tokenization is None
 
-    def test_property_result_populates_tokenization(self, client: weaviate.WeaviateClient) -> None:
-        """Property endpoint returns tokenization — the server resolved it from the property's schema rather than the caller sending it."""
+    def test_property_result_shape(self, client: weaviate.WeaviateClient) -> None:
+        """Property endpoint response deserializes into TokenizeResult — server resolves tokenization from the property's schema."""
         client.collections.delete("TestDeserPropTypes")
         try:
             client.collections.create_from_dict(
@@ -288,7 +343,6 @@ class TestDeserialization:
             col = client.collections.get("TestDeserPropTypes")
             result = col.config.tokenize_property(property_name="tag", text="  Hello World  ")
             assert isinstance(result, TokenizeResult)
-            assert result.tokenization == Tokenization.FIELD
             assert result.indexed == ["Hello World"]
         finally:
             client.collections.delete("TestDeserPropTypes")
@@ -435,7 +489,6 @@ class TestAsyncClient:
                 text="The quick brown fox",
             )
             assert isinstance(result, TokenizeResult)
-            assert result.tokenization == Tokenization.WORD
             assert result.indexed == ["the", "quick", "brown", "fox"]
             assert result.query == ["quick", "brown", "fox"]
         finally:
