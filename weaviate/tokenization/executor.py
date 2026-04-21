@@ -107,11 +107,15 @@ class _TokenizationExecutor(Generic[ConnectionType]):
                 ``stopword_preset`` may reference a built-in preset
                 (``en`` / ``none``) or a name defined in ``stopword_presets``.
             stopwords: One-off stopwords block applied directly to this request.
+                Mirrors the collection-level ``invertedIndexConfig.stopwords``
+                shape — hence the rich model with preset / additions / removals.
                 Mutually exclusive with ``stopword_presets``.
-            stopword_presets: Named-preset catalog (name → word list). Entries
-                can be referenced from ``analyzer_config.stopword_preset`` or
-                override built-ins like ``en``. Mutually exclusive with
-                ``stopwords``.
+            stopword_presets: Named-preset catalog (name → word list). Mirrors
+                the property-level preset catalog — a plain mapping, since a
+                property only references a preset by name (via
+                ``analyzer_config.stopword_preset``) rather than carrying the
+                full stopwords block. Entries can override built-ins like
+                ``en``. Mutually exclusive with ``stopwords``.
 
         Returns:
             A ``TokenizeResult`` with indexed and query token lists. The generic
