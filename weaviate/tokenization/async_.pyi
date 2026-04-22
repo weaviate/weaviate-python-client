@@ -30,3 +30,6 @@ class _TokenizationAsync(_TokenizationExecutor[ConnectionAsync]):
         analyzer_config: Optional[TextAnalyzerConfigCreate] = ...,
         stopword_presets: Optional[Dict[str, List[str]]] = ...,
     ) -> TokenizeResult: ...
+    async def for_property(
+        self, collection: str, property_name: str, text: str
+    ) -> TokenizeResult: ...

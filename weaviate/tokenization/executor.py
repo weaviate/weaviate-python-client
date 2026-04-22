@@ -14,6 +14,7 @@ from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.tokenization.models import TokenizeResult
+from weaviate.util import _capitalize_first_letter
 
 
 class _TokenizationExecutor(Generic[ConnectionType]):
@@ -188,4 +189,43 @@ class _TokenizationExecutor(Generic[ConnectionType]):
             weaviate_object=payload,
             error_msg="Tokenization failed",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="tokenize text"),
+        )
+
+    def for_property(
+        self,
+        collection: str,
+        property_name: str,
+        text: str,
+    ) -> executor.Result[TokenizeResult]:
+        """Tokenize text using a property's configured tokenization settings.
+
+        The server resolves the tokenization and analyzer configuration from
+        the property's schema, so callers only supply the text.
+
+        Args:
+            collection: The collection that owns the property.
+            property_name: The property name whose tokenization config to use.
+            text: The text to tokenize.
+
+        Returns:
+            A TokenizeResult with indexed and query token lists.
+
+        Raises:
+            WeaviateUnsupportedFeatureError: If the server version is below 1.37.0.
+        """
+        self.__check_version()
+
+        path = f"/schema/{_capitalize_first_letter(collection)}/properties/{property_name}/tokenize"
+        payload: Dict[str, Any] = {"text": text}
+
+        def resp(response: Response) -> TokenizeResult:
+            return TokenizeResult.model_validate(response.json())
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.post,
+            path=path,
+            weaviate_object=payload,
+            error_msg="Property tokenization failed",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="tokenize property text"),
         )

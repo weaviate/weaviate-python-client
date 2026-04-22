@@ -288,7 +288,9 @@ class TestSerialization:
         stopwords = config.inverted_index_config.stopwords
 
         text = "the quick brown fox"
-        via_property = recipe_collection.config.tokenize_property(property_name="recipe", text=text)
+        via_property = client.tokenization.for_property(
+            collection=recipe_collection.name, property_name="recipe", text=text
+        )
         via_generic = client.tokenization.text(
             text=text,
             tokenization=recipe.tokenization,
@@ -325,8 +327,9 @@ class TestDeserialization:
                     ],
                 }
             )
-            col = client.collections.get("TestDeserPropTypes")
-            result = col.config.tokenize_property(property_name="tag", text="  Hello World  ")
+            result = client.tokenization.for_property(
+                collection="TestDeserPropTypes", property_name="tag", text="  Hello World  "
+            )
             assert isinstance(result, TokenizeResult)
             assert result.indexed == ["Hello World"]
         finally:
@@ -442,9 +445,8 @@ class TestVersionGate:
     def test_tokenize_property_raises_on_old_server(self, client: weaviate.WeaviateClient) -> None:
         if client._connection._weaviate_version.is_at_least(1, 37, 0):
             pytest.skip("Version gate only applies to Weaviate < 1.37.0")
-        col = client.collections.get("Any")
         with pytest.raises(WeaviateUnsupportedFeatureError):
-            col.config.tokenize_property(property_name="title", text="hello")
+            client.tokenization.for_property(collection="Any", property_name="title", text="hello")
 
 
 # ---------------------------------------------------------------------------
@@ -454,7 +456,7 @@ class TestVersionGate:
 
 @pytest.mark.usefixtures("require_1_37")
 class TestAsyncClient:
-    """Verify text() and tokenize_property() work through the async client."""
+    """Verify tokenization.text() and tokenization.for_property() work through the async client."""
 
     @pytest.mark.asyncio
     async def test_text_tokenize(self, async_client: weaviate.WeaviateAsyncClient) -> None:
@@ -498,8 +500,8 @@ class TestAsyncClient:
                     ],
                 }
             )
-            col = async_client.collections.get("TestAsyncPropTokenize")
-            result = await col.config.tokenize_property(
+            result = await async_client.tokenization.for_property(
+                collection="TestAsyncPropTokenize",
                 property_name="title",
                 text="The quick brown fox",
             )
