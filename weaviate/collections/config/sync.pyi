@@ -27,7 +27,6 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.tokenization.models import TokenizeResult
 
 from .executor import _ConfigCollectionExecutor
 
@@ -89,4 +88,3 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...
     def delete_property_index(self, property_name: str, index_name: IndexName) -> bool: ...
-    def tokenize_property(self, property_name: str, text: str) -> TokenizeResult: ...
