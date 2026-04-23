@@ -1,9 +1,6 @@
-import pathlib
-
 import pytest
 
 from integration.conftest import CollectionFactory
-from integration.constants import WEAVIATE_LOGO_NEW_ENCODED
 from weaviate.classes.query import Diversity
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
