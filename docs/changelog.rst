@@ -1,6 +1,21 @@
 Changelog
 =========
 
+Version 4.21.0
+--------------
+This minor version includes:
+    - Support for new 1.37 features:
+        - Add support for the new ``blobHash`` property data type
+        - Add support for returning profiling when making queries with the ``return_metadata=["query_profile"]`` parameter
+        - Add support for on-demaned tokenization through the ``client.tokenize`` namespace
+        - Add support for managing permissions for accessing the native MCP server
+        - Add support for collection export
+        - Add support for incremental backups
+    - Minor bug fixes and improvements:
+        - Change ``alpha`` queries and aggregations to use server-side default parameter
+        - Fixes rare flakey behaviour of ``client.batch.stream`` on server hangup
+
+
 Version 4.20.5
 --------------
 This patch version includes:
