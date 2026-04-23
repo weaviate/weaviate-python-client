@@ -1,6 +1,9 @@
+import pathlib
+
 import pytest
 
 from integration.conftest import CollectionFactory
+from integration.constants import WEAVIATE_LOGO_NEW_ENCODED
 from weaviate.classes.query import Diversity
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
@@ -85,5 +88,67 @@ def test_diversity_mmr_only_limit(collection_factory: CollectionFactory) -> None
     result = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
         selection=Diversity.MMR(limit=2),
+    )
+    assert len(result.objects) == 2
+
+
+def test_near_text_diversity(collection_factory: CollectionFactory) -> None:
+    """near_text supports diversity selection via text2vec-contextionary."""
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 37, 1):
+        pytest.skip("Diversity selection requires Weaviate >= 1.37.1")
+    for name in ["banana", "apple", "orange", "car", "truck", "bike"]:
+        collection.data.insert({"name": name})
+
+    result = collection.query.near_text(
+        query="fruit",
+        selection=Diversity.MMR(limit=3, balance=0.0),
+    )
+    assert len(result.objects) == 3
+
+
+@pytest.mark.skip("img2vec-neural not available in CI — see test_near_image in test_collection.py")
+def test_near_image_diversity(collection_factory: CollectionFactory) -> None:
+    """near_image supports diversity selection."""
+    collection = collection_factory(
+        properties=[Property(name="image", data_type=DataType.BLOB)],
+        vector_config=Configure.Vectors.img2vec_neural(image_fields=["image"]),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 37, 1):
+        pytest.skip("Diversity selection requires Weaviate >= 1.37.1")
+    img_path = pathlib.Path("integration/weaviate-logo.png")
+    for _ in range(3):
+        collection.data.insert({"image": WEAVIATE_LOGO_NEW_ENCODED})
+
+    result = collection.query.near_image(
+        near_image=img_path,
+        selection=Diversity.MMR(limit=2, balance=0.0),
+    )
+    assert len(result.objects) == 2
+
+
+@pytest.mark.skip("multi2vec-* modules not available in CI")
+def test_near_media_diversity(collection_factory: CollectionFactory) -> None:
+    """near_media supports diversity selection."""
+    from weaviate.collections.classes.grpc import NearMediaType
+
+    collection = collection_factory(
+        properties=[Property(name="image", data_type=DataType.BLOB)],
+        vector_config=Configure.Vectors.img2vec_neural(image_fields=["image"]),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 37, 1):
+        pytest.skip("Diversity selection requires Weaviate >= 1.37.1")
+    for _ in range(3):
+        collection.data.insert({"image": WEAVIATE_LOGO_NEW_ENCODED})
+
+    result = collection.query.near_media(
+        media=WEAVIATE_LOGO_NEW_ENCODED,
+        type_=NearMediaType.IMAGE,
+        selection=Diversity.MMR(limit=2, balance=0.0),
     )
     assert len(result.objects) == 2
