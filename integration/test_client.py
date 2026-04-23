@@ -334,7 +334,7 @@ def test_collection_name_capitalization(
         client.collections.delete(name_big)
 
 
-def test_client_cluster_with_lazy_shard_loading(
+def test_client_cluster_without_lazy_shard_loading(
     client: weaviate.WeaviateClient, request: SubRequest
 ) -> None:
     try:

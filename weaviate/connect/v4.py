@@ -1019,8 +1019,8 @@ class ConnectionSync(_ConnectionBase):
         self,
         requests: Generator[batch_pb2.BatchStreamRequest, None, None],
     ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
-        assert self.grpc_stub is not None
         try:
+            assert self.grpc_stub is not None
             for msg in self.grpc_stub.BatchStream(
                 request_iterator=requests,
                 timeout=self.timeout_config.stream,

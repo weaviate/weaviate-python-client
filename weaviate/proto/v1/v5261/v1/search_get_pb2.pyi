@@ -88,7 +88,7 @@ class SortBy(_message.Message):
     def __init__(self, ascending: bool = ..., path: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class MetadataRequest(_message.Message):
-    __slots__ = ("uuid", "vector", "creation_time_unix", "last_update_time_unix", "distance", "certainty", "score", "explain_score", "is_consistent", "vectors")
+    __slots__ = ("uuid", "vector", "creation_time_unix", "last_update_time_unix", "distance", "certainty", "score", "explain_score", "is_consistent", "vectors", "query_profile")
     UUID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CREATION_TIME_UNIX_FIELD_NUMBER: _ClassVar[int]
@@ -99,6 +99,7 @@ class MetadataRequest(_message.Message):
     EXPLAIN_SCORE_FIELD_NUMBER: _ClassVar[int]
     IS_CONSISTENT_FIELD_NUMBER: _ClassVar[int]
     VECTORS_FIELD_NUMBER: _ClassVar[int]
+    QUERY_PROFILE_FIELD_NUMBER: _ClassVar[int]
     uuid: bool
     vector: bool
     creation_time_unix: bool
@@ -109,7 +110,8 @@ class MetadataRequest(_message.Message):
     explain_score: bool
     is_consistent: bool
     vectors: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, uuid: bool = ..., vector: bool = ..., creation_time_unix: bool = ..., last_update_time_unix: bool = ..., distance: bool = ..., certainty: bool = ..., score: bool = ..., explain_score: bool = ..., is_consistent: bool = ..., vectors: _Optional[_Iterable[str]] = ...) -> None: ...
+    query_profile: bool
+    def __init__(self, uuid: bool = ..., vector: bool = ..., creation_time_unix: bool = ..., last_update_time_unix: bool = ..., distance: bool = ..., certainty: bool = ..., score: bool = ..., explain_score: bool = ..., is_consistent: bool = ..., vectors: _Optional[_Iterable[str]] = ..., query_profile: bool = ...) -> None: ...
 
 class PropertiesRequest(_message.Message):
     __slots__ = ("non_ref_properties", "ref_properties", "object_properties", "return_all_nonref_properties")
@@ -154,18 +156,54 @@ class Rerank(_message.Message):
     def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
 
 class SearchReply(_message.Message):
-    __slots__ = ("took", "results", "generative_grouped_result", "group_by_results", "generative_grouped_results")
+    __slots__ = ("took", "results", "generative_grouped_result", "group_by_results", "generative_grouped_results", "query_profile")
     TOOK_FIELD_NUMBER: _ClassVar[int]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULT_FIELD_NUMBER: _ClassVar[int]
     GROUP_BY_RESULTS_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULTS_FIELD_NUMBER: _ClassVar[int]
+    QUERY_PROFILE_FIELD_NUMBER: _ClassVar[int]
     took: float
     results: _containers.RepeatedCompositeFieldContainer[SearchResult]
     generative_grouped_result: str
     group_by_results: _containers.RepeatedCompositeFieldContainer[GroupByResult]
     generative_grouped_results: _generative_pb2.GenerativeResult
-    def __init__(self, took: _Optional[float] = ..., results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., generative_grouped_result: _Optional[str] = ..., group_by_results: _Optional[_Iterable[_Union[GroupByResult, _Mapping]]] = ..., generative_grouped_results: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ...) -> None: ...
+    query_profile: QueryProfile
+    def __init__(self, took: _Optional[float] = ..., results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., generative_grouped_result: _Optional[str] = ..., group_by_results: _Optional[_Iterable[_Union[GroupByResult, _Mapping]]] = ..., generative_grouped_results: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ..., query_profile: _Optional[_Union[QueryProfile, _Mapping]] = ...) -> None: ...
+
+class QueryProfile(_message.Message):
+    __slots__ = ("shards",)
+    class SearchProfile(_message.Message):
+        __slots__ = ("details",)
+        class DetailsEntry(_message.Message):
+            __slots__ = ("key", "value")
+            KEY_FIELD_NUMBER: _ClassVar[int]
+            VALUE_FIELD_NUMBER: _ClassVar[int]
+            key: str
+            value: str
+            def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+        DETAILS_FIELD_NUMBER: _ClassVar[int]
+        details: _containers.ScalarMap[str, str]
+        def __init__(self, details: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    class ShardProfile(_message.Message):
+        __slots__ = ("name", "node", "searches")
+        class SearchesEntry(_message.Message):
+            __slots__ = ("key", "value")
+            KEY_FIELD_NUMBER: _ClassVar[int]
+            VALUE_FIELD_NUMBER: _ClassVar[int]
+            key: str
+            value: QueryProfile.SearchProfile
+            def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[QueryProfile.SearchProfile, _Mapping]] = ...) -> None: ...
+        NAME_FIELD_NUMBER: _ClassVar[int]
+        NODE_FIELD_NUMBER: _ClassVar[int]
+        SEARCHES_FIELD_NUMBER: _ClassVar[int]
+        name: str
+        node: str
+        searches: _containers.MessageMap[str, QueryProfile.SearchProfile]
+        def __init__(self, name: _Optional[str] = ..., node: _Optional[str] = ..., searches: _Optional[_Mapping[str, QueryProfile.SearchProfile]] = ...) -> None: ...
+    SHARDS_FIELD_NUMBER: _ClassVar[int]
+    shards: _containers.RepeatedCompositeFieldContainer[QueryProfile.ShardProfile]
+    def __init__(self, shards: _Optional[_Iterable[_Union[QueryProfile.ShardProfile, _Mapping]]] = ...) -> None: ...
 
 class RerankReply(_message.Message):
     __slots__ = ("score",)

@@ -5,6 +5,7 @@ from . import (
     batch,
     config,
     data,
+    export,
     generate,
     generics,
     init,
@@ -12,6 +13,7 @@ from . import (
     rbac,
     replication,
     tenants,
+    tokenization,
 )  # noqa: F401
 from .config import ConsistencyLevel
 
@@ -22,11 +24,13 @@ __all__ = [
     "config",
     "ConsistencyLevel",
     "data",
+    "export",
     "generate",
     "generics",
     "init",
     "query",
     "tenants",
+    "tokenization",
     "rbac",
     "replication",
 ]
