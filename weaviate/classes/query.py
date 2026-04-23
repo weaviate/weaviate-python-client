@@ -5,6 +5,7 @@ from weaviate.collections.classes.grpc import (
     BM25OperatorFactory as BM25Operator,
 )
 from weaviate.collections.classes.grpc import (
+    MMR,
     Diversity,
     GroupBy,
     HybridFusion,
@@ -31,6 +32,7 @@ __all__ = [
     "HybridFusion",
     "HybridVector",
     "BM25Operator",
+    "MMR",
     "MetadataQuery",
     "Metrics",
     "Move",

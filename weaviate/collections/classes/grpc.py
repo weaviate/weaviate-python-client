@@ -269,8 +269,13 @@ class Rerank(_WeaviateInput):
 
 
 @dataclass
-class _DiversityMMR:
-    """Define MMR (Maximal Marginal Relevance) diversity selection."""
+class MMR:
+    """Define MMR (Maximal Marginal Relevance) diversity selection.
+
+    Args:
+        limit: Optional number of candidates to consider for diversification.
+        balance: Optional MMR lambda in [0.0, 1.0] — 1.0 is pure relevance, 0.0 is pure diversity.
+    """
 
     limit: Optional[int] = None
     balance: Optional[float] = None
@@ -282,7 +287,7 @@ class Diversity:
     def __init__(self) -> None:
         raise TypeError("Diversity cannot be instantiated directly. Use Diversity.MMR(...).")
 
-    MMR = _DiversityMMR
+    MMR = MMR
 
 
 @dataclass

@@ -31,7 +31,7 @@ from weaviate.collections.classes.grpc import (
     QueryNested,
     Rerank,
     TargetVectorJoinType,
-    _DiversityMMR,
+    MMR,
     _MetadataQuery,
     _QueryReference,
     _QueryReferenceMultiTarget,
@@ -263,7 +263,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-        selection: Optional[_DiversityMMR] = None,
+        selection: Optional[MMR] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -298,7 +298,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-        selection: Optional[_DiversityMMR] = None,
+        selection: Optional[MMR] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -335,7 +335,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-        selection: Optional[_DiversityMMR] = None,
+        selection: Optional[MMR] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -377,7 +377,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-        selection: Optional[_DiversityMMR] = None,
+        selection: Optional[MMR] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,

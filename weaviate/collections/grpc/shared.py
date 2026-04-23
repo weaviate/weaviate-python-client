@@ -27,7 +27,7 @@ from weaviate.collections.classes.grpc import (
     PrimitiveVectorType,
     TargetVectorJoinType,
     TwoDimensionalVectorType,
-    _DiversityMMR,
+    MMR,
     _HybridNearText,
     _HybridNearVector,
     _ListOfVectorsQuery,
@@ -313,7 +313,7 @@ class _BaseGRPC:
 
     @staticmethod
     def _selection_to_grpc(
-        selection: Optional[_DiversityMMR],
+        selection: Optional[MMR],
     ) -> Optional[base_search_pb2.Selection]:
         if selection is None:
             return None
@@ -330,7 +330,7 @@ class _BaseGRPC:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
-        selection: Optional[_DiversityMMR] = None,
+        selection: Optional[MMR] = None,
     ) -> base_search_pb2.NearVector:
         if self._validate_arguments:
             _validate_input(
@@ -439,7 +439,7 @@ class _BaseGRPC:
         move_to: Optional[Move],
         move_away: Optional[Move],
         target_vector: Optional[TargetVectorJoinType],
-        selection: Optional[_DiversityMMR] = None,
+        selection: Optional[MMR] = None,
     ) -> base_search_pb2.NearTextSearch:
         if self._validate_arguments:
             _validate_input(
@@ -477,7 +477,7 @@ class _BaseGRPC:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
-        selection: Optional[_DiversityMMR] = None,
+        selection: Optional[MMR] = None,
     ) -> base_search_pb2.NearObject:
         if self._validate_arguments:
             _validate_input(
@@ -511,7 +511,7 @@ class _BaseGRPC:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
-        selection: Optional[_DiversityMMR] = None,
+        selection: Optional[MMR] = None,
     ) -> dict:
         if self._validate_arguments:
             _validate_input(
