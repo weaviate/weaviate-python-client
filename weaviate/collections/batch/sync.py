@@ -13,6 +13,7 @@ from weaviate.collections.batch.base import (
     ReferencesBatchRequest,
     _BatchDataWrapper,
     _BatchMode,
+    _BatchStreamRequest,
     _BgThreads,
     _ClusterBatch,
 )
@@ -64,7 +65,6 @@ class _BatchBaseSync:
 
         self.__connection = connection
         self.__is_gcp_on_wcd = connection._connection_params.is_gcp_on_wcd()
-        self.__stream_start: Optional[float] = None
         self.__is_renewing_stream = threading.Event()
         self.__consistency_level: ConsistencyLevel = consistency_level or ConsistencyLevel.QUORUM
         self.__batch_size = 100
@@ -96,7 +96,6 @@ class _BatchBaseSync:
         self.__oom_wait_time = 300
 
         self.__shutdown_loop = threading.Event()
-        self.__sent_sentinel = threading.Event()
 
         self.__objs_cache_lock = threading.Lock()
         self.__refs_cache_lock = threading.Lock()
@@ -109,7 +108,7 @@ class _BatchBaseSync:
 
         # maxsize=1 so that __loop does not run faster than generator for __recv
         # thereby using too much buffer in case of server-side shutdown
-        self.__reqs: Queue[Optional[batch_pb2.BatchStreamRequest]] = Queue(maxsize=1)
+        self.__reqs: Queue[Optional[_BatchStreamRequest]] = Queue(maxsize=1)
 
     @property
     def number_errors(self) -> int:
@@ -134,7 +133,14 @@ class _BatchBaseSync:
                 )
 
     def _wait(self) -> None:
-        self.__bg_threads.join()
+        # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
+        shutdown_timeout = self.__connection.timeout_config.insert + 5
+        try:
+            self.__bg_threads.join(shutdown_timeout)
+        except TimeoutError as e:
+            raise WeaviateBatchStreamError(
+                "Background batch threads did not terminate after forced shutdown."
+            ) from e
 
         # copy the results to the public results
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
@@ -149,6 +155,16 @@ class _BatchBaseSync:
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished
         self.__is_stopped.set()
+
+    def __put(self, req: _BatchStreamRequest | None):
+        while True:
+            try:
+                self.__reqs.put(req, timeout=1)
+                return True
+            except Full:
+                if self.__bg_exception is not None or self.__shutdown_loop.is_set():
+                    return False
+                return self.__put(req)
 
     def __loop(self) -> None:
         refresh_time: float = 0.01
@@ -191,30 +207,25 @@ class _BatchBaseSync:
                     if paused:
                         logger.info("Server is back up, resuming batching loop...")
                         paused = False
-                    try:
-                        self.__reqs.put(req, timeout=60)
-                    except Full as e:
-                        logger.warning(
-                            "Batch queue is blocked for more than 60 seconds. Exiting the loop"
-                        )
-                        self.__bg_exception = e
+                    if not self.__put(req):
+                        logger.info("Batch loop is shutting down, stopping putting requests...")
                         return
             elif (
                 self.__is_stopped.is_set()
-                and not self.__sent_sentinel.is_set()
                 and not self.__is_hungup.is_set()
                 and not self.__is_shutting_down.is_set()
                 and not self.__is_oom.is_set()
             ):
-                self.__reqs.put(None)
-                self.__sent_sentinel.set()
+                self.__put(None)
+                logger.info("Sent sentinel, stopping batch loop...")
+                return
             time.sleep(refresh_time)
 
     def __generate_stream_requests(
         self,
         objects: List[BatchObject],
         references: List[BatchReference],
-    ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
+    ) -> Generator[_BatchStreamRequest, None, None]:
         per_object_overhead = 4  # extra overhead bytes per object in the request
 
         def request_maker():
@@ -223,8 +234,7 @@ class _BatchBaseSync:
         request = request_maker()
         total_size = request.ByteSize()
 
-        inflight_objs = set()
-        inflight_refs = set()
+        uuids, beacons = set(), set()
         for object_ in objects:
             obj = self.__batch_grpc.grpc_object(object_._to_internal())
             obj_size = obj.ByteSize() + per_object_overhead
@@ -235,38 +245,35 @@ class _BatchBaseSync:
                 )
 
             if total_size + obj_size >= self.__batch_grpc.grpc_max_msg_size:
-                yield request
+                yield _BatchStreamRequest(request, uuids, beacons)
                 request = request_maker()
                 total_size = request.ByteSize()
+                uuids, beacons = set(), set()
 
             request.data.objects.values.append(obj)
             total_size += obj_size
-            inflight_objs.add(obj.uuid)
+            uuids.add(obj.uuid)
 
         for reference in references:
             ref = self.__batch_grpc.grpc_reference(reference._to_internal())
             ref_size = ref.ByteSize() + per_object_overhead
 
             if total_size + ref_size >= self.__batch_grpc.grpc_max_msg_size:
-                yield request
+                yield _BatchStreamRequest(request, uuids, beacons)
                 request = request_maker()
                 total_size = request.ByteSize()
+                uuids, beacons = set(), set()
 
             request.data.references.values.append(ref)
             total_size += ref_size
-            inflight_refs.add(reference._to_beacon())
-
-        with self.__acks_lock:
-            self.__inflight_objs.update(inflight_objs)
-            self.__inflight_refs.update(inflight_refs)
+            beacons.add(reference._to_beacon())
 
         if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
-            yield request
+            yield _BatchStreamRequest(request, uuids, beacons)
 
     def __send(
         self,
     ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
-        self.__sent_sentinel.clear()
         yield batch_pb2.BatchStreamRequest(
             start=batch_pb2.BatchStreamRequest.Start(
                 consistency_level=self.__batch_grpc._consistency_level,
@@ -291,7 +298,10 @@ class _BatchBaseSync:
                     )
                     yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     return
-                yield req
+                with self.__acks_lock:
+                    self.__inflight_objs.update(req.uuids)
+                    self.__inflight_refs.update(req.beacons)
+                yield req.proto
                 continue
             except Empty:
                 if self.__is_shutting_down.is_set():
@@ -303,18 +313,19 @@ class _BatchBaseSync:
                 elif self.__is_hungup.is_set():
                     logger.info("Detected hung up stream, closing the client-side of the stream")
                     return
-                logger.info("Timed out getting request from queue, but not stopping, continuing...")
+                logger.debug(
+                    "Timed out getting request from queue, but not stopping, continuing..."
+                )
         logger.info("Batch send thread exiting due to exception...")
 
     def __recv(self) -> None:
-        stream = self.__batch_grpc.stream(
-            connection=self.__connection,
-            requests=self.__send(),
-        )
         self.__is_renewing_stream.clear()
         self.__is_shutting_down.clear()
         self.__is_hungup.clear()
-        for message in stream:
+        for message in self.__batch_grpc.stream(
+            connection=self.__connection,
+            requests=self.__send(),
+        ):
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
 
@@ -513,6 +524,8 @@ class _BatchBaseSync:
                     self.__batch_objects.prepend(list(self.__objs_cache.values()))
                 with self.__refs_cache_lock:
                     self.__batch_references.prepend(list(self.__refs_cache.values()))
+                self.__inflight_objs.clear()
+                self.__inflight_refs.clear()
                 # start a new stream with a newly reconnected channel
                 return recv_wrapper()
 
@@ -614,6 +627,7 @@ class _BatchBaseSync:
                 self.__refs_cache[batch_reference._to_beacon()] = batch_reference
                 self.__refs_count += 1
             while self.__is_blocked():
+                logger.warning("Batch is blocked, waiting to add more references...")
                 self.__check_bg_threads_alive()
                 time.sleep(0.01)
 

@@ -410,6 +410,7 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
         assert ret_obj.references["test"].objects[0].uuid == obj[0]
 
 
+@pytest.mark.timeout(600)
 @pytest.mark.parametrize(
     "batching_method",
     [
@@ -717,6 +718,7 @@ def test_non_existant_collection(client_factory: ClientFactory) -> None:
     # not, so we do not check for errors here
 
 
+@pytest.mark.timeout(60)
 def test_number_of_stored_results_in_batch(client_factory: ClientFactory) -> None:
     client, name = client_factory()
     with client.batch.dynamic() as batch:
@@ -816,6 +818,7 @@ def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(60)
 async def test_add_one_hundred_thousand_objects_async_client(
     async_client_factory: AsyncClientFactory,
 ) -> None:
@@ -846,6 +849,7 @@ async def test_add_one_hundred_thousand_objects_async_client(
     await client.collections.delete(name)
 
 
+@pytest.mark.timeout(60)
 def test_add_one_hundred_thousand_objects_sync_client(
     client_factory: ClientFactory,
 ) -> None:

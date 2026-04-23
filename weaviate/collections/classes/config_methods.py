@@ -14,6 +14,7 @@ from weaviate.collections.classes.config import (
     VectorFilterStrategy,
     VectorIndexType,
     Vectorizers,
+    _AsyncReplicationConfig,
     _BM25Config,
     _BQConfig,
     _CollectionConfig,
@@ -38,6 +39,7 @@ from weaviate.collections.classes.config import (
     _ShardingConfig,
     _SQConfig,
     _StopwordsConfig,
+    _TextAnalyzerConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHFresh,
@@ -355,6 +357,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 additions=schema["invertedIndexConfig"]["stopwords"]["additions"],
                 removals=schema["invertedIndexConfig"]["stopwords"]["removals"],
             ),
+            stopword_presets=schema["invertedIndexConfig"].get("stopwordPresets"),
         ),
         multi_tenancy_config=_MultiTenancyConfig(
             enabled=schema.get("multiTenancyConfig", {}).get("enabled", False),
@@ -379,6 +382,26 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 ReplicationDeletionStrategy(schema["replicationConfig"]["deletionStrategy"])
                 if "deletionStrategy" in schema["replicationConfig"]
                 else ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
+            ),
+            async_config=(
+                _AsyncReplicationConfig(
+                    max_workers=async_cfg.get("maxWorkers"),
+                    hashtree_height=async_cfg.get("hashtreeHeight"),
+                    frequency=async_cfg.get("frequency"),
+                    frequency_while_propagating=async_cfg.get("frequencyWhilePropagating"),
+                    alive_nodes_checking_frequency=async_cfg.get("aliveNodesCheckingFrequency"),
+                    logging_frequency=async_cfg.get("loggingFrequency"),
+                    diff_batch_size=async_cfg.get("diffBatchSize"),
+                    diff_per_node_timeout=async_cfg.get("diffPerNodeTimeout"),
+                    pre_propagation_timeout=async_cfg.get("prePropagationTimeout"),
+                    propagation_timeout=async_cfg.get("propagationTimeout"),
+                    propagation_limit=async_cfg.get("propagationLimit"),
+                    propagation_delay=async_cfg.get("propagationDelay"),
+                    propagation_concurrency=async_cfg.get("propagationConcurrency"),
+                    propagation_batch_size=async_cfg.get("propagationBatchSize"),
+                )
+                if (async_cfg := schema["replicationConfig"].get("asyncConfig"))
+                else None
             ),
         ),
         reranker_config=__get_rerank_config(schema),
@@ -441,6 +464,21 @@ def _collection_configs_simple_from_json(
     return dict(sorted(configs.items()))
 
 
+def _text_analyzer_from_config(prop: Dict[str, Any]) -> Optional[_TextAnalyzerConfig]:
+    ta = prop.get("textAnalyzer")
+    if ta is None:
+        return None
+    # The server normalizes an empty TextAnalyzer to nil (see usecases/schema/validation.go),
+    # so the only meaningful signal is the presence of one of the configured fields.
+    if "asciiFold" not in ta and "stopwordPreset" not in ta:
+        return None
+    return _TextAnalyzerConfig(
+        ascii_fold=ta.get("asciiFold", False),
+        ascii_fold_ignore=ta.get("asciiFoldIgnore"),
+        stopword_preset=ta.get("stopwordPreset"),
+    )
+
+
 def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedProperty]:
     return [
         _NestedProperty(
@@ -454,6 +492,7 @@ def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedP
                 if prop.get("nestedProperties") is not None
                 else None
             ),
+            text_analyzer=_text_analyzer_from_config(prop),
             tokenization=(
                 Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
             ),
@@ -476,6 +515,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 if prop.get("nestedProperties") is not None
                 else None
             ),
+            text_analyzer=_text_analyzer_from_config(prop),
             tokenization=(
                 Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
             ),

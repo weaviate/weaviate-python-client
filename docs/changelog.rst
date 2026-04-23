@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 4.20.5
+--------------
+This patch version includes:
+    - Fix objectTTL config export
+    - Add support for audio modality in multi2vec-google
+    - Export FilterReturn from weaviate.classes.query
+    - Fix updating async replication config
+    - Remove unmaintained ``deprecated`` dependency
+    - Throw exception on empty time filters
+
 Version 4.20.4
 --------------
 This patch version includes:
