@@ -1,7 +1,7 @@
 import pytest
 
 from integration.conftest import CollectionFactory
-from weaviate.classes.query import DiversitySelection
+from weaviate.classes.query import DiversitySelection, HybridVector
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 
@@ -120,6 +120,43 @@ def test_near_text_diversity(collection_factory: CollectionFactory) -> None:
         diversity_selection=DiversitySelection.mmr(limit=3, balance=0.0),
     )
     assert len(result.objects) == 3
+
+
+def test_near_vector_balance_0_differs_from_balance_1(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Test that MMR balance=0 (pure diversity) produces a different ordering than balance=1."""
+    collection = _create_clustered_collection(collection_factory)
+    balance_0 = collection.query.near_vector(
+        near_vector=[1.0, 0.0, 0.0],
+        diversity_selection=DiversitySelection.mmr(limit=3, balance=0.0),
+    ).objects
+    balance_1 = collection.query.near_vector(
+        near_vector=[1.0, 0.0, 0.0],
+        diversity_selection=DiversitySelection.mmr(limit=3, balance=1.0),
+    ).objects
+    assert [o.uuid for o in balance_0] != [o.uuid for o in balance_1]
+
+
+def test_hybrid_near_vector_balance_1_matches_baseline(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Test that hybrid near-vector with MMR balance=1 (pure relevance) matches baseline."""
+    collection = _create_clustered_collection(collection_factory)
+    baseline = collection.query.hybrid(
+        query=None,
+        vector=HybridVector.near_vector(vector=[1.0, 0.0, 0.0]),
+        limit=3,
+    ).objects
+    mmr_balance_1 = collection.query.hybrid(
+        query=None,
+        vector=HybridVector.near_vector(
+            vector=[1.0, 0.0, 0.0],
+            diversity_selection=DiversitySelection.mmr(limit=3, balance=1.0),
+        ),
+        limit=3,
+    ).objects
+    assert [o.uuid for o in baseline] == [o.uuid for o in mmr_balance_1]
 
 
 def test_near_text_generate_diversity(collection_factory: CollectionFactory) -> None:
