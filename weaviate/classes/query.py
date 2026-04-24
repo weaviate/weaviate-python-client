@@ -6,7 +6,7 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.grpc import (
     MMR,
-    Diversity,
+    DiversitySelection,
     GroupBy,
     HybridFusion,
     HybridVector,
@@ -23,7 +23,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.types import GeoCoordinate
 
 __all__ = [
-    "Diversity",
+    "DiversitySelection",
     "Filter",
     "FilterReturn",
     "GeoCoordinate",
