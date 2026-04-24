@@ -5,8 +5,7 @@ from weaviate.collections.classes.grpc import (
     BM25OperatorFactory as BM25Operator,
 )
 from weaviate.collections.classes.grpc import (
-    MMR,
-    DiversitySelection,
+    Diversity,
     GroupBy,
     HybridFusion,
     HybridVector,
@@ -23,7 +22,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.types import GeoCoordinate
 
 __all__ = [
-    "DiversitySelection",
+    "Diversity",
     "Filter",
     "FilterReturn",
     "GeoCoordinate",
@@ -32,7 +31,6 @@ __all__ = [
     "HybridFusion",
     "HybridVector",
     "BM25Operator",
-    "MMR",
     "MetadataQuery",
     "Metrics",
     "Move",

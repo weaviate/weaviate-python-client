@@ -1,7 +1,7 @@
 import pytest
 
 from integration.conftest import CollectionFactory
-from weaviate.classes.query import DiversitySelection
+from weaviate.classes.query import Diversity
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 
@@ -27,83 +27,34 @@ def _create_clustered_collection(collection_factory: CollectionFactory):
     return collection
 
 
-def test_near_vector_diversity_pure_relevance(
-    collection_factory: CollectionFactory,
-) -> None:
-    """balance=1.0 -> MMR degenerates to pure relevance (same as no diversity)."""
-    collection = _create_clustered_collection(collection_factory)
+def test_near_vector_diversity_selection(collection_factory: CollectionFactory) -> None:
+    """Verify that the client passes diversity_selection to the server correctly.
 
-    baseline = collection.query.near_vector(near_vector=[1.0, 0.0, 0.0], limit=3).objects
-    diverse = collection.query.near_vector(
+    Two orthogonal assertions — server-side logic (MMR itself) is out of scope:
+    - ``balance`` reaches the server: balance=0.0 produces a different UUID ordering than balance=1.0
+    - ``limit`` reaches the server: len(result) == mmr_limit
+    """
+    collection = _create_clustered_collection(collection_factory)
+    mmr_limit = 3
+
+    balance_0 = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
-        diversity_selection=DiversitySelection.mmr(limit=3, balance=1.0),
+        diversity_selection=Diversity.mmr(limit=mmr_limit, balance=0.0),
+    ).objects
+    balance_1 = collection.query.near_vector(
+        near_vector=[1.0, 0.0, 0.0],
+        diversity_selection=Diversity.mmr(limit=mmr_limit, balance=1.0),
     ).objects
 
-    assert [o.properties["text"] for o in baseline] == [o.properties["text"] for o in diverse]
+    # mmr_limit reaches the server → result count equals it
+    assert len(balance_0) == mmr_limit
+    assert len(balance_1) == mmr_limit
+    # balance reaches the server → different ordering
+    assert [o.uuid for o in balance_0] != [o.uuid for o in balance_1]
 
 
-def test_near_vector_diversity_pure_diversity(
-    collection_factory: CollectionFactory,
-) -> None:
-    """balance=0.0 -> MMR picks maximally diverse results (one per cluster)."""
-    collection = _create_clustered_collection(collection_factory)
-
-    result = collection.query.near_vector(
-        near_vector=[1.0, 0.0, 0.0],
-        diversity_selection=DiversitySelection.mmr(limit=3, balance=0.0),
-    )
-    texts = {o.properties["text"] for o in result.objects}
-    assert len(texts) == 3
-    # Pure diversity should pick one from each cluster (a*, b*, c*)
-    clusters = {t[0] for t in texts}
-    assert clusters == {"a", "b", "c"}
-
-
-def test_near_vector_diversity_with_mmr_class(
-    collection_factory: CollectionFactory,
-) -> None:
-    """Direct MMR class construction (DiversitySelection.MMR) also works, not just the factory."""
-    collection = _create_clustered_collection(collection_factory)
-    result = collection.query.near_vector(
-        near_vector=[1.0, 0.0, 0.0],
-        diversity_selection=DiversitySelection.MMR(limit=3, balance=0.0),
-    )
-    clusters = {o.properties["text"][0] for o in result.objects}
-    assert clusters == {"a", "b", "c"}
-
-
-def test_near_object_diversity(collection_factory: CollectionFactory) -> None:
-    """near_object supports diversity selection."""
-    collection = _create_clustered_collection(collection_factory)
-    anchor = next(iter(collection.query.fetch_objects().objects)).uuid
-
-    result = collection.query.near_object(
-        near_object=anchor,
-        diversity_selection=DiversitySelection.mmr(limit=3, balance=0.0),
-    )
-    assert len(result.objects) == 3
-    clusters = {o.properties["text"][0] for o in result.objects}
-    assert len(clusters) == 3
-
-
-def test_diversity_cannot_be_instantiated() -> None:
-    """Test that direct instantiation of the DiversitySelection factory fails."""
-    with pytest.raises(TypeError):
-        DiversitySelection()
-
-
-def test_diversity_mmr_only_limit(collection_factory: CollectionFactory) -> None:
-    """MMR accepts just a limit (balance defaults to server-side value)."""
-    collection = _create_clustered_collection(collection_factory)
-    result = collection.query.near_vector(
-        near_vector=[1.0, 0.0, 0.0],
-        diversity_selection=DiversitySelection.mmr(limit=2),
-    )
-    assert len(result.objects) == 2
-
-
-def test_near_text_diversity(collection_factory: CollectionFactory) -> None:
-    """near_text supports diversity selection via text2vec-contextionary."""
+def test_near_text_diversity_selection(collection_factory: CollectionFactory) -> None:
+    """Smoke test: diversity_selection kwarg is wired through the near_text entry point."""
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
@@ -117,29 +68,25 @@ def test_near_text_diversity(collection_factory: CollectionFactory) -> None:
 
     result = collection.query.near_text(
         query="fruit",
-        diversity_selection=DiversitySelection.mmr(limit=3, balance=0.0),
+        diversity_selection=Diversity.mmr(limit=3, balance=0.5),
     )
     assert len(result.objects) == 3
 
 
-def test_near_vector_balance_0_differs_from_balance_1(
-    collection_factory: CollectionFactory,
-) -> None:
-    """Test that MMR balance=0 (pure diversity) produces a different ordering than balance=1."""
+def test_near_object_diversity_selection(collection_factory: CollectionFactory) -> None:
+    """Smoke test: diversity_selection kwarg is wired through the near_object entry point."""
     collection = _create_clustered_collection(collection_factory)
-    balance_0 = collection.query.near_vector(
-        near_vector=[1.0, 0.0, 0.0],
-        diversity_selection=DiversitySelection.mmr(limit=3, balance=0.0),
-    ).objects
-    balance_1 = collection.query.near_vector(
-        near_vector=[1.0, 0.0, 0.0],
-        diversity_selection=DiversitySelection.mmr(limit=3, balance=1.0),
-    ).objects
-    assert [o.uuid for o in balance_0] != [o.uuid for o in balance_1]
+    anchor = next(iter(collection.query.fetch_objects().objects)).uuid
+
+    result = collection.query.near_object(
+        near_object=anchor,
+        diversity_selection=Diversity.mmr(limit=3, balance=0.5),
+    )
+    assert len(result.objects) == 3
 
 
-def test_near_text_generate_diversity(collection_factory: CollectionFactory) -> None:
-    """Generate namespace (collection.generate.near_text) also supports diversity selection."""
+def test_generate_diversity_selection(collection_factory: CollectionFactory) -> None:
+    """Smoke test: diversity_selection kwarg is wired through the .generate namespace."""
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
@@ -155,6 +102,16 @@ def test_near_text_generate_diversity(collection_factory: CollectionFactory) -> 
     result = collection.generate.near_text(
         query="fruit",
         single_prompt="Describe {name}",
-        diversity_selection=DiversitySelection.mmr(limit=3, balance=0.0),
+        diversity_selection=Diversity.mmr(limit=3, balance=0.5),
     )
     assert len(result.objects) == 3
+
+
+def test_diversity_selection_api_surface() -> None:
+    """Test the public API surface of Diversity: factory guard + mmr factory method."""
+    # Direct instantiation of the factory class fails
+    with pytest.raises(TypeError):
+        Diversity()
+
+    # Diversity.mmr() produces an MMR-configured selection object
+    assert Diversity.mmr(limit=3, balance=0.5).limit == 3
