@@ -17,6 +17,7 @@ from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
+    MMR,
     BM25OperatorOptions,
     BM25OperatorOr,
     HybridFusion,
@@ -27,7 +28,6 @@ from weaviate.collections.classes.grpc import (
     PrimitiveVectorType,
     TargetVectorJoinType,
     TwoDimensionalVectorType,
-    MMR,
     _HybridNearText,
     _HybridNearVector,
     _ListOfVectorsQuery,
@@ -312,15 +312,15 @@ class _BaseGRPC:
         )
 
     @staticmethod
-    def _selection_to_grpc(
-        selection: Optional[MMR],
+    def _diversity_selection_to_grpc(
+        diversity_selection: Optional[MMR],
     ) -> Optional[base_search_pb2.Selection]:
-        if selection is None:
+        if diversity_selection is None:
             return None
         return base_search_pb2.Selection(
             mmr=base_search_pb2.Selection.MMR(
-                limit=selection.limit,
-                balance=selection.balance,
+                limit=diversity_selection.limit,
+                balance=diversity_selection.balance,
             )
         )
 
@@ -330,7 +330,7 @@ class _BaseGRPC:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
-        selection: Optional[MMR] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> base_search_pb2.NearVector:
         if self._validate_arguments:
             _validate_input(
@@ -414,7 +414,7 @@ class _BaseGRPC:
             vector_per_target=vector_per_target_tmp,
             vector_for_targets=vector_for_targets,
             vectors=vectors,
-            selection=self._selection_to_grpc(selection),
+            selection=self._diversity_selection_to_grpc(diversity_selection),
         )
 
     @staticmethod
@@ -439,7 +439,7 @@ class _BaseGRPC:
         move_to: Optional[Move],
         move_away: Optional[Move],
         target_vector: Optional[TargetVectorJoinType],
-        selection: Optional[MMR] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> base_search_pb2.NearTextSearch:
         if self._validate_arguments:
             _validate_input(
@@ -468,7 +468,7 @@ class _BaseGRPC:
             move_to=self.__parse_move(move_to),
             targets=targets,
             target_vectors=target_vector,
-            selection=self._selection_to_grpc(selection),
+            selection=self._diversity_selection_to_grpc(diversity_selection),
         )
 
     def _parse_near_object(
@@ -477,7 +477,7 @@ class _BaseGRPC:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
-        selection: Optional[MMR] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> base_search_pb2.NearObject:
         if self._validate_arguments:
             _validate_input(
@@ -501,7 +501,7 @@ class _BaseGRPC:
             distance=distance,
             targets=targets,
             target_vectors=target_vector,
-            selection=self._selection_to_grpc(selection),
+            selection=self._diversity_selection_to_grpc(diversity_selection),
         )
 
     def _parse_media(
@@ -511,7 +511,7 @@ class _BaseGRPC:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
-        selection: Optional[MMR] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> dict:
         if self._validate_arguments:
             _validate_input(
@@ -529,7 +529,7 @@ class _BaseGRPC:
 
         kwargs: Dict[str, Any] = {}
         targets, target_vector = self.__target_vector_to_grpc(target_vector)
-        selection_grpc = self._selection_to_grpc(selection)
+        selection_grpc = self._diversity_selection_to_grpc(diversity_selection)
         if type_ == "audio":
             kwargs["near_audio"] = base_search_pb2.NearAudioSearch(
                 audio=media,

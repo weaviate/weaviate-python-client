@@ -285,9 +285,19 @@ class Diversity:
     """Use this factory class to apply diversity selection to search results via MMR."""
 
     def __init__(self) -> None:
-        raise TypeError("Diversity cannot be instantiated directly. Use Diversity.MMR(...).")
+        raise TypeError("Diversity cannot be instantiated directly. Use Diversity.mmr(...).")
 
     MMR = MMR
+
+    @staticmethod
+    def mmr(limit: Optional[int] = None, balance: Optional[float] = None) -> MMR:
+        """Maximal Marginal Relevance diversity selection.
+
+        Args:
+            limit: Number of candidates to consider for diversification.
+            balance: MMR lambda in [0.0, 1.0] — 1.0 pure relevance, 0.0 pure diversity.
+        """
+        return MMR(limit=limit, balance=balance)
 
 
 @dataclass

@@ -5,13 +5,13 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import (
     METADATA,
+    MMR,
     PROPERTIES,
     REFERENCES,
     GroupBy,
     NearVectorInputType,
     Rerank,
     TargetVectorJoinType,
-    MMR,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -52,12 +52,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
     @overload
@@ -73,12 +73,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -94,12 +94,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
     @overload
@@ -115,12 +115,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[TProperties, References]]: ...
 
     @overload
@@ -136,12 +136,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -157,12 +157,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[TProperties, TReferences]]: ...
 
     ### GroupBy ###
@@ -180,12 +180,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[Properties, References]]: ...
 
     @overload
@@ -201,12 +201,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -222,12 +222,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[Properties, TReferences]]: ...
 
     @overload
@@ -243,12 +243,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[TProperties, References]]: ...
 
     @overload
@@ -264,12 +264,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -285,12 +285,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[TProperties, TReferences]]: ...
 
     ### DEFAULT ###
@@ -307,12 +307,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[
         QuerySearchReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -329,12 +329,12 @@ class _NearVectorQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
         """Search for objects by vector in this collection using and vector-based similarity search.
 
@@ -355,6 +355,7 @@ class _NearVectorQueryExecutor(
             return_metadata: The metadata to return for each object, defaults to `None`.
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
+            diversity_selection: Apply diversity selection (e.g. MMR) to the results. Requires Weaviate >= 1.37.0.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -398,7 +399,7 @@ class _NearVectorQueryExecutor(
             offset=offset,
             autocut=auto_limit,
             rerank=rerank,
-            selection=selection,
+            diversity_selection=diversity_selection,
             target_vector=target_vector,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),

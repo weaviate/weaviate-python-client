@@ -36,7 +36,7 @@ def test_near_vector_diversity_pure_relevance(
     baseline = collection.query.near_vector(near_vector=[1.0, 0.0, 0.0], limit=3).objects
     diverse = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
-        selection=Diversity.MMR(limit=3, balance=1.0),
+        diversity_selection=Diversity.mmr(limit=3, balance=1.0),
     ).objects
 
     assert [o.properties["text"] for o in baseline] == [o.properties["text"] for o in diverse]
@@ -50,12 +50,25 @@ def test_near_vector_diversity_pure_diversity(
 
     result = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
-        selection=Diversity.MMR(limit=3, balance=0.0),
+        diversity_selection=Diversity.mmr(limit=3, balance=0.0),
     )
     texts = {o.properties["text"] for o in result.objects}
     assert len(texts) == 3
     # Pure diversity should pick one from each cluster (a*, b*, c*)
     clusters = {t[0] for t in texts}
+    assert clusters == {"a", "b", "c"}
+
+
+def test_near_vector_diversity_with_mmr_class(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Direct MMR class construction (Diversity.MMR) also works, not just the factory."""
+    collection = _create_clustered_collection(collection_factory)
+    result = collection.query.near_vector(
+        near_vector=[1.0, 0.0, 0.0],
+        diversity_selection=Diversity.MMR(limit=3, balance=0.0),
+    )
+    clusters = {o.properties["text"][0] for o in result.objects}
     assert clusters == {"a", "b", "c"}
 
 
@@ -66,7 +79,7 @@ def test_near_object_diversity(collection_factory: CollectionFactory) -> None:
 
     result = collection.query.near_object(
         near_object=anchor,
-        selection=Diversity.MMR(limit=3, balance=0.0),
+        diversity_selection=Diversity.mmr(limit=3, balance=0.0),
     )
     assert len(result.objects) == 3
     clusters = {o.properties["text"][0] for o in result.objects}
@@ -84,7 +97,7 @@ def test_diversity_mmr_only_limit(collection_factory: CollectionFactory) -> None
     collection = _create_clustered_collection(collection_factory)
     result = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
-        selection=Diversity.MMR(limit=2),
+        diversity_selection=Diversity.mmr(limit=2),
     )
     assert len(result.objects) == 2
 
@@ -104,6 +117,28 @@ def test_near_text_diversity(collection_factory: CollectionFactory) -> None:
 
     result = collection.query.near_text(
         query="fruit",
-        selection=Diversity.MMR(limit=3, balance=0.0),
+        diversity_selection=Diversity.mmr(limit=3, balance=0.0),
+    )
+    assert len(result.objects) == 3
+
+
+def test_near_text_generate_diversity(collection_factory: CollectionFactory) -> None:
+    """Generate namespace (collection.generate.near_text) also supports diversity selection."""
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+        generative_config=Configure.Generative.custom("generative-dummy"),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("Diversity selection requires Weaviate >= 1.37.0")
+    for name in ["banana", "apple", "orange", "car", "truck", "bike"]:
+        collection.data.insert({"name": name})
+
+    result = collection.generate.near_text(
+        query="fruit",
+        single_prompt="Describe {name}",
+        diversity_selection=Diversity.mmr(limit=3, balance=0.0),
     )
     assert len(result.objects) == 3
