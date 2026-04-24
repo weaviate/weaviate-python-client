@@ -87,7 +87,7 @@ def test_near_object_diversity(collection_factory: CollectionFactory) -> None:
 
 
 def test_diversity_cannot_be_instantiated() -> None:
-    """DiversitySelection is a factory — direct instantiation should fail."""
+    """Test that direct instantiation of the DiversitySelection factory fails."""
     with pytest.raises(TypeError):
         DiversitySelection()
 
