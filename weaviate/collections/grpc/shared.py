@@ -659,7 +659,6 @@ class _BaseGRPC:
                 distance=vector.distance,
                 move_away=self.__parse_move(vector.move_away),
                 move_to=self.__parse_move(vector.move_to),
-                selection=self._diversity_selection_to_grpc(vector.diversity_selection),
             )
         elif isinstance(vector, _HybridNearVector):
             if self._weaviate_version.is_lower_than(1, 27, 0):
@@ -685,7 +684,6 @@ class _BaseGRPC:
                 distance=vector.distance,
                 vector_per_target=vector_per_target_tmp,
                 vector_for_targets=vector_for_targets_tmp,
-                selection=self._diversity_selection_to_grpc(vector.diversity_selection),
             )
         else:
             if self._weaviate_version.is_lower_than(1, 27, 0):

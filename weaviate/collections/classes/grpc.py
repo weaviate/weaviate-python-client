@@ -419,7 +419,6 @@ class _HybridNearBase(_WeaviateInput):
 
     distance: Optional[float] = None
     certainty: Optional[float] = None
-    diversity_selection: Optional[MMR] = None
 
 
 class _HybridNearText(_HybridNearBase):
@@ -432,7 +431,6 @@ class _HybridNearVector:  # can't be a Pydantic model because of validation issu
     vector: NearVectorInputType
     distance: Optional[float]
     certainty: Optional[float]
-    diversity_selection: Optional[MMR]
 
     def __init__(
         self,
@@ -440,12 +438,10 @@ class _HybridNearVector:  # can't be a Pydantic model because of validation issu
         vector: NearVectorInputType,
         distance: Optional[float] = None,
         certainty: Optional[float] = None,
-        diversity_selection: Optional[MMR] = None,
     ) -> None:
         self.vector = vector
         self.distance = distance
         self.certainty = certainty
-        self.diversity_selection = diversity_selection
 
 
 HybridVectorType = Union[NearVectorInputType, _HybridNearText, _HybridNearVector]
@@ -560,7 +556,6 @@ class HybridVector:
         distance: Optional[float] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
-        diversity_selection: Optional[MMR] = None,
     ) -> _HybridNearText:
         """Define a near text search to be used within a hybrid query.
 
@@ -570,7 +565,6 @@ class HybridVector:
             distance: The maximum distance to search. If not specified, the default distance specified by the server is used.
             move_to: Define the concepts that should be moved towards in the vector space during the search.
             move_away: Define the concepts that should be moved away from in the vector space during the search.
-            diversity_selection: Apply diversity selection (e.g. MMR) to the vector sub-query's results. Requires Weaviate >= 1.37.0.
 
         Returns:
             A `_HybridNearText` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
@@ -581,7 +575,6 @@ class HybridVector:
             certainty=certainty,
             move_to=move_to,
             move_away=move_away,
-            diversity_selection=diversity_selection,
         )
 
     @staticmethod
@@ -590,14 +583,12 @@ class HybridVector:
         *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
-        diversity_selection: Optional[MMR] = None,
     ) -> _HybridNearVector:
         """Define a near vector search to be used within a hybrid query.
 
         Args:
             certainty: The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             distance: The maximum distance to search. If not specified, the default distance specified by the server is used.
-            diversity_selection: Apply diversity selection (e.g. MMR) to the vector sub-query's results. Requires Weaviate >= 1.37.0.
 
         Returns:
             A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
@@ -606,7 +597,6 @@ class HybridVector:
             vector=vector,
             distance=distance,
             certainty=certainty,
-            diversity_selection=diversity_selection,
         )
 
 
