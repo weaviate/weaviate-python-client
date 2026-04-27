@@ -7,6 +7,7 @@ from weaviate.collections.classes.filters import (
     FilterReturn,
 )
 from weaviate.collections.classes.grpc import (
+    MMR,
     BM25OperatorAnd,
     BM25OperatorOr,
     ListOfVectorsQuery,
@@ -63,6 +64,7 @@ __all__ = [
     "BM25OperatorAnd",
     "BM25OperatorOr",
     "ListOfVectorsQuery",
+    "MMR",
     "MetadataReturn",
     "MetadataSingleObjectReturn",
     "NearVectorInputType",

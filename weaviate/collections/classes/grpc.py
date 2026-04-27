@@ -269,6 +269,36 @@ class Rerank(_WeaviateInput):
 
 
 @dataclass
+class MMR:
+    """Define MMR (Maximal Marginal Relevance) diversity selection.
+
+    Args:
+        limit: Optional number of candidates to consider for diversification.
+        balance: Optional MMR lambda in [0.0, 1.0] — 1.0 is pure relevance, 0.0 is pure diversity.
+    """
+
+    limit: Optional[int] = None
+    balance: Optional[float] = None
+
+
+class Diversity:
+    """Use this factory class to apply diversity selection to search results via MMR."""
+
+    def __init__(self) -> None:
+        raise TypeError("Diversity cannot be instantiated directly. Use Diversity.mmr(...).")
+
+    @staticmethod
+    def mmr(limit: Optional[int] = None, balance: Optional[float] = None) -> MMR:
+        """Maximal Marginal Relevance diversity selection.
+
+        Args:
+            limit: Number of candidates to consider for diversification.
+            balance: MMR lambda in [0.0, 1.0] — 1.0 pure relevance, 0.0 pure diversity.
+        """
+        return MMR(limit=limit, balance=balance)
+
+
+@dataclass
 class BM25OperatorOptions:
     # replace with ClassVar[base_search_pb2.SearchOperatorOptions.Operator] once python 3.10 is removed
     operator: ClassVar[Any]
@@ -559,7 +589,11 @@ class HybridVector:
         Returns:
             A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
         """
-        return _HybridNearVector(vector=vector, distance=distance, certainty=certainty)
+        return _HybridNearVector(
+            vector=vector,
+            distance=distance,
+            certainty=certainty,
+        )
 
 
 class _QueryReference(_WeaviateInput):

@@ -3,6 +3,7 @@ from typing import Generic, List, Literal, Optional, Type, Union, overload
 from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import (
     METADATA,
+    MMR,
     PROPERTIES,
     REFERENCES,
     GroupBy,
@@ -53,6 +54,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeReturn[Properties, References]: ...
     @overload
     def near_vector(
@@ -76,6 +78,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeReturn[Properties, CrossReferences]: ...
     @overload
     def near_vector(
@@ -99,6 +102,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeReturn[Properties, TReferences]: ...
     @overload
     def near_vector(
@@ -122,6 +126,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeReturn[TProperties, References]: ...
     @overload
     def near_vector(
@@ -145,6 +150,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeReturn[TProperties, CrossReferences]: ...
     @overload
     def near_vector(
@@ -168,6 +174,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeReturn[TProperties, TReferences]: ...
     @overload
     def near_vector(
@@ -191,6 +198,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeGroupByReturn[Properties, References]: ...
     @overload
     def near_vector(
@@ -214,6 +222,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeGroupByReturn[Properties, CrossReferences]: ...
     @overload
     def near_vector(
@@ -237,6 +246,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeGroupByReturn[Properties, TReferences]: ...
     @overload
     def near_vector(
@@ -260,6 +270,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeGroupByReturn[TProperties, References]: ...
     @overload
     def near_vector(
@@ -283,6 +294,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeGroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def near_vector(
@@ -306,6 +318,7 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeGroupByReturn[TProperties, TReferences]: ...
     @overload
     def near_vector(
@@ -329,4 +342,5 @@ class _NearVectorGenerate(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...
