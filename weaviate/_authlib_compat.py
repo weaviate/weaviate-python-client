@@ -11,4 +11,8 @@ import warnings
 
 from authlib.deprecate import AuthlibDeprecationWarning
 
-warnings.filterwarnings("ignore", category=AuthlibDeprecationWarning)
+warnings.filterwarnings(
+    "ignore",
+    message=r"^authlib\.jose module is deprecated",
+    category=AuthlibDeprecationWarning,
+)
