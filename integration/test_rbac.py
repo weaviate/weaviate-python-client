@@ -3,7 +3,12 @@ from typing import List, Optional
 import pytest
 from _pytest.fixtures import SubRequest
 
-from integration.conftest import ClientFactory, _sanitize_collection_name
+from integration.conftest import (
+    _DEFAULT_RBAC_HOST,
+    _DEFAULT_RBAC_PORTS,
+    ClientFactory,
+    _sanitize_collection_name,
+)
 from weaviate.auth import Auth
 from weaviate.classes.rbac import Actions, Permissions, RoleScope
 from weaviate.connect.helpers import connect_to_local
@@ -25,7 +30,7 @@ from weaviate.rbac.models import (
     _Permission,
 )
 
-RBAC_PORTS = (8092, 50063)
+RBAC_PORTS = _DEFAULT_RBAC_PORTS
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 
@@ -799,7 +804,10 @@ def test_permission_joining(client_factory: ClientFactory) -> None:
 def test_server_side_batching_with_auth() -> None:
     collection_name = "TestSSBAuth"
     with connect_to_local(
-        port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=RBAC_AUTH_CREDS
+        host=_DEFAULT_RBAC_HOST,
+        port=RBAC_PORTS[0],
+        grpc_port=RBAC_PORTS[1],
+        auth_credentials=RBAC_AUTH_CREDS,
     ) as client:
         if client._connection._weaviate_version.is_lower_than(1, 36, 0):
             pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")

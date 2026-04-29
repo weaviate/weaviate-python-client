@@ -44,6 +44,33 @@ from weaviate.config import AdditionalConfig
 from weaviate.exceptions import UnexpectedStatusCodeError
 
 
+_DEFAULT_HOST: str = os.environ.get("WV_TEST_HOST", "localhost")
+_DEFAULT_VECTOR_HOST: str = os.environ.get("WV_TEST_VECTOR_HOST", "localhost")
+_DEFAULT_CLUSTER_HOST: str = os.environ.get("WV_TEST_CLUSTER_HOST", "localhost")
+_DEFAULT_RBAC_HOST: str = os.environ.get("WV_TEST_RBAC_HOST", "localhost")
+_DEFAULT_BROKEN_HOST: str = os.environ.get("WV_TEST_BROKEN_HOST", "localhost")
+_DEFAULT_PRIMARY_PORTS: Tuple[int, int] = (
+    int(os.environ.get("WV_TEST_REST_PORT", "8080")),
+    int(os.environ.get("WV_TEST_GRPC_PORT", "50051")),
+)
+_DEFAULT_VECTOR_PORTS: Tuple[int, int] = (
+    int(os.environ.get("WV_TEST_VECTOR_REST_PORT", "8086")),
+    int(os.environ.get("WV_TEST_VECTOR_GRPC_PORT", "50057")),
+)
+_DEFAULT_CLUSTER_PORTS: Tuple[int, int] = (
+    int(os.environ.get("WV_TEST_CLUSTER_REST_PORT", "8087")),
+    int(os.environ.get("WV_TEST_CLUSTER_GRPC_PORT", "50058")),
+)
+_DEFAULT_RBAC_PORTS: Tuple[int, int] = (
+    int(os.environ.get("WV_TEST_RBAC_REST_PORT", "8092")),
+    int(os.environ.get("WV_TEST_RBAC_GRPC_PORT", "50063")),
+)
+_DEFAULT_BROKEN_PORTS: Tuple[int, int] = (
+    int(os.environ.get("WV_TEST_BROKEN_REST_PORT", "8888")),
+    int(os.environ.get("WV_TEST_BROKEN_GRPC_PORT", "55555")),
+)
+
+
 class CollectionFactory(Protocol):
     """Typing for fixture."""
 
@@ -59,7 +86,7 @@ class CollectionFactory(Protocol):
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         headers: Optional[Dict[str, str]] = None,
-        ports: Tuple[int, int] = (8080, 50051),
+        ports: Tuple[int, int] = _DEFAULT_PRIMARY_PORTS,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -81,7 +108,7 @@ class ClientFactory(Protocol):
     def __call__(
         self,
         headers: Optional[Dict[str, str]] = None,
-        ports: Tuple[int, int] = (8080, 50051),
+        ports: Tuple[int, int] = _DEFAULT_PRIMARY_PORTS,
         auth_credentials: Optional[weaviate.auth.AuthCredentials] = None,
     ) -> weaviate.WeaviateClient:
         """Typing for fixture."""
@@ -94,12 +121,13 @@ def client_factory() -> Generator[ClientFactory, None, None]:
 
     def _factory(
         headers: Optional[Dict[str, str]] = None,
-        ports: Tuple[int, int] = (8080, 50051),
+        ports: Tuple[int, int] = _DEFAULT_PRIMARY_PORTS,
         auth_credentials: Optional[weaviate.auth.AuthCredentials] = None,
     ) -> weaviate.WeaviateClient:
         nonlocal client_fixture
         if client_fixture is None:
             client_fixture = weaviate.connect_to_local(
+                host=_DEFAULT_HOST,
                 headers=headers,
                 grpc_port=ports[1],
                 port=ports[0],
@@ -134,7 +162,7 @@ def collection_factory(
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         headers: Optional[Dict[str, str]] = None,
-        ports: Tuple[int, int] = (8080, 50051),
+        ports: Tuple[int, int] = _DEFAULT_PRIMARY_PORTS,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -210,7 +238,7 @@ class AsyncCollectionFactory(Protocol):
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         headers: Optional[Dict[str, str]] = None,
-        ports: Tuple[int, int] = (8080, 50051),
+        ports: Tuple[int, int] = _DEFAULT_PRIMARY_PORTS,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -228,7 +256,7 @@ class AsyncClientFactory(Protocol):
     async def __call__(
         self,
         headers: Optional[Dict[str, str]] = None,
-        ports: Tuple[int, int] = (8080, 50051),
+        ports: Tuple[int, int] = _DEFAULT_PRIMARY_PORTS,
     ) -> weaviate.WeaviateAsyncClient:
         """Typing for fixture."""
         ...
@@ -240,11 +268,12 @@ async def async_client_factory() -> AsyncGenerator[AsyncClientFactory, None]:
 
     async def _factory(
         headers: Optional[Dict[str, str]] = None,
-        ports: Tuple[int, int] = (8080, 50051),
+        ports: Tuple[int, int] = _DEFAULT_PRIMARY_PORTS,
     ) -> weaviate.WeaviateAsyncClient:
         nonlocal client_fixture
         if client_fixture is None:
             client_fixture = weaviate.use_async_with_local(
+                host=_DEFAULT_HOST,
                 headers=headers,
                 grpc_port=ports[1],
                 port=ports[0],
@@ -278,7 +307,7 @@ async def async_collection_factory(
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         headers: Optional[Dict[str, str]] = None,
-        ports: Tuple[int, int] = (8080, 50051),
+        ports: Tuple[int, int] = _DEFAULT_PRIMARY_PORTS,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
@@ -369,7 +398,7 @@ def openai_collection(
                 Property(name="extra", data_type=DataType.TEXT),
             ],
             generative_config=Configure.Generative.openai(),
-            ports=(8086, 50057),
+            ports=_DEFAULT_VECTOR_PORTS,
             headers={"X-OpenAI-Api-Key": api_key},
         )
 
@@ -418,7 +447,7 @@ async def async_openai_collection(
                 Property(name="extra", data_type=DataType.TEXT),
             ],
             generative_config=Configure.Generative.openai(),
-            ports=(8086, 50057),
+            ports=_DEFAULT_VECTOR_PORTS,
             headers={"X-OpenAI-Api-Key": api_key},
         )
 

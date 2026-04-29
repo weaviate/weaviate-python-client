@@ -5,7 +5,7 @@ from typing import Dict, List, Sequence, Union
 import pytest
 
 import weaviate.classes as wvc
-from integration.conftest import CollectionFactory, OpenAICollection
+from integration.conftest import _DEFAULT_VECTOR_PORTS, CollectionFactory, OpenAICollection
 from weaviate.collections.classes.aggregate import AggregateInteger
 from weaviate.collections.classes.config import (
     PQConfig,
@@ -867,7 +867,7 @@ def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
     if api_key is None:
         pytest.skip("No JinaAI API key found.")
 
-    dummy = collection_factory(ports=(8086, 50057), headers={"X-Jinaai-Api-Key": api_key})
+    dummy = collection_factory(ports=_DEFAULT_VECTOR_PORTS, headers={"X-Jinaai-Api-Key": api_key})
     if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
         pytest.skip("ColBERT vectors are only supported in Weaviate v1.29.0 and higher.")
 

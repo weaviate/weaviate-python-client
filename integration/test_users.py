@@ -2,11 +2,11 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from integration.conftest import ClientFactory, _sanitize_collection_name
+from integration.conftest import _DEFAULT_RBAC_PORTS, ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.rbac.models import Role, RoleBase, UserTypes
 
-RBAC_PORTS = (8092, 50063)
+RBAC_PORTS = _DEFAULT_RBAC_PORTS
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 

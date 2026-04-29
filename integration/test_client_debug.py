@@ -1,6 +1,7 @@
 import pytest
 
 from integration.conftest import (
+    _DEFAULT_CLUSTER_PORTS,
     AsyncClientFactory,
     AsyncCollectionFactory,
     ClientFactory,
@@ -52,9 +53,9 @@ async def test_get_object_single_node_async(
 def test_get_object_multi_node(
     client_factory: ClientFactory, collection_factory: CollectionFactory
 ) -> None:
-    client = client_factory(ports=(8087, 50058))
+    client = client_factory(ports=_DEFAULT_CLUSTER_PORTS)
     collection = collection_factory(
-        ports=(8087, 50058), properties=[Property(name="name", data_type=DataType.TEXT)]
+        ports=_DEFAULT_CLUSTER_PORTS, properties=[Property(name="name", data_type=DataType.TEXT)]
     )
 
     uuid = collection.data.insert({"name": "John Doe"})

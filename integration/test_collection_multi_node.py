@@ -1,6 +1,6 @@
 import pytest
 
-from integration.conftest import CollectionFactory
+from integration.conftest import _DEFAULT_CLUSTER_PORTS, CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     ConsistencyLevel,
@@ -23,7 +23,7 @@ def test_consistency_on_multinode(
             Property(name="name", data_type=DataType.TEXT),
         ],
         replication_config=Configure.replication(factor=2, async_enabled=False),
-        ports=(8087, 50058),
+        ports=_DEFAULT_CLUSTER_PORTS,
     ).with_consistency_level(level)
 
     collection.data.insert({"name": "first"})

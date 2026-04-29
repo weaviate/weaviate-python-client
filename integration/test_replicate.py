@@ -1,10 +1,10 @@
 import time
 import pytest
-from integration.conftest import ClientFactory, CollectionFactory
+from integration.conftest import _DEFAULT_CLUSTER_PORTS, ClientFactory, CollectionFactory
 
 import weaviate
 
-PORTS = (8087, 50058)
+PORTS = _DEFAULT_CLUSTER_PORTS
 
 pytestmark = pytest.mark.xdist_group(name="replicate")
 

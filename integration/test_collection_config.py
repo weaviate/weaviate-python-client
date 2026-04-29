@@ -47,12 +47,17 @@ from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
-from integration.conftest import retry_on_http_error
+from integration.conftest import (
+    _DEFAULT_CLUSTER_HOST,
+    _DEFAULT_CLUSTER_PORTS,
+    _DEFAULT_VECTOR_PORTS,
+    retry_on_http_error,
+)
 
 
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local(port=8087)
+    client = weaviate.connect_to_local(host=_DEFAULT_CLUSTER_HOST, port=_DEFAULT_CLUSTER_PORTS[0])
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
@@ -407,7 +412,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
-        ports=(8087, 50058),
+        ports=_DEFAULT_CLUSTER_PORTS,
         multi_tenancy_config=Configure.multi_tenancy(
             enabled=True, auto_tenant_creation=False, auto_tenant_activation=False
         ),
@@ -1795,12 +1800,12 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
 def test_config_multi_vector_enabled(
     collection_factory: CollectionFactory,
 ) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
+    dummy = collection_factory("dummy", ports=_DEFAULT_VECTOR_PORTS)
     if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
         pytest.skip("Multi vector is not supported in Weaviate versions lower than 1.29.0")
 
     collection = collection_factory(
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vector_config=[
             Configure.MultiVectors.text2vec_jinaai(
@@ -1823,7 +1828,7 @@ def test_config_multi_vector_disabled(
     collection_factory: CollectionFactory,
 ) -> None:
     collection = collection_factory(
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.text2vec_cohere(
@@ -1842,12 +1847,12 @@ def test_config_multi_vector_disabled(
 def test_config_muvera_enabled(
     collection_factory: CollectionFactory,
 ) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
+    dummy = collection_factory("dummy", ports=_DEFAULT_VECTOR_PORTS)
     if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):
         pytest.skip("Muvera is not supported in Weaviate versions lower than 1.31.0")
 
     collection = collection_factory(
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vector_config=[
             Configure.MultiVectors.text2vec_jinaai(
@@ -1871,12 +1876,12 @@ def test_config_muvera_enabled(
 def test_config_muvera_disabled(
     collection_factory: CollectionFactory,
 ) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
+    dummy = collection_factory("dummy", ports=_DEFAULT_VECTOR_PORTS)
     if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
         pytest.skip("Multivector is not supported in Weaviate versions lower than 1.29.0")
 
     collection = collection_factory(
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vector_config=[
             Configure.MultiVectors.text2vec_jinaai(

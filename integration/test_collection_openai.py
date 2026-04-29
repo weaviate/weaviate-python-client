@@ -5,7 +5,12 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from integration.conftest import CollectionFactory, OpenAICollection
+from integration.conftest import (
+    _DEFAULT_VECTOR_HOST,
+    _DEFAULT_VECTOR_PORTS,
+    CollectionFactory,
+    OpenAICollection,
+)
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -530,7 +535,10 @@ def test_near_vector_generate_and_group_by_with_everything(
 
 def test_openai_invalid_key(request: SubRequest) -> None:
     with weaviate.connect_to_local(
-        port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": "IamNotValid"}
+        host=_DEFAULT_VECTOR_HOST,
+        port=_DEFAULT_VECTOR_PORTS[0],
+        grpc_port=_DEFAULT_VECTOR_PORTS[1],
+        headers={"X-OpenAI-Api-Key": "IamNotValid"},
     ) as client:
         client.collections.delete(request.node.name)
         collection = client.collections.create(
@@ -591,7 +599,7 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         reranker_config=Configure.Reranker.cohere(),
         vectorizer_config=Configure.Vectorizer.text2vec_cohere(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
         headers={"X-Cohere-Api-Key": api_key},
     )
     if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
@@ -766,7 +774,7 @@ def test_contextualai_generative_search_single(
             Property(name="content", data_type=DataType.TEXT),
         ],
         headers={"X-Contextual-Api-Key": api_key},
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
     )
     if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
         pytest.skip("Generative search requires Weaviate 1.23.1 or higher")
@@ -809,7 +817,7 @@ def test_contextualai_generative_with_knowledge_parameter(
             Property(name="text", data_type=DataType.TEXT),
         ],
         headers={"X-Contextual-Api-Key": api_key},
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
     )
     if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
         pytest.skip("Generative search requires Weaviate 1.23.1 or higher")
@@ -854,7 +862,7 @@ def test_contextualai_generative_and_rerank_combined(collection_factory: Collect
         vectorizer_config=Configure.Vectorizer.text2vec_openai(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
         headers={"X-Contextual-Api-Key": contextual_api_key},
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
     )
     if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
         pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")

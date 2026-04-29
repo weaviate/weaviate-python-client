@@ -4,7 +4,7 @@ import pytest
 
 import weaviate.classes as wvc
 
-from .conftest import CollectionFactory
+from .conftest import _DEFAULT_VECTOR_PORTS, CollectionFactory
 
 
 def test_query_using_rerank_with_old_server(collection_factory: CollectionFactory) -> None:
@@ -38,7 +38,7 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
         vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_cohere(),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         headers={"X-Cohere-Api-Key": api_key},
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
     )
     if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
         pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
@@ -94,7 +94,7 @@ def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory)
         ),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         headers={"X-Cohere-Api-Key": api_key},
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
     )
     if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
         pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
@@ -155,7 +155,7 @@ def test_queries_with_rerank_contextualai(collection_factory: CollectionFactory)
         vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         headers={"X-Contextual-Api-Key": api_key},
-        ports=(8086, 50057),
+        ports=_DEFAULT_VECTOR_PORTS,
     )
     if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
         pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
