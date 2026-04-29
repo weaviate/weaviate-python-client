@@ -4,8 +4,8 @@ Changelog
 Version 4.21.1
 --------------
 This patch version includes:
-    - adds ``packaging`` as explicit dependency
-    - adds support for selection diversity
+    - Add ``packaging`` as explicit dependency
+    - Add support for selection diversity
 
 Version 4.21.0
 --------------
