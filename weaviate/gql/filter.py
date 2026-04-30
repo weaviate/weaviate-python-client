@@ -520,7 +520,7 @@ class Sort(Filter):
             TypeError: If 'content' is not of type dict.
             ValueError: If a mandatory key is missing in the filter content.
         """
-        # content is a empty list because it is going to the the list with sort clauses.
+        # content is an empty list because it is going to be the list with sort clauses.
 
         super().__init__(content={"sort": []})
 

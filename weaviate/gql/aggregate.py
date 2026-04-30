@@ -307,7 +307,7 @@ class AggregateBuilder(GraphQL):
         Args:
             content: The content of the `nearVideo` filter to set. See examples below.
             encode: Whether to encode the `content["video"]` to base64 and convert to string. If True, the
-                `content["video"]` can be an video path or a file opened in binary read mode. If False,
+                `content["video"]` can be a video path or a file opened in binary read mode. If False,
                 the `content["video"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
                 string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
                 By default True.
@@ -337,7 +337,7 @@ class AggregateBuilder(GraphQL):
         Args:
             content: The content of the `nearDepth` filter to set. See examples below.
             encode: Whether to encode the `content["depth"]` to base64 and convert to string. If True, the
-                `content["depth"]` can be an depth path or a file opened in binary read mode. If False,
+                `content["depth"]` can be a depth path or a file opened in binary read mode. If False,
                 the `content["depth"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
                 string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
                 By default True.
@@ -367,7 +367,7 @@ class AggregateBuilder(GraphQL):
         Args:
             content: The content of the `nearThermal` filter to set. See examples below.
             encode: Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
-                `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
+                `content["thermal"]` can be a thermal path or a file opened in binary read mode. If False,
                 the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
                 string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
                 By default True.
@@ -396,9 +396,9 @@ class AggregateBuilder(GraphQL):
 
         Args:
             content: The content of the `nearIMU` filter to set. See examples below.
-            encode: Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
-                `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
-                the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            encode: Whether to encode the `content["imu"]` to base64 and convert to string. If True, the
+                `content["imu"]` can be an IMU path or a file opened in binary read mode. If False,
+                the `content["imu"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
                 string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
                 By default True.
 

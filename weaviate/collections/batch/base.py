@@ -67,7 +67,7 @@ GCP_STREAM_TIMEOUT = (
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
-    """`BatchRequest` abstract class used as a interface for batch requests."""
+    """`BatchRequest` abstract class used as an interface for batch requests."""
 
     def __init__(self) -> None:
         self._items: List[TBatchInput] = []
