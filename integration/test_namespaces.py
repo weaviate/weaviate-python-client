@@ -94,13 +94,16 @@ def test_namespace_permission_manage(client_factory: ClientFactory) -> None:
     with client_factory(ports=NS_PORTS, auth_credentials=ADMIN_KEY) as client:
         _skip_if_unsupported(client)
 
-        role = client.roles.create(
+        client.roles.create(
             role_name="ns-manager",
             permissions=Permissions.namespaces(namespace="*", manage=True),
         )
-        assert any(p.namespace == "*" for p in role.namespaces_permissions)
-
-        client.roles.delete("ns-manager")
+        try:
+            fetched = client.roles.get(role_name="ns-manager")
+            assert fetched is not None
+            assert any(p.namespace == "*" for p in fetched.namespaces_permissions)
+        finally:
+            client.roles.delete("ns-manager")
 
 
 def test_namespace_permission_multiple_namespaces(
@@ -109,12 +112,15 @@ def test_namespace_permission_multiple_namespaces(
     with client_factory(ports=NS_PORTS, auth_credentials=ADMIN_KEY) as client:
         _skip_if_unsupported(client)
 
-        role = client.roles.create(
+        client.roles.create(
             role_name="ns-multi",
             permissions=Permissions.namespaces(namespace=["ns1", "ns2"], manage=True),
         )
-        ns_names = {p.namespace for p in role.namespaces_permissions}
-        assert "ns1" in ns_names
-        assert "ns2" in ns_names
-
-        client.roles.delete("ns-multi")
+        try:
+            fetched = client.roles.get(role_name="ns-multi")
+            assert fetched is not None
+            ns_names = {p.namespace for p in fetched.namespaces_permissions}
+            assert "ns1" in ns_names
+            assert "ns2" in ns_names
+        finally:
+            client.roles.delete("ns-multi")

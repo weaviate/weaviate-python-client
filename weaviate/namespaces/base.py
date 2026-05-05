@@ -5,7 +5,7 @@ from httpx import Response
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
 from weaviate.namespaces.models import Namespace
-from weaviate.util import _decode_json_response_dict
+from weaviate.util import _decode_json_response_dict, _decode_json_response_list
 
 
 class _NamespacesExecutor(Generic[ConnectionType]):
@@ -72,7 +72,8 @@ class _NamespacesExecutor(Generic[ConnectionType]):
         self._connection._weaviate_version.check_is_at_least_1_38_0("namespaces")
 
         def resp(res: Response) -> List[Namespace]:
-            return [Namespace(name=ns["name"]) for ns in (res.json() or [])]
+            parsed = _decode_json_response_list(res, "List namespaces")
+            return [Namespace(name=ns["name"]) for ns in (parsed or [])]
 
         return executor.execute(
             response_callback=resp,
@@ -91,7 +92,7 @@ class _NamespacesExecutor(Generic[ConnectionType]):
         self._connection._weaviate_version.check_is_at_least_1_38_0("namespaces")
 
         def resp(res: Response) -> None:
-            return None
+            pass
 
         return executor.execute(
             response_callback=resp,
