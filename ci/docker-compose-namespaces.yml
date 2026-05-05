@@ -1,0 +1,40 @@
+---
+version: '3.4'
+services:
+  weaviate-namespaces:
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8085'
+      - --scheme
+      - http
+      - --write-timeout=600s
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
+    ports:
+      - 8094:8085
+      - 50064:50051
+    restart: on-failure:0
+    environment:
+      # Namespaces feature — requires GraphQL disabled
+      NAMESPACES_ENABLED: "true"
+      DISABLE_GRAPHQL: "true"
+      # Static API key auth (operator-level access)
+      AUTHENTICATION_APIKEY_ENABLED: "true"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: "admin-key,custom-key"
+      AUTHENTICATION_APIKEY_USERS: "admin-user,custom-user"
+      # Anonymous access must be off when RBAC is on
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
+      # RBAC — required for namespace-scoped permission checks
+      AUTHORIZATION_ENABLE_RBAC: "true"
+      AUTHORIZATION_ADMIN_USERS: "admin-user"
+      # Dynamic DB users — needed to create namespaced users
+      AUTHENTICATION_DB_USERS_ENABLED: "true"
+      # Storage / cluster
+      PERSISTENCE_DATA_PATH: "./data-weaviate-0"
+      CLUSTER_IN_LOCALHOST: "true"
+      CLUSTER_GOSSIP_BIND_PORT: "7102"
+      CLUSTER_DATA_BIND_PORT: "7103"
+      RAFT_BOOTSTRAP_EXPECT: "1"
+      ENABLE_MODULES: ""
+...

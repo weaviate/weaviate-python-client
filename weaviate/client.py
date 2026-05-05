@@ -22,6 +22,7 @@ from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
 from .export import _Export, _ExportAsync
 from .groups import _Groups, _GroupsAsync
+from .namespaces import _Namespaces, _NamespacesAsync
 from .rbac import _Roles, _RolesAsync
 from .tokenization import _Tokenization, _TokenizationAsync
 from .types import NUMBER
@@ -52,6 +53,8 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         debug (_DebugAsync): Debug object instance connected to the same Weaviate instance as the Client.
             This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
             We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk.
+        namespaces (_NamespacesAsync): Namespaces object instance connected to the same Weaviate instance as the Client.
+            This namespace contains all functionality to manage Weaviate namespaces.
         roles (_RolesAsync): Roles object instance connected to the same Weaviate instance as the Client.
             This namespace contains all functionality to manage Weaviate's RBAC functionality.
         users (_UsersAsync): Users object instance connected to the same Weaviate instance as the Client.
@@ -84,6 +87,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         self.collections = _CollectionsAsync(self._connection)
         self.debug = _DebugAsync(self._connection)
         self.groups = _GroupsAsync(self._connection)
+        self.namespaces = _NamespacesAsync(self._connection)
         self.roles = _RolesAsync(self._connection)
         self.tokenization = _TokenizationAsync(self._connection)
         self.users = _UsersAsync(self._connection)
@@ -120,6 +124,8 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         debug (_Debug): Debug object instance connected to the same Weaviate instance as the Client.
             This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
             We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk.
+        namespaces (_Namespaces): Namespaces object instance connected to the same Weaviate instance as the Client.
+            This namespace contains all functionality to manage Weaviate namespaces.
         roles (_Roles): Roles object instance connected to the same Weaviate instance as the Client.
             This namespace contains all functionality to manage Weaviate's RBAC functionality.
         users (_Users): Users object instance connected to the same Weaviate instance as the Client.
@@ -161,6 +167,7 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         self.collections = collections
         self.debug = _Debug(self._connection)
         self.groups = _Groups(self._connection)
+        self.namespaces = _Namespaces(self._connection)
         self.roles = _Roles(self._connection)
         self.tokenization = _Tokenization(self._connection)
         self.users = _Users(self._connection)

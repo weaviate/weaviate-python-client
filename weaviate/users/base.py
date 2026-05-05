@@ -360,11 +360,12 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             USER_TYPE_DB,
         )
 
-    def create(self, *, user_id: str) -> executor.Result[str]:
+    def create(self, *, user_id: str, namespace: Optional[str] = None) -> executor.Result[str]:
         """Create a new db user and return its API key.
 
         Args:
             user_id: The id of the new user.
+            namespace: The namespace to bind the user to. Required on namespace-enabled clusters.
 
         Returns:
             The API key of the newly created user. This key can not be retrieved later.
@@ -375,11 +376,15 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             assert resp is not None
             return str(resp["apikey"])
 
+        body: Dict[str, Any] = {}
+        if namespace is not None:
+            body["namespace"] = namespace
+
         return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=f"/users/db/{user_id}",
-            weaviate_object={},
+            weaviate_object=body,
             error_msg=f"Could not create user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create user"),
         )
@@ -490,6 +495,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 ),
                 last_used_time=_parse_last_used_at(parsed.get("lastUsedAt")),
                 api_key_first_letters=parsed.get("apiKeyFirstLetters"),
+                namespace=parsed.get("namespace"),
             )
 
         return executor.execute(
@@ -524,6 +530,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     ),
                     last_used_time=_parse_last_used_at(user.get("lastUsedAt")),
                     api_key_first_letters=user.get("apiKeyFirstLetters"),
+                    namespace=user.get("namespace"),
                 )
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)
             ]

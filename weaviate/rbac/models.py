@@ -103,6 +103,10 @@ class PermissionsAlias(TypedDict):
     collection: str
 
 
+class PermissionsNamespaces(TypedDict):
+    namespace: str
+
+
 # action is always present in WeaviatePermission
 class WeaviatePermissionRequired(TypedDict):
     action: str
@@ -121,6 +125,7 @@ class WeaviatePermission(
     users: Optional[PermissionsUsers]
     aliases: Optional[PermissionsAlias]
     groups: Optional[PermissionsGroups]
+    namespaces: Optional[PermissionsNamespaces]
 
 
 class WeaviateRole(TypedDict):
@@ -143,6 +148,7 @@ class WeaviateDBUserRoleNames(TypedDict):
     createdAt: NotRequired[str]
     lastUsedAt: NotRequired[str]
     apiKeyFirstLetters: NotRequired[str]
+    namespace: NotRequired[str]
 
 
 class _Action:
@@ -273,6 +279,14 @@ class ReplicateAction(str, _Action, Enum):
         return [action.value for action in ReplicateAction]
 
 
+class NamespacesAction(str, _Action, Enum):
+    MANAGE = "manage_namespaces"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in NamespacesAction]
+
+
 ActionT = TypeVar("ActionT", bound=Enum)
 
 
@@ -397,7 +411,10 @@ class _GroupsPermission(_Permission[GroupAction]):
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
-            {"action": action, "groups": {"group": self.group, "groupType": self.group_type}}
+            {
+                "action": action,
+                "groups": {"group": self.group, "groupType": self.group_type},
+            }
             for action in self.actions
         ]
 
@@ -432,6 +449,19 @@ class _ClusterPermission(_Permission[ClusterAction]):
         return [
             {
                 "action": action,
+            }
+            for action in self.actions
+        ]
+
+
+class _NamespacesPermission(_Permission[NamespacesAction]):
+    namespace: str
+
+    def _to_weaviate(self) -> List[WeaviatePermission]:
+        return [
+            {
+                "action": action,
+                "namespaces": {"namespace": self.namespace},
             }
             for action in self.actions
         ]
@@ -502,11 +532,16 @@ class TenantsPermissionOutput(_TenantsPermission):
     pass
 
 
+class NamespacesPermissionOutput(_NamespacesPermission):
+    pass
+
+
 PermissionsOutputType = Union[
     AliasPermissionOutput,
     ClusterPermissionOutput,
     CollectionsPermissionOutput,
     DataPermissionOutput,
+    NamespacesPermissionOutput,
     RolesPermissionOutput,
     UsersPermissionOutput,
     BackupsPermissionOutput,
@@ -529,6 +564,7 @@ class Role(RoleBase):
     cluster_permissions: List[ClusterPermissionOutput]
     collections_permissions: List[CollectionsPermissionOutput]
     data_permissions: List[DataPermissionOutput]
+    namespaces_permissions: List[NamespacesPermissionOutput]
     roles_permissions: List[RolesPermissionOutput]
     users_permissions: List[UsersPermissionOutput]
     backups_permissions: List[BackupsPermissionOutput]
@@ -545,6 +581,7 @@ class Role(RoleBase):
         permissions.extend(self.cluster_permissions)
         permissions.extend(self.collections_permissions)
         permissions.extend(self.data_permissions)
+        permissions.extend(self.namespaces_permissions)
         permissions.extend(self.roles_permissions)
         permissions.extend(self.users_permissions)
         permissions.extend(self.backups_permissions)
@@ -561,6 +598,7 @@ class Role(RoleBase):
         cluster_permissions: List[ClusterPermissionOutput] = []
         users_permissions: List[UsersPermissionOutput] = []
         collections_permissions: List[CollectionsPermissionOutput] = []
+        namespaces_permissions: List[NamespacesPermissionOutput] = []
         roles_permissions: List[RolesPermissionOutput] = []
         data_permissions: List[DataPermissionOutput] = []
         backups_permissions: List[BackupsPermissionOutput] = []
@@ -677,6 +715,15 @@ class Role(RoleBase):
                             actions={GroupAction(permission["action"])},
                         )
                     )
+            elif permission["action"] in NamespacesAction.values():
+                namespaces = permission.get("namespaces")
+                if namespaces is not None:
+                    namespaces_permissions.append(
+                        NamespacesPermissionOutput(
+                            namespace=namespaces["namespace"],
+                            actions={NamespacesAction(permission["action"])},
+                        )
+                    )
             else:
                 _Warnings.unknown_permission_encountered(permission)
 
@@ -686,6 +733,7 @@ class Role(RoleBase):
             cluster_permissions=_join_permissions(cluster_permissions),
             users_permissions=_join_permissions(users_permissions),
             collections_permissions=_join_permissions(collections_permissions),
+            namespaces_permissions=_join_permissions(namespaces_permissions),
             roles_permissions=_join_permissions(roles_permissions),
             groups_permissions=_join_permissions(groups_permissions),
             data_permissions=_join_permissions(data_permissions),
@@ -739,6 +787,7 @@ class Actions:
     Alias = AliasAction
     Data = DataAction
     Collections = CollectionsAction
+    Namespaces = NamespacesAction
     Roles = RolesAction
     Cluster = ClusterAction
     Nodes = NodesAction
@@ -1074,3 +1123,20 @@ class Permissions:
         if read:
             return [_ClusterPermission(actions={ClusterAction.READ})]
         return []
+
+    @staticmethod
+    def namespaces(
+        *,
+        namespace: Union[str, Sequence[str]],
+        manage: bool = False,
+    ) -> PermissionsCreateType:
+        permissions: List[_Permission] = []
+        if isinstance(namespace, str):
+            namespace = [namespace]
+        for ns in namespace:
+            permission = _NamespacesPermission(namespace=ns, actions=set())
+            if manage:
+                permission.actions.add(NamespacesAction.MANAGE)
+            if len(permission.actions) > 0:
+                permissions.append(permission)
+        return permissions
