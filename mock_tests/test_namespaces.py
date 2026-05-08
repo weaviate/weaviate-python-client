@@ -15,7 +15,7 @@ and are responsible for catching:
 """
 
 import json
-from typing import Generator, Tuple
+from typing import Any, Callable, Dict, Generator, Tuple
 
 import grpc
 import pytest
@@ -82,15 +82,25 @@ def ns_client_old(
 def test_namespaces_create_sends_post_and_parses_response(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:
+    """``create`` must POST an empty JSON body — the name lives in the URL path.
+
+    Sending anything else (e.g. ``{"name": ...}``) would diverge from the server
+    contract and is the kind of refactor that's tempting but breaks on the wire.
+    """
     client, server = ns_client
-    server.expect_request("/v1/namespaces/myns", method="POST").respond_with_json(
-        {"name": "myns"}, status=201
-    )
+    captured: Dict[str, Any] = {}
+
+    def handler(request: Request) -> Response:
+        captured["body"] = json.loads(request.get_data(as_text=True) or "{}")
+        return Response(json.dumps({"name": "myns"}), status=201)
+
+    server.expect_request("/v1/namespaces/myns", method="POST").respond_with_handler(handler)
 
     ns = client.namespaces.create(name="myns")
 
     assert isinstance(ns, Namespace)
     assert ns.name == "myns"
+    assert captured["body"] == {}
     server.check_assertions()
 
 
@@ -213,7 +223,8 @@ def test_namespaces_delete_accepts_204(
     ids=["create", "get", "list_all", "delete"],
 )
 def test_namespaces_methods_require_1_38(
-    ns_client_old: weaviate.WeaviateClient, method_call
+    ns_client_old: weaviate.WeaviateClient,
+    method_call: Callable[[weaviate.WeaviateClient], object],
 ) -> None:
     """Every public namespace method must guard with ``check_is_at_least_1_38_0``.
 
@@ -240,7 +251,7 @@ def test_users_db_create_includes_namespace_in_body(
     namespace-binding on multi-tenant clusters.
     """
     client, server = ns_client
-    captured: dict = {}
+    captured: Dict[str, Any] = {}
 
     def handler(request: Request) -> Response:
         captured["body"] = json.loads(request.get_data(as_text=True) or "{}")
@@ -264,7 +275,7 @@ def test_users_db_create_omits_namespace_when_not_provided(
     don't recognize the field.
     """
     client, server = ns_client
-    captured: dict = {}
+    captured: Dict[str, Any] = {}
 
     def handler(request: Request) -> Response:
         captured["body"] = json.loads(request.get_data(as_text=True) or "{}")
