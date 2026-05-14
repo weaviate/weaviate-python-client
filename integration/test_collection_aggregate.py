@@ -887,36 +887,45 @@ def test_hybrid_bm25_operators(collection_factory: CollectionFactory) -> None:
 
 
 def test_aggregate_empty_result_none_values(collection_factory: CollectionFactory) -> None:
-    """Test for issue #11219: aggregate metrics should be None for empty result sets, not 0/0.0"""
+    """Test for issue #11219: aggregate metrics should be None for empty result sets, not 0/0.0."""
     collection = collection_factory(
         properties=[
-            Property(name="bucket", data_type=DataType.INT, index_filterable=True, index_range_filters=True),
+            Property(
+                name="bucket",
+                data_type=DataType.INT,
+                index_filterable=True,
+                index_range_filters=True,
+            ),
             Property(name="intVal", data_type=DataType.INT),
             Property(name="numberVal", data_type=DataType.NUMBER),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_null_state=True),
     )
-    
+
     if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
         pytest.skip("gRPC aggregates are only supported in versions 1.29.0 and higher")
-    
+
     # Insert one object with bucket=0
     collection.data.insert({"bucket": 0, "intVal": 123, "numberVal": 456.78})
-    
+
     # Query with a filter that returns no results (bucket=99 doesn't exist)
     res: AggregateReturn = collection.aggregate.over_all(
         filters=Filter.by_property("bucket").equal(99),
         total_count=True,
         return_metrics=[
-            Metrics("intVal").integer(count=True, maximum=True, mean=True, median=True, minimum=True, mode=True, sum_=True),
-            Metrics("numberVal").number(count=True, maximum=True, mean=True, median=True, minimum=True, mode=True, sum_=True),
+            Metrics("intVal").integer(
+                count=True, maximum=True, mean=True, median=True, minimum=True, mode=True, sum_=True
+            ),
+            Metrics("numberVal").number(
+                count=True, maximum=True, mean=True, median=True, minimum=True, mode=True, sum_=True
+            ),
         ],
     )
-    
+
     # Verify total_count is 0
     assert res.total_count == 0
-    
+
     # Verify integer metrics: count should be 0, all other metrics should be None (not 0)
     int_metrics = res.properties["intVal"]
     assert isinstance(int_metrics, AggregateInteger)
@@ -927,7 +936,7 @@ def test_aggregate_empty_result_none_values(collection_factory: CollectionFactor
     assert int_metrics.minimum is None, "minimum should be None for empty result set"
     assert int_metrics.mode is None, "mode should be None for empty result set"
     assert int_metrics.sum_ is None, "sum_ should be None for empty result set"
-    
+
     # Verify number metrics: count should be 0, all other metrics should be None (not 0.0)
     number_metrics = res.properties["numberVal"]
     assert isinstance(number_metrics, AggregateNumber)
@@ -938,4 +947,3 @@ def test_aggregate_empty_result_none_values(collection_factory: CollectionFactor
     assert number_metrics.minimum is None, "minimum should be None for empty result set"
     assert number_metrics.mode is None, "mode should be None for empty result set"
     assert number_metrics.sum_ is None, "sum_ should be None for empty result set"
-

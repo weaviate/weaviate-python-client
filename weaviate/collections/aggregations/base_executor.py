@@ -279,20 +279,32 @@ class _BaseExecutor(Generic[ConnectionType]):
         elif aggregation.HasField("number"):
             return AggregateNumber(
                 count=aggregation.number.count,
-                maximum=aggregation.number.maximum if aggregation.number.HasField("maximum") else None,
+                maximum=aggregation.number.maximum
+                if aggregation.number.HasField("maximum")
+                else None,
                 mean=aggregation.number.mean if aggregation.number.HasField("mean") else None,
                 median=aggregation.number.median if aggregation.number.HasField("median") else None,
-                minimum=aggregation.number.minimum if aggregation.number.HasField("minimum") else None,
+                minimum=aggregation.number.minimum
+                if aggregation.number.HasField("minimum")
+                else None,
                 mode=aggregation.number.mode if aggregation.number.HasField("mode") else None,
                 sum_=aggregation.number.sum if aggregation.number.HasField("sum") else None,
             )
         elif aggregation.HasField("boolean"):
             return AggregateBoolean(
                 count=aggregation.boolean.count,
-                percentage_false=aggregation.boolean.percentage_false if aggregation.boolean.HasField("percentage_false") else None,
-                percentage_true=aggregation.boolean.percentage_true if aggregation.boolean.HasField("percentage_true") else None,
-                total_false=aggregation.boolean.total_false if aggregation.boolean.HasField("total_false") else None,
-                total_true=aggregation.boolean.total_true if aggregation.boolean.HasField("total_true") else None,
+                percentage_false=aggregation.boolean.percentage_false
+                if aggregation.boolean.HasField("percentage_false")
+                else None,
+                percentage_true=aggregation.boolean.percentage_true
+                if aggregation.boolean.HasField("percentage_true")
+                else None,
+                total_false=aggregation.boolean.total_false
+                if aggregation.boolean.HasField("total_false")
+                else None,
+                total_true=aggregation.boolean.total_true
+                if aggregation.boolean.HasField("total_true")
+                else None,
             )
         elif aggregation.HasField("date"):
             return AggregateDate(
