@@ -194,12 +194,12 @@ def test_namespaces_list_all_handles_empty_array(
 # ---------------------------------------------------------------------------
 
 
-def test_namespaces_delete_accepts_204(
+def test_namespaces_delete_accepts_202(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:
     client, server = ns_client
     server.expect_request("/v1/namespaces/myns", method="DELETE").respond_with_response(
-        Response(status=204)
+        Response(status=202)
     )
 
     # Must not raise; returns None.

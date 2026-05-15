@@ -86,6 +86,10 @@ class _NamespacesExecutor(Generic[ConnectionType]):
     def delete(self, *, name: str) -> executor.Result[None]:
         """Delete a namespace.
 
+        The server marks the namespace for deletion and cleans up its classes,
+        aliases, and users asynchronously, so this call returns as soon as the
+        deletion has been accepted (HTTP 202), not when cleanup has finished.
+
         Args:
             name: The name of the namespace to delete.
         """
@@ -99,5 +103,5 @@ class _NamespacesExecutor(Generic[ConnectionType]):
             method=self._connection.delete,
             path=f"/namespaces/{name}",
             error_msg=f"Could not delete namespace '{name}'",
-            status_codes=_ExpectedStatusCodes(ok_in=[204], error="Delete namespace"),
+            status_codes=_ExpectedStatusCodes(ok_in=[202], error="Delete namespace"),
         )
