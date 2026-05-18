@@ -627,7 +627,7 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[str] = None,
+        model: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,

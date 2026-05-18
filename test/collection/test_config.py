@@ -330,20 +330,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        Configure.Vectorizer.text2vec_digitalocean(
-            vectorize_collection_name=False,
-            model="qwen3-embedding-0.6b",
-            base_url="https://inference.do-ai.run",
-        ),
-        {
-            "text2vec-digitalocean": {
-                "vectorizeClassName": False,
-                "model": "qwen3-embedding-0.6b",
-                "baseURL": "https://inference.do-ai.run/",
-            }
-        },
-    ),
-    (
         Configure.Vectorizer.text2vec_palm(
             project_id="project",
         ),
@@ -1786,20 +1772,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        [Configure.NamedVectors.text2vec_digitalocean(name="test", source_properties=["prop"])],
-        {
-            "test": {
-                "vectorizer": {
-                    "text2vec-digitalocean": {
-                        "vectorizeClassName": True,
-                        "properties": ["prop"],
-                    }
-                },
-                "vectorIndexType": "hnsw",
-            }
-        },
-    ),
-    (
         [
             Configure.NamedVectors.text2vec_palm(
                 name="test",
@@ -2402,13 +2374,18 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
-        [Configure.Vectors.text2vec_digitalocean(name="test", source_properties=["prop"])],
+        [
+            Configure.Vectors.text2vec_digitalocean(
+                name="test", source_properties=["prop"], model="qwen2"
+            )
+        ],
         {
             "test": {
                 "vectorizer": {
                     "text2vec-digitalocean": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
+                        "model": "qwen2",
                     }
                 },
                 "vectorIndexType": "hnsw",

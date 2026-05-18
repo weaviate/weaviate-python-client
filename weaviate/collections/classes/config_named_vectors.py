@@ -48,7 +48,6 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecCohereConfig,
     _Text2VecContextionaryConfig,
     _Text2VecDatabricksConfig,
-    _Text2VecDigitalOceanConfig,
     _Text2VecGoogleConfig,
     _Text2VecGPT4AllConfig,
     _Text2VecHuggingFaceConfig,
@@ -352,40 +351,6 @@ class _NamedVectors:
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecMistralConfig(
-                baseURL=base_url,
-                model=model,
-                vectorizeClassName=vectorize_collection_name,
-            ),
-            vector_index_config=vector_index_config,
-        )
-
-    @staticmethod
-    def text2vec_digitalocean(
-        name: str,
-        *,
-        base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[str] = None,
-        source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `text2vec-digitalocean` model.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/digitalocean/embeddings)
-        for detailed usage.
-
-        Args:
-            name: The name of the named vector.
-            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default of `https://inference.do-ai.run`.
-            model: The model to use, e.g. `qwen3-embedding-0.6b`. This is a required field on the server.
-            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
-            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
-        """
-        return _NamedVectorConfigCreate(
-            name=name,
-            source_properties=source_properties,
-            vectorizer=_Text2VecDigitalOceanConfig(
                 baseURL=base_url,
                 model=model,
                 vectorizeClassName=vectorize_collection_name,

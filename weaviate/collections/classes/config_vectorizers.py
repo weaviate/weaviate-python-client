@@ -291,7 +291,7 @@ class _Text2VecDigitalOceanConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_DIGITALOCEAN, frozen=True, exclude=True
     )
-    model: Optional[str]
+    model: str
     vectorizeClassName: bool
     baseURL: Optional[AnyHttpUrl]
 
@@ -1097,27 +1097,6 @@ class _Vectorizer:
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecMistralConfig(
-            baseURL=base_url, model=model, vectorizeClassName=vectorize_collection_name
-        )
-
-    @staticmethod
-    def text2vec_digitalocean(
-        *,
-        base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[str] = None,
-        vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
-        """Create a `_Text2VecDigitalOceanConfig` object for use when vectorizing using the `text2vec-digitalocean` model.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/digitalocean/embeddings)
-        for detailed usage.
-
-        Args:
-            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default of `https://inference.do-ai.run`.
-            model: The model to use, e.g. `qwen3-embedding-0.6b`. This is a required field on the server.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
-        """
-        return _Text2VecDigitalOceanConfig(
             baseURL=base_url, model=model, vectorizeClassName=vectorize_collection_name
         )
 
