@@ -2374,6 +2374,25 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.text2vec_digitalocean(
+                name="test", source_properties=["prop"], model="qwen2"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-digitalocean": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                        "model": "qwen2",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.text2vec_morph(name="test", source_properties=["prop"])],
         {
             "test": {
