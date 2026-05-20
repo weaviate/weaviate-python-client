@@ -253,8 +253,16 @@ class _CollectionsExecutor(Generic[ConnectionType]):
                 f"Invalid collection config create parameters: {e}"
             ) from e
 
+        # Servers >= 1.37.4 apply DEFAULT_VECTOR_INDEX_TYPE to named-vector
+        # configs that omit `vectorIndexType`; older servers reject the empty
+        # field, so for them we keep emitting the client-side HNSW default.
+        emit_default_vector_index_type = not self._connection._weaviate_version.is_at_least(
+            1, 37, 4
+        )
         return self.__create(
-            config=config._to_dict(),
+            config=config._to_dict(
+                emit_default_vector_index_type=emit_default_vector_index_type,
+            ),
             data_model_properties=data_model_properties,
             data_model_references=data_model_references,
             skip_argument_validation=skip_argument_validation,

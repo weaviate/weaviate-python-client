@@ -2473,7 +2473,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         else:
             return_dict["moduleConfig"][addition_key] = addition_val
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self, *, emit_default_vector_index_type: bool = True) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
 
         for cls_field in type(self).model_fields:
@@ -2494,14 +2494,23 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 ret_dict["vectorIndexType"] = val.vector_index_type().value
                 ret_dict[cls_field] = val._to_dict()
             elif isinstance(val, _VectorConfigCreate):
-                ret_dict["vectorConfig"] = {val.name or "default": val._to_dict()}
+                ret_dict["vectorConfig"] = {
+                    val.name or "default": val._to_dict(
+                        emit_default_vector_index_type=emit_default_vector_index_type
+                    )
+                }
             elif (
                 isinstance(val, list)
                 and len(val) > 0
                 and all(isinstance(item, _NamedVectorConfigCreate) for item in val)
             ):
                 val = cast(List[_NamedVectorConfigCreate], val)
-                ret_dict["vectorConfig"] = {item.name: item._to_dict() for item in val}
+                ret_dict["vectorConfig"] = {
+                    item.name: item._to_dict(
+                        emit_default_vector_index_type=emit_default_vector_index_type
+                    )
+                    for item in val
+                }
             elif (
                 isinstance(val, list)
                 and len(val) > 0
@@ -2514,11 +2523,17 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                         raise WeaviateInvalidInputError(
                             "Vector config name must be set when specifying multiple vectors"
                         )
-                    ret_dict["vectorConfig"][item.name] = item._to_dict()
+                    ret_dict["vectorConfig"][item.name] = item._to_dict(
+                        emit_default_vector_index_type=emit_default_vector_index_type
+                    )
             else:
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
-        if self.vectorIndexConfig is None and "vectorConfig" not in ret_dict:
+        if (
+            self.vectorIndexConfig is None
+            and "vectorConfig" not in ret_dict
+            and emit_default_vector_index_type
+        ):
             ret_dict["vectorIndexType"] = VectorIndexType.HNSW
 
         ret_dict["class"] = self.name
