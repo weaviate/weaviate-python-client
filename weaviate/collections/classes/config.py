@@ -2598,7 +2598,17 @@ class _Replication:
         """Create a configuration object create for async replication settings when creating a collection.
 
         This is only available with WeaviateDB `>=v1.36.0`.
+
+        Note:
+            `max_workers` and `alive_nodes_checking_frequency` were removed from the
+            Weaviate server schema in v1.37.3. Passing them has no effect against any
+            server `>=v1.37.3` (the server silently drops them) and emits a
+            ``DeprecationWarning``. Both arguments will be removed in a future release.
         """
+        if max_workers is not None:
+            _Warnings.async_replication_field_removed_server_side("max_workers")
+        if alive_nodes_checking_frequency is not None:
+            _Warnings.async_replication_field_removed_server_side("alive_nodes_checking_frequency")
         return _AsyncReplicationConfigCreate(
             maxWorkers=max_workers,
             hashtreeHeight=hashtree_height,
@@ -2639,7 +2649,17 @@ class _ReplicationUpdate:
         """Create a configuration object for async replication settings when updating a collection.
 
         This is only available with WeaviateDB `>=v1.36.0`.
+
+        Note:
+            `max_workers` and `alive_nodes_checking_frequency` were removed from the
+            Weaviate server schema in v1.37.3. Passing them has no effect against any
+            server `>=v1.37.3` (the server silently drops them) and emits a
+            ``DeprecationWarning``. Both arguments will be removed in a future release.
         """
+        if max_workers is not None:
+            _Warnings.async_replication_field_removed_server_side("max_workers")
+        if alive_nodes_checking_frequency is not None:
+            _Warnings.async_replication_field_removed_server_side("alive_nodes_checking_frequency")
         return _AsyncReplicationConfigUpdate(
             maxWorkers=max_workers,
             hashtreeHeight=hashtree_height,
