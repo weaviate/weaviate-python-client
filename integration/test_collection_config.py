@@ -1025,9 +1025,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             Property(name="booleans", data_type=DataType.BOOL_ARRAY),
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
-            Property(
-                name="field_index_searchable", data_type=DataType.TEXT, index_searchable=False
-            ),
+            Property(name="field_searchable_off", data_type=DataType.TEXT, index_searchable=False),
             Property(
                 name="field_index_range_filters_false",
                 data_type=DataType.INT,
@@ -1054,7 +1052,9 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
                         tokenization=Tokenization.FIELD,
                     ),
                     Property(
-                        name="nested_searchable", data_type=DataType.TEXT, index_searchable=False
+                        name="nested_searchable_off",
+                        data_type=DataType.TEXT,
+                        index_searchable=False,
                     ),
                     Property(
                         name="nested_filterable", data_type=DataType.TEXT, index_filterable=False
@@ -1598,7 +1598,7 @@ def test_replication_config_with_async_config(collection_factory: CollectionFact
             factor=1,
             async_enabled=True,
             async_config=Configure.Replication.async_config(
-                max_workers=8,
+                propagation_concurrency=4,
                 hashtree_height=20,
             ),
         ),
@@ -1608,8 +1608,12 @@ def test_replication_config_with_async_config(collection_factory: CollectionFact
     assert config.replication_config.async_enabled is True
     assert config.replication_config.async_config is not None
     ac = config.replication_config.async_config
-    assert ac.max_workers == 8
+    assert ac.propagation_concurrency == 4
     assert ac.hashtree_height == 20
+    if collection._connection._weaviate_version.is_at_least(1, 37, 3):
+        # Server removed max_workers / alive_nodes_checking_frequency from the schema in 1.37.3
+        assert ac.max_workers is None
+        assert ac.alive_nodes_checking_frequency is None
 
 
 def test_replication_config_remove_async_config_by_disabling_async_replication(
@@ -1624,14 +1628,14 @@ def test_replication_config_remove_async_config_by_disabling_async_replication(
             factor=1,
             async_enabled=True,
             async_config=Configure.Replication.async_config(
-                max_workers=8,
+                propagation_concurrency=4,
                 hashtree_height=20,
             ),
         ),
     )
     config = collection.config.get()
     assert config.replication_config.async_config is not None
-    assert config.replication_config.async_config.max_workers == 8
+    assert config.replication_config.async_config.propagation_concurrency == 4
 
     collection.config.update(
         replication_config=Reconfigure.replication(
@@ -1653,14 +1657,14 @@ def test_replication_config_remove_async_config(collection_factory: CollectionFa
             factor=1,
             async_enabled=True,
             async_config=Configure.Replication.async_config(
-                max_workers=8,
+                propagation_concurrency=4,
                 hashtree_height=20,
             ),
         ),
     )
     config = collection.config.get()
     assert config.replication_config.async_config is not None
-    assert config.replication_config.async_config.max_workers == 8
+    assert config.replication_config.async_config.propagation_concurrency == 4
 
     collection.config.update(
         replication_config=Reconfigure.replication(
@@ -1685,7 +1689,7 @@ def test_replication_config_unset_single_async_field(
             factor=1,
             async_enabled=True,
             async_config=Configure.Replication.async_config(
-                max_workers=8,
+                propagation_concurrency=4,
                 hashtree_height=20,
             ),
         ),
@@ -1693,21 +1697,21 @@ def test_replication_config_unset_single_async_field(
     config = collection.config.get()
     ac = config.replication_config.async_config
     assert ac is not None
-    assert ac.max_workers == 8
+    assert ac.propagation_concurrency == 4
     assert ac.hashtree_height == 20
 
-    # Update with only max_workers — hashtree_height reverts to server default
+    # Update with only propagation_concurrency — hashtree_height reverts to server default
     collection.config.update(
         replication_config=Reconfigure.replication(
             async_config=Reconfigure.Replication.async_config(
-                max_workers=8,
+                propagation_concurrency=4,
             ),
         ),
     )
     config = collection.config.get()
     ac = config.replication_config.async_config
     assert ac is not None
-    assert ac.max_workers == 8
+    assert ac.propagation_concurrency == 4
     assert ac.hashtree_height != 20
 
 
@@ -1734,16 +1738,16 @@ def test_replication_config_add_async_config_to_existing_collection(
     collection.config.update(
         replication_config=Reconfigure.replication(
             async_config=Reconfigure.Replication.async_config(
-                max_workers=8,
                 propagation_concurrency=4,
+                hashtree_height=20,
             ),
         ),
     )
     config = collection.config.get()
     assert config.replication_config.async_config is not None
     ac = config.replication_config.async_config
-    assert ac.max_workers == 8
     assert ac.propagation_concurrency == 4
+    assert ac.hashtree_height == 20
 
 
 def test_update_property_descriptions(collection_factory: CollectionFactory) -> None:
