@@ -2853,11 +2853,9 @@ TEST_CONFIGURE_WITH_REPLICATION_PARAMETERS = [
     (
         Configure.replication(
             async_config=Configure.Replication.async_config(
-                max_workers=10,
                 hashtree_height=5,
                 frequency=60,
                 frequency_while_propagating=30,
-                alive_nodes_checking_frequency=120,
                 logging_frequency=15,
                 diff_batch_size=100,
                 diff_per_node_timeout=10,
@@ -2871,11 +2869,9 @@ TEST_CONFIGURE_WITH_REPLICATION_PARAMETERS = [
         ),
         {
             "asyncConfig": {
-                "maxWorkers": 10,
                 "hashtreeHeight": 5,
                 "frequency": 60,
                 "frequencyWhilePropagating": 30,
-                "aliveNodesCheckingFrequency": 120,
                 "loggingFrequency": 15,
                 "diffBatchSize": 100,
                 "diffPerNodeTimeout": 10,
@@ -2923,11 +2919,9 @@ TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS = [
     (
         Reconfigure.replication(
             async_config=Reconfigure.Replication.async_config(
-                max_workers=10,
                 hashtree_height=5,
                 frequency=60,
                 frequency_while_propagating=30,
-                alive_nodes_checking_frequency=120,
                 logging_frequency=15,
                 diff_batch_size=100,
                 diff_per_node_timeout=10,
@@ -2944,11 +2938,9 @@ TEST_RECONFIGURE_WITH_REPLICATION_PARAMETERS = [
             "asyncEnabled": None,
             "deletionStrategy": None,
             "asyncConfig": {
-                "maxWorkers": 10,
                 "hashtreeHeight": 5,
                 "frequency": 60,
                 "frequencyWhilePropagating": 30,
-                "aliveNodesCheckingFrequency": 120,
                 "loggingFrequency": 15,
                 "diffBatchSize": 100,
                 "diffPerNodeTimeout": 10,
@@ -2977,11 +2969,9 @@ def test_replication_config_to_dict_with_async_config() -> None:
         async_enabled=True,
         deletion_strategy=ReplicationDeletionStrategy.TIME_BASED_RESOLUTION,
         async_config=_AsyncReplicationConfig(
-            max_workers=8,
             hashtree_height=20,
             frequency=None,
             frequency_while_propagating=None,
-            alive_nodes_checking_frequency=3,
             logging_frequency=None,
             diff_batch_size=None,
             diff_per_node_timeout=None,
@@ -2989,7 +2979,7 @@ def test_replication_config_to_dict_with_async_config() -> None:
             propagation_timeout=None,
             propagation_limit=None,
             propagation_delay=None,
-            propagation_concurrency=None,
+            propagation_concurrency=4,
             propagation_batch_size=None,
         ),
     )
@@ -2997,9 +2987,8 @@ def test_replication_config_to_dict_with_async_config() -> None:
     assert d["factor"] == 3
     assert d["asyncEnabled"] is True
     assert d["deletionStrategy"] == "TimeBasedResolution"
-    assert d["asyncConfig"]["maxWorkers"] == 8
     assert d["asyncConfig"]["hashtreeHeight"] == 20
-    assert d["asyncConfig"]["aliveNodesCheckingFrequency"] == 3
+    assert d["asyncConfig"]["propagationConcurrency"] == 4
 
 
 def test_replication_config_to_dict_without_async_config() -> None:
@@ -3025,7 +3014,7 @@ def test_replication_config_update_merge_with_missing_async_config() -> None:
     """
     update = Reconfigure.replication(
         async_config=Reconfigure.Replication.async_config(
-            max_workers=12,
+            hashtree_height=5,
             propagation_concurrency=4,
         ),
     )
@@ -3036,7 +3025,7 @@ def test_replication_config_update_merge_with_missing_async_config() -> None:
         "deletionStrategy": "NoAutomatedResolution",
     }
     result = update.merge_with_existing(existing_schema)
-    assert result["asyncConfig"]["maxWorkers"] == 12
+    assert result["asyncConfig"]["hashtreeHeight"] == 5
     assert result["asyncConfig"]["propagationConcurrency"] == 4
     assert result["factor"] == 3
 

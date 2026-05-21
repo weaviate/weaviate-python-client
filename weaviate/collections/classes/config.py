@@ -298,11 +298,9 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 
 
 class _AsyncReplicationConfigCreate(_ConfigCreateModel):
-    maxWorkers: Optional[int]
     hashtreeHeight: Optional[int]
     frequency: Optional[int]
     frequencyWhilePropagating: Optional[int]
-    aliveNodesCheckingFrequency: Optional[int]
     loggingFrequency: Optional[int]
     diffBatchSize: Optional[int]
     diffPerNodeTimeout: Optional[int]
@@ -315,11 +313,9 @@ class _AsyncReplicationConfigCreate(_ConfigCreateModel):
 
 
 class _AsyncReplicationConfigUpdate(_ConfigUpdateModel):
-    maxWorkers: Optional[int]
     hashtreeHeight: Optional[int]
     frequency: Optional[int]
     frequencyWhilePropagating: Optional[int]
-    aliveNodesCheckingFrequency: Optional[int]
     loggingFrequency: Optional[int]
     diffBatchSize: Optional[int]
     diffPerNodeTimeout: Optional[int]
@@ -1809,11 +1805,9 @@ ReferencePropertyConfig = _ReferenceProperty
 
 @dataclass
 class _AsyncReplicationConfig(_ConfigBase):
-    max_workers: Optional[int]
     hashtree_height: Optional[int]
     frequency: Optional[int]
     frequency_while_propagating: Optional[int]
-    alive_nodes_checking_frequency: Optional[int]
     logging_frequency: Optional[int]
     diff_batch_size: Optional[int]
     diff_per_node_timeout: Optional[int]
@@ -2565,11 +2559,9 @@ class _Replication:
     @staticmethod
     def async_config(
         *,
-        max_workers: Optional[int] = None,
         hashtree_height: Optional[int] = None,
         frequency: Optional[int] = None,
         frequency_while_propagating: Optional[int] = None,
-        alive_nodes_checking_frequency: Optional[int] = None,
         logging_frequency: Optional[int] = None,
         diff_batch_size: Optional[int] = None,
         diff_per_node_timeout: Optional[int] = None,
@@ -2585,11 +2577,9 @@ class _Replication:
         This is only available with WeaviateDB `>=v1.36.0`.
         """
         return _AsyncReplicationConfigCreate(
-            maxWorkers=max_workers,
             hashtreeHeight=hashtree_height,
             frequency=frequency,
             frequencyWhilePropagating=frequency_while_propagating,
-            aliveNodesCheckingFrequency=alive_nodes_checking_frequency,
             loggingFrequency=logging_frequency,
             diffBatchSize=diff_batch_size,
             diffPerNodeTimeout=diff_per_node_timeout,
@@ -2606,11 +2596,9 @@ class _ReplicationUpdate:
     @staticmethod
     def async_config(
         *,
-        max_workers: Optional[int] = None,
         hashtree_height: Optional[int] = None,
         frequency: Optional[int] = None,
         frequency_while_propagating: Optional[int] = None,
-        alive_nodes_checking_frequency: Optional[int] = None,
         logging_frequency: Optional[int] = None,
         diff_batch_size: Optional[int] = None,
         diff_per_node_timeout: Optional[int] = None,
@@ -2626,11 +2614,9 @@ class _ReplicationUpdate:
         This is only available with WeaviateDB `>=v1.36.0`.
         """
         return _AsyncReplicationConfigUpdate(
-            maxWorkers=max_workers,
             hashtreeHeight=hashtree_height,
             frequency=frequency,
             frequencyWhilePropagating=frequency_while_propagating,
-            aliveNodesCheckingFrequency=alive_nodes_checking_frequency,
             loggingFrequency=logging_frequency,
             diffBatchSize=diff_batch_size,
             diffPerNodeTimeout=diff_per_node_timeout,

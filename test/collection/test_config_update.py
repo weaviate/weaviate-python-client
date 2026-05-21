@@ -112,13 +112,13 @@ def test_replication_async_config_replace_on_update() -> None:
     schema = {
         "factor": 1,
         "asyncEnabled": True,
-        "asyncConfig": {"maxWorkers": 8, "hashtreeHeight": 20},
+        "asyncConfig": {"hashtreeHeight": 20, "propagationConcurrency": 4},
     }
     update = Reconfigure.replication(
-        async_config=Reconfigure.Replication.async_config(max_workers=16),
+        async_config=Reconfigure.Replication.async_config(propagation_concurrency=8),
     )
     result = update.merge_with_existing(schema)
-    assert result["asyncConfig"] == {"maxWorkers": 16}
+    assert result["asyncConfig"] == {"propagationConcurrency": 8}
     assert "hashtreeHeight" not in result["asyncConfig"]
 
 

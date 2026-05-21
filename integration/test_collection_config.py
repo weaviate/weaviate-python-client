@@ -1598,8 +1598,8 @@ def test_replication_config_with_async_config(collection_factory: CollectionFact
             factor=1,
             async_enabled=True,
             async_config=Configure.Replication.async_config(
-                max_workers=8,
                 hashtree_height=20,
+                propagation_concurrency=4,
             ),
         ),
     )
@@ -1608,8 +1608,8 @@ def test_replication_config_with_async_config(collection_factory: CollectionFact
     assert config.replication_config.async_enabled is True
     assert config.replication_config.async_config is not None
     ac = config.replication_config.async_config
-    assert ac.max_workers == 8
     assert ac.hashtree_height == 20
+    assert ac.propagation_concurrency == 4
 
 
 def test_replication_config_remove_async_config_by_disabling_async_replication(
@@ -1624,14 +1624,13 @@ def test_replication_config_remove_async_config_by_disabling_async_replication(
             factor=1,
             async_enabled=True,
             async_config=Configure.Replication.async_config(
-                max_workers=8,
-                hashtree_height=20,
+                propagation_concurrency=4,
             ),
         ),
     )
     config = collection.config.get()
     assert config.replication_config.async_config is not None
-    assert config.replication_config.async_config.max_workers == 8
+    assert config.replication_config.async_config.propagation_concurrency == 4
 
     collection.config.update(
         replication_config=Reconfigure.replication(
@@ -1653,14 +1652,13 @@ def test_replication_config_remove_async_config(collection_factory: CollectionFa
             factor=1,
             async_enabled=True,
             async_config=Configure.Replication.async_config(
-                max_workers=8,
-                hashtree_height=20,
+                propagation_concurrency=4,
             ),
         ),
     )
     config = collection.config.get()
     assert config.replication_config.async_config is not None
-    assert config.replication_config.async_config.max_workers == 8
+    assert config.replication_config.async_config.propagation_concurrency == 4
 
     collection.config.update(
         replication_config=Reconfigure.replication(
@@ -1685,29 +1683,29 @@ def test_replication_config_unset_single_async_field(
             factor=1,
             async_enabled=True,
             async_config=Configure.Replication.async_config(
-                max_workers=8,
                 hashtree_height=20,
+                propagation_concurrency=4,
             ),
         ),
     )
     config = collection.config.get()
     ac = config.replication_config.async_config
     assert ac is not None
-    assert ac.max_workers == 8
     assert ac.hashtree_height == 20
+    assert ac.propagation_concurrency == 4
 
-    # Update with only max_workers — hashtree_height reverts to server default
+    # Update with only propagation_concurrency — hashtree_height reverts to server default
     collection.config.update(
         replication_config=Reconfigure.replication(
             async_config=Reconfigure.Replication.async_config(
-                max_workers=8,
+                propagation_concurrency=4,
             ),
         ),
     )
     config = collection.config.get()
     ac = config.replication_config.async_config
     assert ac is not None
-    assert ac.max_workers == 8
+    assert ac.propagation_concurrency == 4
     assert ac.hashtree_height != 20
 
 
@@ -1734,7 +1732,7 @@ def test_replication_config_add_async_config_to_existing_collection(
     collection.config.update(
         replication_config=Reconfigure.replication(
             async_config=Reconfigure.Replication.async_config(
-                max_workers=8,
+                hashtree_height=20,
                 propagation_concurrency=4,
             ),
         ),
@@ -1742,7 +1740,7 @@ def test_replication_config_add_async_config_to_existing_collection(
     config = collection.config.get()
     assert config.replication_config.async_config is not None
     ac = config.replication_config.async_config
-    assert ac.max_workers == 8
+    assert ac.hashtree_height == 20
     assert ac.propagation_concurrency == 4
 
 

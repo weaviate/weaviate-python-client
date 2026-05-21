@@ -385,11 +385,9 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             ),
             async_config=(
                 _AsyncReplicationConfig(
-                    max_workers=async_cfg.get("maxWorkers"),
                     hashtree_height=async_cfg.get("hashtreeHeight"),
                     frequency=async_cfg.get("frequency"),
                     frequency_while_propagating=async_cfg.get("frequencyWhilePropagating"),
-                    alive_nodes_checking_frequency=async_cfg.get("aliveNodesCheckingFrequency"),
                     logging_frequency=async_cfg.get("loggingFrequency"),
                     diff_batch_size=async_cfg.get("diffBatchSize"),
                     diff_per_node_timeout=async_cfg.get("diffPerNodeTimeout"),
