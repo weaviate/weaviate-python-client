@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Unreleased
+----------
+This upcoming version includes:
+    - **Breaking**: Remove ``max_workers`` and ``alive_nodes_checking_frequency`` parameters from
+      ``Configure.Replication.async_config()`` and ``Reconfigure.Replication.async_config()``.
+      Both fields have been no-ops on the server since Weaviate 1.37.3. Code referencing these
+      parameters will need to be updated; no behavioral change results from the removal.
+
 Version 4.21.1
 --------------
 This patch version includes:
