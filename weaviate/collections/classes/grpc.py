@@ -382,7 +382,7 @@ class Boost:
         scale: Union[str, timedelta],
         offset: Optional[Union[str, timedelta]] = None,
         curve: Optional[Union[_BoostCurve, str]] = None,
-        decay_value: Optional[float] = None,
+        decay: Optional[float] = None,
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> _Boost:
@@ -392,12 +392,12 @@ class Boost:
             property: The date property name to compute distance from.
             origin: The origin point. Use "now" for current time or a datetime for a specific time.
                 Defaults to "now".
-            scale: Distance from origin where score equals decay_value. Use timedelta
+            scale: Distance from origin where score equals decay. Use timedelta
                 (e.g. timedelta(days=7)) or a string shorthand like "7d", "24h".
             offset: Documents within this distance from origin get full score (default "0").
                 Accepts the same types as scale.
             curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
-            decay_value: Score at scale distance from origin (default 0.5).
+            decay: Score at scale distance from origin (default 0.5).
             weight: Blending weight [0,1] controlling how much the rank affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
@@ -410,7 +410,7 @@ class Boost:
                         scale=_decay_value_to_str(scale),
                         offset=_decay_value_to_str(offset) if offset is not None else None,
                         curve=curve.value if isinstance(curve, _BoostCurve) else curve,
-                        decay_value=decay_value,
+                        decay_value=decay,
                     )
                 )
             ],
@@ -426,7 +426,7 @@ class Boost:
         scale: float,
         offset: Optional[float] = None,
         curve: Optional[Union[_BoostCurve, str]] = None,
-        decay_value: Optional[float] = None,
+        decay: Optional[float] = None,
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> _Boost:
@@ -435,10 +435,10 @@ class Boost:
         Args:
             property: The numeric property name to compute distance from.
             origin: The origin point (numeric value).
-            scale: Distance from origin where score equals decay_value.
+            scale: Distance from origin where score equals decay.
             offset: Documents within this distance from origin get full score (default 0).
             curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
-            decay_value: Score at scale distance from origin (default 0.5).
+            decay: Score at scale distance from origin (default 0.5).
             weight: Blending weight [0,1] controlling how much the rank affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
@@ -451,7 +451,7 @@ class Boost:
                         scale=float(scale),
                         offset=float(offset) if offset is not None else None,
                         curve=curve.value if isinstance(curve, _BoostCurve) else curve,
-                        decay_value=decay_value,
+                        decay_value=decay,
                     )
                 )
             ],
@@ -510,13 +510,7 @@ class Boost:
         for r in ranks:
             for cond in r.conditions:
                 if cond.weight is None and r.weight is not None:
-                    cond = _BoostCondition(
-                        filter=cond.filter,
-                        time_decay=cond.time_decay,
-                        numeric_decay=cond.numeric_decay,
-                        property_value=cond.property_value,
-                        weight=r.weight,
-                    )
+                    cond.weight = r.weight
                 conditions.append(cond)
         return _Boost(conditions=conditions, weight=weight, depth=depth)
 
