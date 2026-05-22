@@ -18,6 +18,7 @@ from typing import (
 from pydantic import ConfigDict, Field
 from typing_extensions import ClassVar, TypeGuard, TypeVar
 
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_search_pb2
@@ -297,7 +298,7 @@ class _PropertyValueFunction:
 
 @dataclass
 class _BoostCondition:
-    filter: Optional[Any] = None  # noqa: A003  # FilterReturn
+    filter: Optional[FilterReturn] = None  # noqa: A003
     time_decay: Optional[_TimeDecayFunction] = None
     numeric_decay: Optional[_NumericDecayFunction] = None
     property_value: Optional[_PropertyValueFunction] = None
@@ -359,7 +360,7 @@ class Boost:
 
     @staticmethod
     def filter(  # noqa: A003
-        filter: Any,  # noqa: A002
+        filter: FilterReturn,  # noqa: A002
         *,
         weight: Optional[float] = None,
         depth: Optional[int] = None,
