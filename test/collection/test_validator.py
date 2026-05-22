@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -28,6 +28,14 @@ from weaviate.validator import _ExtraTypes, _validate_input, _ValidateArgument
             False,
         ),
         (pl.Series([1, 1]), [_ExtraTypes.PANDAS, _ExtraTypes.NUMPY, List], True),
+        # Tests for Sequence[Union[...]] pattern, which was flaky in Python 3.12
+        (["a", 1], [Sequence[Union[str, int]]], False),
+        ([1, "a"], [Sequence[Union[str, int]]], False),
+        ([1, 2], [Sequence[Union[str, int]]], False),
+        (["a", "b"], [Sequence[Union[str, int]]], False),
+        (["a", 1], [str, Sequence[Union[str, int]]], False),  # matches Sequence[Union[str, int]]
+        # Non-sequence values are not valid Sequence types: int is not iterable
+        (42, [Sequence[Union[str, int]]], True),
     ],
 )
 def test_validator(inputs: Any, expected: List[Any], error: bool) -> None:
