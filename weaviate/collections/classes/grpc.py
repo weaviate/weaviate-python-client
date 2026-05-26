@@ -430,12 +430,16 @@ class Boost:
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> _Boost:
-        """Apply numeric distance-based decay scoring from an origin value.
+        """Score decays with distance from a numeric origin — closer to the origin ranks higher.
+
+        Use this when "closer to X is better" (e.g., prefer prices near $50, houses near 2000 sqft).
+        Requires you to define an origin and scale. For simple "higher is better" boosting without
+        an origin, use `Boost.property()` instead.
 
         Args:
             property: The numeric property name to compute distance from.
-            origin: The origin point (numeric value).
-            scale: Distance from origin where score equals decay.
+            origin: The target value — documents closest to this score highest.
+            scale: Distance from origin where score equals the decay value.
             offset: Documents within this distance from origin get full score (default 0).
             curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
             decay: Score at scale distance from origin (default 0.5).
@@ -467,11 +471,18 @@ class Boost:
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> _Boost:
-        """Rank by a numeric property's value directly.
+        """Boost by a numeric property's raw value — higher values rank higher.
+
+        Use this for simple proportional boosting (e.g., popularity count, review score)
+        when you don't need to define an origin or scale. For distance-based decay from a
+        specific value, use `Boost.numeric_decay()` instead.
+
+        Currently only supports numeric (int/float) properties.
 
         Args:
-            name: The property name to use as a ranking signal.
+            name: The numeric property name to use as a ranking signal.
             modifier: Score modifier: `Boost.Modifier.NONE` (default), `Boost.Modifier.LOG1P`, or `Boost.Modifier.SQRT`.
+                Use LOG1P or SQRT to dampen the effect of large value ranges.
             weight: Blending weight [0,1] controlling how much the rank affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
