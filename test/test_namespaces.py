@@ -1,4 +1,5 @@
 from weaviate.classes.rbac import Actions, Permissions
+from weaviate.namespaces.models import Namespace
 from weaviate.rbac.models import (
     NamespacesAction,
     NamespacesPermissionOutput,
@@ -104,6 +105,23 @@ def test_role_from_weaviate_role_namespace_in_permissions_list() -> None:
 def test_actions_namespaces_enum_accessible() -> None:
     assert Actions.Namespaces is NamespacesAction
     assert Actions.Namespaces.MANAGE.value == "manage_namespaces"
+
+
+# --- Namespace model ---
+
+
+def test_namespace_optional_fields_default_to_none() -> None:
+    ns = Namespace(name="customer1")
+    assert ns.name == "customer1"
+    assert ns.home_node is None
+    assert ns.state is None
+
+
+def test_namespace_all_fields_set() -> None:
+    ns = Namespace(name="customer1", home_node="node1", state="active")
+    assert ns.name == "customer1"
+    assert ns.home_node == "node1"
+    assert ns.state == "active"
 
 
 # --- UserDB.namespace field ---

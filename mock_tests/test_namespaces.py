@@ -100,7 +100,73 @@ def test_namespaces_create_sends_post_and_parses_response(
 
     assert isinstance(ns, Namespace)
     assert ns.name == "myns"
+    assert ns.home_node is None
+    assert ns.state is None
     assert captured["body"] == {}
+    server.check_assertions()
+
+
+def test_namespaces_create_sends_home_node_when_provided(
+    ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
+) -> None:
+    """When ``home_node`` is provided, ``create`` must carry it in the request body.
+
+    Dropping ``body['home_node'] = home_node`` would silently ignore the caller's
+    placement choice and let the server auto-select instead.
+    """
+    client, server = ns_client
+    captured: Dict[str, Any] = {}
+
+    def handler(request: Request) -> Response:
+        captured["body"] = json.loads(request.get_data(as_text=True) or "{}")
+        return Response(
+            json.dumps({"name": "myns", "home_node": "node1", "state": "active"}),
+            status=201,
+        )
+
+    server.expect_request("/v1/namespaces/myns", method="POST").respond_with_handler(handler)
+
+    ns = client.namespaces.create(name="myns", home_node="node1")
+
+    assert ns.name == "myns"
+    assert ns.home_node == "node1"
+    assert ns.state == "active"
+    assert captured["body"] == {"home_node": "node1"}
+    server.check_assertions()
+
+
+# ---------------------------------------------------------------------------
+# update
+# ---------------------------------------------------------------------------
+
+
+def test_namespaces_update_sends_put_and_parses_response(
+    ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
+) -> None:
+    """``update`` must PUT ``{"home_node": ...}`` and return the updated namespace.
+
+    The server requires ``home_node`` in the body; sending anything else (or the
+    wrong HTTP verb) would break the modify-placement contract.
+    """
+    client, server = ns_client
+    captured: Dict[str, Any] = {}
+
+    def handler(request: Request) -> Response:
+        captured["body"] = json.loads(request.get_data(as_text=True) or "{}")
+        return Response(
+            json.dumps({"name": "myns", "home_node": "node2", "state": "active"}),
+            status=200,
+        )
+
+    server.expect_request("/v1/namespaces/myns", method="PUT").respond_with_handler(handler)
+
+    ns = client.namespaces.update(name="myns", home_node="node2")
+
+    assert isinstance(ns, Namespace)
+    assert ns.name == "myns"
+    assert ns.home_node == "node2"
+    assert ns.state == "active"
+    assert captured["body"] == {"home_node": "node2"}
     server.check_assertions()
 
 
@@ -121,6 +187,30 @@ def test_namespaces_get_returns_namespace_when_found(
 
     assert ns is not None
     assert ns.name == "customer1"
+    assert ns.home_node is None
+    assert ns.state is None
+    server.check_assertions()
+
+
+def test_namespaces_get_parses_home_node_and_state(
+    ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
+) -> None:
+    """``get`` must surface the ``home_node`` and ``state`` fields from the response.
+
+    These fields were added to the server's namespace object after the client's
+    initial implementation; this guards against the parser silently ignoring them.
+    """
+    client, server = ns_client
+    server.expect_request("/v1/namespaces/customer1", method="GET").respond_with_json(
+        {"name": "customer1", "home_node": "node1", "state": "deleting"}, status=200
+    )
+
+    ns = client.namespaces.get(name="customer1")
+
+    assert ns is not None
+    assert ns.name == "customer1"
+    assert ns.home_node == "node1"
+    assert ns.state == "deleting"
     server.check_assertions()
 
 
@@ -158,6 +248,28 @@ def test_namespaces_list_all_parses_array(
     namespaces = client.namespaces.list_all()
 
     assert [ns.name for ns in namespaces] == ["ns1", "ns2"]
+    server.check_assertions()
+
+
+def test_namespaces_list_all_parses_home_node_and_state(
+    ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
+) -> None:
+    """``list_all`` must surface ``home_node`` and ``state`` for each namespace."""
+    client, server = ns_client
+    server.expect_request("/v1/namespaces", method="GET").respond_with_json(
+        [
+            {"name": "ns1", "home_node": "node1", "state": "active"},
+            {"name": "ns2"},
+        ],
+        status=200,
+    )
+
+    namespaces = client.namespaces.list_all()
+
+    assert namespaces[0].home_node == "node1"
+    assert namespaces[0].state == "active"
+    assert namespaces[1].home_node is None
+    assert namespaces[1].state is None
     server.check_assertions()
 
 
@@ -216,11 +328,12 @@ def test_namespaces_delete_accepts_202(
     "method_call",
     [
         lambda c: c.namespaces.create(name="x"),
+        lambda c: c.namespaces.update(name="x", home_node="n"),
         lambda c: c.namespaces.get(name="x"),
         lambda c: c.namespaces.list_all(),
         lambda c: c.namespaces.delete(name="x"),
     ],
-    ids=["create", "get", "list_all", "delete"],
+    ids=["create", "update", "get", "list_all", "delete"],
 )
 def test_namespaces_methods_require_1_38(
     ns_client_old: weaviate.WeaviateClient,

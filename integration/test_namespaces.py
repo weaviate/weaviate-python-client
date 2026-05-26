@@ -18,6 +18,13 @@ def _skip_if_unsupported(client: weaviate.WeaviateClient) -> None:
         pytest.skip(f"Namespaces require Weaviate {major}.{minor}.{patch}+")
 
 
+def _a_storage_candidate(client: weaviate.WeaviateClient) -> str:
+    """Return a node name usable as a ``home_node`` (must be a real storage candidate)."""
+    nodes = client.cluster.nodes()
+    assert nodes, "expected at least one cluster node"
+    return nodes[0].name
+
+
 def test_create_and_get_namespace(client_factory: ClientFactory) -> None:
     with client_factory(ports=NS_PORTS, auth_credentials=ADMIN_KEY) as client:
         _skip_if_unsupported(client)
@@ -30,6 +37,43 @@ def test_create_and_get_namespace(client_factory: ClientFactory) -> None:
             assert ns.name == "testns"
         finally:
             client.namespaces.delete(name="testns")
+
+
+def test_create_namespace_with_home_node(client_factory: ClientFactory) -> None:
+    with client_factory(ports=NS_PORTS, auth_credentials=ADMIN_KEY) as client:
+        _skip_if_unsupported(client)
+
+        home_node = _a_storage_candidate(client)
+        ns = client.namespaces.create(name="homenodens", home_node=home_node)
+        try:
+            assert ns.name == "homenodens"
+            assert ns.home_node == home_node
+            assert ns.state == "active"
+
+            fetched = client.namespaces.get(name="homenodens")
+            assert fetched is not None
+            assert fetched.home_node == home_node
+        finally:
+            client.namespaces.delete(name="homenodens")
+
+
+def test_update_namespace_home_node(client_factory: ClientFactory) -> None:
+    with client_factory(ports=NS_PORTS, auth_credentials=ADMIN_KEY) as client:
+        _skip_if_unsupported(client)
+
+        home_node = _a_storage_candidate(client)
+        # Create without a home_node so the cluster auto-selects, then pin it explicitly.
+        client.namespaces.create(name="updatens")
+        try:
+            updated = client.namespaces.update(name="updatens", home_node=home_node)
+            assert updated.name == "updatens"
+            assert updated.home_node == home_node
+
+            fetched = client.namespaces.get(name="updatens")
+            assert fetched is not None
+            assert fetched.home_node == home_node
+        finally:
+            client.namespaces.delete(name="updatens")
 
 
 def test_get_nonexistent_namespace_returns_none(client_factory: ClientFactory) -> None:

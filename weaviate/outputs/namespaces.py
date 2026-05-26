@@ -1,3 +1,3 @@
-from weaviate.namespaces.models import Namespace
+from weaviate.namespaces.models import Namespace, NamespaceState
 
-__all__ = ["Namespace"]
+__all__ = ["Namespace", "NamespaceState"]
