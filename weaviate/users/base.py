@@ -378,6 +378,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
         body: Dict[str, Any] = {}
         if namespace is not None:
+            self._connection._weaviate_version.check_is_at_least_1_38_0("users.db.create")
             body["namespace"] = namespace
 
         return executor.execute(

@@ -436,7 +436,7 @@ def _capitalize_first_letter(string: str) -> str:
 
     For namespaced collection names of the form ``namespace:CollectionName``,
     only the collection portion (after the colon) is capitalized; the namespace
-    prefix is preserved as-is to keep it lowercase.
+    prefix is preserved as-is.
 
     Args:
         string: The string to be capitalized.
