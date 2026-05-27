@@ -18,6 +18,7 @@ services:
     environment:
       # Namespaces feature — requires GraphQL disabled
       NAMESPACES_ENABLED: "true"
+      REPLICATION_MAXIMUM_FACTOR: "1"
       DISABLE_GRAPHQL: "true"
       # Static API key auth (operator-level access)
       AUTHENTICATION_APIKEY_ENABLED: "true"
@@ -32,6 +33,7 @@ services:
       AUTHENTICATION_DB_USERS_ENABLED: "true"
       # Storage / cluster
       PERSISTENCE_DATA_PATH: "./data-weaviate-0"
+      CLUSTER_HOSTNAME: "node1"
       CLUSTER_IN_LOCALHOST: "true"
       CLUSTER_GOSSIP_BIND_PORT: "7102"
       CLUSTER_DATA_BIND_PORT: "7103"
