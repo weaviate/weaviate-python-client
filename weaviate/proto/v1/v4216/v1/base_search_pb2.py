@@ -32,8 +32,8 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _HYBRID.fields_by_name['vector_bytes']._serialized_options = b'\030\001'
   _HYBRID.fields_by_name['target_vectors']._options = None
   _HYBRID.fields_by_name['target_vectors']._serialized_options = b'\030\001'
-  _globals['_NEARVECTOR_VECTORPERTARGETENTRY']._options = None
-  _globals['_NEARVECTOR_VECTORPERTARGETENTRY']._serialized_options = b'8\001'
+  _NEARVECTOR_VECTORPERTARGETENTRY._options = None
+  _NEARVECTOR_VECTORPERTARGETENTRY._serialized_options = b'8\001'
   _NEARVECTOR.fields_by_name['vector']._options = None
   _NEARVECTOR.fields_by_name['vector']._serialized_options = b'\030\001'
   _NEARVECTOR.fields_by_name['vector_bytes']._options = None
