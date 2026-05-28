@@ -18,6 +18,9 @@ services:
     environment:
       # Namespaces feature — requires GraphQL disabled
       NAMESPACES_ENABLED: "true"
+      # Sweep deleting namespaces quickly so delete-then-gone tests stay fast
+      # (defaults to 30s).
+      NAMESPACE_CLEANUP_INTERVAL: "2s"
       REPLICATION_MAXIMUM_FACTOR: "1"
       DISABLE_GRAPHQL: "true"
       # Static API key auth (operator-level access)

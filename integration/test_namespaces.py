@@ -1,3 +1,5 @@
+import time
+
 import pytest
 
 import weaviate
@@ -107,7 +109,15 @@ def test_delete_namespace(client_factory: ClientFactory) -> None:
         client.namespaces.create(name="deletens")
         client.namespaces.delete(name="deletens")
 
+        # Deletion is asynchronous: delete() returns 202 and the server marks the
+        # namespace "deleting", then removes it on the background cleanup sweep
+        # (NAMESPACE_CLEANUP_INTERVAL). Poll until it is gone.
+        deadline = time.time() + 60
         fetched = client.namespaces.get(name="deletens")
+        while fetched is not None and time.time() < deadline:
+            assert fetched.state == "deleting"
+            time.sleep(0.5)
+            fetched = client.namespaces.get(name="deletens")
         assert fetched is None
 
 
