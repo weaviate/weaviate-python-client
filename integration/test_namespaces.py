@@ -126,12 +126,12 @@ def test_create_namespaced_user(client_factory: ClientFactory) -> None:
         _skip_if_unsupported(client)
 
         client.namespaces.create(name="usernstest")
-        # On namespace-enabled clusters the server qualifies the userId as
-        # "namespace:user_id" in storage. Operators must use that qualified form
-        # when calling get/delete.
+        # On namespace-enabled clusters an operator creates a user with a
+        # namespace-qualified id "<namespace>:<user>"; the same qualified id is
+        # used for get/delete.
         qualified_id = "usernstest:nsuser1"
         try:
-            api_key = client.users.db.create(user_id="nsuser1", namespace="usernstest")
+            api_key = client.users.db.create(user_id=qualified_id)
             assert isinstance(api_key, str)
             assert len(api_key) > 0
 

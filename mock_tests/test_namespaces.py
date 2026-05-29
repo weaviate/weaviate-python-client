@@ -354,14 +354,14 @@ def test_namespaces_methods_require_1_38(
 # ---------------------------------------------------------------------------
 
 
-def test_users_db_create_includes_namespace_in_body(
+def test_users_db_create_qualified_user_id_goes_in_path(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:
-    """When ``namespace`` is provided, the request body must carry it.
+    """A namespace-qualified user id must be sent in the URL path, not the body.
 
-    Without this assertion, dropping ``body['namespace'] = namespace`` from
-    ``users/base.py`` would compile and pass type-checks but silently break
-    namespace-binding on multi-tenant clusters.
+    The server derives the namespace from the ``"<namespace>:<user>"`` id in the
+    path, so the request body stays empty. This guards against reintroducing a
+    ``body['namespace']`` field, which the server no longer accepts.
     """
     client, server = ns_client
     captured: Dict[str, Any] = {}
@@ -370,22 +370,24 @@ def test_users_db_create_includes_namespace_in_body(
         captured["body"] = json.loads(request.get_data(as_text=True) or "{}")
         return Response(json.dumps({"apikey": "secret-key"}), status=201)
 
-    server.expect_request("/v1/users/db/alice", method="POST").respond_with_handler(handler)
+    server.expect_request("/v1/users/db/customer1:alice", method="POST").respond_with_handler(
+        handler
+    )
 
-    api_key = client.users.db.create(user_id="alice", namespace="customer1")
+    api_key = client.users.db.create(user_id="customer1:alice")
 
     assert api_key == "secret-key"
-    assert captured["body"] == {"namespace": "customer1"}
+    assert captured["body"] == {}
     server.check_assertions()
 
 
-def test_users_db_create_omits_namespace_when_not_provided(
+def test_users_db_create_posts_empty_body(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:
-    """The ``namespace`` key must not appear in the body when omitted by the caller.
+    """``create`` must POST an empty body — there is no separate ``namespace`` field.
 
-    Otherwise we'd send ``"namespace": null`` and break older clusters that
-    don't recognize the field.
+    Sending anything else (e.g. a stray ``namespace`` key) would diverge from the
+    server contract, which expects only the (possibly qualified) id in the path.
     """
     client, server = ns_client
     captured: Dict[str, Any] = {}

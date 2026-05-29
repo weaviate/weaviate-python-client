@@ -360,12 +360,12 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             USER_TYPE_DB,
         )
 
-    def create(self, *, user_id: str, namespace: Optional[str] = None) -> executor.Result[str]:
+    def create(self, *, user_id: str) -> executor.Result[str]:
         """Create a new db user and return its API key.
 
         Args:
-            user_id: The id of the new user.
-            namespace: The namespace to bind the user to. Required on namespace-enabled clusters.
+            user_id: The id of the new user. On namespace-enabled clusters an operator must
+                pass a namespace-qualified id of the form ``"<namespace>:<user>"``.
 
         Returns:
             The API key of the newly created user. This key can not be retrieved later.
@@ -376,16 +376,11 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             assert resp is not None
             return str(resp["apikey"])
 
-        body: Dict[str, Any] = {}
-        if namespace is not None:
-            self._connection._weaviate_version.check_is_at_least_1_38_0("users.db.create")
-            body["namespace"] = namespace
-
         return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=f"/users/db/{user_id}",
-            weaviate_object=body,
+            weaviate_object={},
             error_msg=f"Could not create user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create user"),
         )

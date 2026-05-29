@@ -29,7 +29,7 @@ env:
   WEAVIATE_135: 1.35.18
   WEAVIATE_136: 1.36.12
   WEAVIATE_137: 1.37.5-e0fe0d5.amd64
-  WEAVIATE_138: 1.38.0-rc.0
+  WEAVIATE_138: 1.38.0-rc.0-b9ea106
 
 jobs:
   lint-and-format:
