@@ -364,7 +364,8 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         """Create a new db user and return its API key.
 
         Args:
-            user_id: The id of the new user.
+            user_id: The id of the new user. On namespace-enabled clusters an operator must
+                pass a namespace-qualified id of the form ``"<namespace>:<user>"``.
 
         Returns:
             The API key of the newly created user. This key can not be retrieved later.
@@ -490,6 +491,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 ),
                 last_used_time=_parse_last_used_at(parsed.get("lastUsedAt")),
                 api_key_first_letters=parsed.get("apiKeyFirstLetters"),
+                namespace=parsed.get("namespace"),
             )
 
         return executor.execute(
@@ -524,6 +526,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     ),
                     last_used_time=_parse_last_used_at(user.get("lastUsedAt")),
                     api_key_first_letters=user.get("apiKeyFirstLetters"),
+                    namespace=user.get("namespace"),
                 )
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)
             ]

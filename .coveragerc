@@ -1,9 +1,15 @@
+# Test directories are not coverage subjects. *tests*/* catches mock_tests/;
+# *integration/* is excluded too because integration tests run against live
+# clusters and version-gated suites (e.g. namespaces, which need Weaviate 1.38+)
+# are skipped in the coverage job, which would otherwise count their unexecuted
+# bodies as missing patch coverage. Excluding the test files does not affect the
+# coverage they contribute to weaviate/ (measured via --cov=weaviate).
 [run]
-omit = *tests*/*,*__init__.py,weaviate/proto/**
+omit = *tests*/*,*integration/*,*__init__.py,weaviate/proto/**
 
 
 [report]
-omit = *tests*/*,*__init__.py
+omit = *tests*/*,*integration/*,*__init__.py
 exclude_lines =
     pragma: not covered
     @overload

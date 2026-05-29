@@ -13,6 +13,8 @@ from weaviate.collections.collections.sync import _Collections
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.groups.async_ import _GroupsAsync
 from weaviate.groups.sync import _Groups
+from weaviate.namespaces.async_ import _NamespacesAsync
+from weaviate.namespaces.sync import _Namespaces
 from weaviate.users.async_ import _UsersAsync
 from weaviate.users.sync import _Users
 
@@ -37,6 +39,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
     cluster: _ClusterAsync
     debug: _DebugAsync
     groups: _GroupsAsync
+    namespaces: _NamespacesAsync
     roles: _RolesAsync
     tokenization: _TokenizationAsync
     users: _UsersAsync
@@ -62,6 +65,7 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
     cluster: _Cluster
     debug: _Debug
     groups: _Groups
+    namespaces: _Namespaces
     roles: _Roles
     tokenization: _Tokenization
     users: _Users
