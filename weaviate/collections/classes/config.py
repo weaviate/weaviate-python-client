@@ -2791,14 +2791,20 @@ class Configure:
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
-        NOTE: `async_enabled` is only available with WeaviateDB `>=v1.26.0`
+        Note:
+            `async_enabled` was removed from the Weaviate server schema in v1.38. Passing it
+            has no effect against any server `>=v1.38` (the server silently drops it and runs
+            async replication by default for any class with a replication factor > 1) and emits
+            a ``DeprecationWarning``. The argument will be removed in a future release.
 
         Args:
             factor: The replication factor.
             async_enabled: Enabled async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
-            async_config: The configuration for async replication. This is only relevant if `async_enabled` is `True`.
+            async_config: The configuration for async replication.
         """
+        if async_enabled is not None:
+            _Warnings.async_enabled_field_removed_server_side()
         return _ReplicationConfigCreate(
             factor=factor,
             asyncEnabled=async_enabled,
@@ -3071,12 +3077,20 @@ class Reconfigure:
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
 
+        Note:
+            `async_enabled` was removed from the Weaviate server schema in v1.38. Passing it
+            has no effect against any server `>=v1.38` (the server silently drops it and runs
+            async replication by default for any class with a replication factor > 1) and emits
+            a ``DeprecationWarning``. The argument will be removed in a future release.
+
         Args:
             factor: The replication factor.
             async_enabled: Enable async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
-            async_config: The async replication configuration. This is only applicable if `async_enabled` is set to `True`.
+            async_config: The async replication configuration.
         """
+        if async_enabled is not None:
+            _Warnings.async_enabled_field_removed_server_side()
         return _ReplicationConfigUpdate(
             factor=factor,
             asyncEnabled=async_enabled,

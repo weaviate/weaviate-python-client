@@ -3041,6 +3041,29 @@ def test_replication_config_update_merge_with_missing_async_config() -> None:
     assert result["factor"] == 3
 
 
+@pytest.mark.parametrize(
+    "config_factory",
+    [Configure.replication, Reconfigure.replication],
+)
+def test_replication_async_enabled_emits_deprecation_warning(config_factory: object) -> None:
+    """`async_enabled` was removed from the server schema in v1.38 and must warn when passed."""
+    with pytest.warns(DeprecationWarning, match="Dep030"):
+        config_factory(async_enabled=True)  # type: ignore[operator]
+
+
+@pytest.mark.parametrize(
+    "config_factory",
+    [Configure.replication, Reconfigure.replication],
+)
+def test_replication_without_async_enabled_does_not_warn(config_factory: object) -> None:
+    """Omitting `async_enabled` must not emit the deprecation warning."""
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        config_factory(factor=3)  # type: ignore[operator]
+
+
 def test_nested_property_with_id_name_is_allowed() -> None:
     """A nested property named 'id' must not raise — only top-level 'id' is reserved."""
     prop = Property(
