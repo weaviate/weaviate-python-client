@@ -751,6 +751,8 @@ def _datetime_to_string(value: TIME) -> str:
 
 
 def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+    if not string:
+        return datetime.datetime.min
     if string[-1] != "Z":
         string = "".join(string.rsplit(":", 1))
 
