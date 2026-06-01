@@ -264,3 +264,18 @@ def test_boost_api_surface() -> None:
     assert len(b.conditions) == 2
     assert b.weight == 0.8
     assert b.depth == 200
+
+
+def test_boost_default_curve_is_unspecified() -> None:
+    """Omitting curve defaults to None (sent as UNSPECIFIED on the wire)."""
+    b = Boost.numeric_decay("price", origin=50.0, scale=20.0)
+    assert b.conditions[0].numeric_decay.curve is None
+
+    b = Boost.time_decay("created", scale="7d")
+    assert b.conditions[0].time_decay.curve is None
+
+
+def test_boost_default_modifier_is_unspecified() -> None:
+    """Omitting modifier defaults to None (sent as UNSPECIFIED on the wire)."""
+    b = Boost.property("count")
+    assert b.conditions[0].property_value.modifier is None

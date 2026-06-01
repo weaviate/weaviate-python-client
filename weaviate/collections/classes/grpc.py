@@ -276,7 +276,7 @@ class _TimeDecayFunction:
     origin: str
     scale: str
     offset: Optional[str] = None
-    curve: Optional[str] = None
+    curve: Optional["_BoostCurve"] = None
     decay_value: Optional[float] = None
 
 
@@ -286,14 +286,14 @@ class _NumericDecayFunction:
     origin: float
     scale: float
     offset: Optional[float] = None
-    curve: Optional[str] = None
+    curve: Optional["_BoostCurve"] = None
     decay_value: Optional[float] = None
 
 
 @dataclass
 class _PropertyValueFunction:
     property: str  # noqa: A003
-    modifier: Optional[str] = None
+    modifier: Optional["_BoostModifier"] = None
 
 
 @dataclass
@@ -333,6 +333,7 @@ def _decay_value_to_str(val: Union[str, int, float, timedelta, datetime]) -> str
 class _BoostCurve(str, BaseEnum):
     """Decay curve type for distance-based rank scoring."""
 
+    UNSPECIFIED = "unspecified"
     EXPONENTIAL = "exp"
     GAUSSIAN = "gauss"
     LINEAR = "linear"
@@ -341,7 +342,7 @@ class _BoostCurve(str, BaseEnum):
 class _BoostModifier(str, BaseEnum):
     """Score modifier for property-value rank scoring."""
 
-    NONE = "none"
+    UNSPECIFIED = "unspecified"
     LOG1P = "log1p"
     SQRT = "sqrt"
 
@@ -381,7 +382,7 @@ class Boost:
         origin: Optional[Union[str, datetime]] = None,
         scale: Union[str, timedelta],
         offset: Optional[Union[str, timedelta]] = None,
-        curve: Optional[Union[_BoostCurve, str]] = None,
+        curve: Optional[_BoostCurve] = None,
         decay: Optional[float] = None,
         weight: Optional[float] = None,
         depth: Optional[int] = None,
@@ -409,7 +410,7 @@ class Boost:
                         origin=_decay_value_to_str(origin) if origin is not None else "",
                         scale=_decay_value_to_str(scale),
                         offset=_decay_value_to_str(offset) if offset is not None else None,
-                        curve=curve.value if isinstance(curve, _BoostCurve) else curve,
+                        curve=curve,
                         decay_value=decay,
                     )
                 )
@@ -425,7 +426,7 @@ class Boost:
         origin: float,
         scale: float,
         offset: Optional[float] = None,
-        curve: Optional[Union[_BoostCurve, str]] = None,
+        curve: Optional[_BoostCurve] = None,
         decay: Optional[float] = None,
         weight: Optional[float] = None,
         depth: Optional[int] = None,
@@ -454,7 +455,7 @@ class Boost:
                         origin=float(origin),
                         scale=float(scale),
                         offset=float(offset) if offset is not None else None,
-                        curve=curve.value if isinstance(curve, _BoostCurve) else curve,
+                        curve=curve,
                         decay_value=decay,
                     )
                 )
@@ -467,7 +468,7 @@ class Boost:
     def property(  # noqa: A003
         name: str,
         *,
-        modifier: Optional[Union[_BoostModifier, str]] = None,
+        modifier: Optional[_BoostModifier] = None,
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> _Boost:
@@ -491,9 +492,7 @@ class Boost:
                 _BoostCondition(
                     property_value=_PropertyValueFunction(
                         property=name,
-                        modifier=modifier.value
-                        if isinstance(modifier, _BoostModifier)
-                        else modifier,
+                        modifier=modifier,
                     )
                 )
             ],
