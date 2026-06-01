@@ -331,7 +331,7 @@ def _decay_value_to_str(val: Union[str, int, float, timedelta, datetime]) -> str
 
 
 class _BoostCurve(str, BaseEnum):
-    """Decay curve type for distance-based rank scoring."""
+    """Decay curve type for distance-based boost scoring."""
 
     UNSPECIFIED = "unspecified"
     EXPONENTIAL = "exp"
@@ -340,7 +340,7 @@ class _BoostCurve(str, BaseEnum):
 
 
 class _BoostModifier(str, BaseEnum):
-    """Score modifier for property-value rank scoring."""
+    """Score modifier for property-value boost scoring."""
 
     UNSPECIFIED = "unspecified"
     LOG1P = "log1p"
@@ -348,16 +348,16 @@ class _BoostModifier(str, BaseEnum):
 
 
 class Boost:
-    """Define soft-ranking conditions to boost or demote matching documents without excluding them.
+    """Define soft-scoring conditions to boost or demote matching documents without excluding them.
 
-    Use the static methods `boost()`, `decay()`, and `blend()` to create rank configurations.
+    Use the static methods `filter()`, `time_decay()`, `numeric_decay()`, `property()`, and `blend()` to create boost configurations.
     """
 
     Curve = _BoostCurve
     Modifier = _BoostModifier
 
     def __init__(self) -> None:
-        raise TypeError("Boost cannot be instantiated. Use the static methods to create a rank.")
+        raise TypeError("Boost cannot be instantiated. Use the static methods to create a boost.")
 
     @staticmethod
     def filter(  # noqa: A003
@@ -370,7 +370,7 @@ class Boost:
 
         Args:
             filter: The filter condition (same as used in `filters=` parameter).
-            weight: Blending weight [0,1] controlling how much the rank affects final scores.
+            weight: Blending weight [0,1] controlling how much the boost affects final scores.
             depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
         """
         return _Boost(conditions=[_BoostCondition(filter=filter)], weight=weight, depth=depth)
@@ -399,7 +399,7 @@ class Boost:
                 Accepts the same types as scale.
             curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
             decay: Score at scale distance from origin (default 0.5).
-            weight: Blending weight [0,1] controlling how much the rank affects final scores.
+            weight: Blending weight [0,1] controlling how much the boost affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
         return _Boost(
@@ -444,7 +444,7 @@ class Boost:
             offset: Documents within this distance from origin get full score (default 0).
             curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
             decay: Score at scale distance from origin (default 0.5).
-            weight: Blending weight [0,1] controlling how much the rank affects final scores.
+            weight: Blending weight [0,1] controlling how much the boost affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
         return _Boost(
@@ -484,7 +484,7 @@ class Boost:
             name: The numeric property name to use as a ranking signal.
             modifier: Score modifier: `Boost.Modifier.NONE` (default), `Boost.Modifier.LOG1P`, or `Boost.Modifier.SQRT`.
                 Use LOG1P or SQRT to dampen the effect of large value ranges.
-            weight: Blending weight [0,1] controlling how much the rank affects final scores.
+            weight: Blending weight [0,1] controlling how much the boost affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
         return _Boost(
@@ -502,22 +502,22 @@ class Boost:
 
     @staticmethod
     def blend(
-        *ranks: _Boost,
+        *boosts: _Boost,
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> _Boost:
-        """Combine multiple rank conditions with individual weights.
+        """Combine multiple boost conditions with individual weights.
 
-        When blending, each sub-rank's weight becomes a per-condition weight,
+        When blending, each sub-boost's weight becomes a per-condition weight,
         and the `weight` parameter here controls the overall blending strength.
 
         Args:
-            *ranks: Rank objects created via `Boost.filter()`, `Boost.time_decay()`, `Boost.numeric_decay()`, or `Boost.property()`.
-            weight: Overall blending weight [0,1] for combining primary search and rank scores.
+            *boosts: Boost objects created via `Boost.filter()`, `Boost.time_decay()`, `Boost.numeric_decay()`, or `Boost.property()`.
+            weight: Overall blending weight [0,1] for combining primary search and boost scores.
             depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
         """
         conditions: List[_BoostCondition] = []
-        for r in ranks:
+        for r in boosts:
             for cond in r.conditions:
                 if cond.weight is None and r.weight is not None:
                     cond.weight = r.weight
