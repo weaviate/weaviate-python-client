@@ -252,6 +252,16 @@ class _Warnings:
         )
 
     @staticmethod
+    def async_replication_field_removed_server_side(argument: str) -> None:
+        warnings.warn(
+            message=f"""Dep029: The `{argument}` argument in `Configure.Replication.async_config` / `Reconfigure.Replication.async_config` is deprecated.
+            It was removed from the Weaviate server schema in v1.37.3 and is silently ignored by newer servers.
+            The argument has no effect against any server >= 1.37.3 and will be removed in a future release.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are using the datetime object {date} without a timezone. The timezone will be set to UTC.

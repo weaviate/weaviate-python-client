@@ -77,12 +77,12 @@ class _NamedVectorConfigCreate(_ConfigCreateModel):
         default=None, alias="vector_index_config"
     )
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self, *, emit_default_vector_index_type: bool = True) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = self.__parse_vectorizer()
         if self.vectorIndexConfig is not None:
             ret_dict["vectorIndexType"] = self.vectorIndexConfig.vector_index_type().value
             ret_dict["vectorIndexConfig"] = self.vectorIndexConfig._to_dict()
-        else:
+        elif emit_default_vector_index_type:
             ret_dict["vectorIndexType"] = self.vectorIndexType.value
         return ret_dict
 

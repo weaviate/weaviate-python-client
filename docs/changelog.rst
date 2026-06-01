@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.21.2
+--------------
+This patch version includes:
+    - Fix aggregate metrics returning 0/0.0 instead of None for empty result sets
+    - Add text2vec-digitalocean vectorizer module
+    - Send empty vector index type on new Weaviate versions to support default vector index type configuration on the server side
+
 Version 4.21.1
 --------------
 This patch version includes:
