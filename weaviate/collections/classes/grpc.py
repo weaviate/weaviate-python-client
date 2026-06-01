@@ -407,7 +407,7 @@ class Boost:
                 _BoostCondition(
                     time_decay=_TimeDecayFunction(
                         property=property,
-                        origin=_decay_value_to_str(origin) if origin is not None else "",
+                        origin=_decay_value_to_str(origin) if origin is not None else "now",
                         scale=_decay_value_to_str(scale),
                         offset=_decay_value_to_str(offset) if offset is not None else None,
                         curve=curve,
