@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from typing import (
@@ -520,7 +520,7 @@ class Boost:
         for r in boosts:
             for cond in r.conditions:
                 if cond.weight is None and r.weight is not None:
-                    cond.weight = r.weight
+                    cond = replace(cond, weight=r.weight)
                 conditions.append(cond)
         return _Boost(conditions=conditions, weight=weight, depth=depth)
 
