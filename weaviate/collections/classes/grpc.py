@@ -522,8 +522,10 @@ class Boost:
             depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
 
         Raises:
-            WeaviateInvalidInputError: If any sub-boost has `depth` set. Use the top-level `depth` parameter instead.
+            WeaviateInvalidInputError: If no boosts are provided or if any sub-boost has `depth` set.
         """
+        if len(boosts) == 0:
+            raise WeaviateInvalidInputError("Boost.blend() requires at least one boost.")
         for r in boosts:
             if r.depth is not None:
                 raise WeaviateInvalidInputError(
