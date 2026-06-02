@@ -3,6 +3,7 @@ import pytest
 from integration.conftest import CollectionFactory
 from weaviate.classes.query import Boost, Filter, MetadataQuery
 from weaviate.collections.classes.config import Configure, DataType, Property
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.collections.classes.data import DataObject
 
 
@@ -264,6 +265,15 @@ def test_boost_api_surface() -> None:
     assert len(b.conditions) == 2
     assert b.weight == 0.8
     assert b.depth == 200
+
+
+def test_boost_blend_rejects_sub_boost_depth() -> None:
+    """blend() raises if any sub-boost has depth set."""
+    with pytest.raises(WeaviateInvalidInputError):
+        Boost.blend(
+            Boost.property("count", depth=500),
+            depth=100,
+        )
 
 
 def test_boost_default_curve_is_unspecified() -> None:

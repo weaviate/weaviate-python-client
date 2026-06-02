@@ -1,5 +1,5 @@
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from typing import (
     Any,
@@ -312,7 +312,7 @@ class _Boost:
     depth: Optional[int] = None
 
 
-def _decay_value_to_str(val: Union[str, int, float, timedelta, datetime]) -> str:
+def _decay_value_to_str(val: Union[str, timedelta, datetime]) -> str:
     """Convert a decay parameter value to the string format expected by the server."""
     if isinstance(val, timedelta):
         total_seconds = val.total_seconds()
@@ -326,6 +326,8 @@ def _decay_value_to_str(val: Union[str, int, float, timedelta, datetime]) -> str
             return f"{int(total_seconds)}s"
         return f"{total_seconds}s"
     if isinstance(val, datetime):
+        if val.tzinfo is None:
+            val = val.replace(tzinfo=timezone.utc)
         return val.isoformat()
     return str(val)
 
@@ -370,7 +372,7 @@ class Boost:
 
         Args:
             filter: The filter condition (same as used in `filters=` parameter).
-            weight: Blending weight [0,1] controlling how much the boost affects final scores.
+            weight: Weight controlling how much the boost affects final scores.
             depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
         """
         return _Boost(conditions=[_BoostCondition(filter=filter)], weight=weight, depth=depth)
@@ -399,7 +401,7 @@ class Boost:
                 Accepts the same types as scale.
             curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
             decay: Score at scale distance from origin (default 0.5).
-            weight: Blending weight [0,1] controlling how much the boost affects final scores.
+            weight: Weight controlling how much the boost affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
         return _Boost(
@@ -444,7 +446,7 @@ class Boost:
             offset: Documents within this distance from origin get full score (default 0).
             curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
             decay: Score at scale distance from origin (default 0.5).
-            weight: Blending weight [0,1] controlling how much the boost affects final scores.
+            weight: Weight controlling how much the boost affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
         return _Boost(
@@ -484,7 +486,7 @@ class Boost:
             name: The numeric property name to use as a ranking signal.
             modifier: Score modifier: `Boost.Modifier.NONE` (default), `Boost.Modifier.LOG1P`, or `Boost.Modifier.SQRT`.
                 Use LOG1P or SQRT to dampen the effect of large value ranges.
-            weight: Blending weight [0,1] controlling how much the boost affects final scores.
+            weight: Weight controlling how much the boost affects final scores.
             depth: Number of results to rescore (default 100, max 10000).
         """
         return _Boost(
@@ -515,7 +517,15 @@ class Boost:
             *boosts: Boost objects created via `Boost.filter()`, `Boost.time_decay()`, `Boost.numeric_decay()`, or `Boost.property()`.
             weight: Overall blending weight [0,1] for combining primary search and boost scores.
             depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
+
+        Raises:
+            WeaviateInvalidInputError: If any sub-boost has `depth` set. Use the top-level `depth` parameter instead.
         """
+        for r in boosts:
+            if r.depth is not None:
+                raise WeaviateInvalidInputError(
+                    "Cannot set `depth` on sub-boosts passed to `blend()`. Use the top-level `depth` parameter instead."
+                )
         conditions: List[_BoostCondition] = []
         for r in boosts:
             for cond in r.conditions:
