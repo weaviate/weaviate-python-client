@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.21.3
+--------------
+This patch version includes:
+    - Fixes a bug where client-side batching contexts did not respect user-supplied insert timeouts
+
 Version 4.21.2
 --------------
 This patch version includes:
