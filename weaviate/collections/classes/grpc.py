@@ -16,7 +16,7 @@ from typing import (
 )
 
 from pydantic import ConfigDict, Field
-from typing_extensions import ClassVar, TypeGuard, TypeVar
+from typing_extensions import ClassVar, TypeAlias, TypeGuard, TypeVar
 
 from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.types import _WeaviateInput
@@ -310,6 +310,9 @@ class _Boost:
     conditions: List[_BoostCondition]
     weight: Optional[float] = None
     depth: Optional[int] = None
+
+
+BoostReturn: TypeAlias = _Boost
 
 
 def _decay_value_to_str(val: Union[str, timedelta, datetime]) -> str:

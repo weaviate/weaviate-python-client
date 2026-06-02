@@ -6,6 +6,7 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.grpc import (
     Boost,
+    BoostReturn,
     Diversity,
     GroupBy,
     HybridFusion,
@@ -40,6 +41,7 @@ __all__ = [
     "QueryReference",
     "NearVector",
     "Boost",
+    "BoostReturn",
     "Rerank",
     "Sort",
     "TargetVectors",
