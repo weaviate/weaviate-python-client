@@ -35,6 +35,8 @@ def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -
 
 
 def _is_valid(expected: Any, value: Any) -> bool:
+    if expected is Any:
+        return True
     if expected is None:
         return value is None
 
@@ -46,7 +48,7 @@ def _is_valid(expected: Any, value: Any) -> bool:
     expected_origin = get_origin(expected)
     if expected_origin is Union:
         args = get_args(expected)
-        return any(isinstance(value, arg) for arg in args)
+        return any(_is_valid(arg, value) for arg in args)
     if expected_origin is not None and (
         issubclass(expected_origin, Sequence) or expected_origin is list
     ):
@@ -56,7 +58,9 @@ def _is_valid(expected: Any, value: Any) -> bool:
         if len(args) == 1:
             if get_origin(args[0]) is Union:
                 union_args = get_args(args[0])
-                return any(isinstance(val, union_arg) for val in value for union_arg in union_args)
+                return len(value) > 0 and all(
+                    any(_is_valid(union_arg, val) for union_arg in union_args) for val in value
+                )
             else:
-                return all(isinstance(val, args[0]) for val in value)
+                return all(_is_valid(args[0], val) for val in value)
     return isinstance(value, expected)
