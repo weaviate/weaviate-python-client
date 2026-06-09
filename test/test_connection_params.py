@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 import weaviate.connect.base as base_mod
 from weaviate.connect.base import ConnectionParams
+from weaviate.exceptions import WeaviateInvalidInputError
 
 
 def test_same_host_port_raises_without_prefix() -> None:
@@ -88,6 +89,8 @@ def test_grpc_channel_forwards_path_prefix_option(monkeypatch) -> None:
         return "CHANNEL"
 
     monkeypatch.setattr(base_mod.grpc.aio, "insecure_channel", fake_insecure_channel)
+    # grpc-web mode requires the shim to be active; simulate it being installed.
+    monkeypatch.setattr(base_mod.grpc, "__weaviate_grpc_web_shim__", True, raising=False)
 
     params = ConnectionParams.from_params(
         http_host="localhost",
@@ -103,6 +106,48 @@ def test_grpc_channel_forwards_path_prefix_option(monkeypatch) -> None:
     assert channel == "CHANNEL"
     assert captured["target"] == "localhost:8090"
     assert ("grpc-web.path_prefix", "/grpc-web") in captured["options"]
+
+
+def _grpc_web_params() -> ConnectionParams:
+    return ConnectionParams.from_params(
+        http_host="localhost",
+        http_port=8090,
+        http_secure=False,
+        grpc_host="localhost",
+        grpc_port=8090,
+        grpc_secure=False,
+        grpc_path_prefix="/grpc-web",
+    )
+
+
+def test_grpc_channel_rejects_prefix_without_shim(monkeypatch) -> None:
+    # No grpc-web shim active -> must fail fast instead of silently building a native
+    # grpcio channel that ignores the prefix.
+    monkeypatch.delattr(base_mod.grpc, "__weaviate_grpc_web_shim__", raising=False)
+    with pytest.raises(WeaviateInvalidInputError, match="weaviate-python-grpc-web"):
+        _grpc_web_params()._grpc_channel(proxies={}, grpc_msg_size=None, is_async=True)
+
+
+def test_grpc_channel_rejects_prefix_for_sync_client() -> None:
+    # grpc-web is async-only; a sync channel with a prefix must be rejected.
+    with pytest.raises(WeaviateInvalidInputError, match="async"):
+        _grpc_web_params()._grpc_channel(proxies={}, grpc_msg_size=None, is_async=False)
+
+
+def test_connect_to_custom_rejects_grpc_web_prefix() -> None:
+    # The synchronous helper must reject grpc-web up front (before connecting).
+    import weaviate
+
+    with pytest.raises(WeaviateInvalidInputError, match="async-only"):
+        weaviate.connect_to_custom(
+            http_host="localhost",
+            http_port=8080,
+            http_secure=False,
+            grpc_host="localhost",
+            grpc_port=8080,
+            grpc_secure=False,
+            grpc_path_prefix="/grpc-web",
+        )
 
 
 def test_grpc_channel_omits_option_without_prefix(monkeypatch) -> None:

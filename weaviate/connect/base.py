@@ -9,6 +9,7 @@ from grpc.aio import Channel as AsyncChannel  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import GrpcConfig, Proxies
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import NUMBER
 from weaviate.util import is_weaviate_domain
 
@@ -160,10 +161,24 @@ class ConnectionParams(BaseModel):
         if grpc_config is not None and grpc_config.channel_options is not None:
             options.extend(grpc_config.channel_options)
 
-        # In grpc-web mode, forward the base-path prefix to the transport via channel
-        # options (consumed by the weaviate-python-grpc-web shim). Not added for native
-        # gRPC, so the native channel options stay byte-for-byte unchanged.
+        # grpc-web mode (prefix set): only valid for an async client, and only when the
+        # weaviate-python-grpc-web shim has replaced the grpc module (it consumes the
+        # grpc-web.path_prefix option). Fail fast otherwise — a native grpcio channel
+        # would silently ignore the option and route over native gRPC, a confusing
+        # misconfiguration. Nothing is added for native gRPC, so its channel options stay
+        # byte-for-byte unchanged.
         if (prefix := self._grpc_web_path_prefix) != "":
+            if not is_async:
+                raise WeaviateInvalidInputError(
+                    "grpc_path_prefix (grpc-web) is only supported for async clients; "
+                    "use use_async_with_custom(...) / WeaviateAsyncClient"
+                )
+            if not getattr(grpc, "__weaviate_grpc_web_shim__", False):
+                raise WeaviateInvalidInputError(
+                    "grpc_path_prefix enables grpc-web, which requires the "
+                    "'weaviate-python-grpc-web' package (it installs a grpc shim before "
+                    "'import weaviate'); it is not active in this environment"
+                )
             options.append(("grpc-web.path_prefix", prefix))
 
         if is_async:

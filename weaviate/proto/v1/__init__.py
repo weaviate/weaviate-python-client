@@ -1,3 +1,4 @@
+import sys
 import warnings
 
 
@@ -19,16 +20,18 @@ from weaviate.exceptions import WeaviateProtobufIncompatibility
 # This happens under Pyodide/Emscripten, where grpcio has no wheel and is excluded
 # via the `sys_platform != "emscripten"` marker in setup.cfg; the grpc module itself
 # is provided there by a pure-Python shim (see the weaviate-python-grpc-web package).
-# On every normal install grpcio's metadata is present and the real version is used,
-# so this branch is not taken. Restricted to grpcio so that a genuinely missing
-# protobuf (which is required and pure-Python under Pyodide) is never masked.
+# On every normal install grpcio's metadata is present and the real version is used, so
+# this branch is not taken. Restricted to grpcio AND to Emscripten, so that a broken or
+# partial grpcio install on a normal platform (metadata missing) still surfaces as
+# PackageNotFoundError instead of silently selecting a fallback stub, and so a genuinely
+# missing protobuf (required and pure-Python under Pyodide) is never masked.
 _GRPCIO_FALLBACK_VERSION = "1.72.1"
 
 def get_version(pkg: str) -> version.Version:
     try:
         return version.parse(metadata_version(pkg))
     except PackageNotFoundError:
-        if pkg == "grpcio":
+        if pkg == "grpcio" and sys.platform == "emscripten":
             return version.parse(_GRPCIO_FALLBACK_VERSION)
         raise
 

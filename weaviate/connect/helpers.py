@@ -17,6 +17,7 @@ from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import WEAVIATE_VERSION, EmbeddedOptions
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import docstring_deprecated
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
@@ -313,11 +314,11 @@ def connect_to_custom(
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
         skip_init_checks: Whether to skip the initialization checks when connecting to Weaviate.
-        grpc_path_prefix: Optional base-path prefix for a grpc-web endpoint served on the
-            same host:port as REST (e.g. "/grpc-web"). When set, gRPC requests are sent
-            over grpc-web to ``<scheme>://<grpc_host>:<grpc_port><prefix>/...`` and sharing
-            the REST host:port is allowed. Requires the ``weaviate-python-grpc-web``
-            package. Defaults to None (native gRPC).
+        grpc_path_prefix: grpc-web base-path prefix. grpc-web is async-only, so it is NOT
+            supported by the synchronous ``connect_to_custom`` — passing a non-empty value
+            raises ``WeaviateInvalidInputError``. Use
+            ``use_async_with_custom(..., grpc_path_prefix=...)`` instead. Defaults to None
+            (native gRPC).
 
     Returns:
         The client connected to the instance with the required parameters set appropriately.
@@ -350,6 +351,11 @@ def connect_to_custom(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
+    if grpc_path_prefix:
+        raise WeaviateInvalidInputError(
+            "grpc_path_prefix enables grpc-web, which is async-only; use "
+            "use_async_with_custom(...) instead of connect_to_custom(...)"
+        )
     return __connect(
         WeaviateClient(
             ConnectionParams.from_params(

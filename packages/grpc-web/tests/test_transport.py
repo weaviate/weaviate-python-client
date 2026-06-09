@@ -180,6 +180,15 @@ def test_malformed_grpc_status_maps_to_internal():
     assert excinfo.value.code() is StatusCode.INTERNAL
 
 
+def test_grpc_timeout_header_rounds_up():
+    sender = FakeSender(body=_ok_response(b"x"))
+    channel = _channel(sender)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    # 123.4ms must round UP to 124ms (never advertise a shorter deadline than requested).
+    asyncio.run(mc(b"q", timeout=0.1234))
+    assert sender.calls[0][1]["grpc-timeout"] == "124m"
+
+
 def test_close_is_awaitable_noop():
     channel = _channel(FakeSender())
     assert asyncio.run(channel.close()) is None

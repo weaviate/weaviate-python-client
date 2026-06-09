@@ -14,6 +14,7 @@ raises a clear error.
 
 import asyncio
 import base64
+import math
 import urllib.parse
 from typing import Any, Callable, Dict, Optional
 
@@ -37,10 +38,12 @@ def get_sender() -> Sender:
 
 def _encode_timeout(seconds: float) -> str:
     """Encode a timeout as a grpc-timeout header value (``<positive int><unit>``)."""
-    millis = max(1, int(seconds * 1000))
+    # Round up so we never advertise a shorter deadline than requested (which would risk
+    # premature server-side cancellation); grpc-timeout takes a positive integer + unit.
+    millis = max(1, math.ceil(seconds * 1000))
     if millis < 100_000_000:
         return f"{millis}m"
-    return f"{max(1, int(seconds))}S"
+    return f"{max(1, math.ceil(seconds))}S"
 
 
 def _fold_metadata(headers: Dict[str, str], metadata: Any) -> None:

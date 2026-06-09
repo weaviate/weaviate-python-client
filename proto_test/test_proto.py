@@ -60,10 +60,30 @@ def test_grpcio_metadata_fallback_under_emscripten(monkeypatch):
         raise PackageNotFoundError(pkg)
 
     monkeypatch.setattr(mod, "metadata_version", raises)
+    monkeypatch.setattr("sys.platform", "emscripten")
 
     assert str(mod.get_version("grpcio")) == "1.72.1"
     with pytest.raises(PackageNotFoundError):
         mod.get_version("protobuf")
+
+
+@pytest.mark.skipif(
+    _INCOMPATIBLE_GRPC_PB,
+    reason="weaviate.proto.v1 cannot be imported with an incompatible grpcio/protobuf "
+    "pair (CI version-gate matrix); the gate is covered by test_proto_import and the "
+    "fallback is exercised in every compatible cell",
+)
+def test_grpcio_missing_metadata_raises_off_emscripten(monkeypatch):
+    """Off Emscripten, missing grpcio metadata surfaces instead of being masked."""
+    mod = importlib.import_module("weaviate.proto.v1")
+
+    def raises(pkg: str) -> str:
+        raise PackageNotFoundError(pkg)
+
+    monkeypatch.setattr(mod, "metadata_version", raises)
+    monkeypatch.setattr("sys.platform", "linux")
+    with pytest.raises(PackageNotFoundError):
+        mod.get_version("grpcio")
 
 
 @pytest.mark.skipif(
