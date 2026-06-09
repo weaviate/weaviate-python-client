@@ -19,7 +19,8 @@ async def pyfetch_sender(
     """Default browser sender.
 
     Imports ``pyodide.http`` lazily so this module stays importable on CPython (where
-    ``pyodide`` does not exist).
+    ``pyodide`` does not exist). ``pyfetch`` has no timeout parameter of its own; the
+    call deadline is enforced by ``GrpcWebChannel._unary`` via ``asyncio.wait_for``.
     """
     from pyodide.http import pyfetch  # type: ignore[import-not-found]
 

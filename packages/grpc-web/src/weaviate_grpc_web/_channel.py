@@ -12,6 +12,7 @@ BatchReferences, BatchDelete, and the unary health check). ``stream_stream`` (th
 raises a clear error.
 """
 
+import asyncio
 import base64
 import urllib.parse
 from typing import Any, Callable, Dict, Optional
@@ -178,10 +179,40 @@ class GrpcWebChannel(AioChannel):
             headers["grpc-timeout"] = _encode_timeout(timeout)
 
         url = self._base_url + self._path_prefix + path
-        status, resp_headers, body = await self._sender(
-            url, headers, encode_message(payload), timeout
-        )
-        return self._handle_response(status, resp_headers, body, deserialize)
+        framed = encode_message(payload)
+
+        # Send. Enforce a client-side deadline (the grpc-timeout header is server-side
+        # only; pyfetch ignores its timeout arg, so without this a stalled request could
+        # hang forever). Any transport/parse failure is surfaced as AioRpcError so the
+        # client only ever sees gRPC error types (never a bare ValueError/TimeoutError).
+        try:
+            send = self._sender(url, headers, framed, timeout)
+            if timeout is not None:
+                status, resp_headers, body = await asyncio.wait_for(send, timeout)
+            else:
+                status, resp_headers, body = await send
+        except AioRpcError:
+            raise
+        except asyncio.TimeoutError as exc:
+            raise AioRpcError(
+                code=StatusCode.DEADLINE_EXCEEDED,
+                details=f"grpc-web request to {path} timed out after {timeout}s",
+            ) from exc
+        except Exception as exc:  # network/transport failure -> retryable UNAVAILABLE
+            raise AioRpcError(
+                code=StatusCode.UNAVAILABLE,
+                details=f"grpc-web transport error for {path}: {exc}",
+            ) from exc
+
+        try:
+            return self._handle_response(status, resp_headers, body, deserialize)
+        except AioRpcError:
+            raise
+        except Exception as exc:  # malformed framing / status / payload
+            raise AioRpcError(
+                code=StatusCode.INTERNAL,
+                details=f"malformed grpc-web response for {path}: {exc}",
+            ) from exc
 
     @staticmethod
     def _handle_response(

@@ -139,6 +139,47 @@ def test_stream_stream_raises_clear_error():
     assert "not supported over grpc-web" in str(excinfo.value)
 
 
+def test_timeout_maps_to_deadline_exceeded():
+    async def slow_sender(url, headers, body, timeout):
+        await asyncio.sleep(0.5)
+        return 200, {}, _ok_response(b"x")
+
+    channel = GrpcWebChannel("h:1", secure=False, sender=slow_sender)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q", timeout=0.01))
+    assert excinfo.value.code() is StatusCode.DEADLINE_EXCEEDED
+
+
+def test_transport_exception_maps_to_unavailable():
+    async def boom(url, headers, body, timeout):
+        raise ConnectionError("connection refused")
+
+    channel = GrpcWebChannel("h:1", secure=False, sender=boom)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q"))
+    assert excinfo.value.code() is StatusCode.UNAVAILABLE
+
+
+def test_malformed_frame_maps_to_internal():
+    # A 3-byte body cannot contain even a 5-byte frame header -> framing ValueError.
+    channel = _channel(FakeSender(body=b"\x00\x00\x00"))
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q"))
+    assert excinfo.value.code() is StatusCode.INTERNAL
+
+
+def test_malformed_grpc_status_maps_to_internal():
+    body = _frame(b"grpc-status:notanint\r\n", 0x80)
+    channel = _channel(FakeSender(body=body))
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q"))
+    assert excinfo.value.code() is StatusCode.INTERNAL
+
+
 def test_close_is_awaitable_noop():
     channel = _channel(FakeSender())
     assert asyncio.run(channel.close()) is None
