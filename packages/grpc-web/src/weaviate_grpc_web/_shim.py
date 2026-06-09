@@ -170,12 +170,25 @@ def _sync_channel_unsupported(*_args: Any, **_kwargs: Any) -> "AioChannel":
     raise RuntimeError(_ASYNC_ONLY_MESSAGE)
 
 
+def _path_prefix_from_options(options: Any) -> str:
+    """Extract the ``("grpc-web.path_prefix", prefix)`` channel option, or "" if absent."""
+    for item in options or ():
+        if isinstance(item, (tuple, list)) and len(item) == 2 and item[0] == "grpc-web.path_prefix":
+            return item[1] or ""
+    return ""
+
+
 def _aio_secure_channel(
     target: Optional[str] = None, credentials: Any = None, options: Any = None, **_kw: Any
 ) -> AioChannel:
     from ._channel import GrpcWebChannel
 
-    return GrpcWebChannel(target=target, secure=True, options=options)
+    return GrpcWebChannel(
+        target=target,
+        secure=True,
+        options=options,
+        path_prefix=_path_prefix_from_options(options),
+    )
 
 
 def _aio_insecure_channel(
@@ -183,7 +196,12 @@ def _aio_insecure_channel(
 ) -> AioChannel:
     from ._channel import GrpcWebChannel
 
-    return GrpcWebChannel(target=target, secure=False, options=options)
+    return GrpcWebChannel(
+        target=target,
+        secure=False,
+        options=options,
+        path_prefix=_path_prefix_from_options(options),
+    )
 
 
 def _noop(*_args: Any, **_kwargs: Any) -> None:

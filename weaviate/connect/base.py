@@ -47,9 +47,19 @@ T = TypeVar("T", bound="ConnectionParams")
 class ConnectionParams(BaseModel):
     http: ProtocolParams
     grpc: ProtocolParams
+    # Optional base-path prefix for a grpc-web endpoint served on the REST host:port
+    # (e.g. "/grpc-web"). None/"" means native gRPC. When set, sharing the REST
+    # host:port is permitted and the prefix is forwarded to the grpc-web transport.
+    grpc_path_prefix: Optional[str] = None
 
     @classmethod
-    def from_url(cls, url: str, grpc_port: int, grpc_secure: bool = False) -> "ConnectionParams":
+    def from_url(
+        cls,
+        url: str,
+        grpc_port: int,
+        grpc_secure: bool = False,
+        grpc_path_prefix: Optional[str] = None,
+    ) -> "ConnectionParams":
         parsed_url = urlparse(url)
         if parsed_url.scheme not in ["http", "https"]:
             raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
@@ -69,6 +79,7 @@ class ConnectionParams(BaseModel):
                 port=grpc_port,
                 secure=grpc_secure or parsed_url.scheme == "https",
             ),
+            grpc_path_prefix=grpc_path_prefix,
         )
 
     @classmethod
@@ -80,6 +91,7 @@ class ConnectionParams(BaseModel):
         grpc_host: str,
         grpc_port: int,
         grpc_secure: bool,
+        grpc_path_prefix: Optional[str] = None,
     ) -> "ConnectionParams":
         return cls(
             http=ProtocolParams(
@@ -92,6 +104,7 @@ class ConnectionParams(BaseModel):
                 port=grpc_port,
                 secure=grpc_secure,
             ),
+            grpc_path_prefix=grpc_path_prefix,
         )
 
     def is_gcp_on_wcd(self) -> bool:
@@ -99,7 +112,10 @@ class ConnectionParams(BaseModel):
 
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:
-        if self.http.host == self.grpc.host and self.http.port == self.grpc.port:
+        same_endpoint = self.http.host == self.grpc.host and self.http.port == self.grpc.port
+        # grpc-web can be multiplexed onto the REST port under a base-path prefix, so a
+        # shared host:port is only a conflict for native gRPC (no prefix configured).
+        if same_endpoint and self._grpc_web_path_prefix == "":
             raise ValueError("http.port and grpc.port must be different if using the same host")
         return self
 
@@ -110,6 +126,16 @@ class ConnectionParams(BaseModel):
     @property
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
+
+    @property
+    def _grpc_web_path_prefix(self) -> str:
+        """Return the normalized grpc-web base-path prefix; "" means native gRPC.
+
+        A configured prefix is returned with a single leading slash and no trailing
+        slash (e.g. "grpc-web/" -> "/grpc-web"); empty/None -> "" (native gRPC).
+        """
+        cleaned = (self.grpc_path_prefix or "").strip("/")
+        return f"/{cleaned}" if cleaned else ""
 
     def _grpc_channel(
         self,
@@ -133,6 +159,12 @@ class ConnectionParams(BaseModel):
 
         if grpc_config is not None and grpc_config.channel_options is not None:
             options.extend(grpc_config.channel_options)
+
+        # In grpc-web mode, forward the base-path prefix to the transport via channel
+        # options (consumed by the weaviate-python-grpc-web shim). Not added for native
+        # gRPC, so the native channel options stay byte-for-byte unchanged.
+        if (prefix := self._grpc_web_path_prefix) != "":
+            options.append(("grpc-web.path_prefix", prefix))
 
         if is_async:
             mod = grpc.aio

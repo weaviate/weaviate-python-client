@@ -125,12 +125,16 @@ class GrpcWebChannel(AioChannel):
         target: Optional[str],
         secure: bool,
         options: Any = None,
+        path_prefix: str = "",
         sender: Optional[Sender] = None,
     ) -> None:
         if not target:
             raise ValueError("GrpcWebChannel requires a target (host:port)")
         scheme = "https" if secure else "http"
         self._base_url = f"{scheme}://{target}"
+        # Normalize to a single leading slash and no trailing slash; "" == native path.
+        cleaned = (path_prefix or "").strip("/")
+        self._path_prefix = f"/{cleaned}" if cleaned else ""
         self._sender: Sender = sender or get_sender()
 
     def unary_unary(
@@ -173,7 +177,7 @@ class GrpcWebChannel(AioChannel):
         if timeout is not None:
             headers["grpc-timeout"] = _encode_timeout(timeout)
 
-        url = self._base_url + path
+        url = self._base_url + self._path_prefix + path
         status, resp_headers, body = await self._sender(
             url, headers, encode_message(payload), timeout
         )

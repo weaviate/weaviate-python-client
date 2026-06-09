@@ -144,6 +144,48 @@ def test_close_is_awaitable_noop():
     assert asyncio.run(channel.close()) is None
 
 
+def test_path_prefix_prepended_to_url():
+    sender = FakeSender(body=_ok_response(b"r"))
+    channel = GrpcWebChannel(
+        "example.com:8090", secure=False, sender=sender, path_prefix="/grpc-web"
+    )
+    mc = channel.unary_unary("/weaviate.v1.Weaviate/Search", lambda x: x, lambda b: b)
+    asyncio.run(mc(b"q"))
+    assert sender.calls[0][0] == "http://example.com:8090/grpc-web/weaviate.v1.Weaviate/Search"
+
+
+@pytest.mark.parametrize(
+    "raw,expected_url",
+    [
+        ("grpc-web", "http://h:1/grpc-web/svc/M"),
+        ("/grpc-web/", "http://h:1/grpc-web/svc/M"),
+        ("/a/b", "http://h:1/a/b/svc/M"),
+        ("", "http://h:1/svc/M"),
+    ],
+)
+def test_path_prefix_normalized_in_url(raw, expected_url):
+    sender = FakeSender(body=_ok_response(b"r"))
+    channel = GrpcWebChannel("h:1", secure=False, sender=sender, path_prefix=raw)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    asyncio.run(mc(b"q"))
+    assert sender.calls[0][0] == expected_url
+
+
+def test_shim_factory_extracts_path_prefix_option():
+    from weaviate_grpc_web._shim import _aio_insecure_channel
+
+    with_prefix = _aio_insecure_channel(
+        target="h:1",
+        options=[("grpc.max_send_message_length", 1), ("grpc-web.path_prefix", "/grpc-web")],
+    )
+    assert with_prefix._path_prefix == "/grpc-web"
+
+    without_prefix = _aio_insecure_channel(
+        target="h:1", options=[("grpc.max_send_message_length", 1)]
+    )
+    assert without_prefix._path_prefix == ""
+
+
 def test_set_sender_overrides_default():
     sender = FakeSender(body=_ok_response(b"y"))
     set_sender(sender)
