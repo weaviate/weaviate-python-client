@@ -26,6 +26,8 @@ from ._shim import StatusCode, install, is_installed
 __all__ = [
     "install",
     "is_installed",
+    "install_fetch_transport",
+    "is_fetch_transport_installed",
     "set_sender",
     "make_httpx_sender",
     "GrpcWebChannel",
@@ -40,6 +42,11 @@ def _bootstrap() -> None:
         # effect. ``setdefault`` lets a user override it explicitly.
         os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
         install()
+        # The REST path needs fetch too: httpx/httpcore open raw sockets, which do
+        # not exist under WASM. Imported lazily so CPython imports stay light.
+        from ._httpx_fetch import install_fetch_transport
+
+        install_fetch_transport()
 
 
 _bootstrap()
@@ -48,4 +55,8 @@ _bootstrap()
 # ``._shim`` (not via ``sys.modules['grpc']``), so importing them is safe regardless of
 # whether the shim was installed.
 from ._channel import GrpcWebChannel, set_sender  # noqa: E402
+from ._httpx_fetch import (  # noqa: E402
+    install_fetch_transport,
+    is_fetch_transport_installed,
+)
 from ._sender import make_httpx_sender  # noqa: E402
