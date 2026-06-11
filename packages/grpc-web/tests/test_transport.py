@@ -160,6 +160,53 @@ def test_transport_exception_maps_to_unavailable():
     with pytest.raises(AioRpcError) as excinfo:
         asyncio.run(mc(b"q"))
     assert excinfo.value.code() is StatusCode.UNAVAILABLE
+    assert "ConnectionError: connection refused" in str(excinfo.value.details())
+
+
+def test_transport_exception_with_empty_str_keeps_type():
+    # httpx transport errors commonly stringify to '' — the detail must still name them
+    async def boom(url, headers, body, timeout):
+        raise ConnectionError()
+
+    channel = GrpcWebChannel("h:1", secure=False, sender=boom)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q"))
+    assert "ConnectionError" in str(excinfo.value.details())
+
+
+def test_empty_ok_response_hints_at_cors_expose_headers():
+    # HTTP 200, empty body, no grpc-status anywhere: the shape of a trailers-only error
+    # whose grpc-status/grpc-message headers were stripped by CORS
+    channel = _channel(FakeSender(status=200, headers={}, body=b""))
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q"))
+    assert excinfo.value.code() is StatusCode.INTERNAL
+    assert "Access-Control-Expose-Headers" in str(excinfo.value.details())
+
+
+def test_empty_ok_response_with_grpc_status_has_no_cors_hint():
+    # when grpc-status WAS visible (status 0, no frames), it is a malformed response,
+    # not a CORS problem — the hint must not appear
+    channel = _channel(FakeSender(status=200, headers={"grpc-status": "0"}, body=b""))
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q"))
+    assert excinfo.value.code() is StatusCode.INTERNAL
+    assert "Access-Control-Expose-Headers" not in str(excinfo.value.details())
+
+
+def test_stream_stream_error_recommends_insert_many_only():
+    # batch.dynamic()/fixed_size()/rate_limit() do not exist on the async client (the
+    # only one supported under WASM), so the error must not recommend them
+    channel = _channel(FakeSender())
+    mc = channel.stream_stream("/weaviate.v1.Weaviate/BatchStream", lambda x: x, lambda b: b)
+    with pytest.raises(RuntimeError) as excinfo:
+        mc(request_iterator=iter([]), timeout=5, metadata=None)
+    assert "insert_many" in str(excinfo.value)
+    for sync_only in ("dynamic", "fixed_size", "rate_limit"):
+        assert sync_only not in str(excinfo.value)
 
 
 def test_malformed_frame_maps_to_internal():

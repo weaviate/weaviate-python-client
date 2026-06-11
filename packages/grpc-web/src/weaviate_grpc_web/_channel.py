@@ -114,10 +114,13 @@ class _UnsupportedStreamMultiCallable:
         self._path = path
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        # NOTE: do not recommend batch.dynamic()/fixed_size()/rate_limit() here — those
+        # are sync-client-only APIs and do not exist on the async client, which is the
+        # only client supported under WASM.
         raise RuntimeError(
             f"Bidirectional streaming RPC {self._path!r} (server-side batching / "
-            "BatchStream) is not supported over grpc-web/fetch. Use insert_many(), or "
-            "batch.dynamic() / fixed_size() / rate_limit(), instead of batch.stream()."
+            "BatchStream) is not supported over grpc-web/fetch. Use "
+            "collection.data.insert_many() instead of batch.stream()."
         )
 
 
@@ -202,9 +205,12 @@ class GrpcWebChannel(AioChannel):
                 details=f"grpc-web request to {path} timed out after {timeout}s",
             ) from exc
         except Exception as exc:  # network/transport failure -> retryable UNAVAILABLE
+            # str() of transport errors can be empty (e.g. httpx.ConnectError) — always
+            # include the exception type so failures stay diagnosable
+            detail = f"{type(exc).__name__}: {exc}" if str(exc) else repr(exc)
             raise AioRpcError(
                 code=StatusCode.UNAVAILABLE,
-                details=f"grpc-web transport error for {path}: {exc}",
+                details=f"grpc-web transport error for {path}: {detail}",
             ) from exc
 
         try:
@@ -247,10 +253,18 @@ class GrpcWebChannel(AioChannel):
         if code is not StatusCode.OK:
             raise AioRpcError(code=code, details=message)
         if not messages:
-            raise AioRpcError(
-                code=StatusCode.INTERNAL,
-                details="grpc-web response contained no message frame",
-            )
+            details = "grpc-web response contained no message frame"
+            if raw_status is None:
+                # HTTP 200, no body frames, and no grpc-status anywhere: the classic
+                # signature of a trailers-only error response whose grpc-status /
+                # grpc-message headers were stripped by CORS in the browser.
+                details += (
+                    " and no grpc-status was visible. If this is a cross-origin browser "
+                    "request, configure the grpc-web proxy to send "
+                    "'Access-Control-Expose-Headers: grpc-status, grpc-message' so "
+                    "trailers-only error responses are readable."
+                )
+            raise AioRpcError(code=StatusCode.INTERNAL, details=details)
         return deserialize(messages[0])
 
 

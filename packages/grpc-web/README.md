@@ -27,6 +27,12 @@ and POSTs them via `pyodide.http.pyfetch` to a server fronted by a grpc-web tran
 (e.g. Envoy or [connectrpc/vanguard](https://github.com/connectrpc/vanguard-go)). Call
 metadata (API key / OIDC bearer) is folded into `fetch` headers.
 
+For REST, Pyodide ≥ 0.27 distributes a patched httpx that already routes through the
+browser's `fetch` natively — when that build is detected the package leaves it alone.
+Only when httpx resolved from PyPI (httpcore + raw sockets, which cannot work under
+WASM) does the package patch `httpx.AsyncHTTPTransport` with its own pyfetch-based
+transport.
+
 ## Usage
 
 ```python
@@ -41,13 +47,48 @@ await collection.query.near_text("hello", limit=3)
 
 ## Supported / unsupported
 
-| RPC                                                       | Kind            | Status |
+| Feature                                                   | Kind            | Status |
 |----------------------------------------------------------|-----------------|--------|
-| Search, Aggregate, TenantsGet, BatchObjects, BatchDelete | unary           | ✅ works over grpc-web |
-| Health check (`/grpc.health.v1.Health/Check`)            | unary           | ✅ (recommend `skip_init_checks=True` + REST `/.well-known/ready`) |
-| References (`/batch/references`)                          | REST            | ✅ via httpx-in-Pyodide |
-| `batch.stream()` / `batch.experimental()` (BatchStream)  | bidi streaming  | ❌ not possible over grpc-web/fetch — use `insert_many()` / `batch.dynamic()` / `fixed_size()` / `rate_limit()` |
+| Search, Aggregate, TenantsGet, BatchObjects, BatchDelete | unary gRPC      | ✅ works over grpc-web |
+| Health check (`/grpc.health.v1.Health/Check`)            | unary gRPC      | ✅ (recommend `skip_init_checks=True` + REST `/.well-known/ready`) |
+| REST (`is_ready`, config, `/batch/references`, …)         | REST            | ✅ via fetch (Pyodide's httpx build, or this package's fallback transport) |
+| API-key auth (`Auth.api_key`)                             | header          | ✅ |
+| OIDC auth (`client_credentials` / `client_password` / `bearer_token`) | REST | ✅ token fetch + asyncio-task refresh (no threads) |
+| Bulk insert: `collection.data.insert_many()`              | unary gRPC      | ✅ the supported bulk path under WASM |
+| `batch.stream()` / `batch.experimental()` (BatchStream)  | bidi streaming  | ❌ not possible over grpc-web/fetch — raises immediately; use `insert_many()` |
+| `batch.dynamic()` / `fixed_size()` / `rate_limit()`      | sync-client API | ❌ these only exist on the sync client, which is unsupported under WASM |
+| Embedded Weaviate (`use_async_with_embedded`)            | subprocess      | ❌ raises "not supported under WebAssembly/Pyodide" |
 | Synchronous client                                       | —               | ❌ async-only under WASM |
+| Weaviate Agents: `AsyncQueryAgent` `run/ask/search`      | REST            | ✅ via fetch |
+| Weaviate Agents: `ask_stream` / `research_stream` (SSE)  | REST streaming  | ⚠️ degraded under the fallback transport: fully buffered, events arrive only when the run completes (and long runs can hit the request timeout) |
+| Weaviate Agents: sync `QueryAgent`, `TransformationAgent`, `PersonalizationAgent` | REST sync | ❌ no async flavour exists |
+
+## Configuration not honored in the browser
+
+`fetch` manages connections itself, so several knobs are accepted but have no effect
+under WASM:
+
+- `AdditionalConfig.proxies` / `trust_env` proxy environment variables (the browser
+  cannot proxy fetch requests per-client),
+- connection-pool sizing and `session_pool_max_retries`,
+- `GrpcConfig.credentials` (custom CA bundles — the browser's trust store decides TLS),
+- `GrpcConfig.channel_options`, including `grpc.max_send/receive_message_length`
+  (only `grpc-web.path_prefix` is consumed),
+- `Proxies.grpc` / `GRPC_PROXY`.
+
+## CORS requirements (browsers)
+
+Cross-origin browser deployments must configure the grpc-web transcoder / REST endpoint
+with CORS, or failures become hard to diagnose:
+
+- allow the request headers the client sends: `authorization`, `content-type`,
+  `x-grpc-web`, and any custom headers;
+- expose the grpc-web status headers on responses:
+  `Access-Control-Expose-Headers: grpc-status, grpc-message` — without this,
+  trailers-only error responses (e.g. a bad API key) are reported as
+  `INTERNAL: grpc-web response contained no message frame` instead of the real error;
+- note that a CORS-blocked request is indistinguishable from a network failure in the
+  browser (`TypeError: Failed to fetch`), and is retried as UNAVAILABLE.
 
 ## Testing on CPython
 

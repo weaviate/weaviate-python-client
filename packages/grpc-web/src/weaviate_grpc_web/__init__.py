@@ -27,6 +27,7 @@ __all__ = [
     "install",
     "is_installed",
     "install_fetch_transport",
+    "uninstall_fetch_transport",
     "is_fetch_transport_installed",
     "set_sender",
     "make_httpx_sender",
@@ -58,5 +59,6 @@ from ._channel import GrpcWebChannel, set_sender  # noqa: E402
 from ._httpx_fetch import (  # noqa: E402
     install_fetch_transport,
     is_fetch_transport_installed,
+    uninstall_fetch_transport,
 )
 from ._sender import make_httpx_sender  # noqa: E402
