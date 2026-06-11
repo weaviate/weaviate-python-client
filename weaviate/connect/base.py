@@ -21,6 +21,17 @@ TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
 
 
+def _grpc_web_shim_active() -> bool:
+    """Whether the 'weaviate-python-grpc-web' shim has replaced the grpc module.
+
+    The shim (used under WASM/Pyodide, where there is no grpcio wheel) routes unary RPCs
+    over grpc-web/fetch and cannot do bidirectional streaming. The marker attribute is
+    the documented contract between the two packages — keep all sniffs going through
+    this helper.
+    """
+    return getattr(grpc, "__weaviate_grpc_web_shim__", False) is True
+
+
 class ProtocolParams(BaseModel):
     host: str
     port: int
@@ -173,7 +184,7 @@ class ConnectionParams(BaseModel):
                     "grpc_path_prefix (grpc-web) is only supported for async clients; "
                     "use use_async_with_custom(...) / WeaviateAsyncClient"
                 )
-            if not getattr(grpc, "__weaviate_grpc_web_shim__", False):
+            if not _grpc_web_shim_active():
                 raise WeaviateInvalidInputError(
                     "grpc_path_prefix enables grpc-web, which requires the "
                     "'weaviate-python-grpc-web' package (it installs a grpc shim before "

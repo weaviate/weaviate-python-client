@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -109,6 +110,16 @@ HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
 PERMISSION_DENIED = "PERMISSION_DENIED"
 
 
+def _exc_detail(e: BaseException) -> str:
+    """Format an exception for user-facing messages.
+
+    ``str()`` of transport errors is frequently empty (e.g. ``httpx.ConnectError``),
+    which produces messages like 'Details: ' with nothing after them — always include
+    the exception type.
+    """
+    return f"{type(e).__name__}: {e}" if str(e) else repr(e)
+
+
 @dataclass
 class _ExpectedStatusCodes:
     ok_in: Union[List[int], int]
@@ -153,6 +164,8 @@ class _ConnectionBase:
         self._connected = False
         self._skip_init_checks = skip_init_checks
         self._grpc_config = grpc_config
+        self._shutdown_background_event: Optional[Event] = None
+        self.__token_refresh_task: Optional["asyncio.Task[None]"] = None
 
         client_type = "sync" if isinstance(self, ConnectionSync) else "async"
         embedded_suffix = "-embedded" if self.embedded_db is not None else ""
@@ -408,8 +421,8 @@ class _ConnectionBase:
                         response = await client.get(oidc_url, timeout=self.timeout_config.init)
                     except Exception as e:
                         raise WeaviateConnectionError(
-                            f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
-                        )
+                            f"Error: {_exc_detail(e)}. \nIs Weaviate running and reachable at {self.url}?"
+                        ) from e
                 res = self.__process_oidc_response(response, auth_client_secret, oidc_url, colour)
                 if isinstance(res, Awaitable):
                     return await res
@@ -423,8 +436,8 @@ class _ConnectionBase:
                 response = client.get(oidc_url, timeout=self.timeout_config.init)
             except Exception as e:
                 raise WeaviateConnectionError(
-                    f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
-                )
+                    f"Error: {_exc_detail(e)}. \nIs Weaviate running and reachable at {self.url}?"
+                ) from e
         res = self.__process_oidc_response(response, auth_client_secret, oidc_url, colour)
         assert not isinstance(res, Awaitable)
         return res
@@ -530,17 +543,36 @@ class _ConnectionBase:
         if "refresh_token" not in self._client.token and _auth is None:
             return
 
-        # make an event loop sidecar thread for running async token refreshing
-        event_loop = (
-            _EventLoopSingleton.get_instance()
-            if isinstance(self._client, AsyncOAuth2Client)
-            else None
-        )
+        # a previous connect() may have left a refresher behind (e.g. a retry after a
+        # partially failed connect); stop it before replacing the shutdown event, or it
+        # would keep refreshing concurrently forever
+        self._cancel_background_token_refresh()
 
         expires_in: int = self._client.token.get(
             "expires_in", 60
         )  # use 1minute as token lifetime if not supplied
         self._shutdown_background_event = Event()
+
+        if isinstance(self._client, AsyncOAuth2Client):
+            try:
+                loop: Optional[asyncio.AbstractEventLoop] = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is not None:
+                # The async colour refreshes on its own already-running loop: threads
+                # cannot start under WASM/Pyodide and are unnecessary here anyway.
+                self.__token_refresh_task = loop.create_task(
+                    self.__periodic_token_refresh_async(expires_in, _auth)
+                )
+                return
+
+        # sync colour (or async without a running loop): refresh on a daemon thread,
+        # with an event loop sidecar thread for running async token refreshing
+        event_loop = (
+            _EventLoopSingleton.get_instance()
+            if isinstance(self._client, AsyncOAuth2Client)
+            else None
+        )
 
         def refresh_token() -> None:
             if isinstance(self._client, AsyncOAuth2Client):
@@ -603,6 +635,49 @@ class _ConnectionBase:
         )
         demon.start()
 
+    def _cancel_background_token_refresh(self) -> None:
+        """Stop the token refresher, whichever form it took.
+
+        Sets the shutdown event (observed by the sync colour's daemon thread at its next
+        wake-up) and cancels the async colour's refresh task immediately.
+        """
+        if self._shutdown_background_event is not None:
+            self._shutdown_background_event.set()
+        if self.__token_refresh_task is not None:
+            self.__token_refresh_task.cancel()
+            self.__token_refresh_task = None
+
+    async def __periodic_token_refresh_async(
+        self, refresh_time: int, _auth: Optional[_Auth]
+    ) -> None:
+        """Thread-free equivalent of ``periodic_refresh_token`` for the async colour.
+
+        Cancelled by ``close('async')``.
+        """
+        while (
+            self._shutdown_background_event is not None
+            and not self._shutdown_background_event.is_set()
+        ):
+            # use refresh token when available
+            await asyncio.sleep(max(refresh_time, 1))
+            try:
+                client = self._client
+                if not isinstance(client, AsyncOAuth2Client):
+                    continue
+                if "refresh_token" in client.token:
+                    client.token = await client.refresh_token(url=client.metadata["token_endpoint"])
+                else:
+                    # client credentials usually does not contain a refresh token => get a
+                    # new token using the saved credentials
+                    assert _auth is not None
+                    new_session = await _Auth.aresult(_auth.get_auth_session())
+                    client.token = await new_session.fetch_token()
+                refresh_time = client.token.get("expires_in", 60) - 30
+            except HTTPError as exc:
+                # retry again after one second, might be an unstable connection
+                refresh_time = 1
+                _Warnings.token_refresh_failed(exc)
+
     def __get_latest_headers(self) -> Dict[str, str]:
         if "authorization" in self._headers:
             return self._headers
@@ -648,13 +723,22 @@ class _ConnectionBase:
         )
 
     def __handle_exceptions(self, e: Exception, error_msg: str) -> None:
-        if isinstance(e, RuntimeError):
+        # httpx raises a bare RuntimeError('Cannot send a request, as the client has been
+        # closed.'); match its message so unrelated RuntimeErrors (e.g. Emscripten's
+        # "can't start new thread") are not rewritten into a misleading 'client is
+        # closed' error.
+        if isinstance(e, RuntimeError) and "client has been closed" in str(e):
             raise WeaviateClosedClientError() from e
         if isinstance(e, ConnectError):
-            raise WeaviateConnectionError(error_msg) from e
+            raise WeaviateConnectionError(self.__error_msg_with_detail(error_msg, e)) from e
         if isinstance(e, ReadTimeout):
-            raise WeaviateTimeoutError(error_msg) from e
+            raise WeaviateTimeoutError(self.__error_msg_with_detail(error_msg, e)) from e
         raise e
+
+    @staticmethod
+    def __error_msg_with_detail(error_msg: str, e: Exception) -> str:
+        detail = _exc_detail(e)
+        return f"{error_msg} ({detail})" if error_msg else detail
 
     def __handle_response(
         self,
@@ -710,6 +794,7 @@ class _ConnectionBase:
     def close(self, colour: executor.Colour) -> executor.Result[None]:
         if self.embedded_db is not None:
             self.embedded_db.stop()
+        self._cancel_background_token_refresh()
         if colour == "async":
 
             async def execute() -> None:
@@ -752,8 +837,11 @@ class _ConnectionBase:
                     async with AsyncClient() as client:
                         res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
                     return resp(res)
-                except RequestError:
-                    pass  # ignore any errors related to requests, it is a best-effort warning
+                except (RequestError, OSError):
+                    # ignore any errors related to requests, it is a best-effort warning.
+                    # OSError covers fetch failures under Pyodide/WASM, where a page CSP
+                    # commonly blocks pypi.org — that must not fail connect().
+                    pass
 
             return _execute()
 
@@ -761,7 +849,7 @@ class _ConnectionBase:
             with Client() as client:
                 res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
             return resp(res)
-        except RequestError:
+        except (RequestError, OSError):
             pass  # ignore any errors related to requests, it is a best-effort warning
 
     def delete(
@@ -903,47 +991,49 @@ class ConnectionSync(_ConnectionBase):
 
         self._open_connections_rest(self._auth, "sync")
 
-        # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = executor.result(self.get_meta(False))
-            self._weaviate_version = _ServerVersion.from_string(meta["version"])
-            if "grpcMaxMessageSize" in meta:
-                self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
-            # Add warning later, when weaviate supported it for a while
-            # else:
-            #     _Warnings.grpc_max_msg_size_not_found()
-        except (
-            WeaviateConnectionError,
-            ReadError,
-            RemoteProtocolError,
-            SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
-        ) as e:
-            self._connected = False
-            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
-
-        self.open_connection_grpc("sync")
-        if self.embedded_db is not None:
+            # need this to get the version of weaviate for version checks and proper GRPC configuration
             try:
-                self.wait_for_weaviate(10)
-            except WeaviateStartUpError as e:
-                self.embedded_db.stop()
-                self._connected = False
-                raise e
+                meta = executor.result(self.get_meta(False))
+                self._weaviate_version = _ServerVersion.from_string(meta["version"])
+                if "grpcMaxMessageSize" in meta:
+                    self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
+                # Add warning later, when weaviate supported it for a while
+                # else:
+                #     _Warnings.grpc_max_msg_size_not_found()
+            except (
+                WeaviateConnectionError,
+                ReadError,
+                RemoteProtocolError,
+                SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
+            ) as e:
+                raise WeaviateStartUpError(
+                    f"Could not connect to Weaviate: {_exc_detail(e)}."
+                ) from e
 
-        # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 27, patch=0):
-            self._connected = False
-            raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
-            )
+            self.open_connection_grpc("sync")
+            if self.embedded_db is not None:
+                try:
+                    self.wait_for_weaviate(10)
+                except WeaviateStartUpError:
+                    self.embedded_db.stop()
+                    raise
 
-        if not self._skip_init_checks:
-            try:
+            # do it after all other init checks so as not to break all the tests
+            if self._weaviate_version.is_lower_than(1, 27, patch=0):
+                raise WeaviateStartUpError(
+                    f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
+                )
+
+            if not self._skip_init_checks:
                 executor.result(self._ping_grpc("sync"))
                 executor.result(self._check_package_version("sync"))
-            except Exception as e:
-                self._connected = False
-                raise e
+        except BaseException:
+            # the OIDC step above may already have started the background token
+            # refresher; a failed connect must not leave it running
+            self._connected = False
+            self._cancel_background_token_refresh()
+            raise
 
         self._connected = True
 
@@ -1107,47 +1197,50 @@ class ConnectionAsync(_ConnectionBase):
 
         await executor.aresult(self._open_connections_rest(self._auth, "async"))
 
-        # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = await self.get_meta(False)
-            self._weaviate_version = _ServerVersion.from_string(meta["version"])
-            if "grpcMaxMessageSize" in meta:
-                self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
-            # Add warning later, when weaviate supported it for a while
-            # else:
-            #     _Warnings.grpc_max_msg_size_not_found()
-        except (
-            WeaviateConnectionError,
-            ReadError,
-            RemoteProtocolError,
-            SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
-        ) as e:
-            self._connected = False
-            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
-
-        self.open_connection_grpc("async")
-        if self.embedded_db is not None:
+            # need this to get the version of weaviate for version checks and proper GRPC configuration
             try:
-                await self.wait_for_weaviate(10)
-            except WeaviateStartUpError as e:
-                self.embedded_db.stop()
-                self._connected = False
-                raise e
+                meta = await self.get_meta(False)
+                self._weaviate_version = _ServerVersion.from_string(meta["version"])
+                if "grpcMaxMessageSize" in meta:
+                    self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
+                # Add warning later, when weaviate supported it for a while
+                # else:
+                #     _Warnings.grpc_max_msg_size_not_found()
+            except (
+                WeaviateConnectionError,
+                ReadError,
+                RemoteProtocolError,
+                SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
+            ) as e:
+                raise WeaviateStartUpError(
+                    f"Could not connect to Weaviate: {_exc_detail(e)}."
+                ) from e
 
-        # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 27, 0):
-            self._connected = False
-            raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
-            )
+            self.open_connection_grpc("async")
+            if self.embedded_db is not None:
+                try:
+                    await self.wait_for_weaviate(10)
+                except WeaviateStartUpError:
+                    self.embedded_db.stop()
+                    raise
 
-        if not self._skip_init_checks:
-            try:
+            # do it after all other init checks so as not to break all the tests
+            if self._weaviate_version.is_lower_than(1, 27, 0):
+                raise WeaviateStartUpError(
+                    f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
+                )
+
+            if not self._skip_init_checks:
                 await executor.aresult(self._ping_grpc("async"))
                 await executor.aresult(self._check_package_version("async"))
-            except Exception as e:
-                self._connected = False
-                raise e
+        except BaseException:
+            # the OIDC step above may already have started the background token
+            # refresher; a failed connect must not leave it running (it would keep
+            # hitting the IdP with no way for the user to stop it)
+            self._connected = False
+            self._cancel_background_token_refresh()
+            raise
 
         self._connected = True
 
@@ -1159,7 +1252,9 @@ class ConnectionAsync(_ConnectionBase):
                 ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
-                time.sleep(1)
+                # asyncio.sleep, not time.sleep: a blocking sleep inside a coroutine
+                # stalls the event loop (and deadlocks single-threaded WASM runtimes)
+                await asyncio.sleep(1)
 
         try:
             (

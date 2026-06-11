@@ -37,6 +37,7 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
 )
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.connect.base import _grpc_web_shim_active
 from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync
 from weaviate.exceptions import (
@@ -133,6 +134,15 @@ class _BatchBaseAsync:
         return self.__bg_tasks is not None and self.__bg_tasks.all_alive()
 
     async def _start(self):
+        if _grpc_web_shim_active():
+            # fail fast and loud: over grpc-web the BatchStream RPC raises inside the
+            # background tasks, where it would otherwise surface as a silent drop or a
+            # never-ending flush()
+            raise WeaviateBatchStreamError(
+                "batch.stream() requires bidirectional gRPC streaming, which is not "
+                "possible over grpc-web/fetch (WebAssembly/Pyodide). Use "
+                "collection.data.insert_many() instead."
+            )
         self.__number_of_nodes = await self.__cluster.get_number_of_nodes()
 
         async def loop_wrapper() -> None:
@@ -192,7 +202,8 @@ class _BatchBaseAsync:
                 "Background batch tasks did not terminate after forced shutdown."
             ) from e
 
-        # copy the results to the public results
+        # copy the results to the public results — even on failure, so the user can
+        # still inspect batch.results / batch.failed_objects after catching
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
         self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
         self.__results_for_wrapper_backup.failed_references = (
@@ -201,6 +212,11 @@ class _BatchBaseAsync:
         self.__results_for_wrapper_backup.imported_shards = (
             self.__results_for_wrapper.imported_shards
         )
+
+        if self.__bg_exception is not None:
+            # surface background-task failures instead of returning partial results
+            # as if the batch had succeeded
+            raise self.__bg_exception
 
     async def _shutdown(self) -> None:
         self.__is_stopped.set()
@@ -531,6 +547,10 @@ class _BatchBaseAsync:
         """Flush the batch queue and wait for all requests to be finished."""
         # bg thread is sending objs+refs automatically, so simply wait for everything to be done
         while len(self.__batch_objects) > 0 or len(self.__batch_references) > 0:
+            if self.__bg_exception is not None:
+                # the background tasks died; nothing will drain the queues, so waiting
+                # any longer would hang forever
+                raise self.__bg_exception
             await asyncio.sleep(0.01)
 
     async def _add_object(
