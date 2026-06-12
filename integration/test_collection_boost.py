@@ -153,7 +153,7 @@ def test_boost_property_value(collection_factory: CollectionFactory) -> None:
     result = collection.query.near_vector(
         near_vector=[1.0, 0.0, 0.0],
         limit=5,
-        boost=Boost.property(
+        boost=Boost.numeric_property(
             "count",
             modifier=Boost.Modifier.LOG1P,
             weight=1.0,
@@ -172,16 +172,18 @@ def test_boost_blend(collection_factory: CollectionFactory) -> None:
         near_vector=[1.0, 0.0, 0.0],
         limit=5,
         boost=Boost.blend(
-            Boost.filter(
-                Filter.by_property("rating").greater_or_equal(4.0),
-                weight=2.0,
-            ),
-            Boost.numeric_decay(
-                "price",
-                origin=30.0,
-                scale=100.0,
-                curve=Boost.Curve.EXPONENTIAL,
-            ),
+            [
+                Boost.filter(
+                    Filter.by_property("rating").greater_or_equal(4.0),
+                    weight=2.0,
+                ),
+                Boost.numeric_decay(
+                    "price",
+                    origin=30.0,
+                    scale=100.0,
+                    curve=Boost.Curve.EXPONENTIAL,
+                ),
+            ],
             weight=0.8,
         ),
         return_metadata=MetadataQuery(distance=True),
@@ -257,8 +259,10 @@ def test_boost_api_surface() -> None:
     assert b.weight == 0.5
 
     b = Boost.blend(
-        Boost.filter(Filter.by_property("x").equal("y"), weight=1.0),
-        Boost.property("z", modifier=Boost.Modifier.LOG1P),
+        [
+            Boost.filter(Filter.by_property("x").equal("y"), weight=1.0),
+            Boost.numeric_property("z", modifier=Boost.Modifier.LOG1P),
+        ],
         weight=0.8,
         depth=200,
     )
@@ -266,12 +270,17 @@ def test_boost_api_surface() -> None:
     assert b.weight == 0.8
     assert b.depth == 200
 
+    # blend() also accepts a single boost
+    b = Boost.blend(Boost.filter(Filter.by_property("x").equal("y")), weight=0.5)
+    assert len(b.conditions) == 1
+    assert b.weight == 0.5
+
 
 def test_boost_blend_rejects_sub_boost_depth() -> None:
     """blend() raises if any sub-boost has depth set."""
     with pytest.raises(WeaviateInvalidInputError):
         Boost.blend(
-            Boost.property("count", depth=500),
+            Boost.numeric_property("count", depth=500),
             depth=100,
         )
 
@@ -287,5 +296,5 @@ def test_boost_default_curve_is_unspecified() -> None:
 
 def test_boost_default_modifier_is_unspecified() -> None:
     """Omitting modifier defaults to None (sent as UNSPECIFIED on the wire)."""
-    b = Boost.property("count")
+    b = Boost.numeric_property("count")
     assert b.conditions[0].property_value.modifier is None

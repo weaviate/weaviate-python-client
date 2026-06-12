@@ -563,14 +563,12 @@ class _QueryGRPC(_BaseGRPC):
     _Boost_pb2 = search_get_pb2.Boost
 
     _CURVE_TO_PROTO = {
-        _BoostCurve.UNSPECIFIED: _Boost_pb2.DECAY_CURVE_UNSPECIFIED,
         _BoostCurve.EXPONENTIAL: _Boost_pb2.DECAY_CURVE_EXPONENTIAL,
         _BoostCurve.GAUSSIAN: _Boost_pb2.DECAY_CURVE_GAUSS,
         _BoostCurve.LINEAR: _Boost_pb2.DECAY_CURVE_LINEAR,
     }
 
     _MODIFIER_TO_PROTO = {
-        _BoostModifier.UNSPECIFIED: _Boost_pb2.PROPERTY_VALUE_MODIFIER_UNSPECIFIED,
         _BoostModifier.LOG1P: _Boost_pb2.PROPERTY_VALUE_MODIFIER_LOG1P,
         _BoostModifier.SQRT: _Boost_pb2.PROPERTY_VALUE_MODIFIER_SQRT,
     }
