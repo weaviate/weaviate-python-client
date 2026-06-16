@@ -359,12 +359,12 @@ class _BoostCurve(str, BaseEnum):
 class _BoostModifier(str, BaseEnum):
     """The transform applied to a numeric property's value in `numeric_property` before normalization.
 
-    Use a modifier to dampen values that span many orders of magnitude. If no modifier is
+    Use a modifier to reduce the impact of large property values. If no modifier is
     set, the raw value is used.
 
     Attributes:
-        LOG1P: Apply `log(1 + value)` for strong long-tail dampening.
-        SQRT: Apply `sqrt(value)` for milder long-tail dampening.
+        LOG1P: Apply `log(1 + value)` to strongly reduce the impact of large values.
+        SQRT: Apply `sqrt(value)` to mildly reduce the impact of large values.
     """
 
     LOG1P = "log1p"
