@@ -54,7 +54,6 @@ BatchResponse = List[Dict[str, Any]]
 TBatchInput = TypeVar("TBatchInput")
 TBatchReturn = TypeVar("TBatchReturn")
 MAX_CONCURRENT_REQUESTS = 10
-DEFAULT_REQUEST_TIMEOUT = 180
 CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER = 2
 BATCH_TIME_TARGET = 10
 VECTORIZER_BATCHING_STEP_SIZE = 48  # cohere max batch size is 96
@@ -612,7 +611,7 @@ class _BatchBase:
                     self.__batch_grpc.objects(
                         connection=self.__connection,
                         objects=[obj._to_internal() for obj in objs],
-                        timeout=DEFAULT_REQUEST_TIMEOUT,
+                        timeout=self.__connection.timeout_config.insert,
                         max_retries=MAX_RETRIES,
                     )
                 )
