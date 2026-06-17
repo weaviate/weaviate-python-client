@@ -341,7 +341,15 @@ def _decay_origin_to_str(val: Union[str, datetime]) -> str:
 
 
 class _BoostCurve(str, BaseEnum):
-    """Decay curve type for distance-based boost scoring."""
+    """The decay curve used by a distance-based boost (`time_decay`, `numeric_decay`).
+
+    Each curve scores 1 at the origin and falls to the `decay` value at `scale` distance.
+
+    Attributes:
+        EXPONENTIAL: Heavy-tailed decay that halves geometrically. The default if no curve is set.
+        GAUSSIAN: Bell-shaped decay with a sharp falloff once past `scale`.
+        LINEAR: Straight-line decay that reaches zero beyond `scale`.
+    """
 
     EXPONENTIAL = "exp"
     GAUSSIAN = "gauss"
@@ -349,16 +357,36 @@ class _BoostCurve(str, BaseEnum):
 
 
 class _BoostModifier(str, BaseEnum):
-    """Score modifier for property-value boost scoring."""
+    """The transform applied to a numeric property's value in `numeric_property` before normalization.
+
+    Use a modifier to reduce the impact of large property values. If no modifier is
+    set, the raw value is used.
+
+    Attributes:
+        LOG1P: Apply `log(1 + value)` to strongly reduce the impact of large values.
+        SQRT: Apply `sqrt(value)` to mildly reduce the impact of large values.
+    """
 
     LOG1P = "log1p"
     SQRT = "sqrt"
 
 
 class Boost:
-    """Define soft-scoring conditions to boost or demote matching documents without excluding them.
+    """Soft-rank search results: promote or demote objects without removing them from the result set.
 
-    Use the static methods `filter()`, `time_decay()`, `numeric_decay()`, `numeric_property()`, and `blend()` to create boost configurations.
+    A boost is a query-time rescorer. The primary search (vector, hybrid, or BM25) fetches a pool of
+    candidates, the boost re-scores them against its conditions, and the results are re-sorted. Unlike
+    a filter, a boost never excludes objects: non-matching objects stay in the result set but rank lower.
+
+    Use the static methods to build a boost, then pass it to a query or generate method via `boost=`:
+
+    - `filter()`: promote or demote objects matching a filter condition.
+    - `time_decay()`: rank by recency, decaying with distance from an origin date.
+    - `numeric_decay()`: rank by closeness to a target numeric value.
+    - `numeric_property()`: rank by a numeric property's raw value.
+    - `blend()`: combine several of the above, each with its own weight.
+
+    Available in Weaviate `v1.38` and later.
     """
 
     Curve = _BoostCurve
@@ -374,12 +402,20 @@ class Boost:
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> BoostReturn:
-        """Boost or demote results matching a filter condition.
+        """Promote or demote objects that match a filter condition.
+
+        Matching objects score 1 and non-matching objects score 0, so this acts as a soft `WHERE`:
+        non-matching objects are demoted but stay in the result set.
 
         Args:
-            filter: The filter condition (same as used in `filters=` parameter).
-            weight: Weight controlling how much the boost affects final scores. Uses the server-side default if not set.
-            depth: Number of results to rescore. Uses the server-side default if not set. Higher values improve accuracy at the cost of performance.
+            filter: The filter condition, built the same way as for the `filters=` parameter.
+                Only `Equal`, `NotEqual`, the comparison operators, and `And`/`Or`/`Not` are supported.
+            weight: How much the boost influences the final score, in `[0, 1]`: the result is
+                `(1 - weight)` of the primary score plus `weight` of the boost score. `0` is a no-op.
+                If not set, the server default of `0.5` is used.
+            depth: How many candidates the primary search fetches for the boost to re-score.
+                Higher values let the boost reorder more results, at the cost of performance.
+                If not set, the server default (`100`) is used.
         """
         return _Boost(conditions=[_BoostCondition(filter=filter)], weight=weight, depth=depth)
 
@@ -395,21 +431,29 @@ class Boost:
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> BoostReturn:
-        """Apply time-based decay scoring from an origin date.
+        """Rank objects by recency: the score decays with distance from an origin date.
+
+        Objects at the origin score 1; the score falls along the chosen `curve` as the property
+        value moves away from the origin. Use this to favour more recent (or near-a-date) objects.
 
         Args:
-            property: The date property name to compute distance from.
-            origin: The origin point. Use "now" for current time or a datetime for a specific time.
-                Defaults to "now".
-            scale: Distance from origin where score equals decay. Use timedelta
-                (e.g. timedelta(days=7)) or a string shorthand like "7d", "24h".
-            offset: Documents within this distance from origin get full score.
-                Accepts the same types as scale. Uses the server-side default if not set.
-            curve: Decay curve type: `Boost.Curve.EXPONENTIAL`, `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
-                Uses the server-side default if not set.
-            decay: Score at scale distance from origin. Uses the server-side default if not set.
-            weight: Weight controlling how much the boost affects final scores. Uses the server-side default if not set.
-            depth: Number of results to rescore. Uses the server-side default if not set.
+            property: The name of the `date` property to measure distance from.
+            origin: The reference point. Use `"now"` for the current time or a `datetime` for a
+                specific time. Defaults to `"now"`.
+            scale: The distance from the origin at which the score equals `decay`. Use a `timedelta`
+                (e.g. `timedelta(days=7)`) or a duration string such as `"7d"`, `"24h"`, `"30m"`.
+            offset: Objects within this distance from the origin keep the full score of 1; decay
+                starts beyond it. Accepts the same types as `scale`. If not set, no offset is applied.
+            curve: The decay curve: `Boost.Curve.EXPONENTIAL`, `Boost.Curve.GAUSSIAN`, or
+                `Boost.Curve.LINEAR`. If not set, the server default (`EXPONENTIAL`) is used.
+            decay: The score at `scale` distance from the origin, in `(0, 1]`. If not set, the
+                server default of `0.5` is used.
+            weight: How much the boost influences the final score, in `[0, 1]`: the result is
+                `(1 - weight)` of the primary score plus `weight` of the boost score. `0` is a no-op.
+                If not set, the server default of `0.5` is used.
+            depth: How many candidates the primary search fetches for the boost to re-score.
+                Higher values let the boost reorder more results, at the cost of performance.
+                If not set, the server default (`100`) is used.
         """
         return _Boost(
             conditions=[
@@ -440,22 +484,28 @@ class Boost:
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> BoostReturn:
-        """Score decays with distance from a numeric origin — closer to the origin ranks higher.
+        """Rank objects by closeness to a target numeric value: the score decays with distance from it.
 
-        Use this when "closer to X is better" (e.g., prefer prices near $50, apartments near 80 m²).
-        Requires you to define an origin and scale. For simple "higher is better" boosting without
-        an origin, use `Boost.numeric_property()` instead.
+        Use this when "closer to X is better" (e.g. prefer prices near $50, apartments near 80 m2).
+        Requires an origin and a scale. For simple "higher is better" ranking without an origin,
+        use `Boost.numeric_property()` instead.
 
         Args:
-            property: The numeric property name to compute distance from.
-            origin: The target value — documents closest to this score highest.
-            scale: Distance from origin where score equals the decay value.
-            offset: Documents within this distance from origin get full score. Uses the server-side default if not set.
-            curve: Decay curve type: `Boost.Curve.EXPONENTIAL`, `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
-                Uses the server-side default if not set.
-            decay: Score at scale distance from origin. Uses the server-side default if not set.
-            weight: Weight controlling how much the boost affects final scores. Uses the server-side default if not set.
-            depth: Number of results to rescore. Uses the server-side default if not set.
+            property: The name of the numeric (`int`/`number`) property to measure distance from.
+            origin: The target value; objects closest to it score highest.
+            scale: The distance from the origin at which the score equals `decay`.
+            offset: Objects within this distance from the origin keep the full score of 1; decay
+                starts beyond it. If not set, no offset is applied.
+            curve: The decay curve: `Boost.Curve.EXPONENTIAL`, `Boost.Curve.GAUSSIAN`, or
+                `Boost.Curve.LINEAR`. If not set, the server default (`EXPONENTIAL`) is used.
+            decay: The score at `scale` distance from the origin, in `(0, 1]`. If not set, the
+                server default of `0.5` is used.
+            weight: How much the boost influences the final score, in `[0, 1]`: the result is
+                `(1 - weight)` of the primary score plus `weight` of the boost score. `0` is a no-op.
+                If not set, the server default of `0.5` is used.
+            depth: How many candidates the primary search fetches for the boost to re-score.
+                Higher values let the boost reorder more results, at the cost of performance.
+                If not set, the server default (`100`) is used.
         """
         return _Boost(
             conditions=[
@@ -482,20 +532,26 @@ class Boost:
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> BoostReturn:
-        """Boost by a numeric property's raw value — higher values rank higher.
+        """Rank objects by a numeric property's raw value: higher values rank higher.
 
-        Use this for simple proportional boosting (e.g., popularity count, review score)
-        when you don't need to define an origin or scale. For distance-based decay from a
-        specific value, use `Boost.numeric_decay()` instead.
+        Use this for simple proportional ranking (e.g. popularity count, review score) when you
+        don't need an origin or scale. For distance-based decay from a target value, use
+        `Boost.numeric_decay()` instead.
 
-        Only supports numeric (int/float) properties. To boost by other property types, use `Boost.filter()`.
+        Only supports numeric (`int`/`number`) properties. To rank by other property types, use
+        `Boost.filter()`.
 
         Args:
-            name: The numeric property name to use as a ranking signal.
-            modifier: Score modifier: `Boost.Modifier.LOG1P` or `Boost.Modifier.SQRT` to dampen
-                the effect of large value ranges. If not set, the raw value is used.
-            weight: Weight controlling how much the boost affects final scores. Uses the server-side default if not set.
-            depth: Number of results to rescore. Uses the server-side default if not set.
+            name: The name of the numeric property to use as a ranking signal.
+            modifier: A transform applied to the value before normalization: `Boost.Modifier.LOG1P`
+                or `Boost.Modifier.SQRT`, both of which dampen values that span many orders of
+                magnitude. If not set, the raw value is used.
+            weight: How much the boost influences the final score, in `[0, 1]`: the result is
+                `(1 - weight)` of the primary score plus `weight` of the boost score. `0` is a no-op.
+                If not set, the server default of `0.5` is used.
+            depth: How many candidates the primary search fetches for the boost to re-score.
+                Higher values let the boost reorder more results, at the cost of performance.
+                If not set, the server default (`100`) is used.
         """
         return _Boost(
             conditions=[
@@ -517,18 +573,27 @@ class Boost:
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> BoostReturn:
-        """Combine multiple boost conditions with individual weights.
+        """Combine several boosts into one, each weighted relative to the others.
 
-        When blending, each sub-boost's weight becomes a per-condition weight,
-        and the `weight` parameter here controls the overall blending strength.
+        Each input boost's `weight` becomes a per-condition weight, balancing the conditions
+        against each other (e.g. recency twice as important as popularity). A per-condition weight
+        defaults to `1.0` and may be negative to actively demote matching objects. The `weight`
+        argument here is separate: it sets the overall strength of the combined boost. A boost may
+        carry at most 20 conditions in total.
 
         Args:
-            boosts: One or more Boost objects created via `Boost.filter()`, `Boost.time_decay()`, `Boost.numeric_decay()`, or `Boost.numeric_property()`.
-            weight: Overall blending weight [0,1] for combining primary search and boost scores. Uses the server-side default if not set.
-            depth: Number of results to rescore. Uses the server-side default if not set. Higher values improve accuracy at the cost of performance.
+            boosts: One or more boosts created via `Boost.filter()`, `Boost.time_decay()`,
+                `Boost.numeric_decay()`, or `Boost.numeric_property()`.
+            weight: How much the combined boost influences the final score, in `[0, 1]`: the result
+                is `(1 - weight)` of the primary score plus `weight` of the boost score. `0` is a
+                no-op. If not set, the server default of `0.5` is used.
+            depth: How many candidates the primary search fetches for the boost to re-score.
+                Higher values let the boost reorder more results, at the cost of performance.
+                If not set, the server default (`100`) is used.
 
         Raises:
-            WeaviateInvalidInputError: If no boosts are provided or if any sub-boost has `depth` set.
+            WeaviateInvalidInputError: If no boosts are provided, or if any input boost has its own
+                `depth` set (set `depth` here on `blend()` instead).
         """
         if isinstance(boosts, _Boost):
             boosts = [boosts]

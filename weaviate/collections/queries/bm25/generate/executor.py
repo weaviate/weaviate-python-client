@@ -396,6 +396,7 @@ class _BM25GenerateExecutor(
             filters: The filters to apply to the search.
             group_by: How the results should be grouped by a specific property.
             rerank: How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            boost: A `Boost` that re-scores the search candidates to promote or demote objects without removing them.
             include_vector: Whether to include the vector in the results. If not specified, this is set to False.
             return_metadata: The metadata to return for each object, defaults to `None`.
             return_properties: The properties to return for each object.
