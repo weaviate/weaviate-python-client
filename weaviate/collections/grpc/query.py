@@ -82,15 +82,17 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
-        uses_125_api: bool,
-        uses_127_api: bool,
     ):
         super().__init__(weaviate_version, consistency_level, validate_arguments)
         self._name: str = name
         self._tenant = tenant
         self._validate_arguments = validate_arguments
-        self.__uses_125_api = uses_125_api
-        self.__uses_127_api = uses_127_api
+        self._use_weaviate_version(weaviate_version)
+
+    def _use_weaviate_version(self, weaviate_version: _ServerVersion) -> None:
+        self._weaviate_version = weaviate_version
+        self.__uses_125_api = weaviate_version.is_at_least(1, 25, 0)
+        self.__uses_127_api = weaviate_version.is_at_least(1, 27, 0)
 
     def __parse_near_options(
         self,
