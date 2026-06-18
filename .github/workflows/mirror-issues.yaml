@@ -1,0 +1,44 @@
+name: Mirror labeled issues to client repos
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  mirror:
+    if: github.event.label.name == 'needs-mirror'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repo:
+          - typescript-client
+          - java-client
+          - weaviate-go-client
+          - csharp-client
+    steps:
+      - name: Mint app token for weaviate/${{ matrix.repo }}
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.MIRROR_APP_ID }}
+          private-key: ${{ secrets.MIRROR_APP_PRIVATE_KEY }}
+          owner: weaviate
+          repositories: ${{ matrix.repo }}
+
+      - name: Create mirrored issue
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SRC_REPO: ${{ github.repository }}
+          SRC_NUMBER: ${{ github.event.issue.number }}
+          SRC_URL: ${{ github.event.issue.html_url }}
+          SRC_TITLE: ${{ github.event.issue.title }}
+          SRC_BODY: ${{ github.event.issue.body }}
+          TARGET: weaviate/${{ matrix.repo }}
+        run: |
+          body=$(printf '> Mirrored from %s#%s (%s)\n\n%s' \
+            "$SRC_REPO" "$SRC_NUMBER" "$SRC_URL" "$SRC_BODY")
+          gh issue create \
+            --repo "$TARGET" \
+            --title "$SRC_TITLE" \
+            --body "$body"
