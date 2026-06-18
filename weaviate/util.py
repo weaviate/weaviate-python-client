@@ -434,6 +434,10 @@ def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
 def _capitalize_first_letter(string: str) -> str:
     """Capitalize only the first letter of the `string`.
 
+    For namespaced collection names of the form ``namespace:CollectionName``,
+    only the collection portion (after the colon) is capitalized; the namespace
+    prefix is preserved as-is.
+
     Args:
         string: The string to be capitalized.
 
@@ -442,6 +446,10 @@ def _capitalize_first_letter(string: str) -> str:
     """
     if len(string) == 0:
         return ""
+    # Namespaced collection: keep namespace lowercase, capitalize collection only.
+    if ":" in string:
+        namespace, collection = string.split(":", 1)
+        return namespace + ":" + _capitalize_first_letter(collection)
     if len(string) == 1:
         return string.capitalize()
     return string[0].capitalize() + string[1:]
@@ -614,6 +622,10 @@ class _ServerVersion:
     def check_is_at_least_1_32_0(self, feature: str) -> None:
         if not self >= _ServerVersion(1, 32, 0):
             raise WeaviateUnsupportedFeatureError(feature, str(self), "1.32.0")
+
+    def check_is_at_least_1_38_0(self, feature: str) -> None:
+        if not self >= _ServerVersion(1, 38, 0):
+            raise WeaviateUnsupportedFeatureError(feature, str(self), "1.38.0")
 
     @property
     def supports_tenants_get_grpc(self) -> bool:

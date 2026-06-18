@@ -10,6 +10,7 @@ from test.util import check_error_message
 from weaviate.exceptions import SchemaValidationException
 from weaviate.util import (
     MINIMUM_NO_WARNING_VERSION,
+    _capitalize_first_letter,
     _datetime_from_weaviate_str,
     _is_sub_schema,
     _sanitize_str,
@@ -495,3 +496,31 @@ def test_is_weaviate_client_too_old(current_version: str, latest_version: str, t
 )
 def test_sanitize_str(in_str: str, out_str: str) -> None:
     assert _sanitize_str(in_str) == f'"{out_str}"'
+
+
+@pytest.mark.parametrize(
+    "input_str,expected",
+    [
+        # Plain collection names
+        ("article", "Article"),
+        ("Article", "Article"),
+        ("myCollection", "MyCollection"),
+        ("MyCollection", "MyCollection"),
+        ("a", "A"),
+        ("", ""),
+        # Wildcard passthrough
+        ("*", "*"),
+        # Namespaced collection: namespace stays lowercase, collection is capitalized
+        ("mynamespace:article", "mynamespace:Article"),
+        ("mynamespace:Article", "mynamespace:Article"),
+        ("mynamespace:myCollection", "mynamespace:MyCollection"),
+        ("ns1:article", "ns1:Article"),
+        # Namespace is already lowercase — must not be touched
+        ("customer1:orders", "customer1:Orders"),
+        ("customer1:Orders", "customer1:Orders"),
+        # Wildcard collection under a namespace
+        ("mynamespace:*", "mynamespace:*"),
+    ],
+)
+def test_capitalize_first_letter(input_str: str, expected: str) -> None:
+    assert _capitalize_first_letter(input_str) == expected
