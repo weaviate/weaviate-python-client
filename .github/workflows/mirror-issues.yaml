@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Mint app token for weaviate/${{ matrix.repo }}
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.MIRROR_APP_ID }}
           private-key: ${{ secrets.MIRROR_APP_PRIVATE_KEY }}
