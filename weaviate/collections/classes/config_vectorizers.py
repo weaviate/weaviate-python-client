@@ -378,6 +378,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
     titleProperty: Optional[str]
     taskType: Optional[str]
+    location: Optional[str]
 
 
 class _Text2VecTransformersConfig(_VectorizerConfigCreate):
@@ -1199,6 +1200,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
             taskType=None,
+            location=None,
         )
 
     @staticmethod
@@ -1228,6 +1230,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
             taskType=None,
+            location=None,
         )
 
     @staticmethod
@@ -1237,6 +1240,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
         vectorize_collection_name: bool = True,
+        location: Optional[str] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
@@ -1250,6 +1254,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
+            location: The Google Vertex AI region to run the model in. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1262,6 +1267,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
             taskType=None,
+            location=location,
         )
 
     @staticmethod

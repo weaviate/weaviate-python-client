@@ -991,6 +991,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
                 taskType=None,
+                location=None,
             ),
             vector_index_config=vector_index_config,
         )
@@ -1006,6 +1007,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        location: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
 
@@ -1022,6 +1024,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+            location: The Google Vertex AI region to run the model in. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1037,6 +1040,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
                 taskType=None,
+                location=location,
             ),
             vector_index_config=vector_index_config,
         )
@@ -1079,6 +1083,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
                 taskType=None,
+                location=None,
             ),
             vector_index_config=vector_index_config,
         )
