@@ -453,6 +453,7 @@ class _NamedVectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        dimensions: Optional[int] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_aws` model.
 
@@ -468,6 +469,7 @@ class _NamedVectors:
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -480,6 +482,7 @@ class _NamedVectors:
                 vectorizeClassName=vectorize_collection_name,
                 targetModel=None,
                 targetVariant=None,
+                dimensions=dimensions,
             ),
             vector_index_config=vector_index_config,
         )

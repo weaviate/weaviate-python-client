@@ -215,6 +215,7 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     service: str
     targetModel: Optional[str]
     targetVariant: Optional[str]
+    dimensions: Optional[int]
     vectorizeClassName: bool
 
     @field_validator("region")
@@ -770,6 +771,7 @@ class _Vectorizer:
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
         vectorize_collection_name: bool = True,
+        dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
 
@@ -782,6 +784,7 @@ class _Vectorizer:
             endpoint: The model to use, REQUIRED for service "sagemaker".
             service: The AWS service to use, options are "bedrock" and "sagemaker".
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
         return _Text2VecAWSConfig(
             model=model,
@@ -791,6 +794,7 @@ class _Vectorizer:
             endpoint=endpoint,
             targetModel=None,
             targetVariant=None,
+            dimensions=dimensions,
         )
 
     @staticmethod
