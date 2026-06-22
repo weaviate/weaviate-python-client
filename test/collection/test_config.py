@@ -2431,6 +2431,31 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
+            Configure.Vectors.text2vec_google_vertex(
+                name="test",
+                project_id="project",
+                source_properties=["prop"],
+                dimensions=768,
+                location="europe-west1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-palm": {
+                        "projectId": "project",
+                        "location": "europe-west1",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.Vectors.text2vec_google_gemini(
                 name="test",
                 source_properties=["prop"],
