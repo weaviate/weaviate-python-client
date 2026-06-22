@@ -238,6 +238,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             model="cohere.embed-english-v3",
             region="us-east-1",
             service="bedrock",
+            dimensions=512,
         ),
         {
             "text2vec-aws": {
@@ -245,6 +246,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "cohere.embed-english-v3",
                 "region": "us-east-1",
                 "service": "bedrock",
+                "dimensions": 512,
             }
         },
     ),
