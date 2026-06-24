@@ -2,7 +2,7 @@
 venv
 .idea
 dist/
-weaviate_client.egg-info
+*.egg-info/
 **/__pycache__
 tmp
 build/

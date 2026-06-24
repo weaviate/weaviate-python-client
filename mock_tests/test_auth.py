@@ -84,6 +84,44 @@ def test_client_credentials(weaviate_auth_mock: HTTPServer, start_grpc_server: g
     weaviate_auth_mock.check_assertions()
 
 
+@pytest.mark.asyncio
+async def test_client_credentials_refresh_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """Test the refresh_session branch of the async token refresher.
+
+    Client-credentials tokens carry no refresh token, so the refresher must get a whole
+    new token from the saved credentials.
+    """
+    token_requests = 0
+
+    def handler(request: Request) -> Response:
+        nonlocal token_requests
+        token_requests += 1
+        return Response(
+            json.dumps({"access_token": ACCESS_TOKEN, "expires_in": 1}),
+            content_type="application/json",
+        )
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
+    ) as client:
+        await client.collections.list_all()
+        first = token_requests
+        await asyncio.sleep(3)  # refresh interval is max(expires_in - 30, 1) -> 1s
+        assert token_requests > first  # a fresh token was fetched with the credentials
+
+
 @pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
 def test_auth_header_priority(
     recwarn, weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, header_name: str
@@ -181,6 +219,53 @@ async def test_refresh_async(
         # client gets a new token 5s before expiration
         await client.collections.list_all()  # some call that includes authorization
     weaviate_auth_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_async_auth_starts_no_threads(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """The async client must refresh tokens with an asyncio task, not threads.
+
+    Under WASM/Pyodide threads cannot start at all, so the TokenRefresh daemon thread
+    and the event-loop sidecar thread would make every async OIDC flow crash connect().
+    """
+    import threading
+
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {
+            "access_token": ACCESS_TOKEN,
+            "expires_in": 500,
+            "refresh_token": REFRESH_TOKEN,
+        }
+    )
+
+    # compare thread OBJECTS, not names: earlier sync tests leave stale TokenRefresh
+    # daemon threads alive, which would mask a regression in a name-set comparison
+    threads_before = set(threading.enumerate())
+    tasks_before = asyncio.all_tasks()
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=500
+        ),
+    ) as client:
+        await client.collections.list_all()
+        new_thread_names = {t.name for t in set(threading.enumerate()) - threads_before}
+        assert "TokenRefresh" not in new_thread_names
+        assert "eventLoop" not in new_thread_names
+        refresh_tasks = [
+            t for t in asyncio.all_tasks() - tasks_before if "token_refresh" in repr(t.get_coro())
+        ]
+        assert len(refresh_tasks) == 1  # the refresher runs as an asyncio task instead
+    # ... and close() must cancel it, not leak it (one wait for the cancellation to land)
+    await asyncio.wait(refresh_tasks, timeout=1)
+    assert refresh_tasks[0].done()
 
 
 def test_refresh_of_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weaviate-python-grpc-web"
+description = "grpc-web / WASM (Pyodide) transport for the Weaviate Python client"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-3-Clause" }
+authors = [{ name = "Weaviate", email = "hello@weaviate.io" }]
+keywords = ["weaviate", "grpc-web", "pyodide", "wasm", "emscripten"]
+# Version is kept in lockstep with weaviate-client. TODO(lockstep): derive from the same
+# git tag via setuptools_scm and assert the built versions match in CI before publishing.
+version = "0.0.1.dev0"
+# Deliberately depends on weaviate-client WITHOUT grpcio (grpcio is excluded under
+# Emscripten by the `sys_platform != "emscripten"` marker in the base package's deps).
+dependencies = [
+    "weaviate-client",
+]
+
+[project.urls]
+Source = "https://github.com/weaviate/weaviate-python-client"
+Tracker = "https://github.com/weaviate/weaviate-python-client/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+weaviate_grpc_web = ["py.typed"]

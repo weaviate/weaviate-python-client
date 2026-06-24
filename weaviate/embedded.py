@@ -5,6 +5,7 @@ import re
 import socket
 import stat
 import subprocess
+import sys
 import tarfile
 import time
 import urllib.request
@@ -175,6 +176,14 @@ class _EmbeddedBase:
 
     @staticmethod
     def check_supported_platform() -> None:
+        if sys.platform == "emscripten":
+            # without this guard the port probe below "succeeds" under Emscripten's lazy
+            # socket emulation and misreports that Weaviate is already listening
+            raise WeaviateStartUpError(
+                "Embedded Weaviate is not supported under WebAssembly/Pyodide: it spawns a "
+                "local Weaviate subprocess, and processes are unavailable in the browser. "
+                "Connect to a remote Weaviate instance instead."
+            )
         if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
                 f"""{platform.system()} is not supported with EmbeddedDB. Please upvote this feature request if you want

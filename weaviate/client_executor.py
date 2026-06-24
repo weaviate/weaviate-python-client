@@ -16,6 +16,7 @@ from httpx import Response
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from weaviate.integrations import _Integrations
+from weaviate.logger import logger
 
 from .auth import AuthCredentials
 from .config import AdditionalConfig
@@ -164,7 +165,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             return True
 
         def exc(e: Exception) -> bool:
-            print(e)
+            logger.warning(f"gRPC health check failed: {e!r}")
             return False
 
         return executor.execute(
@@ -196,7 +197,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             return grpc_result
 
         def exc(e: Exception) -> bool:
-            print(e)
+            logger.warning(f"is_live check failed: {e!r}")
             return False
 
         return cast(
@@ -214,7 +215,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             return res.status_code == 200
 
         def exc(e: Exception) -> bool:
-            print(e)
+            logger.warning(f"is_ready check failed: {e!r}")
             return False
 
         return executor.execute(
