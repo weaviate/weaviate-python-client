@@ -802,8 +802,27 @@ class _Pack:
 
     @staticmethod
     def multi(vector: TwoDimensionalVectorType) -> bytes:
-        vector_list = [item for sublist in vector for item in sublist]
-        return struct.pack("<H", len(vector[0])) + struct.pack(
+        if len(vector) == 0:
+            raise WeaviateInvalidInputError("Multi-vector embeddings must not be empty.")
+
+        first_vector = _get_vector_v4(vector[0])
+        dimension = len(first_vector)
+        if dimension == 0:
+            raise WeaviateInvalidInputError(
+                "Multi-vector embeddings must not contain empty vectors."
+            )
+
+        vector_list: List[float] = []
+        for subvector in vector:
+            subvector_list = _get_vector_v4(subvector)
+            if len(subvector_list) != dimension:
+                raise WeaviateInvalidInputError(
+                    "Multi-vector embeddings must have consistent dimensions. "
+                    f"Expected dimension {dimension}, got {len(subvector_list)}."
+                )
+            vector_list.extend(subvector_list)
+
+        return struct.pack("<H", dimension) + struct.pack(
             "{}f".format(len(vector_list)), *vector_list
         )
 
