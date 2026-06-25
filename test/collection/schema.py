@@ -1,6 +1,43 @@
 from typing import Literal, Optional
 
 
+def single_vector_schema(vector_index_type: Literal["hnsw", "flat", "dynamic"] = "flat") -> dict:
+    """A legacy (single, unnamed vector) collection schema as returned by Weaviate."""
+    return {
+        "class": "Something",
+        "invertedIndexConfig": {
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "cleanupIntervalSeconds": 60,
+            "stopwords": {"additions": None, "preset": "en", "removals": None},
+        },
+        "multiTenancyConfig": {
+            "autoTenantActivation": False,
+            "autoTenantCreation": False,
+            "enabled": False,
+        },
+        "properties": [
+            {
+                "dataType": ["text"],
+                "indexFilterable": True,
+                "indexRangeFilters": False,
+                "indexSearchable": True,
+                "name": "name",
+                "tokenization": "word",
+            }
+        ],
+        "replicationConfig": {"asyncEnabled": False, "factor": 1},
+        "vectorIndexConfig": {
+            "vectorCacheMaxObjects": 1000000000000,
+            "distance": "cosine",
+            "pq": {"enabled": False},
+            "bq": {"enabled": False},
+            "sq": {"enabled": False},
+            "rq": {"enabled": False},
+        },
+        "vectorIndexType": vector_index_type,
+    }
+
+
 def multi_vector_schema(quantizer: Optional[Literal["pq", "bq", "sq", "rq"]] = None) -> dict:
     return {
         "class": "Something",

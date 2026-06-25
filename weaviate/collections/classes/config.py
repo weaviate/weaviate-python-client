@@ -1468,6 +1468,29 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         return v
 
+    @staticmethod
+    def __check_vector_index_type(
+        update: _VectorIndexConfigUpdate,
+        existing_vector_index_type: Optional[str],
+    ) -> None:
+        """Raise if an update would change the (immutable) vector index type of a collection.
+
+        The vector index type (e.g. ``hnsw``, ``flat``, ``dynamic``) cannot be changed after a
+        collection has been created. Previously such an attempt was silently ignored, leaving the
+        user to believe the change had been applied. See https://github.com/weaviate/weaviate-python-client/issues/1277.
+        """
+        if existing_vector_index_type is None:
+            return None
+        requested_vector_index_type = update.vector_index_type().value
+        if requested_vector_index_type != existing_vector_index_type:
+            raise WeaviateInvalidInputError(
+                f"Cannot update the vector index type of a collection from "
+                f"'{existing_vector_index_type}' to '{requested_vector_index_type}'. "
+                "The vector index type is immutable. To change it you must recreate the "
+                "collection with the desired vector index type and reindex its objects."
+            )
+        return None
+
     def __check_quantizers(
         self,
         quantizer: Optional[_QuantizerConfigUpdate],
@@ -1544,6 +1567,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 schema.get("objectTTLConfig", {})
             )
         if self.vectorIndexConfig is not None:
+            self.__check_vector_index_type(self.vectorIndexConfig, schema.get("vectorIndexType"))
             self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
                 schema["vectorIndexConfig"]
@@ -1572,6 +1596,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
+                self.__check_vector_index_type(self.vectorizerConfig, schema.get("vectorIndexType"))
                 self.__check_quantizers(
                     self.vectorizerConfig.quantizer, schema["vectorIndexConfig"]
                 )
@@ -1584,6 +1609,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                         raise WeaviateInvalidInputError(
                             f"Vector config with name {vc.name} does not exist in the existing vector config"
                         )
+                    self.__check_vector_index_type(
+                        vc.vectorIndexConfig,
+                        schema["vectorConfig"][vc.name].get("vectorIndexType"),
+                    )
                     self.__check_quantizers(
                         vc.vectorIndexConfig.quantizer,
                         schema["vectorConfig"][vc.name]["vectorIndexConfig"],
@@ -1607,6 +1636,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                     raise WeaviateInvalidInputError(
                         f"Vector config with name {vc.name} does not exist in the existing vector config"
                     )
+                self.__check_vector_index_type(
+                    vc.vectorIndexConfig,
+                    schema["vectorConfig"][vc.name].get("vectorIndexType"),
+                )
                 self.__check_quantizers(
                     vc.vectorIndexConfig.quantizer,
                     schema["vectorConfig"][vc.name]["vectorIndexConfig"],
