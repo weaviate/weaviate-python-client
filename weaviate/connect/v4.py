@@ -1052,7 +1052,7 @@ class ConnectionSync(_ConnectionBase):
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
-            raise WeaviateDeleteManyError(str(error.details()))
+            raise WeaviateDeleteManyError(f"[{error.code().name}] {error.details()}")
 
     def grpc_tenants_get(
         self, request: tenants_pb2.TenantsGetRequest
@@ -1232,7 +1232,7 @@ class ConnectionAsync(_ConnectionBase):
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
-            raise WeaviateDeleteManyError(str(e))
+            raise WeaviateDeleteManyError(f"[{e.code().name}] {e.details()}")
 
     async def grpc_batch_stream(
         self,
