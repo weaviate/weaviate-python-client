@@ -205,6 +205,36 @@ class _GenerativeDatabricks(_GenerativeConfigRuntime):
         )
 
 
+class _GenerativeDeepseek(_GenerativeConfigRuntime):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.DEEPSEEK, frozen=True, exclude=True
+    )
+    base_url: Optional[AnyHttpUrl]
+    model: Optional[str]
+    temperature: Optional[float]
+    max_tokens: Optional[int]
+    frequency_penalty: Optional[float]
+    presence_penalty: Optional[float]
+    top_p: Optional[float]
+    stop: Optional[List[str]]
+
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        self._validate_multi_modal(opts)
+        return generative_pb2.GenerativeProvider(
+            return_metadata=opts.return_metadata,
+            deepseek=generative_pb2.GenerativeDeepseek(
+                base_url=_parse_anyhttpurl(self.base_url),
+                model=self.model,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                frequency_penalty=self.frequency_penalty,
+                presence_penalty=self.presence_penalty,
+                top_p=self.top_p,
+                stop=_to_text_array(self.stop),
+            ),
+        )
+
+
 class _GenerativeDummy(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.DUMMY, frozen=True, exclude=True
@@ -791,6 +821,43 @@ class GenerativeConfig:
             temperature=temperature,
             top_log_probs=top_log_probs,
             top_p=top_p,
+        )
+
+    @staticmethod
+    def deepseek(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        top_p: Optional[float] = None,
+        stop: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeDeepseek` object for use when performing AI generation using the `generative-deepseek` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeDeepseek(
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty,
+            top_p=top_p,
+            stop=stop,
         )
 
     @staticmethod

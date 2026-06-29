@@ -183,6 +183,31 @@ def test_generative_parameters_images_parsing(
             ),
         ),
         (
+            GenerativeConfig.deepseek(
+                base_url="http://localhost:8080",
+                model="deepseek-chat",
+                temperature=0.5,
+                max_tokens=100,
+                frequency_penalty=0.1,
+                presence_penalty=0.2,
+                top_p=0.9,
+                stop=["\n"],
+            )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True)),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                deepseek=generative_pb2.GenerativeDeepseek(
+                    base_url="http://localhost:8080",
+                    model="deepseek-chat",
+                    temperature=0.5,
+                    max_tokens=100,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.2,
+                    top_p=0.9,
+                    stop=base_pb2.TextArray(values=["\n"]),
+                ),
+            ),
+        ),
+        (
             GenerativeConfig.dummy()._to_grpc(
                 _GenerativeConfigRuntimeOptions(return_metadata=True)
             ),

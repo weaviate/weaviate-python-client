@@ -1105,6 +1105,30 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.deepseek(
+            model="deepseek-chat",
+            max_tokens=100,
+            temperature=0.5,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            top_p=0.9,
+            base_url="https://api.deepseek.com",
+            stop=["\n"],
+        ),
+        {
+            "generative-deepseek": {
+                "model": "deepseek-chat",
+                "maxTokens": 100,
+                "temperature": 0.5,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "topP": 0.9,
+                "baseURL": "https://api.deepseek.com",
+                "stop": ["\n"],
+            }
+        },
+    ),
+    (
         Configure.Generative.xai(
             model="grok-2-latest",
             max_tokens=100,
