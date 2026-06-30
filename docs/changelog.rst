@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 4.22.0
+--------------
+This minor version includes:
+    - Support for new 1.38 features:
+        - Add support for the new Boost API for fine-grained, query-time relevance tuning — a ``boost`` parameter is now available across the vector, keyword (``bm25``), and ``hybrid`` query and generative-query methods
+        - The ``Boost`` factory (exported from ``weaviate.classes.query`` alongside ``BoostReturn``) provides ``numeric_property``, ``filter``, ``numeric_decay``, ``time_decay``, and ``blend`` boosts, each with optional ``depth`` and ``weight`` controls
+
+Version 4.21.3
+--------------
+This patch version includes:
+    - Fixes a bug where client-side batching contexts did not respect user-supplied insert timeouts
+
 Version 4.21.2
 --------------
 This patch version includes:

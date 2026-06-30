@@ -672,7 +672,7 @@ def _get_valid_timeout_config(
     """
 
     def check_number(num: Union[NUMBER, Tuple[NUMBER, NUMBER], None]) -> bool:
-        return isinstance(num, float) or isinstance(num, int)
+        return isinstance(num, float) or (isinstance(num, int) and not isinstance(num, bool))
 
     if (isinstance(timeout_config, float) or isinstance(timeout_config, int)) and not isinstance(
         timeout_config, bool

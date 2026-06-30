@@ -238,6 +238,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             model="cohere.embed-english-v3",
             region="us-east-1",
             service="bedrock",
+            dimensions=512,
         ),
         {
             "text2vec-aws": {
@@ -245,6 +246,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "cohere.embed-english-v3",
                 "region": "us-east-1",
                 "service": "bedrock",
+                "dimensions": 512,
             }
         },
     ),
@@ -2420,6 +2422,31 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-palm": {
                         "projectId": "project",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_google_vertex(
+                name="test",
+                project_id="project",
+                source_properties=["prop"],
+                dimensions=768,
+                location="europe-west1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-palm": {
+                        "projectId": "project",
+                        "location": "europe-west1",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "dimensions": 768,

@@ -281,6 +281,85 @@ def metadata_capture_collection(
     return weaviate_client.collections.use("MetadataCaptureCollection"), service
 
 
+BATCH_INSERT_TIMEOUT = 5
+
+
+class MockBatchDeadlineCaptureWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    captured_time_remaining: float = -1.0
+
+    def BatchObjects(
+        self, request: batch_pb2.BatchObjectsRequest, context: grpc.ServicerContext
+    ) -> batch_pb2.BatchObjectsReply:
+        self.captured_time_remaining = context.time_remaining()
+        return batch_pb2.BatchObjectsReply()
+
+
+@pytest.fixture(scope="function")
+def weaviate_batch_insert_timeout_client(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> Generator[weaviate.WeaviateClient, None, None]:
+    weaviate_mock.expect_request(f"/v1/schema/{mock_class['class']}").respond_with_json(mock_class)
+    client = weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        additional_config=weaviate.classes.init.AdditionalConfig(
+            timeout=weaviate.classes.init.Timeout(insert=BATCH_INSERT_TIMEOUT)
+        ),
+    )
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="function")
+def batch_deadline_capture_collection(
+    weaviate_batch_insert_timeout_client: weaviate.WeaviateClient,
+    start_grpc_server: grpc.Server,
+) -> tuple[weaviate.collections.Collection, MockBatchDeadlineCaptureWeaviateService]:
+    service = MockBatchDeadlineCaptureWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return (
+        weaviate_batch_insert_timeout_client.collections.use(mock_class["class"]),
+        service,
+    )
+
+
+BATCH_INSERT_TIMEOUT_SHORT = 0.5
+
+
+@pytest.fixture(scope="function")
+def weaviate_batch_insert_timeout_short_client(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> Generator[weaviate.WeaviateClient, None, None]:
+    weaviate_mock.expect_request(f"/v1/schema/{mock_class['class']}").respond_with_json(mock_class)
+    client = weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        additional_config=weaviate.classes.init.AdditionalConfig(
+            timeout=weaviate.classes.init.Timeout(insert=BATCH_INSERT_TIMEOUT_SHORT)
+        ),
+    )
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="function")
+def batch_slow_response_collection(
+    weaviate_batch_insert_timeout_short_client: weaviate.WeaviateClient,
+    start_grpc_server: grpc.Server,
+) -> weaviate.collections.Collection:
+    class MockWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+        def BatchObjects(
+            self, request: batch_pb2.BatchObjectsRequest, context: grpc.ServicerContext
+        ) -> batch_pb2.BatchObjectsReply:
+            time.sleep(BATCH_INSERT_TIMEOUT_SHORT + 1)
+            return batch_pb2.BatchObjectsReply()
+
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
+    return weaviate_batch_insert_timeout_short_client.collections.use(mock_class["class"])
+
+
 class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
     search_count = 0
     tenants_count = 0
