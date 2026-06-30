@@ -600,6 +600,7 @@ class _BaseGRPC:
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
+        diversity_selection: Optional[MMR] = None,
     ) -> Union[base_search_pb2.Hybrid, None]:
         if self._validate_arguments:
             _validate_input(
@@ -638,15 +639,6 @@ class _BaseGRPC:
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
         near_text, near_vector, vector_bytes, vectors = None, None, None, None
-
-        # Hybrid diversity selection is a post-fusion, hybrid-level operation, so
-        # it is carried on the top-level Hybrid.selection field rather than on the
-        # near_text / near_vector sub-query.
-        hybrid_selection = (
-            vector.diversity_selection
-            if isinstance(vector, (_HybridNearText, _HybridNearVector))
-            else None
-        )
 
         if vector is None:
             pass
@@ -748,7 +740,7 @@ class _BaseGRPC:
                 vector_bytes=vector_bytes,
                 vector_distance=distance,
                 vectors=vectors,
-                selection=self._diversity_selection_to_grpc(hybrid_selection),
+                selection=self._diversity_selection_to_grpc(diversity_selection),
                 bm25_search_operator=base_search_pb2.SearchOperatorOptions(
                     operator=bm25_operator.operator,
                     minimum_or_tokens_match=bm25_operator.minimum_should_match

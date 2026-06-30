@@ -1,9 +1,9 @@
 """Unit tests: hybrid search wires diversity_selection into the gRPC request.
 
-Hybrid diversity is a post-fusion, hybrid-level operation, so the
-``HybridVector.near_vector`` / ``HybridVector.near_text`` ``diversity_selection``
-argument must populate the top-level ``Hybrid.selection.mmr`` in the
-SearchRequest proto (not the nested ``near_vector`` / ``near_text`` selection).
+Hybrid diversity is a post-fusion, hybrid-level operation, so the top-level
+``query.hybrid`` / ``generate.hybrid`` ``diversity_selection`` argument must
+populate the top-level ``Hybrid.selection.mmr`` in the SearchRequest proto (not
+the nested ``near_vector`` / ``near_text`` selection).
 """
 
 from weaviate.collections.grpc.query import _QueryGRPC
@@ -11,9 +11,12 @@ from weaviate.classes.query import Diversity, HybridVector
 from weaviate.util import _ServerVersion
 
 
-def _builder() -> _QueryGRPC:
+_DEFAULT_VERSION = _ServerVersion(1, 38, 0)
+
+
+def _builder(version: _ServerVersion = _DEFAULT_VERSION) -> _QueryGRPC:
     return _QueryGRPC(
-        weaviate_version=_ServerVersion(1, 39, 0),
+        weaviate_version=version,
         name="Dummy",
         tenant=None,
         consistency_level=None,
@@ -26,10 +29,8 @@ def _builder() -> _QueryGRPC:
 def test_hybrid_near_vector_sets_top_level_selection() -> None:
     req = _builder().hybrid(
         query=None,
-        vector=HybridVector.near_vector(
-            vector=[1.0, 0.0, 0.0],
-            diversity_selection=Diversity.mmr(limit=7, balance=0.0),
-        ),
+        vector=HybridVector.near_vector(vector=[1.0, 0.0, 0.0]),
+        diversity_selection=Diversity.mmr(limit=7, balance=0.0),
         limit=7,
     )
     # Canonical location: top-level Hybrid.selection, not the nested near_vector.
@@ -42,10 +43,8 @@ def test_hybrid_near_vector_sets_top_level_selection() -> None:
 def test_hybrid_near_text_sets_top_level_selection() -> None:
     req = _builder().hybrid(
         query=None,
-        vector=HybridVector.near_text(
-            query="cats",
-            diversity_selection=Diversity.mmr(limit=3, balance=0.5),
-        ),
+        vector=HybridVector.near_text(query="cats"),
+        diversity_selection=Diversity.mmr(limit=3, balance=0.5),
         limit=3,
     )
     mmr = req.hybrid_search.selection.mmr
