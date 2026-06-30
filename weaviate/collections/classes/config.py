@@ -3101,3 +3101,11 @@ class Reconfigure:
             autoTenantCreation=auto_tenant_creation,
             autoTenantActivation=auto_tenant_activation,
         )
+
+
+GenerativeConfigCreate: TypeAlias = _GenerativeProvider
+InvertedIndexConfigCreate: TypeAlias = _InvertedIndexConfigCreate
+MultiTenancyConfigCreate: TypeAlias = _MultiTenancyConfigCreate
+ReplicationConfigCreate: TypeAlias = _ReplicationConfigCreate
+RerankerConfigCreate: TypeAlias = _RerankerProvider
+ShardingConfigCreate: TypeAlias = _ShardingConfigCreate
