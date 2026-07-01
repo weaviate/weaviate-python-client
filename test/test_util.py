@@ -458,6 +458,8 @@ def test_is_weaviate_too_old(version: str, too_old: bool):
         ),
         # Test handling year 0 (should return datetime.min)
         ("0000-01-15T14:30:45.123456Z", datetime.min),
+        # Test empty string (protobuf default for unset string field)
+        ("", datetime.min),
     ],
 )
 def test_datetime_from_weaviate_str(input_str: str, expected: datetime) -> None:
