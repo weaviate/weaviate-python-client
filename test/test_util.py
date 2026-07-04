@@ -10,6 +10,7 @@ from test.util import check_error_message
 from weaviate.exceptions import SchemaValidationException
 from weaviate.util import (
     MINIMUM_NO_WARNING_VERSION,
+    _capitalize_first_letter,
     _datetime_from_weaviate_str,
     _is_sub_schema,
     _sanitize_str,
@@ -21,9 +22,11 @@ from weaviate.util import (
     image_encoder_b64,
     is_object_url,
     is_weaviate_client_too_old,
+    is_weaviate_domain,
     is_weaviate_object_url,
     is_weaviate_too_old,
     parse_version_string,
+    strip_newlines,
 )
 
 schema_set = {
@@ -495,3 +498,52 @@ def test_is_weaviate_client_too_old(current_version: str, latest_version: str, t
 )
 def test_sanitize_str(in_str: str, out_str: str) -> None:
     assert _sanitize_str(in_str) == f'"{out_str}"'
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("", ""),
+        ("a", "A"),
+        ("z", "Z"),
+        ("hi", "Hi"),
+        # Only the first character is touched; the remainder is left as-is.
+        ("hELLO", "HELLO"),
+        ("Hello", "Hello"),
+        ("1abc", "1abc"),
+    ],
+)
+def test_capitalize_first_letter(value: str, expected: str) -> None:
+    assert _capitalize_first_letter(value) == expected
+
+
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("https://my-cluster.weaviate.io", True),
+        ("https://my-cluster.weaviate.cloud", True),
+        ("https://foo.semi.technology", True),
+        # Matching is case-insensitive.
+        ("https://MY-CLUSTER.WEAVIATE.CLOUD", True),
+        ("http://localhost:8080", False),
+        ("https://example.com", False),
+        ("", False),
+    ],
+)
+def test_is_weaviate_domain(url: str, expected: bool) -> None:
+    assert is_weaviate_domain(url) is expected
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("no newlines", "no newlines"),
+        ("one\nnewline", "one newline"),
+        ("a\nb\nc", "a b c"),
+        ("\nleading", " leading"),
+        ("trailing\n", "trailing "),
+        ("", ""),
+    ],
+)
+def test_strip_newlines(value: str, expected: str) -> None:
+    assert strip_newlines(value) == expected
