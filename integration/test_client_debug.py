@@ -63,3 +63,20 @@ def test_get_object_multi_node(
         debug_obj = client.debug.get_object_over_rest(collection.name, uuid, node_name=node_name)
         assert debug_obj is not None
         assert str(debug_obj.uuid) == str(uuid)
+
+
+def test_list_tasks(client_factory: ClientFactory) -> None:
+    client = client_factory()
+
+    tasks = client.debug.list_tasks()
+
+    assert isinstance(tasks, dict)
+
+
+@pytest.mark.asyncio
+async def test_list_tasks_async(async_client_factory: AsyncClientFactory) -> None:
+    client = await async_client_factory()
+
+    tasks = await client.debug.list_tasks()
+
+    assert isinstance(tasks, dict)
