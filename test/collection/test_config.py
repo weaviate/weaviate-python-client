@@ -320,6 +320,21 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_openai(
+            vectorize_collection_name=False,
+            model="ada",
+            endpoint="https://api.custom.com/v1/embeddings",
+        ),
+        {
+            "text2vec-openai": {
+                "vectorizeClassName": False,
+                "model": "ada",
+                "endpoint": "https://api.custom.com/v1/embeddings",
+                "isAzure": False,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_mistral(
             vectorize_collection_name=False,
             model="cool-model",
@@ -1760,6 +1775,28 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.NamedVectors.text2vec_openai(
+                name="test",
+                source_properties=["prop"],
+                endpoint="https://api.custom.com/v1/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "endpoint": "https://api.custom.com/v1/embeddings",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.NamedVectors.text2vec_mistral(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -2362,6 +2399,28 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.text2vec_openai(
+                name="test",
+                source_properties=["prop"],
+                endpoint="https://api.custom.com/v1/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "endpoint": "https://api.custom.com/v1/embeddings",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.text2vec_mistral(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -2402,6 +2461,27 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-morph": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_morph(
+                name="test",
+                source_properties=["prop"],
+                endpoint="https://api.custom.com/v1/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-morph": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                        "endpoint": "https://api.custom.com/v1/embeddings",
                     }
                 },
                 "vectorIndexType": "hnsw",

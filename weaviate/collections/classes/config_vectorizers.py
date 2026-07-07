@@ -310,6 +310,7 @@ class _Text2VecMorphConfig(_VectorizerConfigCreate):
     model: Optional[str]
     vectorizeClassName: bool
     baseURL: Optional[AnyHttpUrl]
+    endpoint: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -336,6 +337,7 @@ class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
     )
     baseURL: Optional[AnyHttpUrl]
     dimensions: Optional[int]
+    endpoint: Optional[str]
     model: Optional[str]
     modelVersion: Optional[str]
     type_: Optional[OpenAIType]
@@ -1137,6 +1139,7 @@ class _Vectorizer:
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
+        endpoint: Optional[str] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOpenAIConfigCreate` object for use when vectorizing using the `text2vec-openai` model.
 
@@ -1150,6 +1153,7 @@ class _Vectorizer:
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+            endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default of `/v1/embeddings`.
 
         Raises:
             pydantic.ValidationError: If `type_` is not a valid value from the `OpenAIType` type.
@@ -1161,6 +1165,7 @@ class _Vectorizer:
             type_=type_,
             vectorizeClassName=vectorize_collection_name,
             dimensions=dimensions,
+            endpoint=endpoint,
         )
 
     @staticmethod

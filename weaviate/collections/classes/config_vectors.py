@@ -664,6 +664,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
+        endpoint: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -678,6 +679,7 @@ class _Vectors:
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
+            endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default of `/v1/embeddings`.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
@@ -688,6 +690,7 @@ class _Vectors:
             vectorizer=_Text2VecMorphConfig(
                 baseURL=base_url,
                 model=model,
+                endpoint=endpoint,
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
@@ -739,6 +742,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
+        endpoint: Optional[str] = None,
         model: Optional[Union[OpenAIModel, str]] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
@@ -756,6 +760,7 @@ class _Vectors:
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+            endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default of `/v1/embeddings`.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             model_version: The model version to use. Defaults to `None`, which uses the server-defined default.
             type_: The type of model to use. Defaults to `None`, which uses the server-defined default.
@@ -776,6 +781,7 @@ class _Vectors:
                 type_=type_,
                 vectorizeClassName=vectorize_collection_name,
                 dimensions=dimensions,
+                endpoint=endpoint,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
