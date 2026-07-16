@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import collections.abc
 from typing import Any, List, Sequence, Union, get_args, get_origin
 
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -47,16 +48,25 @@ def _is_valid(expected: Any, value: Any) -> bool:
     if expected_origin is Union:
         args = get_args(expected)
         return any(isinstance(value, arg) for arg in args)
+    
+    # FIX for #1355: Use collections.abc.Sequence for robust runtime check in Python 3.12
     if expected_origin is not None and (
-        issubclass(expected_origin, Sequence) or expected_origin is list
+        issubclass(expected_origin, collections.abc.Sequence) or expected_origin is list
     ):
-        if not isinstance(value, Sequence) and not isinstance(value, list):
+        if not isinstance(value, (collections.abc.Sequence, list)):
             return False
         args = get_args(expected)
         if len(args) == 1:
             if get_origin(args[0]) is Union:
                 union_args = get_args(args[0])
-                return any(isinstance(val, union_arg) for val in value for union_arg in union_args)
+                # Ensure every element in the sequence matches the Union types
+                return all(any(isinstance(val, union_arg) for union_arg in union_args) for val in value)
             else:
                 return all(isinstance(val, args[0]) for val in value)
-    return isinstance(value, expected)
+    
+    try:
+        return isinstance(value, expected)
+    except TypeError:
+        if expected_origin is not None:
+            return isinstance(value, expected_origin)
+        return False
