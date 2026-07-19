@@ -2207,6 +2207,83 @@ class _ShardStatus:
 ShardStatus = _ShardStatus
 
 
+class PropertyIndexTaskStatus(str, BaseEnum):
+    """The status of a runtime property index task submission.
+
+    Attributes:
+        STARTED: A reindexing task was submitted and started.
+        CANCELLED: A live reindexing task was cancelled.
+        NO_OP: No work was necessary, e.g. the index configuration already matched the request
+            or there was no live task to cancel.
+    """
+
+    STARTED = "STARTED"
+    CANCELLED = "CANCELLED"
+    NO_OP = "NO_OP"
+
+
+class PropertyIndexState(str, BaseEnum):
+    """The state of a property index as reported by the index status endpoint.
+
+    Attributes:
+        READY: The index is ready to serve queries.
+        PENDING: A reindexing task for the index is queued but has not started yet.
+        INDEXING: A reindexing task for the index is in progress.
+        FAILED: The reindexing task for the index failed.
+        CANCELLED: The reindexing task for the index was cancelled.
+    """
+
+    READY = "ready"
+    PENDING = "pending"
+    INDEXING = "indexing"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+@dataclass
+class _PropertyIndexTask(_ConfigBase):
+    task_id: Optional[str]
+    status: PropertyIndexTaskStatus
+
+
+PropertyIndexTask = _PropertyIndexTask
+
+
+@dataclass
+class _PropertyIndexStatus(_ConfigBase):
+    type: IndexName  # noqa: A003
+    status: PropertyIndexState
+    progress: Optional[float]
+    task_id: Optional[str]
+    tokenization: Optional[Tokenization]
+    target_tokenization: Optional[Tokenization]
+    algorithm: Optional[str]
+    target_algorithm: Optional[str]
+
+
+PropertyIndexStatus = _PropertyIndexStatus
+
+
+@dataclass
+class _PropertyIndexes(_ConfigBase):
+    name: str
+    data_type: str
+    description: Optional[str]
+    indexes: List[PropertyIndexStatus]
+
+
+PropertyIndexes = _PropertyIndexes
+
+
+@dataclass
+class _CollectionPropertyIndexes(_ConfigBase):
+    collection: str
+    properties: List[PropertyIndexes]
+
+
+CollectionPropertyIndexes = _CollectionPropertyIndexes
+
+
 class _TextAnalyzerConfigCreate(_ConfigCreateModel):
     """Text analysis options for a property.
 

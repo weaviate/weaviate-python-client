@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import (
     Any,
     Dict,
@@ -20,12 +21,17 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    CollectionPropertyIndexes,
     IndexName,
     Property,
+    PropertyIndexState,
+    PropertyIndexStatus,
+    PropertyIndexTask,
     PropertyType,
     ReferenceProperty,
     ShardStatus,
     ShardTypes,
+    Tokenization,
     _CollectionConfigUpdate,
     _GenerativeProvider,
     _InvertedIndexConfigUpdate,
@@ -45,6 +51,8 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
+    _collection_property_indexes_from_json,
+    _property_index_task_from_json,
 )
 from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import (
@@ -53,6 +61,8 @@ from weaviate.collections.classes.config_vector_index import (
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import (
+    ReindexCanceledError,
+    ReindexFailedError,
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
@@ -77,6 +87,37 @@ def _property_has_text_analyzer(prop: Property) -> bool:
         return False
     nested_list = nested if isinstance(nested, list) else [nested]
     return any(_property_has_text_analyzer(np) for np in nested_list)
+
+
+def _find_property_index_status(
+    indexes: CollectionPropertyIndexes, property_name: str, index_name: IndexName
+) -> Optional[PropertyIndexStatus]:
+    for prop in indexes.properties:
+        if prop.name != property_name:
+            continue
+        for index in prop.indexes:
+            if index.type == index_name:
+                return index
+    return None
+
+
+def _terminal_property_index_status(
+    entry: Optional[PropertyIndexStatus], property_name: str, index_name: IndexName
+) -> Optional[PropertyIndexStatus]:
+    """Return the entry once it is ready, raise on failure/cancellation, or return None to keep polling."""
+    if entry is None:
+        return None
+    if entry.status == PropertyIndexState.READY:
+        return entry
+    if entry.status == PropertyIndexState.FAILED:
+        raise ReindexFailedError(
+            f"Reindexing the '{index_name}' index of property '{property_name}' failed."
+        )
+    if entry.status == PropertyIndexState.CANCELLED:
+        raise ReindexCanceledError(
+            f"Reindexing the '{index_name}' index of property '{property_name}' was cancelled."
+        )
+    return None
 
 
 class _ConfigCollectionExecutor(Generic[ConnectionType]):
@@ -665,4 +706,337 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             path=path,
             error_msg="Property may not exist",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
+        )
+
+    def __check_property_reindex_support(self, feature: str) -> None:
+        if not self._connection._weaviate_version.is_at_least(1, 39, 0):
+            raise WeaviateUnsupportedFeatureError(
+                feature,
+                str(self._connection._weaviate_version),
+                "1.39.0",
+            )
+
+    def __property_index_path(self, property_name: str, index_name: IndexName) -> str:
+        return (
+            f"/schema/{_capitalize_first_letter(self._name)}"
+            + f"/properties/{property_name}"
+            + f"/index/{index_name}"
+        )
+
+    def __wait_for_property_index(
+        self, property_name: str, index_name: IndexName
+    ) -> executor.Result[PropertyIndexStatus]:
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> PropertyIndexStatus:
+                while True:
+                    indexes = await executor.aresult(self.get_property_indexes())
+                    entry = _find_property_index_status(indexes, property_name, index_name)
+                    done = _terminal_property_index_status(entry, property_name, index_name)
+                    if done is not None:
+                        return done
+                    await asyncio.sleep(1)
+
+            return _execute()
+        while True:
+            indexes = executor.result(self.get_property_indexes())
+            entry = _find_property_index_status(indexes, property_name, index_name)
+            done = _terminal_property_index_status(entry, property_name, index_name)
+            if done is not None:
+                return done
+            time.sleep(1)
+
+    @overload
+    def update_property_index(
+        self,
+        property_name: str,
+        index_name: IndexName,
+        *,
+        tokenization: Optional[Tokenization] = None,
+        algorithm: Optional[Literal["blockmax"]] = None,
+        tenants: Optional[Sequence[str]] = None,
+        wait_for_completion: Literal[True],
+    ) -> executor.Result[PropertyIndexStatus]: ...
+
+    @overload
+    def update_property_index(
+        self,
+        property_name: str,
+        index_name: IndexName,
+        *,
+        tokenization: Optional[Tokenization] = None,
+        algorithm: Optional[Literal["blockmax"]] = None,
+        tenants: Optional[Sequence[str]] = None,
+        wait_for_completion: Literal[False] = False,
+    ) -> executor.Result[PropertyIndexTask]: ...
+
+    def update_property_index(
+        self,
+        property_name: str,
+        index_name: IndexName,
+        *,
+        tokenization: Optional[Tokenization] = None,
+        algorithm: Optional[Literal["blockmax"]] = None,
+        tenants: Optional[Sequence[str]] = None,
+        wait_for_completion: bool = False,
+    ) -> executor.Result[Union[PropertyIndexTask, PropertyIndexStatus]]:
+        """Create or migrate a property index in this collection.
+
+        Note: This method is a declarative upsert operation. If the index does not exist, it is created
+        with the requested configuration. If it exists, it is migrated towards the requested
+        configuration. If the configuration already matches, no work is submitted and the returned
+        task reports a `NO_OP` status. The server accepts at most one configuration change per request.
+
+        Args:
+            property_name: The property whose index to create or migrate.
+            index_name: The type of the index, one of `searchable`, `filterable` or `rangeFilters`.
+            tokenization: The tokenization of the index. Required when creating a `searchable` index;
+                optional as a change on an existing `searchable` or `filterable` index. Not valid for
+                `rangeFilters`.
+            algorithm: The search algorithm of a `searchable` index. Only `blockmax` may be requested.
+            tenants: The tenants for which to create the index. Only valid when creating a
+                `rangeFilters` index on a multi-tenant collection. If not provided, all tenants are
+                affected.
+            wait_for_completion: Whether to wait until the index reports `ready`. By default False.
+
+        Returns:
+            A `PropertyIndexTask` when `wait_for_completion=False`, or the final `PropertyIndexStatus`
+            of the index when `wait_for_completion=True`.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.ReindexFailedError: If `wait_for_completion=True` and the reindexing task failed.
+            weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
+        """
+        self.__check_property_reindex_support("Collection config update_property_index")
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        )
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+
+        path = self.__property_index_path(property_name, index_name)
+        body: Dict[str, Any] = {}
+        if tokenization is not None:
+            body["tokenization"] = (
+                tokenization.value if isinstance(tokenization, Tokenization) else tokenization
+            )
+        if algorithm is not None:
+            body["algorithm"] = algorithm
+        params: Optional[Dict[str, Any]] = (
+            {"tenants": ",".join(tenants)} if tenants is not None else None
+        )
+
+        def resp(res: Response) -> PropertyIndexTask:
+            response = _decode_json_response_dict(res, "Update property index")
+            assert response is not None
+            return _property_index_task_from_json(response)
+
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> Union[PropertyIndexTask, PropertyIndexStatus]:
+                res = await executor.aresult(
+                    self._connection.put(
+                        path=path,
+                        weaviate_object=body,
+                        params=params,
+                        error_msg="Property index may not have been updated.",
+                        status_codes=_ExpectedStatusCodes(
+                            ok_in=[200, 202], error="Update property index"
+                        ),
+                    )
+                )
+                task = resp(res)
+                if wait_for_completion:
+                    return await executor.aresult(
+                        self.__wait_for_property_index(property_name, index_name)
+                    )
+                return task
+
+            return _execute()
+        res = executor.result(
+            self._connection.put(
+                path=path,
+                weaviate_object=body,
+                params=params,
+                error_msg="Property index may not have been updated.",
+                status_codes=_ExpectedStatusCodes(ok_in=[200, 202], error="Update property index"),
+            )
+        )
+        task = resp(res)
+        if wait_for_completion:
+            return executor.result(self.__wait_for_property_index(property_name, index_name))
+        return task
+
+    @overload
+    def rebuild_property_index(
+        self,
+        property_name: str,
+        index_name: IndexName,
+        *,
+        tenants: Optional[Sequence[str]] = None,
+        wait_for_completion: Literal[True],
+    ) -> executor.Result[PropertyIndexStatus]: ...
+
+    @overload
+    def rebuild_property_index(
+        self,
+        property_name: str,
+        index_name: IndexName,
+        *,
+        tenants: Optional[Sequence[str]] = None,
+        wait_for_completion: Literal[False] = False,
+    ) -> executor.Result[PropertyIndexTask]: ...
+
+    def rebuild_property_index(
+        self,
+        property_name: str,
+        index_name: IndexName,
+        *,
+        tenants: Optional[Sequence[str]] = None,
+        wait_for_completion: bool = False,
+    ) -> executor.Result[Union[PropertyIndexTask, PropertyIndexStatus]]:
+        """Rebuild an existing property index from scratch with its current configuration.
+
+        Args:
+            property_name: The property whose index to rebuild.
+            index_name: The type of the index, one of `searchable`, `filterable` or `rangeFilters`.
+            tenants: The tenants for which to rebuild the index on a multi-tenant collection.
+                If not provided, all tenants are affected.
+            wait_for_completion: Whether to wait until the index reports `ready`. By default False.
+
+        Returns:
+            A `PropertyIndexTask` when `wait_for_completion=False`, or the final `PropertyIndexStatus`
+            of the index when `wait_for_completion=True`.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.ReindexFailedError: If `wait_for_completion=True` and the reindexing task failed.
+            weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
+        """
+        self.__check_property_reindex_support("Collection config rebuild_property_index")
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        )
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+
+        path = self.__property_index_path(property_name, index_name) + "/rebuild"
+        params: Optional[Dict[str, Any]] = (
+            {"tenants": ",".join(tenants)} if tenants is not None else None
+        )
+
+        def resp(res: Response) -> PropertyIndexTask:
+            response = _decode_json_response_dict(res, "Rebuild property index")
+            assert response is not None
+            return _property_index_task_from_json(response)
+
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> Union[PropertyIndexTask, PropertyIndexStatus]:
+                res = await executor.aresult(
+                    self._connection.post(
+                        path=path,
+                        weaviate_object={},
+                        params=params,
+                        error_msg="Property index may not have been rebuilt.",
+                        status_codes=_ExpectedStatusCodes(
+                            ok_in=[202], error="Rebuild property index"
+                        ),
+                    )
+                )
+                task = resp(res)
+                if wait_for_completion:
+                    return await executor.aresult(
+                        self.__wait_for_property_index(property_name, index_name)
+                    )
+                return task
+
+            return _execute()
+        res = executor.result(
+            self._connection.post(
+                path=path,
+                weaviate_object={},
+                params=params,
+                error_msg="Property index may not have been rebuilt.",
+                status_codes=_ExpectedStatusCodes(ok_in=[202], error="Rebuild property index"),
+            )
+        )
+        task = resp(res)
+        if wait_for_completion:
+            return executor.result(self.__wait_for_property_index(property_name, index_name))
+        return task
+
+    def cancel_property_index_task(
+        self,
+        property_name: str,
+        index_name: IndexName,
+    ) -> executor.Result[PropertyIndexTask]:
+        """Cancel the live reindexing task of a property index.
+
+        This operation is idempotent: if there is no live task for the index, the returned task
+        reports a `NO_OP` status. Note that a coupled tokenization change (a `searchable` change on a
+        property that also has a `filterable` index) is a single task; cancelling it via either index
+        type cancels the whole task.
+
+        Args:
+            property_name: The property whose reindexing task to cancel.
+            index_name: The type of the index, one of `searchable`, `filterable` or `rangeFilters`.
+
+        Returns:
+            A `PropertyIndexTask` with status `CANCELLED` if a live task was cancelled or `NO_OP` otherwise.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+        """
+        self.__check_property_reindex_support("Collection config cancel_property_index_task")
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        )
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+
+        path = self.__property_index_path(property_name, index_name) + "/cancel"
+
+        def resp(res: Response) -> PropertyIndexTask:
+            response = _decode_json_response_dict(res, "Cancel property index task")
+            assert response is not None
+            return _property_index_task_from_json(response)
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.post,
+            path=path,
+            weaviate_object={},
+            error_msg="Property index task may not have been cancelled.",
+            status_codes=_ExpectedStatusCodes(ok_in=[202], error="Cancel property index task"),
+        )
+
+    def get_property_indexes(self) -> executor.Result[CollectionPropertyIndexes]:
+        """Get the statuses of the property indexes of this collection.
+
+        The response includes the state of any in-flight reindexing tasks, e.g. their progress and
+        target configuration. Poll this endpoint for a `ready` status to detect the completion of a
+        reindexing task.
+
+        Returns:
+            A `CollectionPropertyIndexes` object containing the index statuses grouped by property.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+        """
+        self.__check_property_reindex_support("Collection config get_property_indexes")
+
+        def resp(res: Response) -> CollectionPropertyIndexes:
+            response = _decode_json_response_dict(res, "Get property indexes")
+            assert response is not None
+            return _collection_property_indexes_from_json(response)
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path=f"/schema/{_capitalize_first_letter(self._name)}/indexes",
+            error_msg="Property index statuses could not be retrieved.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get property indexes"),
         )
