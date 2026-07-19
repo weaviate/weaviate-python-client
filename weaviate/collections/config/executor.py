@@ -754,7 +754,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
     ) -> executor.Result[PropertyIndexStatus]: ...
 
@@ -766,7 +766,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> executor.Result[PropertyIndexTask]: ...
 
@@ -777,7 +777,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
     ) -> executor.Result[Union[PropertyIndexTask, PropertyIndexStatus]]:
         """Create or migrate a property index in this collection.
@@ -794,9 +794,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 optional as a change on an existing `searchable` or `filterable` index. Not valid for
                 `rangeFilters`.
             algorithm: The search algorithm of a `searchable` index. Only `blockmax` may be requested.
-            tenants: The tenants for which to create the index. Only valid when creating a
-                `rangeFilters` index on a multi-tenant collection. If not provided, all tenants are
-                affected.
+            tenants: The tenant/list of tenants for which to create the index. Only valid when
+                creating a `rangeFilters` index on a multi-tenant collection. If not provided, all
+                tenants are affected.
             wait_for_completion: Whether to wait until the index reports `ready`. By default False.
 
         Returns:
@@ -823,6 +823,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             )
         if algorithm is not None:
             body["algorithm"] = algorithm
+        if isinstance(tenants, str):
+            tenants = [tenants]
         params: Optional[Dict[str, Any]] = (
             {"tenants": ",".join(tenants)} if tenants is not None else None
         )
@@ -874,7 +876,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         property_name: str,
         index_name: IndexName,
         *,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
     ) -> executor.Result[PropertyIndexStatus]: ...
 
@@ -884,7 +886,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         property_name: str,
         index_name: IndexName,
         *,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> executor.Result[PropertyIndexTask]: ...
 
@@ -893,7 +895,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         property_name: str,
         index_name: IndexName,
         *,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
     ) -> executor.Result[Union[PropertyIndexTask, PropertyIndexStatus]]:
         """Rebuild an existing property index from scratch with its current configuration.
@@ -901,8 +903,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         Args:
             property_name: The property whose index to rebuild.
             index_name: The type of the index, one of `searchable`, `filterable` or `rangeFilters`.
-            tenants: The tenants for which to rebuild the index on a multi-tenant collection.
-                If not provided, all tenants are affected.
+            tenants: The tenant/list of tenants for which to rebuild the index on a multi-tenant
+                collection. If not provided, all tenants are affected.
             wait_for_completion: Whether to wait until the index reports `ready`. By default False.
 
         Returns:
@@ -922,6 +924,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
 
         path = self.__property_index_path(property_name, index_name) + "/rebuild"
+        if isinstance(tenants, str):
+            tenants = [tenants]
         params: Optional[Dict[str, Any]] = (
             {"tenants": ",".join(tenants)} if tenants is not None else None
         )

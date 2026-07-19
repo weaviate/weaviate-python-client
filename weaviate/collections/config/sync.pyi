@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Optional, Sequence, Union, overload
+from typing import Dict, List, Literal, Optional, Union, overload
 
 from typing_extensions import deprecated
 
@@ -100,7 +100,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
     ) -> PropertyIndexStatus: ...
     @overload
@@ -111,7 +111,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> PropertyIndexTask: ...
     @overload
@@ -120,7 +120,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         property_name: str,
         index_name: IndexName,
         *,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
     ) -> PropertyIndexStatus: ...
     @overload
@@ -129,7 +129,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         property_name: str,
         index_name: IndexName,
         *,
-        tenants: Optional[Sequence[str]] = None,
+        tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> PropertyIndexTask: ...
     def cancel_property_index_task(

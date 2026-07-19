@@ -13,7 +13,11 @@ from weaviate.collections.classes.config import (
     PropertyIndexTaskStatus,
     Tokenization,
 )
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
+from weaviate.exceptions import (
+    ReindexCanceledError,
+    ReindexFailedError,
+    WeaviateUnsupportedFeatureError,
+)
 
 COLLECTION = "TestCollection"
 SCHEMA_PATH = f"/v1/schema/{COLLECTION}"
@@ -128,12 +132,117 @@ def test_update_property_index_wait_for_completion(
     weaviate_139_mock.check_assertions()
 
 
+def test_update_property_index_bare_str_tenant(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A bare string tenant is normalized to a single csv value, not exploded into characters."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/age/index/rangeFilters",
+        method="PUT",
+        query_string={"tenants": "tenant1"},
+        json={},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+
+    task = client_139.collections.use(COLLECTION).config.update_property_index(
+        "age", "rangeFilters", tenants="tenant1"
+    )
+    assert task.status == PropertyIndexTaskStatus.STARTED
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.parametrize(
+    "index_status,exception",
+    [("failed", ReindexFailedError), ("cancelled", ReindexCanceledError)],
+)
+def test_update_property_index_wait_raises(
+    weaviate_139_mock: HTTPServer,
+    client_139: weaviate.WeaviateClient,
+    index_status: str,
+    exception: type,
+) -> None:
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "word"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
+        {
+            "collection": COLLECTION,
+            "properties": [
+                {
+                    "name": "name",
+                    "dataType": "text",
+                    "indexes": [
+                        {
+                            "type": "searchable",
+                            "status": index_status,
+                            "progress": 0.42,
+                            "taskId": TASK_ID,
+                            "tokenization": "word",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    with pytest.raises(exception):
+        client_139.collections.use(COLLECTION).config.update_property_index(
+            "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
+        )
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.parametrize(
+    "index_status,exception",
+    [("failed", ReindexFailedError), ("cancelled", ReindexCanceledError)],
+)
+def test_rebuild_property_index_wait_raises(
+    weaviate_139_mock: HTTPServer,
+    client_139: weaviate.WeaviateClient,
+    index_status: str,
+    exception: type,
+) -> None:
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable/rebuild",
+        method="POST",
+        json={},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
+        {
+            "collection": COLLECTION,
+            "properties": [
+                {
+                    "name": "name",
+                    "dataType": "text",
+                    "indexes": [
+                        {
+                            "type": "searchable",
+                            "status": index_status,
+                            "progress": 0.42,
+                            "taskId": TASK_ID,
+                            "tokenization": "word",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    with pytest.raises(exception):
+        client_139.collections.use(COLLECTION).config.rebuild_property_index(
+            "name", "searchable", wait_for_completion=True
+        )
+    weaviate_139_mock.check_assertions()
+
+
 def test_rebuild_property_index(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
     weaviate_139_mock.expect_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable/rebuild",
         method="POST",
+        json={},
     ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
 
     task = client_139.collections.use(COLLECTION).config.rebuild_property_index(
@@ -151,6 +260,7 @@ def test_rebuild_property_index_with_tenants(
         f"{SCHEMA_PATH}/properties/age/index/rangeFilters/rebuild",
         method="POST",
         query_string={"tenants": "tenant1,tenant2"},
+        json={},
     ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
 
     task = client_139.collections.use(COLLECTION).config.rebuild_property_index(
@@ -167,6 +277,7 @@ def test_cancel_property_index_task_cancelled(
     weaviate_139_mock.expect_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable/cancel",
         method="POST",
+        json={},
     ).respond_with_json({"taskId": TASK_ID, "status": "CANCELLED"}, status=202)
 
     task = client_139.collections.use(COLLECTION).config.cancel_property_index_task(
@@ -183,6 +294,7 @@ def test_cancel_property_index_task_no_op(
     weaviate_139_mock.expect_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable/cancel",
         method="POST",
+        json={},
     ).respond_with_json({"status": "NO_OP"}, status=202)
 
     task = client_139.collections.use(COLLECTION).config.cancel_property_index_task(
@@ -269,6 +381,14 @@ def test_get_property_indexes(
     assert age.indexes[0].progress is None
     assert age.indexes[0].task_id is None
     assert age.indexes[0].tokenization is None
+
+    # the nested dataclasses serialize all the way down to a JSON-compatible dict
+    out = json.loads(json.dumps(indexes.to_dict()))
+    assert out["collection"] == COLLECTION
+    assert out["properties"][0]["indexes"][0]["taskId"] == TASK_ID
+    assert out["properties"][0]["indexes"][0]["targetTokenization"] == "field"
+    assert out["properties"][1]["dataType"] == "int"
+    assert out["properties"][1]["indexes"][0]["status"] == "ready"
 
     weaviate_139_mock.check_assertions()
 

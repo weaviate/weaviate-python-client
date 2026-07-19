@@ -2271,6 +2271,11 @@ class _PropertyIndexes(_ConfigBase):
     description: Optional[str]
     indexes: List[PropertyIndexStatus]
 
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["indexes"] = [index.to_dict() for index in self.indexes]
+        return out
+
 
 PropertyIndexes = _PropertyIndexes
 
@@ -2279,6 +2284,11 @@ PropertyIndexes = _PropertyIndexes
 class _CollectionPropertyIndexes(_ConfigBase):
     collection: str
     properties: List[PropertyIndexes]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["properties"] = [prop.to_dict() for prop in self.properties]
+        return out
 
 
 CollectionPropertyIndexes = _CollectionPropertyIndexes

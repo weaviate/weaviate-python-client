@@ -592,22 +592,17 @@ def _property_index_status_from_json(index: Dict[str, Any]) -> _PropertyIndexSta
 
 
 def _collection_property_indexes_from_json(response: Dict[str, Any]) -> _CollectionPropertyIndexes:
-    properties: List[_PropertyIndexes] = []
-    for prop in response.get("properties") or []:
-        data_type = prop.get("dataType")
-        if isinstance(data_type, list):
-            data_type = data_type[0] if len(data_type) > 0 else ""
-        properties.append(
+    return _CollectionPropertyIndexes(
+        collection=response["collection"],
+        properties=[
             _PropertyIndexes(
                 name=prop["name"],
-                data_type=cast(str, data_type),
+                data_type=prop["dataType"],
                 description=prop.get("description"),
                 indexes=[
                     _property_index_status_from_json(index) for index in prop.get("indexes") or []
                 ],
             )
-        )
-    return _CollectionPropertyIndexes(
-        collection=response["collection"],
-        properties=properties,
+            for prop in response.get("properties") or []
+        ],
     )
