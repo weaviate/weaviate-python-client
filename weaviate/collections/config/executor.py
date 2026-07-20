@@ -804,6 +804,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             of the index when `wait_for_completion=True`.
 
         Raises:
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.ReindexFailedError: If `wait_for_completion=True` and the reindexing task failed.
@@ -814,6 +815,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
         _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+        _validate_input(
+            [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
+        )
 
         path = self.__property_index_path(property_name, index_name)
         body: Dict[str, Any] = {}
@@ -912,6 +916,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             of the index when `wait_for_completion=True`.
 
         Raises:
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.ReindexFailedError: If `wait_for_completion=True` and the reindexing task failed.
@@ -922,6 +927,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
         _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+        _validate_input(
+            [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
+        )
 
         path = self.__property_index_path(property_name, index_name) + "/rebuild"
         if isinstance(tenants, str):
@@ -991,6 +999,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             A `PropertyIndexTask` with status `CANCELLED` if a live task was cancelled or `NO_OP` otherwise.
 
         Raises:
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """

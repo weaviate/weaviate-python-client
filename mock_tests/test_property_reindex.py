@@ -393,6 +393,21 @@ def test_get_property_indexes(
     weaviate_139_mock.check_assertions()
 
 
+def test_property_reindex_invalid_input(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """Invalid argument types raise WeaviateInvalidInputError before any request is sent."""
+    config = client_139.collections.use(COLLECTION).config
+
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        config.update_property_index("age", "rangeFilters", tenants=123)  # type: ignore
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        config.rebuild_property_index("age", "rangeFilters", tenants=[1, 2])  # type: ignore
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        config.cancel_property_index_task(123, "searchable")  # type: ignore
+    weaviate_139_mock.check_assertions()
+
+
 def test_property_reindex_unsupported_version(
     weaviate_client: weaviate.WeaviateClient,
 ) -> None:
