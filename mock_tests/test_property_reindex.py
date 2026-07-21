@@ -393,6 +393,29 @@ def test_get_property_indexes(
     weaviate_139_mock.check_assertions()
 
 
+def test_delete_property_index_surfaces_server_message(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A DELETE rejection surfaces the server's cause behind a neutral prefix.
+
+    The 422 mutation guard (in-flight reindex task) carries an actionable server message;
+    the client prefix must only name the failed operation, not assert a cause.
+    """
+    server_message = "cannot delete index: a reindex task is in progress for property 'name'"
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="DELETE",
+    ).respond_with_json({"error": [{"message": server_message}]}, status=422)
+
+    with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+        client_139.collections.use(COLLECTION).config.delete_property_index("name", "searchable")
+    assert e.value.status_code == 422
+    assert "Property index may not have been deleted." in e.value.message
+    assert server_message in e.value.message
+    assert "may not exist" not in e.value.message
+    weaviate_139_mock.check_assertions()
+
+
 def test_property_reindex_invalid_input(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:

@@ -704,8 +704,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.delete,
             path=path,
-            error_msg="Property may not exist",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
+            error_msg="Property index may not have been deleted.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Delete property index"),
         )
 
     def __check_property_reindex_support(self, feature: str) -> None:
