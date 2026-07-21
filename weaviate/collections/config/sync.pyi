@@ -99,7 +99,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -110,7 +110,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -121,7 +121,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
@@ -130,12 +130,12 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> InvertedIndexTask: ...
     def cancel_property_index_task(
-        self, property_name: str, index_name: Union[InvertedIndexType, IndexName]
+        self, property_name: str, index_name: InvertedIndexType
     ) -> InvertedIndexTask: ...
     def get_property_indexes(self) -> CollectionInvertedIndexes: ...

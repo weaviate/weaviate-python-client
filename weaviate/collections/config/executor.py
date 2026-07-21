@@ -680,7 +680,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property name from which to delete the index.
-            index_name: The type of the index to delete.
+            index_name: The type of the index to delete, an `InvertedIndexType` value or one of
+                the literals `searchable`, `filterable` or `rangeFilters`.
 
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
@@ -753,7 +754,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -765,7 +766,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -776,7 +777,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -798,8 +799,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property whose index to create or migrate.
-            index_name: The type of the index, a `InvertedIndexType` value or one of the literals
-                `searchable`, `filterable` or `rangeFilters`.
+            index_name: The type of the index, an `InvertedIndexType` value.
             tokenization: The tokenization of the index. Required when creating a `searchable` index;
                 optional as a change on an existing `searchable` or `filterable` index. Not valid for
                 `rangeFilters`.
@@ -821,17 +821,19 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
         """
         self.__check_property_reindex_support("Collection config update_property_index")
-        if isinstance(index_name, InvertedIndexType):
-            index_name = cast(IndexName, index_name.value)
+        index = cast(
+            IndexName,
+            index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
+        )
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
-        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
         _validate_input(
             [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
         )
 
-        path = self.__property_index_path(property_name, index_name)
+        path = self.__property_index_path(property_name, index)
         body: Dict[str, Any] = {}
         if tokenization is not None:
             body["tokenization"] = (
@@ -867,7 +869,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 task = resp(res)
                 if wait_for_completion:
                     return await executor.aresult(
-                        self.__wait_for_property_index(property_name, index_name)
+                        self.__wait_for_property_index(property_name, index)
                     )
                 return task
 
@@ -883,14 +885,14 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         )
         task = resp(res)
         if wait_for_completion:
-            return executor.result(self.__wait_for_property_index(property_name, index_name))
+            return executor.result(self.__wait_for_property_index(property_name, index))
         return task
 
     @overload
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
@@ -900,7 +902,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
@@ -909,7 +911,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
@@ -918,8 +920,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property whose index to rebuild.
-            index_name: The type of the index, a `InvertedIndexType` value or one of the literals
-                `searchable`, `filterable` or `rangeFilters`.
+            index_name: The type of the index, an `InvertedIndexType` value.
             tenants: The tenant/list of tenants for which to rebuild the index on a multi-tenant
                 collection. If not provided, all tenants are affected.
             wait_for_completion: Whether to wait until the index reports `ready`. By default False.
@@ -936,17 +937,19 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
         """
         self.__check_property_reindex_support("Collection config rebuild_property_index")
-        if isinstance(index_name, InvertedIndexType):
-            index_name = cast(IndexName, index_name.value)
+        index = cast(
+            IndexName,
+            index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
+        )
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
-        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
         _validate_input(
             [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
         )
 
-        path = self.__property_index_path(property_name, index_name) + "/rebuild"
+        path = self.__property_index_path(property_name, index) + "/rebuild"
         if isinstance(tenants, str):
             tenants = [tenants]
         params: Optional[Dict[str, Any]] = (
@@ -975,7 +978,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 task = resp(res)
                 if wait_for_completion:
                     return await executor.aresult(
-                        self.__wait_for_property_index(property_name, index_name)
+                        self.__wait_for_property_index(property_name, index)
                     )
                 return task
 
@@ -991,13 +994,13 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         )
         task = resp(res)
         if wait_for_completion:
-            return executor.result(self.__wait_for_property_index(property_name, index_name))
+            return executor.result(self.__wait_for_property_index(property_name, index))
         return task
 
     def cancel_property_index_task(
         self,
         property_name: str,
-        index_name: Union[InvertedIndexType, IndexName],
+        index_name: InvertedIndexType,
     ) -> executor.Result[InvertedIndexTask]:
         """Cancel the live reindexing task of a property index.
 
@@ -1008,8 +1011,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property whose reindexing task to cancel.
-            index_name: The type of the index, a `InvertedIndexType` value or one of the literals
-                `searchable`, `filterable` or `rangeFilters`.
+            index_name: The type of the index, an `InvertedIndexType` value.
 
         Returns:
             A `InvertedIndexTask` with status `CANCELLED` if a live task was cancelled or `NO_OP` otherwise.
@@ -1020,14 +1022,16 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         self.__check_property_reindex_support("Collection config cancel_property_index_task")
-        if isinstance(index_name, InvertedIndexType):
-            index_name = cast(IndexName, index_name.value)
+        index = cast(
+            IndexName,
+            index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
+        )
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
-        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
 
-        path = self.__property_index_path(property_name, index_name) + "/cancel"
+        path = self.__property_index_path(property_name, index) + "/cancel"
 
         def resp(res: Response) -> InvertedIndexTask:
             response = _decode_json_response_dict(res, "Cancel property index task")

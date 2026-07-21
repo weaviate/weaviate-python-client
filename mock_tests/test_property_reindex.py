@@ -421,6 +421,7 @@ def test_update_property_index_enum_and_literal_hit_same_route(
 
     task = client_139.collections.use(COLLECTION).config.update_property_index(
         "name",
+        # runtime leniency pin: raw strings must keep hitting the same route
         index_name,  # type: ignore
     )
     assert task.status == InvertedIndexTaskStatus.STARTED
@@ -453,6 +454,7 @@ def test_delete_property_index_enum_and_literal_hit_same_route(
     assert (
         client_139.collections.use(COLLECTION).config.delete_property_index(
             "name",
+            # runtime leniency pin: raw strings must keep hitting the same route
             index_name,  # type: ignore
         )
         is True
@@ -478,6 +480,7 @@ def test_rebuild_property_index_enum_and_literal_hit_same_route(
 
     task = client_139.collections.use(COLLECTION).config.rebuild_property_index(
         "age",
+        # runtime leniency pin: raw strings must keep hitting the same route
         index_name,  # type: ignore
     )
     assert task.status == InvertedIndexTaskStatus.STARTED
@@ -502,6 +505,7 @@ def test_cancel_property_index_task_enum_and_literal_hit_same_route(
 
     task = client_139.collections.use(COLLECTION).config.cancel_property_index_task(
         "age",
+        # runtime leniency pin: raw strings must keep hitting the same route
         index_name,  # type: ignore
     )
     assert task.status == InvertedIndexTaskStatus.CANCELLED
