@@ -1,5 +1,5 @@
 import json
-from typing import Generator
+from typing import Generator, Union
 
 import grpc
 import pytest
@@ -11,6 +11,7 @@ from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 from weaviate.collections.classes.config import (
     PropertyIndexState,
     PropertyIndexTaskStatus,
+    PropertyIndexType,
     Tokenization,
 )
 from weaviate.exceptions import (
@@ -390,6 +391,67 @@ def test_get_property_indexes(
     assert out["properties"][1]["dataType"] == "int"
     assert out["properties"][1]["indexes"][0]["status"] == "ready"
 
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.parametrize(
+    "index_name,wire",
+    [
+        (PropertyIndexType.SEARCHABLE, "searchable"),
+        ("searchable", "searchable"),
+        (PropertyIndexType.RANGE_FILTERS, "rangeFilters"),
+        ("rangeFilters", "rangeFilters"),
+    ],
+)
+def test_update_property_index_enum_and_literal_hit_same_route(
+    weaviate_139_mock: HTTPServer,
+    client_139: weaviate.WeaviateClient,
+    index_name: Union[PropertyIndexType, str],
+    wire: str,
+) -> None:
+    """The enum and literal forms of index_name hit the exact same wire route."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/{wire}",
+        method="PUT",
+        json={},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+
+    task = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name",
+        index_name,  # type: ignore
+    )
+    assert task.status == PropertyIndexTaskStatus.STARTED
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.parametrize(
+    "index_name,wire",
+    [
+        (PropertyIndexType.SEARCHABLE, "searchable"),
+        ("searchable", "searchable"),
+        (PropertyIndexType.RANGE_FILTERS, "rangeFilters"),
+        ("rangeFilters", "rangeFilters"),
+    ],
+)
+def test_delete_property_index_enum_and_literal_hit_same_route(
+    weaviate_139_mock: HTTPServer,
+    client_139: weaviate.WeaviateClient,
+    index_name: Union[PropertyIndexType, str],
+    wire: str,
+) -> None:
+    """The enum and literal forms of index_name hit the exact same wire route."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/{wire}",
+        method="DELETE",
+    ).respond_with_json({}, status=200)
+
+    assert (
+        client_139.collections.use(COLLECTION).config.delete_property_index(
+            "name",
+            index_name,  # type: ignore
+        )
+        is True
+    )
     weaviate_139_mock.check_assertions()
 
 

@@ -10,6 +10,7 @@ from weaviate.collections.classes.config import (
     Property,
     PropertyIndexStatus,
     PropertyIndexTask,
+    PropertyIndexType,
     ReferenceProperty,
     ShardStatus,
     ShardTypes,
@@ -93,12 +94,14 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     async def add_vector(
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...
-    async def delete_property_index(self, property_name: str, index_name: IndexName) -> bool: ...
+    async def delete_property_index(
+        self, property_name: str, index_name: Union[PropertyIndexType, IndexName]
+    ) -> bool: ...
     @overload
     async def update_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -109,7 +112,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     async def update_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -120,7 +123,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     async def rebuild_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
@@ -129,12 +132,12 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
     async def rebuild_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> PropertyIndexTask: ...
     async def cancel_property_index_task(
-        self, property_name: str, index_name: IndexName
+        self, property_name: str, index_name: Union[PropertyIndexType, IndexName]
     ) -> PropertyIndexTask: ...
     async def get_property_indexes(self) -> CollectionPropertyIndexes: ...

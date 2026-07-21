@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import (
     PropertyIndexState,
     PropertyIndexStatus,
     PropertyIndexTask,
+    PropertyIndexType,
     PropertyType,
     ReferenceProperty,
     ShardStatus,
@@ -670,7 +671,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def delete_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
     ) -> executor.Result[bool]:
         """Delete a property index from the collection in Weaviate.
 
@@ -686,6 +687,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInvalidInputError: If the property or index does not exist.
         """
+        if isinstance(index_name, PropertyIndexType):
+            index_name = cast(IndexName, index_name.value)
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
@@ -750,7 +753,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -762,7 +765,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -773,7 +776,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -789,7 +792,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property whose index to create or migrate.
-            index_name: The type of the index, one of `searchable`, `filterable` or `rangeFilters`.
+            index_name: The type of the index, a `PropertyIndexType` value or one of the literals
+                `searchable`, `filterable` or `rangeFilters`.
             tokenization: The tokenization of the index. Required when creating a `searchable` index;
                 optional as a change on an existing `searchable` or `filterable` index. Not valid for
                 `rangeFilters`.
@@ -811,6 +815,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
         """
         self.__check_property_reindex_support("Collection config update_property_index")
+        if isinstance(index_name, PropertyIndexType):
+            index_name = cast(IndexName, index_name.value)
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
@@ -878,7 +884,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
@@ -888,7 +894,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
@@ -897,7 +903,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
@@ -906,7 +912,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property whose index to rebuild.
-            index_name: The type of the index, one of `searchable`, `filterable` or `rangeFilters`.
+            index_name: The type of the index, a `PropertyIndexType` value or one of the literals
+                `searchable`, `filterable` or `rangeFilters`.
             tenants: The tenant/list of tenants for which to rebuild the index on a multi-tenant
                 collection. If not provided, all tenants are affected.
             wait_for_completion: Whether to wait until the index reports `ready`. By default False.
@@ -923,6 +930,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
         """
         self.__check_property_reindex_support("Collection config rebuild_property_index")
+        if isinstance(index_name, PropertyIndexType):
+            index_name = cast(IndexName, index_name.value)
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
@@ -982,7 +991,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def cancel_property_index_task(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
     ) -> executor.Result[PropertyIndexTask]:
         """Cancel the live reindexing task of a property index.
 
@@ -993,7 +1002,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property whose reindexing task to cancel.
-            index_name: The type of the index, one of `searchable`, `filterable` or `rangeFilters`.
+            index_name: The type of the index, a `PropertyIndexType` value or one of the literals
+                `searchable`, `filterable` or `rangeFilters`.
 
         Returns:
             A `PropertyIndexTask` with status `CANCELLED` if a live task was cancelled or `NO_OP` otherwise.
@@ -1004,6 +1014,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         self.__check_property_reindex_support("Collection config cancel_property_index_task")
+        if isinstance(index_name, PropertyIndexType):
+            index_name = cast(IndexName, index_name.value)
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )

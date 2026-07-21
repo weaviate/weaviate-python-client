@@ -10,6 +10,7 @@ from weaviate.collections.classes.config import (
     Property,
     PropertyIndexStatus,
     PropertyIndexTask,
+    PropertyIndexType,
     ReferenceProperty,
     ShardStatus,
     ShardTypes,
@@ -91,12 +92,14 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def add_vector(
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...
-    def delete_property_index(self, property_name: str, index_name: IndexName) -> bool: ...
+    def delete_property_index(
+        self, property_name: str, index_name: Union[PropertyIndexType, IndexName]
+    ) -> bool: ...
     @overload
     def update_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -107,7 +110,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def update_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
@@ -118,7 +121,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
@@ -127,12 +130,12 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[PropertyIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> PropertyIndexTask: ...
     def cancel_property_index_task(
-        self, property_name: str, index_name: IndexName
+        self, property_name: str, index_name: Union[PropertyIndexType, IndexName]
     ) -> PropertyIndexTask: ...
     def get_property_indexes(self) -> CollectionPropertyIndexes: ...

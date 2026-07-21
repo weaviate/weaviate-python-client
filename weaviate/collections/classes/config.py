@@ -117,6 +117,20 @@ IndexName: TypeAlias = Literal[
 ]
 
 
+class PropertyIndexType(str, BaseEnum):
+    """The available property index types in Weaviate.
+
+    Attributes:
+        SEARCHABLE: The searchable index, used for keyword (BM25) searches over text properties.
+        FILTERABLE: The filterable index, used for exact-match filtering.
+        RANGE_FILTERS: The rangeable index, used for range filtering.
+    """
+
+    SEARCHABLE = "searchable"
+    FILTERABLE = "filterable"
+    RANGE_FILTERS = "rangeFilters"
+
+
 class ConsistencyLevel(str, BaseEnum):
     """The consistency levels when writing to Weaviate with replication enabled.
 
