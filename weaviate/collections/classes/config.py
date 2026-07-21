@@ -2281,6 +2281,9 @@ PropertyIndexStatus = _PropertyIndexStatus
 @dataclass
 class _PropertyIndexes(_ConfigBase):
     name: str
+    # For primitive properties the value matches the `DataType` str-enum (comparisons like
+    # `data_type == DataType.TEXT` work); reference properties instead carry the qualified
+    # target collection name (e.g. "Article"), which is why this is a plain str, not `DataType`.
     data_type: str
     description: Optional[str]
     indexes: List[PropertyIndexStatus]

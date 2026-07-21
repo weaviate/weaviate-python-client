@@ -790,6 +790,12 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         configuration. If the configuration already matches, no work is submitted and the returned
         task reports a `NO_OP` status. The server accepts at most one configuration change per request.
 
+        Caution: changing `tokenization` via the `searchable` index ALSO retokenizes the property's
+        `filterable` index when one exists. Both indexes are migrated by a single coupled task (their
+        status entries share one `taskId`), and the retokenization changes how filters match on that
+        property. To retokenize only the filterable bucket, target the `filterable` index instead.
+        Cancelling via either index type cancels the whole coupled task.
+
         Args:
             property_name: The property whose index to create or migrate.
             index_name: The type of the index, a `PropertyIndexType` value or one of the literals

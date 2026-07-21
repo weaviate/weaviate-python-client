@@ -9,6 +9,7 @@ from werkzeug.wrappers import Response
 import weaviate
 from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 from weaviate.collections.classes.config import (
+    DataType,
     PropertyIndexState,
     PropertyIndexTaskStatus,
     PropertyIndexType,
@@ -452,6 +453,43 @@ def test_delete_property_index_enum_and_literal_hit_same_route(
         )
         is True
     )
+    weaviate_139_mock.check_assertions()
+
+
+def test_get_property_indexes_reference_property(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """Reference properties carry the target collection name as dataType and still parse."""
+    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
+        {
+            "collection": COLLECTION,
+            "properties": [
+                {
+                    "name": "title",
+                    "dataType": "text",
+                    "indexes": [{"type": "searchable", "status": "ready", "tokenization": "word"}],
+                },
+                {
+                    "name": "ofArticle",
+                    "dataType": "Article",
+                    "indexes": [{"type": "filterable", "status": "ready"}],
+                },
+            ],
+        }
+    )
+
+    indexes = client_139.collections.use(COLLECTION).config.get_property_indexes()
+    title, ref = indexes.properties
+    # primitive values match the DataType str-enum
+    assert title.data_type == DataType.TEXT
+    # reference properties carry the qualified target collection name instead
+    assert ref.name == "ofArticle"
+    assert ref.data_type == "Article"
+    assert ref.indexes[0].type == "filterable"
+
+    out = json.loads(json.dumps(indexes.to_dict()))
+    assert out["properties"][1]["dataType"] == "Article"
+
     weaviate_139_mock.check_assertions()
 
 
