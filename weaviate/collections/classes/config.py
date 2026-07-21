@@ -117,7 +117,7 @@ IndexName: TypeAlias = Literal[
 ]
 
 
-class PropertyIndexType(str, BaseEnum):
+class InvertedIndexType(str, BaseEnum):
     """The available property index types in Weaviate.
 
     Attributes:
@@ -2221,7 +2221,7 @@ class _ShardStatus:
 ShardStatus = _ShardStatus
 
 
-class PropertyIndexTaskStatus(str, BaseEnum):
+class InvertedIndexTaskStatus(str, BaseEnum):
     """The status of a runtime property index task submission.
 
     Attributes:
@@ -2236,7 +2236,7 @@ class PropertyIndexTaskStatus(str, BaseEnum):
     NO_OP = "NO_OP"
 
 
-class PropertyIndexState(str, BaseEnum):
+class InvertedIndexState(str, BaseEnum):
     """The state of a property index as reported by the index status endpoint.
 
     Attributes:
@@ -2255,18 +2255,18 @@ class PropertyIndexState(str, BaseEnum):
 
 
 @dataclass
-class _PropertyIndexTask(_ConfigBase):
+class _InvertedIndexTask(_ConfigBase):
     task_id: Optional[str]
-    status: PropertyIndexTaskStatus
+    status: InvertedIndexTaskStatus
 
 
-PropertyIndexTask = _PropertyIndexTask
+InvertedIndexTask = _InvertedIndexTask
 
 
 @dataclass
-class _PropertyIndexStatus(_ConfigBase):
+class _InvertedIndexStatus(_ConfigBase):
     type: IndexName  # noqa: A003
-    status: PropertyIndexState
+    status: InvertedIndexState
     progress: Optional[float]
     task_id: Optional[str]
     tokenization: Optional[Tokenization]
@@ -2275,18 +2275,18 @@ class _PropertyIndexStatus(_ConfigBase):
     target_algorithm: Optional[str]
 
 
-PropertyIndexStatus = _PropertyIndexStatus
+InvertedIndexStatus = _InvertedIndexStatus
 
 
 @dataclass
-class _PropertyIndexes(_ConfigBase):
+class _PropertyInvertedIndexes(_ConfigBase):
     name: str
     # For primitive properties the value matches the `DataType` str-enum (comparisons like
     # `data_type == DataType.TEXT` work); reference properties instead carry the qualified
     # target collection name (e.g. "Article"), which is why this is a plain str, not `DataType`.
     data_type: str
     description: Optional[str]
-    indexes: List[PropertyIndexStatus]
+    indexes: List[InvertedIndexStatus]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -2294,13 +2294,13 @@ class _PropertyIndexes(_ConfigBase):
         return out
 
 
-PropertyIndexes = _PropertyIndexes
+PropertyInvertedIndexes = _PropertyInvertedIndexes
 
 
 @dataclass
-class _CollectionPropertyIndexes(_ConfigBase):
+class _CollectionInvertedIndexes(_ConfigBase):
     collection: str
-    properties: List[PropertyIndexes]
+    properties: List[PropertyInvertedIndexes]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -2308,7 +2308,7 @@ class _CollectionPropertyIndexes(_ConfigBase):
         return out
 
 
-CollectionPropertyIndexes = _CollectionPropertyIndexes
+CollectionInvertedIndexes = _CollectionInvertedIndexes
 
 
 class _TextAnalyzerConfigCreate(_ConfigCreateModel):

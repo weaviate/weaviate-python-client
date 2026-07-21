@@ -41,8 +41,8 @@ from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
     _VectorizerConfigCreate,
     IndexName,
-    PropertyIndexState,
-    PropertyIndexTaskStatus,
+    InvertedIndexState,
+    InvertedIndexTaskStatus,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
@@ -2706,14 +2706,14 @@ def test_property_reindex_searchable_lifecycle(collection_factory: CollectionFac
         "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
     )
     assert status.type == "searchable"
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
     assert status.tokenization == Tokenization.WORD
 
     # re-putting the matching configuration is a no-op
     task = collection.config.update_property_index(
         "name", "searchable", tokenization=Tokenization.WORD
     )
-    assert task.status == PropertyIndexTaskStatus.NO_OP
+    assert task.status == InvertedIndexTaskStatus.NO_OP
     assert task.task_id is None
 
     # the status endpoint reports the index as ready
@@ -2726,18 +2726,18 @@ def test_property_reindex_searchable_lifecycle(collection_factory: CollectionFac
         for index in prop.indexes
         if index.type == "searchable"
     )
-    assert entry.status == PropertyIndexState.READY
+    assert entry.status == InvertedIndexState.READY
 
     # rebuild the index from scratch
     status = collection.config.rebuild_property_index(
         "name", "searchable", wait_for_completion=True
     )
     assert status.type == "searchable"
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
 
     # cancelling when no task is live is an idempotent no-op
     task = collection.config.cancel_property_index_task("name", "searchable")
-    assert task.status == PropertyIndexTaskStatus.NO_OP
+    assert task.status == InvertedIndexTaskStatus.NO_OP
 
     # the pre-existing delete API removes the index again
     assert collection.config.delete_property_index("name", "searchable") is True
@@ -2765,7 +2765,7 @@ def test_property_reindex_range_filters(collection_factory: CollectionFactory) -
         "age", "rangeFilters", wait_for_completion=True
     )
     assert status.type == "rangeFilters"
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
 
     entry = next(
         index
@@ -2774,7 +2774,7 @@ def test_property_reindex_range_filters(collection_factory: CollectionFactory) -
         for index in prop.indexes
         if index.type == "rangeFilters"
     )
-    assert entry.status == PropertyIndexState.READY
+    assert entry.status == InvertedIndexState.READY
 
 
 def test_property_reindex_coupled_tokenization_change(
@@ -2801,7 +2801,7 @@ def test_property_reindex_coupled_tokenization_change(
     task = collection.config.update_property_index(
         "name", "searchable", tokenization=Tokenization.FIELD
     )
-    assert task.status == PropertyIndexTaskStatus.STARTED
+    assert task.status == InvertedIndexTaskStatus.STARTED
     assert task.task_id is not None
 
     prop = next(p for p in collection.config.get_property_indexes().properties if p.name == "name")
@@ -2821,12 +2821,12 @@ def test_property_reindex_coupled_tokenization_change(
     status = collection.config.update_property_index(
         "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
     )
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
     assert status.tokenization == Tokenization.FIELD
 
     prop = next(p for p in collection.config.get_property_indexes().properties if p.name == "name")
     filterable = next(i for i in prop.indexes if i.type == "filterable")
-    assert filterable.status == PropertyIndexState.READY
+    assert filterable.status == InvertedIndexState.READY
     assert filterable.tokenization == Tokenization.FIELD
 
 
@@ -2854,13 +2854,13 @@ def test_property_reindex_multi_tenant(collection_factory: CollectionFactory) ->
         "age", "rangeFilters", tenants=["tenant1", "tenant2"], wait_for_completion=True
     )
     assert status.type == "rangeFilters"
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
 
     status = collection.config.rebuild_property_index(
         "age", "rangeFilters", tenants=["tenant1"], wait_for_completion=True
     )
     assert status.type == "rangeFilters"
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
 
 
 @pytest.mark.asyncio
@@ -2885,12 +2885,12 @@ async def test_property_reindex_async(async_collection_factory: AsyncCollectionF
         "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
     )
     assert status.type == "searchable"
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
 
     task = await collection.config.update_property_index(
         "name", "searchable", tokenization=Tokenization.WORD
     )
-    assert task.status == PropertyIndexTaskStatus.NO_OP
+    assert task.status == InvertedIndexTaskStatus.NO_OP
 
     indexes = await collection.config.get_property_indexes()
     assert indexes.collection == collection.name
@@ -2898,7 +2898,7 @@ async def test_property_reindex_async(async_collection_factory: AsyncCollectionF
     status = await collection.config.rebuild_property_index(
         "name", "searchable", wait_for_completion=True
     )
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
 
     task = await collection.config.cancel_property_index_task("name", "searchable")
-    assert task.status == PropertyIndexTaskStatus.NO_OP
+    assert task.status == InvertedIndexTaskStatus.NO_OP

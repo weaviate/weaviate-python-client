@@ -5,12 +5,12 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
-    CollectionPropertyIndexes,
+    CollectionInvertedIndexes,
     IndexName,
+    InvertedIndexStatus,
+    InvertedIndexTask,
+    InvertedIndexType,
     Property,
-    PropertyIndexStatus,
-    PropertyIndexTask,
-    PropertyIndexType,
     ReferenceProperty,
     ShardStatus,
     ShardTypes,
@@ -93,49 +93,49 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...
     def delete_property_index(
-        self, property_name: str, index_name: Union[PropertyIndexType, IndexName]
+        self, property_name: str, index_name: Union[InvertedIndexType, IndexName]
     ) -> bool: ...
     @overload
     def update_property_index(
         self,
         property_name: str,
-        index_name: Union[PropertyIndexType, IndexName],
+        index_name: Union[InvertedIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
-    ) -> PropertyIndexStatus: ...
+    ) -> InvertedIndexStatus: ...
     @overload
     def update_property_index(
         self,
         property_name: str,
-        index_name: Union[PropertyIndexType, IndexName],
+        index_name: Union[InvertedIndexType, IndexName],
         *,
         tokenization: Optional[Tokenization] = None,
         algorithm: Optional[Literal["blockmax"]] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
-    ) -> PropertyIndexTask: ...
+    ) -> InvertedIndexTask: ...
     @overload
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: Union[PropertyIndexType, IndexName],
+        index_name: Union[InvertedIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
-    ) -> PropertyIndexStatus: ...
+    ) -> InvertedIndexStatus: ...
     @overload
     def rebuild_property_index(
         self,
         property_name: str,
-        index_name: Union[PropertyIndexType, IndexName],
+        index_name: Union[InvertedIndexType, IndexName],
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
-    ) -> PropertyIndexTask: ...
+    ) -> InvertedIndexTask: ...
     def cancel_property_index_task(
-        self, property_name: str, index_name: Union[PropertyIndexType, IndexName]
-    ) -> PropertyIndexTask: ...
-    def get_property_indexes(self) -> CollectionPropertyIndexes: ...
+        self, property_name: str, index_name: Union[InvertedIndexType, IndexName]
+    ) -> InvertedIndexTask: ...
+    def get_property_indexes(self) -> CollectionInvertedIndexes: ...

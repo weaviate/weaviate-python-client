@@ -10,9 +10,9 @@ import weaviate
 from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 from weaviate.collections.classes.config import (
     DataType,
-    PropertyIndexState,
-    PropertyIndexTaskStatus,
-    PropertyIndexType,
+    InvertedIndexState,
+    InvertedIndexTaskStatus,
+    InvertedIndexType,
     Tokenization,
 )
 from weaviate.exceptions import (
@@ -64,7 +64,7 @@ def test_update_property_index_started(
         algorithm="blockmax",
     )
     assert task.task_id == TASK_ID
-    assert task.status == PropertyIndexTaskStatus.STARTED
+    assert task.status == InvertedIndexTaskStatus.STARTED
     weaviate_139_mock.check_assertions()
 
 
@@ -81,7 +81,7 @@ def test_update_property_index_no_op(
         "name", "searchable", tokenization=Tokenization.WORD
     )
     assert task.task_id is None
-    assert task.status == PropertyIndexTaskStatus.NO_OP
+    assert task.status == InvertedIndexTaskStatus.NO_OP
     weaviate_139_mock.check_assertions()
 
 
@@ -100,7 +100,7 @@ def test_update_property_index_range_filters_with_tenants(
         "age", "rangeFilters", tenants=["tenant1", "tenant2"]
     )
     assert task.task_id == TASK_ID
-    assert task.status == PropertyIndexTaskStatus.STARTED
+    assert task.status == InvertedIndexTaskStatus.STARTED
     weaviate_139_mock.check_assertions()
 
 
@@ -129,7 +129,7 @@ def test_update_property_index_wait_for_completion(
         "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
     )
     assert status.type == "searchable"
-    assert status.status == PropertyIndexState.READY
+    assert status.status == InvertedIndexState.READY
     assert status.tokenization == Tokenization.WORD
     weaviate_139_mock.check_assertions()
 
@@ -148,7 +148,7 @@ def test_update_property_index_bare_str_tenant(
     task = client_139.collections.use(COLLECTION).config.update_property_index(
         "age", "rangeFilters", tenants="tenant1"
     )
-    assert task.status == PropertyIndexTaskStatus.STARTED
+    assert task.status == InvertedIndexTaskStatus.STARTED
     weaviate_139_mock.check_assertions()
 
 
@@ -251,7 +251,7 @@ def test_rebuild_property_index(
         "name", "searchable"
     )
     assert task.task_id == TASK_ID
-    assert task.status == PropertyIndexTaskStatus.STARTED
+    assert task.status == InvertedIndexTaskStatus.STARTED
     weaviate_139_mock.check_assertions()
 
 
@@ -269,7 +269,7 @@ def test_rebuild_property_index_with_tenants(
         "age", "rangeFilters", tenants=["tenant1", "tenant2"]
     )
     assert task.task_id == TASK_ID
-    assert task.status == PropertyIndexTaskStatus.STARTED
+    assert task.status == InvertedIndexTaskStatus.STARTED
     weaviate_139_mock.check_assertions()
 
 
@@ -286,7 +286,7 @@ def test_cancel_property_index_task_cancelled(
         "name", "searchable"
     )
     assert task.task_id == TASK_ID
-    assert task.status == PropertyIndexTaskStatus.CANCELLED
+    assert task.status == InvertedIndexTaskStatus.CANCELLED
     weaviate_139_mock.check_assertions()
 
 
@@ -303,7 +303,7 @@ def test_cancel_property_index_task_no_op(
         "name", "searchable"
     )
     assert task.task_id is None
-    assert task.status == PropertyIndexTaskStatus.NO_OP
+    assert task.status == InvertedIndexTaskStatus.NO_OP
     weaviate_139_mock.check_assertions()
 
 
@@ -360,7 +360,7 @@ def test_get_property_indexes(
     assert len(name.indexes) == 2
     searchable, filterable = name.indexes
     assert searchable.type == "searchable"
-    assert searchable.status == PropertyIndexState.INDEXING
+    assert searchable.status == InvertedIndexState.INDEXING
     assert searchable.progress == 0.5
     assert searchable.task_id == TASK_ID
     assert searchable.tokenization == Tokenization.WORD
@@ -379,7 +379,7 @@ def test_get_property_indexes(
     assert age.description is None
     assert len(age.indexes) == 1
     assert age.indexes[0].type == "rangeFilters"
-    assert age.indexes[0].status == PropertyIndexState.READY
+    assert age.indexes[0].status == InvertedIndexState.READY
     assert age.indexes[0].progress is None
     assert age.indexes[0].task_id is None
     assert age.indexes[0].tokenization is None
@@ -398,18 +398,18 @@ def test_get_property_indexes(
 @pytest.mark.parametrize(
     "index_name,wire",
     [
-        (PropertyIndexType.SEARCHABLE, "searchable"),
+        (InvertedIndexType.SEARCHABLE, "searchable"),
         ("searchable", "searchable"),
-        (PropertyIndexType.FILTERABLE, "filterable"),
+        (InvertedIndexType.FILTERABLE, "filterable"),
         ("filterable", "filterable"),
-        (PropertyIndexType.RANGE_FILTERS, "rangeFilters"),
+        (InvertedIndexType.RANGE_FILTERS, "rangeFilters"),
         ("rangeFilters", "rangeFilters"),
     ],
 )
 def test_update_property_index_enum_and_literal_hit_same_route(
     weaviate_139_mock: HTTPServer,
     client_139: weaviate.WeaviateClient,
-    index_name: Union[PropertyIndexType, str],
+    index_name: Union[InvertedIndexType, str],
     wire: str,
 ) -> None:
     """The enum and literal forms of index_name hit the exact same wire route."""
@@ -423,25 +423,25 @@ def test_update_property_index_enum_and_literal_hit_same_route(
         "name",
         index_name,  # type: ignore
     )
-    assert task.status == PropertyIndexTaskStatus.STARTED
+    assert task.status == InvertedIndexTaskStatus.STARTED
     weaviate_139_mock.check_assertions()
 
 
 @pytest.mark.parametrize(
     "index_name,wire",
     [
-        (PropertyIndexType.SEARCHABLE, "searchable"),
+        (InvertedIndexType.SEARCHABLE, "searchable"),
         ("searchable", "searchable"),
-        (PropertyIndexType.FILTERABLE, "filterable"),
+        (InvertedIndexType.FILTERABLE, "filterable"),
         ("filterable", "filterable"),
-        (PropertyIndexType.RANGE_FILTERS, "rangeFilters"),
+        (InvertedIndexType.RANGE_FILTERS, "rangeFilters"),
         ("rangeFilters", "rangeFilters"),
     ],
 )
 def test_delete_property_index_enum_and_literal_hit_same_route(
     weaviate_139_mock: HTTPServer,
     client_139: weaviate.WeaviateClient,
-    index_name: Union[PropertyIndexType, str],
+    index_name: Union[InvertedIndexType, str],
     wire: str,
 ) -> None:
     """The enum and literal forms of index_name hit the exact same wire route."""
@@ -462,12 +462,12 @@ def test_delete_property_index_enum_and_literal_hit_same_route(
 
 @pytest.mark.parametrize(
     "index_name",
-    [PropertyIndexType.RANGE_FILTERS, "rangeFilters"],
+    [InvertedIndexType.RANGE_FILTERS, "rangeFilters"],
 )
 def test_rebuild_property_index_enum_and_literal_hit_same_route(
     weaviate_139_mock: HTTPServer,
     client_139: weaviate.WeaviateClient,
-    index_name: Union[PropertyIndexType, str],
+    index_name: Union[InvertedIndexType, str],
 ) -> None:
     """The enum and literal forms of index_name hit the exact same rebuild route."""
     weaviate_139_mock.expect_request(
@@ -480,18 +480,18 @@ def test_rebuild_property_index_enum_and_literal_hit_same_route(
         "age",
         index_name,  # type: ignore
     )
-    assert task.status == PropertyIndexTaskStatus.STARTED
+    assert task.status == InvertedIndexTaskStatus.STARTED
     weaviate_139_mock.check_assertions()
 
 
 @pytest.mark.parametrize(
     "index_name",
-    [PropertyIndexType.RANGE_FILTERS, "rangeFilters"],
+    [InvertedIndexType.RANGE_FILTERS, "rangeFilters"],
 )
 def test_cancel_property_index_task_enum_and_literal_hit_same_route(
     weaviate_139_mock: HTTPServer,
     client_139: weaviate.WeaviateClient,
-    index_name: Union[PropertyIndexType, str],
+    index_name: Union[InvertedIndexType, str],
 ) -> None:
     """The enum and literal forms of index_name hit the exact same cancel route."""
     weaviate_139_mock.expect_request(
@@ -504,7 +504,7 @@ def test_cancel_property_index_task_enum_and_literal_hit_same_route(
         "age",
         index_name,  # type: ignore
     )
-    assert task.status == PropertyIndexTaskStatus.CANCELLED
+    assert task.status == InvertedIndexTaskStatus.CANCELLED
     weaviate_139_mock.check_assertions()
 
 

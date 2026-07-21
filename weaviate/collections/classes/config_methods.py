@@ -5,10 +5,10 @@ from weaviate.collections.classes.config import (
     DataType,
     GenerativeSearches,
     IndexName,
+    InvertedIndexState,
+    InvertedIndexTaskStatus,
     PQEncoderDistribution,
     PQEncoderType,
-    PropertyIndexState,
-    PropertyIndexTaskStatus,
     ReplicationDeletionStrategy,
     Rerankers,
     StopwordsPreset,
@@ -22,9 +22,11 @@ from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
-    _CollectionPropertyIndexes,
+    _CollectionInvertedIndexes,
     _GenerativeConfig,
     _InvertedIndexConfig,
+    _InvertedIndexStatus,
+    _InvertedIndexTask,
     _MultiTenancyConfig,
     _MultiVectorConfig,
     _MuveraConfig,
@@ -35,9 +37,7 @@ from weaviate.collections.classes.config import (
     _PQConfig,
     _PQEncoderConfig,
     _Property,
-    _PropertyIndexes,
-    _PropertyIndexStatus,
-    _PropertyIndexTask,
+    _PropertyInvertedIndexes,
     _PropertyVectorizerConfig,
     _ReferenceProperty,
     _ReplicationConfig,
@@ -567,19 +567,19 @@ def _references_from_config(schema: Dict[str, Any]) -> List[_ReferenceProperty]:
     ]
 
 
-def _property_index_task_from_json(response: Dict[str, Any]) -> _PropertyIndexTask:
-    return _PropertyIndexTask(
+def _inverted_index_task_from_json(response: Dict[str, Any]) -> _InvertedIndexTask:
+    return _InvertedIndexTask(
         task_id=response.get("taskId"),
-        status=PropertyIndexTaskStatus(response["status"]),
+        status=InvertedIndexTaskStatus(response["status"]),
     )
 
 
-def _property_index_status_from_json(index: Dict[str, Any]) -> _PropertyIndexStatus:
+def _inverted_index_status_from_json(index: Dict[str, Any]) -> _InvertedIndexStatus:
     tokenization = index.get("tokenization")
     target_tokenization = index.get("targetTokenization")
-    return _PropertyIndexStatus(
+    return _InvertedIndexStatus(
         type=cast(IndexName, index["type"]),
-        status=PropertyIndexState(index["status"]),
+        status=InvertedIndexState(index["status"]),
         progress=index.get("progress"),
         task_id=index.get("taskId"),
         tokenization=Tokenization(tokenization) if tokenization is not None else None,
@@ -591,16 +591,16 @@ def _property_index_status_from_json(index: Dict[str, Any]) -> _PropertyIndexSta
     )
 
 
-def _collection_property_indexes_from_json(response: Dict[str, Any]) -> _CollectionPropertyIndexes:
-    return _CollectionPropertyIndexes(
+def _collection_inverted_indexes_from_json(response: Dict[str, Any]) -> _CollectionInvertedIndexes:
+    return _CollectionInvertedIndexes(
         collection=response["collection"],
         properties=[
-            _PropertyIndexes(
+            _PropertyInvertedIndexes(
                 name=prop["name"],
                 data_type=prop["dataType"],
                 description=prop.get("description"),
                 indexes=[
-                    _property_index_status_from_json(index) for index in prop.get("indexes") or []
+                    _inverted_index_status_from_json(index) for index in prop.get("indexes") or []
                 ],
             )
             for prop in response.get("properties") or []
