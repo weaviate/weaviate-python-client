@@ -123,7 +123,7 @@ class PropertyIndexType(str, BaseEnum):
     Attributes:
         SEARCHABLE: The searchable index, used for keyword (BM25) searches over text properties.
         FILTERABLE: The filterable index, used for exact-match filtering.
-        RANGE_FILTERS: The rangeable index, used for range filtering.
+        RANGE_FILTERS: The rangeFilters index, used for range filtering.
     """
 
     SEARCHABLE = "searchable"

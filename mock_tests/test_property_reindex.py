@@ -400,6 +400,8 @@ def test_get_property_indexes(
     [
         (PropertyIndexType.SEARCHABLE, "searchable"),
         ("searchable", "searchable"),
+        (PropertyIndexType.FILTERABLE, "filterable"),
+        ("filterable", "filterable"),
         (PropertyIndexType.RANGE_FILTERS, "rangeFilters"),
         ("rangeFilters", "rangeFilters"),
     ],
@@ -430,6 +432,8 @@ def test_update_property_index_enum_and_literal_hit_same_route(
     [
         (PropertyIndexType.SEARCHABLE, "searchable"),
         ("searchable", "searchable"),
+        (PropertyIndexType.FILTERABLE, "filterable"),
+        ("filterable", "filterable"),
         (PropertyIndexType.RANGE_FILTERS, "rangeFilters"),
         ("rangeFilters", "rangeFilters"),
     ],
@@ -453,6 +457,54 @@ def test_delete_property_index_enum_and_literal_hit_same_route(
         )
         is True
     )
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.parametrize(
+    "index_name",
+    [PropertyIndexType.RANGE_FILTERS, "rangeFilters"],
+)
+def test_rebuild_property_index_enum_and_literal_hit_same_route(
+    weaviate_139_mock: HTTPServer,
+    client_139: weaviate.WeaviateClient,
+    index_name: Union[PropertyIndexType, str],
+) -> None:
+    """The enum and literal forms of index_name hit the exact same rebuild route."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/age/index/rangeFilters/rebuild",
+        method="POST",
+        json={},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+
+    task = client_139.collections.use(COLLECTION).config.rebuild_property_index(
+        "age",
+        index_name,  # type: ignore
+    )
+    assert task.status == PropertyIndexTaskStatus.STARTED
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.parametrize(
+    "index_name",
+    [PropertyIndexType.RANGE_FILTERS, "rangeFilters"],
+)
+def test_cancel_property_index_task_enum_and_literal_hit_same_route(
+    weaviate_139_mock: HTTPServer,
+    client_139: weaviate.WeaviateClient,
+    index_name: Union[PropertyIndexType, str],
+) -> None:
+    """The enum and literal forms of index_name hit the exact same cancel route."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/age/index/rangeFilters/cancel",
+        method="POST",
+        json={},
+    ).respond_with_json({"taskId": TASK_ID, "status": "CANCELLED"}, status=202)
+
+    task = client_139.collections.use(COLLECTION).config.cancel_property_index_task(
+        "age",
+        index_name,  # type: ignore
+    )
+    assert task.status == PropertyIndexTaskStatus.CANCELLED
     weaviate_139_mock.check_assertions()
 
 
