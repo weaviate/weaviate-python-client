@@ -1,6 +1,8 @@
 import datetime
 from typing import Optional
 
+from typing_extensions import TypeAlias
+
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _ConfigUpdateModel
 
 
@@ -156,3 +158,6 @@ class _ObjectTTLUpdate:
             filterExpiredObjects=filter_expired_objects,
             defaultTtl=ttl_offset,
         )
+
+
+ObjectTTLConfigCreate: TypeAlias = _ObjectTTLConfigCreate
