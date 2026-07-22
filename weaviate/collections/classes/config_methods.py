@@ -283,7 +283,12 @@ def __get_vector_config(
             props = vec_config.pop("properties", None)
 
             vector_index_config = __get_vector_index_config(named_vector)
-            assert vector_index_config is not None
+            # A vector whose index was dropped with `collection.config.delete_vector_index` is
+            # returned as `vectorIndexType: "none"` without any `vectorIndexConfig`.
+            assert (
+                vector_index_config is not None
+                or named_vector.get("vectorIndexType") == VectorIndexType.NONE.value
+            )
             try:
                 vec: Union[str, Vectorizers] = Vectorizers(vectorizer_str)
             except ValueError:
