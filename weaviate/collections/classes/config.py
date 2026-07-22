@@ -1468,6 +1468,22 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         return v
 
+    @staticmethod
+    def __existing_vector_index_config(schema: Dict[str, Any], name: str) -> Dict[str, Any]:
+        if name not in schema["vectorConfig"]:
+            raise WeaviateInvalidInputError(
+                f"Vector config with name {name} does not exist in the existing vector config"
+            )
+        existing = schema["vectorConfig"][name]
+        if "vectorIndexConfig" not in existing:
+            # the index was dropped with `collection.config.delete_vector_index`, Weaviate reports
+            # such a vector as `vectorIndexType: "none"` without any index config to merge into
+            raise WeaviateInvalidInputError(
+                f"Vector config with name {name} has no vector index, it was deleted with "
+                "collection.config.delete_vector_index() and cannot be re-created"
+            )
+        return cast(Dict[str, Any], existing["vectorIndexConfig"])
+
     def __check_quantizers(
         self,
         quantizer: Optional[_QuantizerConfigUpdate],
@@ -1580,18 +1596,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 )
             else:
                 for vc in self.vectorizerConfig:
-                    if vc.name not in schema["vectorConfig"]:
-                        raise WeaviateInvalidInputError(
-                            f"Vector config with name {vc.name} does not exist in the existing vector config"
-                        )
-                    self.__check_quantizers(
-                        vc.vectorIndexConfig.quantizer,
-                        schema["vectorConfig"][vc.name]["vectorIndexConfig"],
-                    )
+                    existing = self.__existing_vector_index_config(schema, vc.name)
+                    self.__check_quantizers(vc.vectorIndexConfig.quantizer, existing)
                     schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
-                        vc.vectorIndexConfig.merge_with_existing(
-                            schema["vectorConfig"][vc.name]["vectorIndexConfig"]
-                        )
+                        vc.vectorIndexConfig.merge_with_existing(existing)
                     )
                     schema["vectorConfig"][vc.name]["vectorIndexType"] = (
                         vc.vectorIndexConfig.vector_index_type()
@@ -1603,18 +1611,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 else self.vectorConfig
             )
             for vc in vcs:
-                if vc.name not in schema["vectorConfig"]:
-                    raise WeaviateInvalidInputError(
-                        f"Vector config with name {vc.name} does not exist in the existing vector config"
-                    )
-                self.__check_quantizers(
-                    vc.vectorIndexConfig.quantizer,
-                    schema["vectorConfig"][vc.name]["vectorIndexConfig"],
-                )
+                existing = self.__existing_vector_index_config(schema, vc.name)
+                self.__check_quantizers(vc.vectorIndexConfig.quantizer, existing)
                 schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
-                    vc.vectorIndexConfig.merge_with_existing(
-                        schema["vectorConfig"][vc.name]["vectorIndexConfig"]
-                    )
+                    vc.vectorIndexConfig.merge_with_existing(existing)
                 )
                 schema["vectorConfig"][vc.name]["vectorIndexType"] = (
                     vc.vectorIndexConfig.vector_index_type()
@@ -2064,16 +2064,23 @@ class _NamedVectorizerConfig(_ConfigBase):
 @dataclass
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
+    # `None` means the index of this vector was dropped with `collection.config.delete_vector_index`.
+    # The vector data is still stored, but there is no index to configure or search.
     vector_index_config: Union[
         VectorIndexConfigHNSW,
         VectorIndexConfigFlat,
         VectorIndexConfigDynamic,
         VectorIndexConfigHFresh,
+        None,
     ]
 
     def to_dict(self) -> Dict:
         ret_dict = super().to_dict()
-        ret_dict["vectorIndexType"] = self.vector_index_config.vector_index_type()
+        ret_dict["vectorIndexType"] = (
+            VectorIndexType.NONE.value
+            if self.vector_index_config is None
+            else self.vector_index_config.vector_index_type()
+        )
         return ret_dict
 
 
