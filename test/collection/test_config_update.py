@@ -160,3 +160,48 @@ def test_replication_async_config_reset_all_fields() -> None:
     )
     result = update.merge_with_existing(schema)
     assert result["asyncConfig"] == {}
+
+
+@pytest.mark.parametrize("use_deprecated_syntax", [False, True])
+def test_updating_dropped_vector_index(use_deprecated_syntax: bool) -> None:
+    """A vector whose index was dropped has no index config to merge into."""
+    schema = multi_vector_schema()
+    # shape reported by Weaviate for a vector dropped via `config.delete_vector_index`
+    schema["vectorConfig"]["boi"] = {"vectorizer": {"none": {}}, "vectorIndexType": "none"}
+
+    hnsw = Reconfigure.VectorIndex.hnsw(ef=128)
+    update = (
+        _CollectionConfigUpdate(
+            vectorizer_config=[
+                Reconfigure.NamedVectors.update(name="boi", vector_index_config=hnsw)
+            ]
+        )
+        if use_deprecated_syntax
+        else _CollectionConfigUpdate(
+            vector_config=[Reconfigure.Vectors.update(name="boi", vector_index_config=hnsw)]
+        )
+    )
+
+    with pytest.raises(WeaviateInvalidInputError, match="delete_vector_index"):
+        update.merge_with_existing(schema)
+
+
+def test_updating_vector_next_to_dropped_vector_index() -> None:
+    """Vectors that still have an index remain updatable next to a dropped one."""
+    schema = multi_vector_schema()
+    schema["vectorConfig"]["boi"] = {"vectorizer": {"none": {}}, "vectorIndexType": "none"}
+
+    update = _CollectionConfigUpdate(
+        vector_config=[
+            Reconfigure.Vectors.update(
+                name="yeh", vector_index_config=Reconfigure.VectorIndex.hnsw(ef=128)
+            )
+        ]
+    )
+    new_schema = update.merge_with_existing(schema)
+
+    assert new_schema["vectorConfig"]["yeh"]["vectorIndexConfig"]["ef"] == 128
+    assert new_schema["vectorConfig"]["boi"] == {
+        "vectorizer": {"none": {}},
+        "vectorIndexType": "none",
+    }
