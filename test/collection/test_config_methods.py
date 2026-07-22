@@ -1,9 +1,94 @@
+from typing import Any, Dict
+
+from weaviate.collections.classes.config import VectorIndexType
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
+    _collection_config_simple_from_json,
     _collection_configs_simple_from_json,
     _nested_properties_from_config,
     _properties_from_config,
 )
+
+HNSW_CONFIG = {
+    "skip": False,
+    "cleanupIntervalSeconds": 300,
+    "maxConnections": 64,
+    "efConstruction": 128,
+    "ef": -1,
+    "dynamicEfMin": 100,
+    "dynamicEfMax": 500,
+    "dynamicEfFactor": 8,
+    "vectorCacheMaxObjects": 1000000000000,
+    "flatSearchCutoff": 40000,
+    "distance": "cosine",
+}
+
+
+def _schema_with_vector_config(vector_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Build a minimal collection schema, as returned by Weaviate, around the given vectorConfig."""
+    return {
+        "class": "TestCollection",
+        "vectorConfig": vector_config,
+        "properties": [],
+        "invertedIndexConfig": {
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "cleanupIntervalSeconds": 60,
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+        },
+        "multiTenancyConfig": {"enabled": False},
+        "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
+        "shardingConfig": {
+            "virtualPerPhysical": 128,
+            "desiredCount": 1,
+            "actualCount": 1,
+            "desiredVirtualCount": 128,
+            "actualVirtualCount": 128,
+            "key": "_id",
+            "strategy": "hash",
+            "function": "murmur3",
+        },
+    }
+
+
+def test_collection_config_from_json_with_dropped_vector_index() -> None:
+    """A vector whose index was dropped is returned without a vectorIndexConfig."""
+    # Shape returned by Weaviate after `collection.config.delete_vector_index("dropped")`:
+    # the entry stays in the schema, `vectorIndexType` becomes "none" and `vectorIndexConfig`
+    # is omitted entirely.
+    schema = _schema_with_vector_config(
+        {
+            "dropped": {"vectorizer": {"none": {}}, "vectorIndexType": "none"},
+            "kept": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hnsw",
+                "vectorIndexConfig": HNSW_CONFIG,
+            },
+        }
+    )
+
+    config = _collection_config_from_json(schema)
+
+    assert config.vector_config is not None
+    assert config.vector_config["dropped"].vector_index_config is None
+    assert config.vector_config["kept"].vector_index_config is not None
+
+    # The dropped vector must round-trip back to the "none" index type the server reported.
+    as_dict = config.to_dict()
+    assert as_dict["vectorConfig"]["dropped"]["vectorIndexType"] == VectorIndexType.NONE.value
+    assert "vectorIndexConfig" not in as_dict["vectorConfig"]["dropped"]
+    assert as_dict["vectorConfig"]["kept"]["vectorIndexType"] == VectorIndexType.HNSW.value
+
+
+def test_collection_config_simple_from_json_with_dropped_vector_index() -> None:
+    """`collections.list_all()` must not choke on a collection with a dropped vector index."""
+    schema = _schema_with_vector_config(
+        {"dropped": {"vectorizer": {"none": {}}, "vectorIndexType": "none"}}
+    )
+
+    config = _collection_config_simple_from_json(schema)
+
+    assert config.vector_config is not None
+    assert config.vector_config["dropped"].vector_index_config is None
 
 
 def test_collection_config_simple_from_json_with_none_vectorizer_config() -> None:
