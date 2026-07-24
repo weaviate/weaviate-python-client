@@ -1,5 +1,6 @@
 import datetime
-from typing import Generator, List, Optional, Union
+import time
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -11,6 +12,7 @@ from integration.conftest import (
     OpenAICollection,
     _sanitize_collection_name,
 )
+from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
@@ -37,6 +39,7 @@ from weaviate.collections.classes.config import (
     Rerankers,
     _RerankerProvider,
     Tokenization,
+    _NamedVectorConfig,
     _NamedVectorConfigCreate,
     _VectorizerConfigCreate,
     IndexName,
@@ -2694,3 +2697,77 @@ def test_text_analyzer_roundtrip_from_dict(
         assert config == new
         assert config.to_dict() == new.to_dict()
         client.collections.delete(name)
+
+
+def _vector_config_without_index(
+    collection: Collection[Any, Any], vector_name: str, timeout: float = 30
+) -> Dict[str, _NamedVectorConfig]:
+    """Poll the collection config until `vector_name` no longer has an index.
+
+    The drop is applied asynchronously, a 200 from the endpoint only means that Weaviate accepted
+    the request. It then becomes visible in two steps: the vector first stays in the schema with a
+    `vector_index_config` of `None`, and once the index is gone from disk the entry is removed from
+    the schema altogether. Both shapes must parse, so accept either.
+    """
+    start = time.time()
+    while True:
+        vector_config = collection.config.get().vector_config
+        assert vector_config is not None
+        if (
+            vector_name not in vector_config
+            or vector_config[vector_name].vector_index_config is None
+        ):
+            return vector_config
+        if time.time() - start > timeout:
+            pytest.fail(f"vector index of {vector_name} was not dropped within {timeout}s")
+        time.sleep(0.2)
+
+
+def test_delete_vector_index(collection_factory: CollectionFactory) -> None:
+    """Test that dropping the index of a named vector leaves the rest of the collection usable."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("delete vector index not supported before 1.39.0")
+
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vector_config=[
+            Configure.Vectors.self_provided(name="dropped"),
+            Configure.Vectors.self_provided(name="kept"),
+        ],
+    )
+    collection.data.insert(
+        properties={"name": "banana"},
+        vector={"dropped": [1, 2], "kept": [3, 4]},
+    )
+
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert config.vector_config["dropped"].vector_index_config is not None
+
+    with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError):
+        collection.config.delete_vector_index("does_not_exist")
+
+    assert collection.config.delete_vector_index("dropped") is True
+
+    vector_config = _vector_config_without_index(collection, "dropped")
+    # vectors that were not dropped keep their index
+    assert vector_config["kept"].vector_index_config is not None
+
+    # `list_all` parses the schema through the simple config parser, it must cope with the drop too
+    with weaviate.connect_to_local() as client:
+        simple = client.collections.list_all()[collection.name]
+        assert simple.vector_config is not None
+        assert simple.vector_config["kept"].vector_index_config is not None
+
+    # searching the vector that still has an index keeps working
+    assert len(collection.query.near_vector([3, 4], target_vector="kept").objects) == 1
+
+
+def test_delete_vector_index_invalid_input(collection_factory: CollectionFactory) -> None:
+    """Test that a non-string vector name is rejected before hitting the network."""
+    collection = collection_factory(
+        vector_config=[Configure.Vectors.self_provided(name="vec")],
+    )
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.config.delete_vector_index(42)  # type: ignore[arg-type]

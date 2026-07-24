@@ -484,6 +484,46 @@ def test_collection_exists(weaviate_mock: HTTPServer) -> None:
             assert e.value.status_code == 500
 
 
+def test_delete_vector_index(weaviate_mock: HTTPServer) -> None:
+    # the collection name is capitalized by the client before it hits the path
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/vec/index", method="DELETE"
+    ).respond_with_json(response_json={}, status=200)
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert client.collections.use("test").config.delete_vector_index("vec")
+
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+            client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
+
+
+def test_delete_vector_index_endpoint_disabled(weaviate_mock: HTTPServer) -> None:
+    # servers without ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true answer 500
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/vec/index", method="DELETE"
+    ).respond_with_json(
+        response_json={
+            "error": [
+                {
+                    "message": "alter schema drop vector index endpoint is experimental and disabled by default"
+                }
+            ]
+        },
+        status=500,
+    )
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        with pytest.raises(UnexpectedStatusCodeError) as e:
+            client.collections.use("Test").config.delete_vector_index("vec")
+        assert e.value.status_code == 500
+        # the error message must not claim the vector is missing, the endpoint is simply off
+        assert "experimental and disabled by default" in e.value.message
+
+
 def test_grpc_client_version_header(
     metadata_capture_collection: tuple[
         weaviate.collections.Collection, MockMetadataCaptureWeaviateService

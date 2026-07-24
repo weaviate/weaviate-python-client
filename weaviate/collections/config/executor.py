@@ -666,3 +666,47 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             error_msg="Property may not exist",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
         )
+
+    def delete_vector_index(
+        self,
+        vector_name: str,
+    ) -> executor.Result[bool]:
+        """Delete the index of a named vector of the collection in Weaviate.
+
+            This is a destructive and irreversible operation. The vectors themselves are kept, but
+            their index is removed from disk and cannot be re-created afterwards, neither through
+            this method nor through `collection.config.update()`. Searches and writes targeting the
+            vector are rejected once the index is gone.
+
+            The drop is applied asynchronously. A successful call means that Weaviate accepted the
+            request, not that the index is already gone. `collection.config.get()` first reports the
+            vector with a `vector_index_config` of `None` and drops it from `vector_config`
+            altogether once the index has been removed from disk.
+
+            Only named vectors can be dropped and the server must be started with
+            `ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true`, since the endpoint
+            is experimental and disabled by default. Without it, Weaviate answers with a 500.
+
+        Args:
+            vector_name: The name of the named vector whose index to delete.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status, e.g.
+                if the vector does not exist or if the endpoint is not enabled on the server.
+            weaviate.exceptions.WeaviateInvalidInputError: If `vector_name` is not a string.
+        """
+        _validate_input([_ValidateArgument(expected=[str], name="vector_name", value=vector_name)])
+
+        path = f"/schema/{_capitalize_first_letter(self._name)}/vectors/{vector_name}/index"
+
+        def resp(res: Response) -> bool:
+            return res.status_code == 200
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.delete,
+            path=path,
+            error_msg="Vector index may not have been deleted",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="delete vector index"),
+        )
