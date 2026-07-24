@@ -42,7 +42,7 @@ class GenerativeSearch(_message.Message):
     def __init__(self, single_response_prompt: _Optional[str] = ..., grouped_response_task: _Optional[str] = ..., grouped_properties: _Optional[_Iterable[str]] = ..., single: _Optional[_Union[GenerativeSearch.Single, _Mapping]] = ..., grouped: _Optional[_Union[GenerativeSearch.Grouped, _Mapping]] = ...) -> None: ...
 
 class GenerativeProvider(_message.Message):
-    __slots__ = ("return_metadata", "anthropic", "anyscale", "aws", "cohere", "dummy", "mistral", "ollama", "openai", "google", "databricks", "friendliai", "nvidia", "xai", "contextualai")
+    __slots__ = ("return_metadata", "anthropic", "anyscale", "aws", "cohere", "dummy", "mistral", "ollama", "openai", "google", "databricks", "friendliai", "nvidia", "xai", "contextualai", "deepseek")
     RETURN_METADATA_FIELD_NUMBER: _ClassVar[int]
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
     ANYSCALE_FIELD_NUMBER: _ClassVar[int]
@@ -58,6 +58,7 @@ class GenerativeProvider(_message.Message):
     NVIDIA_FIELD_NUMBER: _ClassVar[int]
     XAI_FIELD_NUMBER: _ClassVar[int]
     CONTEXTUALAI_FIELD_NUMBER: _ClassVar[int]
+    DEEPSEEK_FIELD_NUMBER: _ClassVar[int]
     return_metadata: bool
     anthropic: GenerativeAnthropic
     anyscale: GenerativeAnyscale
@@ -73,7 +74,8 @@ class GenerativeProvider(_message.Message):
     nvidia: GenerativeNvidia
     xai: GenerativeXAI
     contextualai: GenerativeContextualAI
-    def __init__(self, return_metadata: bool = ..., anthropic: _Optional[_Union[GenerativeAnthropic, _Mapping]] = ..., anyscale: _Optional[_Union[GenerativeAnyscale, _Mapping]] = ..., aws: _Optional[_Union[GenerativeAWS, _Mapping]] = ..., cohere: _Optional[_Union[GenerativeCohere, _Mapping]] = ..., dummy: _Optional[_Union[GenerativeDummy, _Mapping]] = ..., mistral: _Optional[_Union[GenerativeMistral, _Mapping]] = ..., ollama: _Optional[_Union[GenerativeOllama, _Mapping]] = ..., openai: _Optional[_Union[GenerativeOpenAI, _Mapping]] = ..., google: _Optional[_Union[GenerativeGoogle, _Mapping]] = ..., databricks: _Optional[_Union[GenerativeDatabricks, _Mapping]] = ..., friendliai: _Optional[_Union[GenerativeFriendliAI, _Mapping]] = ..., nvidia: _Optional[_Union[GenerativeNvidia, _Mapping]] = ..., xai: _Optional[_Union[GenerativeXAI, _Mapping]] = ..., contextualai: _Optional[_Union[GenerativeContextualAI, _Mapping]] = ...) -> None: ...
+    deepseek: GenerativeDeepseek
+    def __init__(self, return_metadata: bool = ..., anthropic: _Optional[_Union[GenerativeAnthropic, _Mapping]] = ..., anyscale: _Optional[_Union[GenerativeAnyscale, _Mapping]] = ..., aws: _Optional[_Union[GenerativeAWS, _Mapping]] = ..., cohere: _Optional[_Union[GenerativeCohere, _Mapping]] = ..., dummy: _Optional[_Union[GenerativeDummy, _Mapping]] = ..., mistral: _Optional[_Union[GenerativeMistral, _Mapping]] = ..., ollama: _Optional[_Union[GenerativeOllama, _Mapping]] = ..., openai: _Optional[_Union[GenerativeOpenAI, _Mapping]] = ..., google: _Optional[_Union[GenerativeGoogle, _Mapping]] = ..., databricks: _Optional[_Union[GenerativeDatabricks, _Mapping]] = ..., friendliai: _Optional[_Union[GenerativeFriendliAI, _Mapping]] = ..., nvidia: _Optional[_Union[GenerativeNvidia, _Mapping]] = ..., xai: _Optional[_Union[GenerativeXAI, _Mapping]] = ..., contextualai: _Optional[_Union[GenerativeContextualAI, _Mapping]] = ..., deepseek: _Optional[_Union[GenerativeDeepseek, _Mapping]] = ...) -> None: ...
 
 class GenerativeAnthropic(_message.Message):
     __slots__ = ("base_url", "max_tokens", "model", "temperature", "top_k", "top_p", "stop_sequences", "images", "image_properties")
@@ -375,6 +377,26 @@ class GenerativeContextualAI(_message.Message):
     knowledge: _base_pb2.TextArray
     def __init__(self, model: _Optional[str] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., max_new_tokens: _Optional[int] = ..., system_prompt: _Optional[str] = ..., avoid_commentary: bool = ..., knowledge: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
 
+class GenerativeDeepseek(_message.Message):
+    __slots__ = ("base_url", "model", "temperature", "max_tokens", "frequency_penalty", "presence_penalty", "top_p", "stop")
+    BASE_URL_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    FREQUENCY_PENALTY_FIELD_NUMBER: _ClassVar[int]
+    PRESENCE_PENALTY_FIELD_NUMBER: _ClassVar[int]
+    TOP_P_FIELD_NUMBER: _ClassVar[int]
+    STOP_FIELD_NUMBER: _ClassVar[int]
+    base_url: str
+    model: str
+    temperature: float
+    max_tokens: int
+    frequency_penalty: float
+    presence_penalty: float
+    top_p: float
+    stop: _base_pb2.TextArray
+    def __init__(self, base_url: _Optional[str] = ..., model: _Optional[str] = ..., temperature: _Optional[float] = ..., max_tokens: _Optional[int] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., top_p: _Optional[float] = ..., stop: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
+
 class GenerativeAnthropicMetadata(_message.Message):
     __slots__ = ("usage",)
     class Usage(_message.Message):
@@ -569,8 +591,23 @@ class GenerativeXAIMetadata(_message.Message):
     usage: GenerativeXAIMetadata.Usage
     def __init__(self, usage: _Optional[_Union[GenerativeXAIMetadata.Usage, _Mapping]] = ...) -> None: ...
 
+class GenerativeDeepseekMetadata(_message.Message):
+    __slots__ = ("usage",)
+    class Usage(_message.Message):
+        __slots__ = ("prompt_tokens", "completion_tokens", "total_tokens")
+        PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        prompt_tokens: int
+        completion_tokens: int
+        total_tokens: int
+        def __init__(self, prompt_tokens: _Optional[int] = ..., completion_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ...) -> None: ...
+    USAGE_FIELD_NUMBER: _ClassVar[int]
+    usage: GenerativeDeepseekMetadata.Usage
+    def __init__(self, usage: _Optional[_Union[GenerativeDeepseekMetadata.Usage, _Mapping]] = ...) -> None: ...
+
 class GenerativeMetadata(_message.Message):
-    __slots__ = ("anthropic", "anyscale", "aws", "cohere", "dummy", "mistral", "ollama", "openai", "google", "databricks", "friendliai", "nvidia", "xai")
+    __slots__ = ("anthropic", "anyscale", "aws", "cohere", "dummy", "mistral", "ollama", "openai", "google", "databricks", "friendliai", "nvidia", "xai", "deepseek")
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
     ANYSCALE_FIELD_NUMBER: _ClassVar[int]
     AWS_FIELD_NUMBER: _ClassVar[int]
@@ -584,6 +621,7 @@ class GenerativeMetadata(_message.Message):
     FRIENDLIAI_FIELD_NUMBER: _ClassVar[int]
     NVIDIA_FIELD_NUMBER: _ClassVar[int]
     XAI_FIELD_NUMBER: _ClassVar[int]
+    DEEPSEEK_FIELD_NUMBER: _ClassVar[int]
     anthropic: GenerativeAnthropicMetadata
     anyscale: GenerativeAnyscaleMetadata
     aws: GenerativeAWSMetadata
@@ -597,7 +635,8 @@ class GenerativeMetadata(_message.Message):
     friendliai: GenerativeFriendliAIMetadata
     nvidia: GenerativeNvidiaMetadata
     xai: GenerativeXAIMetadata
-    def __init__(self, anthropic: _Optional[_Union[GenerativeAnthropicMetadata, _Mapping]] = ..., anyscale: _Optional[_Union[GenerativeAnyscaleMetadata, _Mapping]] = ..., aws: _Optional[_Union[GenerativeAWSMetadata, _Mapping]] = ..., cohere: _Optional[_Union[GenerativeCohereMetadata, _Mapping]] = ..., dummy: _Optional[_Union[GenerativeDummyMetadata, _Mapping]] = ..., mistral: _Optional[_Union[GenerativeMistralMetadata, _Mapping]] = ..., ollama: _Optional[_Union[GenerativeOllamaMetadata, _Mapping]] = ..., openai: _Optional[_Union[GenerativeOpenAIMetadata, _Mapping]] = ..., google: _Optional[_Union[GenerativeGoogleMetadata, _Mapping]] = ..., databricks: _Optional[_Union[GenerativeDatabricksMetadata, _Mapping]] = ..., friendliai: _Optional[_Union[GenerativeFriendliAIMetadata, _Mapping]] = ..., nvidia: _Optional[_Union[GenerativeNvidiaMetadata, _Mapping]] = ..., xai: _Optional[_Union[GenerativeXAIMetadata, _Mapping]] = ...) -> None: ...
+    deepseek: GenerativeDeepseekMetadata
+    def __init__(self, anthropic: _Optional[_Union[GenerativeAnthropicMetadata, _Mapping]] = ..., anyscale: _Optional[_Union[GenerativeAnyscaleMetadata, _Mapping]] = ..., aws: _Optional[_Union[GenerativeAWSMetadata, _Mapping]] = ..., cohere: _Optional[_Union[GenerativeCohereMetadata, _Mapping]] = ..., dummy: _Optional[_Union[GenerativeDummyMetadata, _Mapping]] = ..., mistral: _Optional[_Union[GenerativeMistralMetadata, _Mapping]] = ..., ollama: _Optional[_Union[GenerativeOllamaMetadata, _Mapping]] = ..., openai: _Optional[_Union[GenerativeOpenAIMetadata, _Mapping]] = ..., google: _Optional[_Union[GenerativeGoogleMetadata, _Mapping]] = ..., databricks: _Optional[_Union[GenerativeDatabricksMetadata, _Mapping]] = ..., friendliai: _Optional[_Union[GenerativeFriendliAIMetadata, _Mapping]] = ..., nvidia: _Optional[_Union[GenerativeNvidiaMetadata, _Mapping]] = ..., xai: _Optional[_Union[GenerativeXAIMetadata, _Mapping]] = ..., deepseek: _Optional[_Union[GenerativeDeepseekMetadata, _Mapping]] = ...) -> None: ...
 
 class GenerativeReply(_message.Message):
     __slots__ = ("result", "debug", "metadata")

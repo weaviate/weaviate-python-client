@@ -214,6 +214,7 @@ class GenerativeSearches(str, BaseEnum):
         COHERE: Weaviate module backed by Cohere generative models.
         CONTEXTUALAI: Weaviate module backed by ContextualAI generative models.
         DATABRICKS: Weaviate module backed by Databricks generative models.
+        DEEPSEEK: Weaviate module backed by DeepSeek generative models.
         FRIENDLIAI: Weaviate module backed by FriendliAI generative models.
         MISTRAL: Weaviate module backed by Mistral generative models.
         NVIDIA: Weaviate module backed by NVIDIA generative models.
@@ -228,6 +229,7 @@ class GenerativeSearches(str, BaseEnum):
     COHERE = "generative-cohere"
     CONTEXTUALAI = "generative-contextualai"
     DATABRICKS = "generative-databricks"
+    DEEPSEEK = "generative-deepseek"
     DUMMY = "generative-dummy"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
@@ -441,6 +443,20 @@ class _GenerativeDatabricks(_GenerativeProvider):
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
+
+
+class _GenerativeDeepseek(_GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.DEEPSEEK, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    temperature: Optional[float]
+    maxTokens: Optional[int]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
+    topP: Optional[float]
+    baseURL: Optional[str]
+    stop: Optional[List[str]]
 
 
 class _GenerativeMistral(_GenerativeProvider):
@@ -751,6 +767,41 @@ class _Generative:
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+        )
+
+    @staticmethod
+    def deepseek(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        top_p: Optional[float] = None,
+        stop: Optional[List[str]] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeDeepseek` object for use when performing AI generation using the `generative-deepseek` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeDeepseek(
+            model=model,
+            temperature=temperature,
+            maxTokens=max_tokens,
+            frequencyPenalty=frequency_penalty,
+            presencePenalty=presence_penalty,
+            topP=top_p,
+            baseURL=base_url,
+            stop=stop,
         )
 
     @staticmethod
