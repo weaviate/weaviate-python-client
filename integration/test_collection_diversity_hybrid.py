@@ -17,12 +17,12 @@ from weaviate.classes.query import Diversity, HybridVector
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 
-MIN_VERSION = (1, 39, 0)
+MIN_VERSION = (1, 38, 6)
 
 
 def _skip_if_unsupported(collection) -> None:
     if collection._connection._weaviate_version.is_lower_than(*MIN_VERSION):
-        pytest.skip("Hybrid diversity selection requires Weaviate >= 1.39.0")
+        pytest.skip("Hybrid diversity selection requires Weaviate >= 1.38.6")
 
 
 def _create_clustered_collection(collection_factory: CollectionFactory):
