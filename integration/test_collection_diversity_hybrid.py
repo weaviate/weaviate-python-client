@@ -1,10 +1,9 @@
 """Integration tests for hybrid search + MMR diversity selection.
 
-``DiversitySelection`` passed inside ``HybridVector.near_vector`` /
-``HybridVector.near_text`` is applied by the server as a post-fusion MMR pass
-(Weaviate >= 1.39.0). These tests assert that ``balance=0`` (pure diversity)
-produces a different ordering than ``balance=1`` (pure relevance), and that
-``mmr.limit`` caps the result count.
+``diversity_selection`` is a hybrid-level argument: the server applies it as a
+post-fusion MMR pass (Weaviate >= 1.38.6). These tests assert that ``balance=0``
+(pure diversity) produces a different ordering than ``balance=1`` (pure
+relevance), and that ``mmr.limit`` caps the result count.
 
 The equivalent ``near_vector`` behaviour is covered in
 ``test_collection_diversity.py``.
@@ -68,18 +67,14 @@ def test_hybrid_near_vector_balance_0_differs_from_balance_1(
     collection = _create_clustered_collection(collection_factory)
     balance_0 = collection.query.hybrid(
         query=None,
-        vector=HybridVector.near_vector(
-            vector=[1.0, 0.0, 0.0],
-            diversity_selection=Diversity.mmr(limit=3, balance=0.0),
-        ),
+        vector=HybridVector.near_vector(vector=[1.0, 0.0, 0.0]),
+        diversity_selection=Diversity.mmr(limit=3, balance=0.0),
         limit=3,
     ).objects
     balance_1 = collection.query.hybrid(
         query=None,
-        vector=HybridVector.near_vector(
-            vector=[1.0, 0.0, 0.0],
-            diversity_selection=Diversity.mmr(limit=3, balance=1.0),
-        ),
+        vector=HybridVector.near_vector(vector=[1.0, 0.0, 0.0]),
+        diversity_selection=Diversity.mmr(limit=3, balance=1.0),
         limit=3,
     ).objects
     assert [o.uuid for o in balance_0] != [o.uuid for o in balance_1]
@@ -97,10 +92,8 @@ def test_hybrid_near_vector_balance_1_matches_baseline(
     ).objects
     mmr_balance_1 = collection.query.hybrid(
         query=None,
-        vector=HybridVector.near_vector(
-            vector=[1.0, 0.0, 0.0],
-            diversity_selection=Diversity.mmr(limit=3, balance=1.0),
-        ),
+        vector=HybridVector.near_vector(vector=[1.0, 0.0, 0.0]),
+        diversity_selection=Diversity.mmr(limit=3, balance=1.0),
         limit=3,
     ).objects
     assert [o.uuid for o in baseline] == [o.uuid for o in mmr_balance_1]
@@ -114,19 +107,15 @@ def test_hybrid_alpha_1_balance_0_differs_from_balance_1(
     balance_0 = collection.query.hybrid(
         query="irrelevant",
         alpha=1.0,
-        vector=HybridVector.near_vector(
-            vector=[1.0, 0.0, 0.0],
-            diversity_selection=Diversity.mmr(limit=3, balance=0.0),
-        ),
+        vector=HybridVector.near_vector(vector=[1.0, 0.0, 0.0]),
+        diversity_selection=Diversity.mmr(limit=3, balance=0.0),
         limit=3,
     ).objects
     balance_1 = collection.query.hybrid(
         query="irrelevant",
         alpha=1.0,
-        vector=HybridVector.near_vector(
-            vector=[1.0, 0.0, 0.0],
-            diversity_selection=Diversity.mmr(limit=3, balance=1.0),
-        ),
+        vector=HybridVector.near_vector(vector=[1.0, 0.0, 0.0]),
+        diversity_selection=Diversity.mmr(limit=3, balance=1.0),
         limit=3,
     ).objects
     assert [o.uuid for o in balance_0] != [o.uuid for o in balance_1]
@@ -141,9 +130,7 @@ def test_hybrid_respects_mmr_limit(
 
     result = collection.query.hybrid(
         query=None,
-        vector=HybridVector.near_vector(
-            vector=[1.0, 0.0, 0.0],
-            diversity_selection=Diversity.mmr(limit=mmr_limit, balance=0.5),
-        ),
+        vector=HybridVector.near_vector(vector=[1.0, 0.0, 0.0]),
+        diversity_selection=Diversity.mmr(limit=mmr_limit, balance=0.5),
     ).objects
     assert len(result) == mmr_limit
