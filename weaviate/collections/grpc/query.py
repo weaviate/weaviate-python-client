@@ -173,6 +173,7 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         boost: Optional[_Boost] = None,
+        diversity_selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
@@ -196,6 +197,7 @@ class _QueryGRPC(_BaseGRPC):
                 fusion_type,
                 distance,
                 target_vector,
+                diversity_selection,
             ),
         )
 
