@@ -59,4 +59,8 @@ def _is_valid(expected: Any, value: Any) -> bool:
                 return any(isinstance(val, union_arg) for val in value for union_arg in union_args)
             else:
                 return all(isinstance(val, args[0]) for val in value)
+    # bool is a subclass of int, so isinstance(True, int) is True. Reject a
+    # bool where a plain int is expected so it is not silently coerced to 0/1.
+    if expected is int and isinstance(value, bool):
+        return False
     return isinstance(value, expected)
