@@ -48,6 +48,19 @@ from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
 )
 from integration.conftest import retry_on_http_error
+from weaviate.util import _ServerVersion
+
+
+def _expected_async_enabled(version: _ServerVersion, factor: int) -> bool:
+    """Whether the server reports async replication as enabled for a collection.
+
+    Up to 1.38 the server stores whatever `async_enabled` the collection was created with. From
+    1.39 it ignores that and derives the field as `factor > 1 and not globally disabled` instead,
+    so a collection with a single replica always reports `False`.
+    """
+    if version.is_at_least(1, 39, 0):
+        return factor > 1
+    return version.is_at_least(1, 26, 0)
 
 
 @pytest.fixture(scope="module")
@@ -353,10 +366,9 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         assert config.multi_tenancy_config.auto_tenant_creation is False
 
     assert config.replication_config.factor == 1
-    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
-        assert config.replication_config.async_enabled is True
-    else:
-        assert config.replication_config.async_enabled is False
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
 
     if collection._connection._weaviate_version.is_at_least(1, 24, 25):
         assert (
@@ -1605,7 +1617,9 @@ def test_replication_config_with_async_config(collection_factory: CollectionFact
     )
     config = collection.config.get()
     assert config.replication_config.factor == 1
-    assert config.replication_config.async_enabled is True
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
     assert config.replication_config.async_config is not None
     ac = config.replication_config.async_config
     assert ac.propagation_concurrency == 4
@@ -1672,7 +1686,9 @@ def test_replication_config_remove_async_config(collection_factory: CollectionFa
         ),
     )
     config = collection.config.get()
-    assert config.replication_config.async_enabled is True
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
     assert config.replication_config.async_config is None
     assert config.replication_config.factor == 1
 
