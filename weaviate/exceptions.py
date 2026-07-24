@@ -149,6 +149,14 @@ class ExportCanceledError(WeaviateBaseError):
     """Export Canceled Exception."""
 
 
+class ReindexFailedError(WeaviateBaseError):
+    """Reindex Failed Exception."""
+
+
+class ReindexCanceledError(WeaviateBaseError):
+    """Reindex Canceled Exception."""
+
+
 class EmptyResponseError(WeaviateBaseError):
     """Occurs when an HTTP request unexpectedly returns an empty response."""
 

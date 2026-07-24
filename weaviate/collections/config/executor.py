@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import (
     Any,
     Dict,
@@ -20,12 +21,18 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    CollectionInvertedIndexes,
     IndexName,
+    InvertedIndexState,
+    InvertedIndexStatus,
+    InvertedIndexTask,
+    InvertedIndexType,
     Property,
     PropertyType,
     ReferenceProperty,
     ShardStatus,
     ShardTypes,
+    Tokenization,
     _CollectionConfigUpdate,
     _GenerativeProvider,
     _InvertedIndexConfigUpdate,
@@ -45,6 +52,8 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
+    _collection_inverted_indexes_from_json,
+    _inverted_index_task_from_json,
 )
 from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import (
@@ -53,6 +62,8 @@ from weaviate.collections.classes.config_vector_index import (
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import (
+    ReindexCanceledError,
+    ReindexFailedError,
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
@@ -77,6 +88,37 @@ def _property_has_text_analyzer(prop: Property) -> bool:
         return False
     nested_list = nested if isinstance(nested, list) else [nested]
     return any(_property_has_text_analyzer(np) for np in nested_list)
+
+
+def _find_property_index_status(
+    indexes: CollectionInvertedIndexes, property_name: str, index_name: IndexName
+) -> Optional[InvertedIndexStatus]:
+    for prop in indexes.properties:
+        if prop.name != property_name:
+            continue
+        for index in prop.indexes:
+            if index.type == index_name:
+                return index
+    return None
+
+
+def _terminal_property_index_status(
+    entry: Optional[InvertedIndexStatus], property_name: str, index_name: IndexName
+) -> Optional[InvertedIndexStatus]:
+    """Return the entry once it is ready, raise on failure/cancellation, or return None to keep polling."""
+    if entry is None:
+        return None
+    if entry.status == InvertedIndexState.READY:
+        return entry
+    if entry.status == InvertedIndexState.FAILED:
+        raise ReindexFailedError(
+            f"Reindexing the '{index_name}' index of property '{property_name}' failed."
+        )
+    if entry.status == InvertedIndexState.CANCELLED:
+        raise ReindexCanceledError(
+            f"Reindexing the '{index_name}' index of property '{property_name}' was cancelled."
+        )
+    return None
 
 
 class _ConfigCollectionExecutor(Generic[ConnectionType]):
@@ -629,7 +671,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def delete_property_index(
         self,
         property_name: str,
-        index_name: IndexName,
+        index_name: Union[InvertedIndexType, IndexName],
     ) -> executor.Result[bool]:
         """Delete a property index from the collection in Weaviate.
 
@@ -638,13 +680,16 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property name from which to delete the index.
-            index_name: The type of the index to delete.
+            index_name: The type of the index to delete, an `InvertedIndexType` value or one of
+                the literals `searchable`, `filterable` or `rangeFilters`.
 
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInvalidInputError: If the property or index does not exist.
         """
+        if isinstance(index_name, InvertedIndexType):
+            index_name = cast(IndexName, index_name.value)
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
@@ -663,6 +708,370 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.delete,
             path=path,
-            error_msg="Property may not exist",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
+            error_msg="Property index may not have been deleted.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Delete property index"),
+        )
+
+    def __check_property_reindex_support(self, feature: str) -> None:
+        if not self._connection._weaviate_version.is_at_least(1, 39, 0):
+            raise WeaviateUnsupportedFeatureError(
+                feature,
+                str(self._connection._weaviate_version),
+                "1.39.0",
+            )
+
+    def __property_index_path(self, property_name: str, index_name: IndexName) -> str:
+        return (
+            f"/schema/{_capitalize_first_letter(self._name)}"
+            + f"/properties/{property_name}"
+            + f"/index/{index_name}"
+        )
+
+    def __wait_for_property_index(
+        self, property_name: str, index_name: IndexName
+    ) -> executor.Result[InvertedIndexStatus]:
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> InvertedIndexStatus:
+                while True:
+                    indexes = await executor.aresult(self.get_property_indexes())
+                    entry = _find_property_index_status(indexes, property_name, index_name)
+                    done = _terminal_property_index_status(entry, property_name, index_name)
+                    if done is not None:
+                        return done
+                    await asyncio.sleep(1)
+
+            return _execute()
+        while True:
+            indexes = executor.result(self.get_property_indexes())
+            entry = _find_property_index_status(indexes, property_name, index_name)
+            done = _terminal_property_index_status(entry, property_name, index_name)
+            if done is not None:
+                return done
+            time.sleep(1)
+
+    @overload
+    def update_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tokenization: Optional[Tokenization] = None,
+        algorithm: Optional[Literal["blockmax"]] = None,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[True],
+    ) -> executor.Result[InvertedIndexStatus]: ...
+
+    @overload
+    def update_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tokenization: Optional[Tokenization] = None,
+        algorithm: Optional[Literal["blockmax"]] = None,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[False] = False,
+    ) -> executor.Result[InvertedIndexTask]: ...
+
+    def update_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tokenization: Optional[Tokenization] = None,
+        algorithm: Optional[Literal["blockmax"]] = None,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+    ) -> executor.Result[Union[InvertedIndexTask, InvertedIndexStatus]]:
+        """Create or migrate a property index in this collection.
+
+        Note: This method is a declarative upsert operation. If the index does not exist, it is created
+        with the requested configuration. If it exists, it is migrated towards the requested
+        configuration. If the configuration already matches, no work is submitted and the returned
+        task reports a `NO_OP` status. The server accepts at most one configuration change per request.
+
+        Caution: changing `tokenization` via the `searchable` index ALSO retokenizes the property's
+        `filterable` index when one exists. Both indexes are migrated by a single coupled task (their
+        status entries share one `taskId`), and the retokenization changes how filters match on that
+        property. To retokenize only the filterable bucket, target the `filterable` index instead.
+        Cancelling via either index type cancels the whole coupled task.
+
+        Args:
+            property_name: The property whose index to create or migrate.
+            index_name: The type of the index, an `InvertedIndexType` value.
+            tokenization: The tokenization of the index. Required when creating a `searchable` index;
+                optional as a change on an existing `searchable` or `filterable` index. Not valid for
+                `rangeFilters`.
+            algorithm: The search algorithm of a `searchable` index. Only `blockmax` may be requested.
+            tenants: The tenant/list of tenants for which to create the index. Only valid when
+                creating a `rangeFilters` index on a multi-tenant collection. If not provided, all
+                tenants are affected.
+            wait_for_completion: Whether to wait until the index reports `ready`. By default False.
+
+        Returns:
+            A `InvertedIndexTask` when `wait_for_completion=False`, or the final `InvertedIndexStatus`
+            of the index when `wait_for_completion=True`.
+
+        Raises:
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.ReindexFailedError: If `wait_for_completion=True` and the reindexing task failed.
+            weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
+        """
+        self.__check_property_reindex_support("Collection config update_property_index")
+        index = cast(
+            IndexName,
+            index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
+        )
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        )
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
+        _validate_input(
+            [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
+        )
+
+        path = self.__property_index_path(property_name, index)
+        body: Dict[str, Any] = {}
+        if tokenization is not None:
+            body["tokenization"] = (
+                tokenization.value if isinstance(tokenization, Tokenization) else tokenization
+            )
+        if algorithm is not None:
+            body["algorithm"] = algorithm
+        if isinstance(tenants, str):
+            tenants = [tenants]
+        params: Optional[Dict[str, Any]] = (
+            {"tenants": ",".join(tenants)} if tenants is not None else None
+        )
+
+        def resp(res: Response) -> InvertedIndexTask:
+            response = _decode_json_response_dict(res, "Update property index")
+            assert response is not None
+            return _inverted_index_task_from_json(response)
+
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> Union[InvertedIndexTask, InvertedIndexStatus]:
+                res = await executor.aresult(
+                    self._connection.put(
+                        path=path,
+                        weaviate_object=body,
+                        params=params,
+                        error_msg="Property index may not have been updated.",
+                        status_codes=_ExpectedStatusCodes(
+                            ok_in=[200, 202], error="Update property index"
+                        ),
+                    )
+                )
+                task = resp(res)
+                if wait_for_completion:
+                    return await executor.aresult(
+                        self.__wait_for_property_index(property_name, index)
+                    )
+                return task
+
+            return _execute()
+        res = executor.result(
+            self._connection.put(
+                path=path,
+                weaviate_object=body,
+                params=params,
+                error_msg="Property index may not have been updated.",
+                status_codes=_ExpectedStatusCodes(ok_in=[200, 202], error="Update property index"),
+            )
+        )
+        task = resp(res)
+        if wait_for_completion:
+            return executor.result(self.__wait_for_property_index(property_name, index))
+        return task
+
+    @overload
+    def rebuild_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[True],
+    ) -> executor.Result[InvertedIndexStatus]: ...
+
+    @overload
+    def rebuild_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[False] = False,
+    ) -> executor.Result[InvertedIndexTask]: ...
+
+    def rebuild_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+    ) -> executor.Result[Union[InvertedIndexTask, InvertedIndexStatus]]:
+        """Rebuild an existing property index from scratch with its current configuration.
+
+        Args:
+            property_name: The property whose index to rebuild.
+            index_name: The type of the index, an `InvertedIndexType` value.
+            tenants: The tenant/list of tenants for which to rebuild the index on a multi-tenant
+                collection. If not provided, all tenants are affected.
+            wait_for_completion: Whether to wait until the index reports `ready`. By default False.
+
+        Returns:
+            A `InvertedIndexTask` when `wait_for_completion=False`, or the final `InvertedIndexStatus`
+            of the index when `wait_for_completion=True`.
+
+        Raises:
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.ReindexFailedError: If `wait_for_completion=True` and the reindexing task failed.
+            weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
+        """
+        self.__check_property_reindex_support("Collection config rebuild_property_index")
+        index = cast(
+            IndexName,
+            index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
+        )
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        )
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
+        _validate_input(
+            [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
+        )
+
+        path = self.__property_index_path(property_name, index) + "/rebuild"
+        if isinstance(tenants, str):
+            tenants = [tenants]
+        params: Optional[Dict[str, Any]] = (
+            {"tenants": ",".join(tenants)} if tenants is not None else None
+        )
+
+        def resp(res: Response) -> InvertedIndexTask:
+            response = _decode_json_response_dict(res, "Rebuild property index")
+            assert response is not None
+            return _inverted_index_task_from_json(response)
+
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> Union[InvertedIndexTask, InvertedIndexStatus]:
+                res = await executor.aresult(
+                    self._connection.post(
+                        path=path,
+                        weaviate_object={},
+                        params=params,
+                        error_msg="Property index may not have been rebuilt.",
+                        status_codes=_ExpectedStatusCodes(
+                            ok_in=[202], error="Rebuild property index"
+                        ),
+                    )
+                )
+                task = resp(res)
+                if wait_for_completion:
+                    return await executor.aresult(
+                        self.__wait_for_property_index(property_name, index)
+                    )
+                return task
+
+            return _execute()
+        res = executor.result(
+            self._connection.post(
+                path=path,
+                weaviate_object={},
+                params=params,
+                error_msg="Property index may not have been rebuilt.",
+                status_codes=_ExpectedStatusCodes(ok_in=[202], error="Rebuild property index"),
+            )
+        )
+        task = resp(res)
+        if wait_for_completion:
+            return executor.result(self.__wait_for_property_index(property_name, index))
+        return task
+
+    def cancel_property_index_task(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+    ) -> executor.Result[InvertedIndexTask]:
+        """Cancel the live reindexing task of a property index.
+
+        This operation is idempotent: if there is no live task for the index, the returned task
+        reports a `NO_OP` status. Note that a coupled tokenization change (a `searchable` change on a
+        property that also has a `filterable` index) is a single task; cancelling it via either index
+        type cancels the whole task.
+
+        Args:
+            property_name: The property whose reindexing task to cancel.
+            index_name: The type of the index, an `InvertedIndexType` value.
+
+        Returns:
+            A `InvertedIndexTask` with status `CANCELLED` if a live task was cancelled or `NO_OP` otherwise.
+
+        Raises:
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+        """
+        self.__check_property_reindex_support("Collection config cancel_property_index_task")
+        index = cast(
+            IndexName,
+            index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
+        )
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        )
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
+
+        path = self.__property_index_path(property_name, index) + "/cancel"
+
+        def resp(res: Response) -> InvertedIndexTask:
+            response = _decode_json_response_dict(res, "Cancel property index task")
+            assert response is not None
+            return _inverted_index_task_from_json(response)
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.post,
+            path=path,
+            weaviate_object={},
+            error_msg="Property index task may not have been cancelled.",
+            status_codes=_ExpectedStatusCodes(ok_in=[202], error="Cancel property index task"),
+        )
+
+    def get_property_indexes(self) -> executor.Result[CollectionInvertedIndexes]:
+        """Get the statuses of the property indexes of this collection.
+
+        The response includes the state of any in-flight reindexing tasks, e.g. their progress and
+        target configuration. Poll this endpoint for a `ready` status to detect the completion of a
+        reindexing task.
+
+        Returns:
+            A `CollectionInvertedIndexes` object containing the index statuses grouped by property.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+        """
+        self.__check_property_reindex_support("Collection config get_property_indexes")
+
+        def resp(res: Response) -> CollectionInvertedIndexes:
+            response = _decode_json_response_dict(res, "Get property indexes")
+            assert response is not None
+            return _collection_inverted_indexes_from_json(response)
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path=f"/schema/{_capitalize_first_letter(self._name)}/indexes",
+            error_msg="Property index statuses could not be retrieved.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get property indexes"),
         )

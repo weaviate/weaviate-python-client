@@ -117,6 +117,20 @@ IndexName: TypeAlias = Literal[
 ]
 
 
+class InvertedIndexType(str, BaseEnum):
+    """The available property index types in Weaviate.
+
+    Attributes:
+        SEARCHABLE: The searchable index, used for keyword (BM25) searches over text properties.
+        FILTERABLE: The filterable index, used for exact-match filtering.
+        RANGE_FILTERS: The rangeFilters index, used for range filtering.
+    """
+
+    SEARCHABLE = "searchable"
+    FILTERABLE = "filterable"
+    RANGE_FILTERS = "rangeFilters"
+
+
 class ConsistencyLevel(str, BaseEnum):
     """The consistency levels when writing to Weaviate with replication enabled.
 
@@ -2205,6 +2219,96 @@ class _ShardStatus:
 
 
 ShardStatus = _ShardStatus
+
+
+class InvertedIndexTaskStatus(str, BaseEnum):
+    """The status of a runtime property index task submission.
+
+    Attributes:
+        STARTED: A reindexing task was submitted and started.
+        CANCELLED: A live reindexing task was cancelled.
+        NO_OP: No work was necessary, e.g. the index configuration already matched the request
+            or there was no live task to cancel.
+    """
+
+    STARTED = "STARTED"
+    CANCELLED = "CANCELLED"
+    NO_OP = "NO_OP"
+
+
+class InvertedIndexState(str, BaseEnum):
+    """The state of a property index as reported by the index status endpoint.
+
+    Attributes:
+        READY: The index is ready to serve queries.
+        PENDING: A reindexing task for the index is queued but has not started yet.
+        INDEXING: A reindexing task for the index is in progress.
+        FAILED: The reindexing task for the index failed.
+        CANCELLED: The reindexing task for the index was cancelled.
+    """
+
+    READY = "ready"
+    PENDING = "pending"
+    INDEXING = "indexing"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+@dataclass
+class _InvertedIndexTask(_ConfigBase):
+    task_id: Optional[str]
+    status: InvertedIndexTaskStatus
+
+
+InvertedIndexTask = _InvertedIndexTask
+
+
+@dataclass
+class _InvertedIndexStatus(_ConfigBase):
+    type: IndexName  # noqa: A003
+    status: InvertedIndexState
+    progress: Optional[float]
+    task_id: Optional[str]
+    tokenization: Optional[Tokenization]
+    target_tokenization: Optional[Tokenization]
+    algorithm: Optional[str]
+    target_algorithm: Optional[str]
+
+
+InvertedIndexStatus = _InvertedIndexStatus
+
+
+@dataclass
+class _PropertyInvertedIndexes(_ConfigBase):
+    name: str
+    # For primitive properties the value matches the `DataType` str-enum (comparisons like
+    # `data_type == DataType.TEXT` work); reference properties instead carry the qualified
+    # target collection name (e.g. "Article"), which is why this is a plain str, not `DataType`.
+    data_type: str
+    description: Optional[str]
+    indexes: List[InvertedIndexStatus]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["indexes"] = [index.to_dict() for index in self.indexes]
+        return out
+
+
+PropertyInvertedIndexes = _PropertyInvertedIndexes
+
+
+@dataclass
+class _CollectionInvertedIndexes(_ConfigBase):
+    collection: str
+    properties: List[PropertyInvertedIndexes]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["properties"] = [prop.to_dict() for prop in self.properties]
+        return out
+
+
+CollectionInvertedIndexes = _CollectionInvertedIndexes
 
 
 class _TextAnalyzerConfigCreate(_ConfigCreateModel):

@@ -4,6 +4,9 @@ from typing import Any, Dict, List, Optional, Union, cast
 from weaviate.collections.classes.config import (
     DataType,
     GenerativeSearches,
+    IndexName,
+    InvertedIndexState,
+    InvertedIndexTaskStatus,
     PQEncoderDistribution,
     PQEncoderType,
     ReplicationDeletionStrategy,
@@ -19,8 +22,11 @@ from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
+    _CollectionInvertedIndexes,
     _GenerativeConfig,
     _InvertedIndexConfig,
+    _InvertedIndexStatus,
+    _InvertedIndexTask,
     _MultiTenancyConfig,
     _MultiVectorConfig,
     _MuveraConfig,
@@ -31,6 +37,7 @@ from weaviate.collections.classes.config import (
     _PQConfig,
     _PQEncoderConfig,
     _Property,
+    _PropertyInvertedIndexes,
     _PropertyVectorizerConfig,
     _ReferenceProperty,
     _ReplicationConfig,
@@ -558,3 +565,44 @@ def _references_from_config(schema: Dict[str, Any]) -> List[_ReferenceProperty]:
         for prop in schema["properties"]
         if not _is_primitive(prop["dataType"])
     ]
+
+
+def _inverted_index_task_from_json(response: Dict[str, Any]) -> _InvertedIndexTask:
+    return _InvertedIndexTask(
+        task_id=response.get("taskId"),
+        status=InvertedIndexTaskStatus(response["status"]),
+    )
+
+
+def _inverted_index_status_from_json(index: Dict[str, Any]) -> _InvertedIndexStatus:
+    tokenization = index.get("tokenization")
+    target_tokenization = index.get("targetTokenization")
+    return _InvertedIndexStatus(
+        type=cast(IndexName, index["type"]),
+        status=InvertedIndexState(index["status"]),
+        progress=index.get("progress"),
+        task_id=index.get("taskId"),
+        tokenization=Tokenization(tokenization) if tokenization is not None else None,
+        target_tokenization=(
+            Tokenization(target_tokenization) if target_tokenization is not None else None
+        ),
+        algorithm=index.get("algorithm"),
+        target_algorithm=index.get("targetAlgorithm"),
+    )
+
+
+def _collection_inverted_indexes_from_json(response: Dict[str, Any]) -> _CollectionInvertedIndexes:
+    return _CollectionInvertedIndexes(
+        collection=response["collection"],
+        properties=[
+            _PropertyInvertedIndexes(
+                name=prop["name"],
+                data_type=prop["dataType"],
+                description=prop.get("description"),
+                indexes=[
+                    _inverted_index_status_from_json(index) for index in prop.get("indexes") or []
+                ],
+            )
+            for prop in response.get("properties") or []
+        ],
+    )
