@@ -1153,7 +1153,7 @@ class _Vectorizer:
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
-            endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default of `/v1/embeddings`.
+            endpoint: The API path to append to `base_url`, e.g. `/api/v3/embeddings`. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `type_` is not a valid value from the `OpenAIType` type.

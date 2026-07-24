@@ -323,13 +323,13 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.text2vec_openai(
             vectorize_collection_name=False,
             model="ada",
-            endpoint="https://api.custom.com/v1/embeddings",
+            endpoint="/api/v3/embeddings",
         ),
         {
             "text2vec-openai": {
                 "vectorizeClassName": False,
                 "model": "ada",
-                "endpoint": "https://api.custom.com/v1/embeddings",
+                "endpoint": "/api/v3/embeddings",
                 "isAzure": False,
             }
         },
@@ -1779,7 +1779,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             Configure.NamedVectors.text2vec_openai(
                 name="test",
                 source_properties=["prop"],
-                endpoint="https://api.custom.com/v1/embeddings",
+                endpoint="/api/v3/embeddings",
             )
         ],
         {
@@ -1788,7 +1788,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "text2vec-openai": {
                         "properties": ["prop"],
                         "vectorizeClassName": True,
-                        "endpoint": "https://api.custom.com/v1/embeddings",
+                        "endpoint": "/api/v3/embeddings",
                         "isAzure": False,
                     }
                 },
@@ -2403,7 +2403,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             Configure.Vectors.text2vec_openai(
                 name="test",
                 source_properties=["prop"],
-                endpoint="https://api.custom.com/v1/embeddings",
+                endpoint="/api/v3/embeddings",
             )
         ],
         {
@@ -2412,7 +2412,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-openai": {
                         "properties": ["prop"],
                         "vectorizeClassName": True,
-                        "endpoint": "https://api.custom.com/v1/embeddings",
+                        "endpoint": "/api/v3/embeddings",
                         "isAzure": False,
                     }
                 },
@@ -2472,7 +2472,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
             Configure.Vectors.text2vec_morph(
                 name="test",
                 source_properties=["prop"],
-                endpoint="https://api.custom.com/v1/embeddings",
+                endpoint="/api/v3/embeddings",
             )
         ],
         {
@@ -2481,7 +2481,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-morph": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
-                        "endpoint": "https://api.custom.com/v1/embeddings",
+                        "endpoint": "/api/v3/embeddings",
                     }
                 },
                 "vectorIndexType": "hnsw",

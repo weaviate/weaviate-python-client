@@ -679,7 +679,7 @@ class _Vectors:
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
-            endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default of `/v1/embeddings`.
+            endpoint: The API path to append to `base_url`, e.g. `/api/v3/embeddings`. Defaults to `None`, which uses the server-defined default.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
@@ -760,7 +760,7 @@ class _Vectors:
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
-            endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default of `/v1/embeddings`.
+            endpoint: The API path to append to `base_url`, e.g. `/api/v3/embeddings`. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             model_version: The model version to use. Defaults to `None`, which uses the server-defined default.
             type_: The type of model to use. Defaults to `None`, which uses the server-defined default.
