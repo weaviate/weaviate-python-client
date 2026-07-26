@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -1159,7 +1160,7 @@ class ConnectionAsync(_ConnectionBase):
                 ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
-                time.sleep(1)
+                await asyncio.sleep(1)
 
         try:
             (
