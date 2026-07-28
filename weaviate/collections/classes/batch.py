@@ -138,14 +138,13 @@ class BatchReference(BaseModel):
         return get_valid_uuid(v)
 
     def _to_internal(self) -> _BatchReference:
-        if self.to_object_collection is None:
-            self.to_object_collection = ""
-        else:
-            self.to_object_collection = self.to_object_collection + "/"
+        to_object_collection = (
+            "" if self.to_object_collection is None else f"{self.to_object_collection}/"
+        )
         return _BatchReference(
             from_uuid=str(self.from_object_uuid),
             from_=f"{BEACON}{self.from_object_collection}/{self.from_object_uuid}/{self.from_property_name}",
-            to=f"{BEACON}{self.to_object_collection}{str(self.to_object_uuid)}",
+            to=f"{BEACON}{to_object_collection}{str(self.to_object_uuid)}",
             to_uuid=str(self.to_object_uuid),
             tenant=self.tenant,
             index=self.index,

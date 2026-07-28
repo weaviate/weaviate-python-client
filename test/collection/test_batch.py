@@ -3,8 +3,9 @@ import uuid
 import pytest
 
 from weaviate.collections.batch.grpc_batch import _validate_props
-from weaviate.collections.classes.batch import MAX_STORED_RESULTS, BatchObjectReturn
+from weaviate.collections.classes.batch import MAX_STORED_RESULTS, BatchObjectReturn, BatchReference
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError
+from weaviate.types import BEACON
 
 
 def test_batch_object_return_add() -> None:
@@ -53,3 +54,30 @@ def test_validate_props_raises_for_top_level_vector() -> None:
 def test_validate_props_raises_for_nested_vector() -> None:
     with pytest.raises(WeaviateInsertInvalidPropertyError):
         _validate_props({"vector": [0.1, 0.2]}, nested=True)
+
+
+@pytest.mark.parametrize(
+    ("to_object_collection", "expected_to"),
+    [
+        (None, f"{BEACON}28f3f61b-b524-45e0-9bbe-2c1550bf73d2"),
+        ("Target", f"{BEACON}Target/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"),
+    ],
+)
+def test_batch_reference_to_internal_is_idempotent(
+    to_object_collection: str | None, expected_to: str
+) -> None:
+    ref = BatchReference(
+        from_object_collection="Source",
+        from_object_uuid="1c9cd584-88fe-5010-83d0-017cb3fcb446",
+        from_property_name="link",
+        to_object_collection=to_object_collection,
+        to_object_uuid="28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
+        index=0,
+    )
+
+    first = ref._to_internal()
+    second = ref._to_internal()
+
+    assert ref.to_object_collection == to_object_collection
+    assert first.to == expected_to
+    assert second.to == expected_to
