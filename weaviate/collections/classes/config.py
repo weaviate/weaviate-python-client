@@ -2307,8 +2307,14 @@ class InvertedIndexState(str, BaseEnum):
 
 @dataclass
 class _InvertedIndexTask(_ConfigBase):
+    """A submitted property index task.
+
+    Known `status` values parse to `InvertedIndexTaskStatus`; unknown server values pass
+    through as plain strings, since the spec declares the field open-vocabulary.
+    """
+
     task_id: Optional[str]
-    status: InvertedIndexTaskStatus
+    status: Union[InvertedIndexTaskStatus, str]
 
 
 InvertedIndexTask = _InvertedIndexTask

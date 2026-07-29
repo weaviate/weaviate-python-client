@@ -2824,6 +2824,16 @@ def test_property_reindex_coupled_tokenization_change(
     assert task.status == InvertedIndexTaskStatus.STARTED
     assert task.task_id is not None
 
+    # join contract: an identical re-PUT while the task is in flight returns the EXISTING task
+    join = collection.config.update_property_index(
+        "name", InvertedIndexType.SEARCHABLE, tokenization=Tokenization.FIELD
+    )
+    if join.status == InvertedIndexTaskStatus.STARTED:
+        assert join.task_id == task.task_id
+    else:
+        # the task already finalized; a re-PUT of matching configuration is a no-op
+        assert join.status == InvertedIndexTaskStatus.NO_OP
+
     prop = next(p for p in collection.config.get_property_indexes().properties if p.name == "name")
     searchable = next(i for i in prop.indexes if i.type == "searchable")
     filterable = next(i for i in prop.indexes if i.type == "filterable")
@@ -2837,7 +2847,7 @@ def test_property_reindex_coupled_tokenization_change(
         # the task already finalized before the first poll
         assert searchable.tokenization == Tokenization.FIELD
 
-    # poll the status endpoint (via the wait path of a NO_OP upsert) until the migration is done
+    # poll the status endpoint (joining the in-flight task via the wait path) until done
     status = collection.config.update_property_index(
         "name",
         InvertedIndexType.SEARCHABLE,

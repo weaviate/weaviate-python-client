@@ -134,6 +134,25 @@ def test_update_property_index_wait_for_completion(
     weaviate_139_mock.check_assertions()
 
 
+def test_update_property_index_tolerant_task_status(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """Unknown task statuses pass through as raw strings (the spec declares the field open-vocabulary)."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "word"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "SOMETHING_NEW"}, status=202)
+
+    task = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name", InvertedIndexType.SEARCHABLE, tokenization=Tokenization.WORD
+    )
+    assert task.task_id == TASK_ID
+    assert task.status == "SOMETHING_NEW"
+    assert not isinstance(task.status, InvertedIndexTaskStatus)
+    weaviate_139_mock.check_assertions()
+
+
 def test_update_property_index_bare_str_tenant(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:

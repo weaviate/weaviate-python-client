@@ -568,9 +568,15 @@ def _references_from_config(schema: Dict[str, Any]) -> List[_ReferenceProperty]:
 
 
 def _inverted_index_task_from_json(response: Dict[str, Any]) -> _InvertedIndexTask:
+    raw_status = response["status"]
+    try:
+        status: Union[InvertedIndexTaskStatus, str] = InvertedIndexTaskStatus(raw_status)
+    except ValueError:
+        # the spec declares the field open-vocabulary; pass unknown values through
+        status = raw_status
     return _InvertedIndexTask(
         task_id=response.get("taskId"),
-        status=InvertedIndexTaskStatus(response["status"]),
+        status=status,
     )
 
 
