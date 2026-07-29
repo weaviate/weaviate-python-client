@@ -617,9 +617,13 @@ class Boost:
 class MMR:
     """Define MMR (Maximal Marginal Relevance) diversity selection.
 
+    Not supported for multi-vector indexes.
+
     Args:
-        limit: Optional number of candidates to consider for diversification.
-        balance: Optional MMR lambda in [0.0, 1.0] — 1.0 is pure relevance, 0.0 is pure diversity.
+        limit: Number of objects to select. The server requires it: it must be at least 1 and
+            no larger than the query's own `limit` when one is set.
+        balance: Optional MMR lambda in [0.0, 1.0]. 1.0 ranks purely by relevance to the query,
+            0.0 purely by dissimilarity to the objects already selected.
     """
 
     limit: Optional[int] = None
@@ -636,9 +640,13 @@ class Diversity:
     def mmr(limit: Optional[int] = None, balance: Optional[float] = None) -> MMR:
         """Maximal Marginal Relevance diversity selection.
 
+        Not supported for multi-vector indexes.
+
         Args:
-            limit: Number of candidates to consider for diversification.
-            balance: MMR lambda in [0.0, 1.0] — 1.0 pure relevance, 0.0 pure diversity.
+            limit: Number of objects to select. The server requires it: it must be at least 1
+                and no larger than the query's own `limit` when one is set.
+            balance: MMR lambda in [0.0, 1.0]. 1.0 ranks purely by relevance to the query,
+                0.0 purely by dissimilarity to the objects already selected.
         """
         return MMR(limit=limit, balance=balance)
 

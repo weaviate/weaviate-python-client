@@ -14,6 +14,7 @@ from weaviate.validator import _ExtraTypes, _validate_input, _ValidateArgument
     [
         (1, [int], False),
         (1.0, [int], True),
+        (True, [int], True),
         ([1, 1], [List], False),
         (np.array([1, 2, 3]), [_ExtraTypes.NUMPY], False),
         (np.array([1, 2, 3]), [_ExtraTypes.NUMPY, List], False),

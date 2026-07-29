@@ -600,6 +600,7 @@ class _BaseGRPC:
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
+        diversity_selection: Optional[MMR] = None,
     ) -> Union[base_search_pb2.Hybrid, None]:
         if self._validate_arguments:
             _validate_input(
@@ -739,6 +740,7 @@ class _BaseGRPC:
                 vector_bytes=vector_bytes,
                 vector_distance=distance,
                 vectors=vectors,
+                selection=self._diversity_selection_to_grpc(diversity_selection),
                 bm25_search_operator=base_search_pb2.SearchOperatorOptions(
                     operator=bm25_operator.operator,
                     minimum_or_tokens_match=bm25_operator.minimum_should_match

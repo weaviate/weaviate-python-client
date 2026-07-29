@@ -320,6 +320,21 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_openai(
+            vectorize_collection_name=False,
+            model="ada",
+            endpoint="/api/v3/embeddings",
+        ),
+        {
+            "text2vec-openai": {
+                "vectorizeClassName": False,
+                "model": "ada",
+                "endpoint": "/api/v3/embeddings",
+                "isAzure": False,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_mistral(
             vectorize_collection_name=False,
             model="cool-model",
@@ -1105,6 +1120,30 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.deepseek(
+            model="deepseek-chat",
+            max_tokens=100,
+            temperature=0.5,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            top_p=0.9,
+            base_url="https://api.deepseek.com",
+            stop=["\n"],
+        ),
+        {
+            "generative-deepseek": {
+                "model": "deepseek-chat",
+                "maxTokens": 100,
+                "temperature": 0.5,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "topP": 0.9,
+                "baseURL": "https://api.deepseek.com",
+                "stop": ["\n"],
+            }
+        },
+    ),
+    (
         Configure.Generative.xai(
             model="grok-2-latest",
             max_tokens=100,
@@ -1760,6 +1799,28 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.NamedVectors.text2vec_openai(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "endpoint": "/api/v3/embeddings",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.NamedVectors.text2vec_mistral(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -2362,6 +2423,28 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.text2vec_openai(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "endpoint": "/api/v3/embeddings",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.text2vec_mistral(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -2402,6 +2485,27 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-morph": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_morph(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-morph": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                        "endpoint": "/api/v3/embeddings",
                     }
                 },
                 "vectorIndexType": "hnsw",
