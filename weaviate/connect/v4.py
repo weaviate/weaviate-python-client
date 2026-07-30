@@ -23,6 +23,7 @@ from typing import (
 )
 
 import grpc
+from authlib.common.errors import AuthlibBaseError  # type: ignore
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
@@ -591,8 +592,10 @@ class _ConnectionBase:
                         # saved credentials
                         refresh_session()
                     refresh_time = update_refresh_time()
-                except HTTPError as exc:
+                except (HTTPError, AuthlibBaseError) as exc:
                     # retry again after one second, might be an unstable connection
+                    # or an OAuth2 protocol-level rejection (e.g. invalid_grant
+                    # from authlib) — neither should kill the refresh thread (#2110)
                     refresh_time = 1
                     _Warnings.token_refresh_failed(exc)
 
