@@ -407,6 +407,7 @@ class _BatchBaseAsync:
                         result_objs += BatchObjectReturn(
                             _all_responses=[err],
                             errors={cached.index: err},
+                            has_errors=True,
                         )
                         failed_objs.append(err)
                         logger.warning(
@@ -428,6 +429,7 @@ class _BatchBaseAsync:
                         )
                         result_refs += BatchReferenceReturn(
                             errors={cached.index: err},
+                            has_errors=True,
                         )
                         failed_refs.append(err)
                         logger.warning(

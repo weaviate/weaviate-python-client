@@ -60,3 +60,44 @@ def test_ssb_canceled_stream(
         for i in range(HOW_MANY):
             batch.add_object({"name": f"Object {i}"})
     assert len(service.uuids) == HOW_MANY
+
+
+class MockFailedObjectWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    def BatchStream(
+        self,
+        request_iterator: Generator[batch_pb2.BatchStreamRequest, None, None],
+        context: grpc.ServicerContext,
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        yield batch_pb2.BatchStreamReply(started=batch_pb2.BatchStreamReply.Started())
+        for request in request_iterator:
+            if request.HasField("data"):
+                uuids = [obj.uuid for obj in request.data.objects.values]
+                yield batch_pb2.BatchStreamReply(
+                    results=batch_pb2.BatchStreamReply.Results(
+                        errors=[
+                            batch_pb2.BatchStreamReply.Results.Error(
+                                uuid=uuid, error="mock failure"
+                            )
+                            for uuid in uuids
+                        ]
+                    )
+                )
+            if request.HasField("stop"):
+                return
+
+
+@pytest.fixture(scope="function")
+def failed_object_stream(
+    canceled_stream_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+):
+    service = MockFailedObjectWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return canceled_stream_client.collections.use(mock_class["class"])
+
+
+def test_ingest_has_errors_on_failed_object(
+    failed_object_stream: weaviate.collections.Collection,
+):
+    result = failed_object_stream.data.ingest([{"name": "Object 1"}])
+    assert result.has_errors is True
+    assert len(result.errors) == 1
