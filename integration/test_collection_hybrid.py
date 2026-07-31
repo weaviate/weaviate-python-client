@@ -21,6 +21,10 @@ from weaviate.collections.classes.grpc import (
     _HybridNearVector,
 )
 from weaviate.collections.classes.internal import Object
+from weaviate.collections.grpc.shared import (
+    _BM25_AND_CROSS_MIN_VERSIONS,
+    _BM25_AND_CROSS_MIN_VERSIONS_STR,
+)
 from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
 )
@@ -528,3 +532,51 @@ def test_hybrid_bm25_operators(collection_factory: CollectionFactory) -> None:
     assert len(objs.objects) == 4
     assert objs.objects[0].uuid == uuid2
     assert sorted(obj.uuid for obj in objs.objects[1:]) == sorted([uuid1, uuid3, uuid4])
+
+
+def test_hybrid_bm25_operator_and_cross(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="title", data_type=DataType.TEXT),
+            Property(name="body", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    if not collection._connection._weaviate_version.is_at_least_any(*_BM25_AND_CROSS_MIN_VERSIONS):
+        pytest.skip(f"bm25 cross-property AND requires {_BM25_AND_CROSS_MIN_VERSIONS_STR}")
+
+    # Only `split_across` needs cross-property matching: neither of its properties holds both tokens.
+    split_across = collection.data.insert({"title": "banana", "body": "split"}, vector=[1, 0, 0, 0])
+    single_property = collection.data.insert(
+        {"title": "banana split", "body": "dessert"}, vector=[0, 1, 0, 0]
+    )
+    collection.data.insert({"title": "banana", "body": "bread"}, vector=[0, 0, 1, 0])
+
+    objs = collection.query.hybrid(
+        "banana split",
+        vector=None,
+        alpha=0.0,
+        bm25_operator=wvc.query.BM25Operator.and_cross(),
+    )
+    assert sorted(obj.uuid for obj in objs.objects) == sorted([split_across, single_property])
+
+
+def test_hybrid_bm25_operator_and_cross_unsupported_version(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    if collection._connection._weaviate_version.is_at_least_any(*_BM25_AND_CROSS_MIN_VERSIONS):
+        pytest.skip("server supports bm25 cross-property AND")
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        collection.query.hybrid(
+            "banana split",
+            vector=None,
+            alpha=0.0,
+            bm25_operator=wvc.query.BM25Operator.and_cross(),
+        )
