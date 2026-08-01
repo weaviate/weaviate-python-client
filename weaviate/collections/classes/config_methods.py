@@ -4,9 +4,9 @@ from typing import Any, Dict, List, Optional, Union, cast
 from weaviate.collections.classes.config import (
     DataType,
     GenerativeSearches,
-    IndexName,
     InvertedIndexState,
     InvertedIndexTaskStatus,
+    InvertedIndexType,
     PQEncoderDistribution,
     PQEncoderType,
     ReplicationDeletionStrategy,
@@ -583,9 +583,18 @@ def _inverted_index_task_from_json(response: Dict[str, Any]) -> _InvertedIndexTa
 def _inverted_index_status_from_json(index: Dict[str, Any]) -> _InvertedIndexStatus:
     tokenization = index.get("tokenization")
     target_tokenization = index.get("targetTokenization")
+    raw_status = index["status"]
+    try:
+        status: Union[InvertedIndexState, str] = InvertedIndexState(raw_status)
+    except ValueError:
+        # the spec declares the field open-vocabulary; pass unknown values through so that
+        # polling a status endpoint never crashes on a newly-added state name
+        status = raw_status
     return _InvertedIndexStatus(
-        type=cast(IndexName, index["type"]),
-        status=InvertedIndexState(index["status"]),
+        # `type` is closed-vocabulary and server-canonical (always filterable|searchable|
+        # rangeFilters), so parse it strictly into the enum, matching the file convention.
+        type=InvertedIndexType(index["type"]),
+        status=status,
         progress=index.get("progress"),
         task_id=index.get("taskId"),
         tokenization=Tokenization(tokenization) if tokenization is not None else None,

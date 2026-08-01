@@ -262,6 +262,15 @@ class _Warnings:
         )
 
     @staticmethod
+    def string_index_name_is_deprecated() -> None:
+        warnings.warn(
+            message="""Dep030: Passing a string `index_name` is deprecated and will be removed in a future release.
+            Pass an `InvertedIndexType` value instead (e.g. `InvertedIndexType.SEARCHABLE`).""",
+            category=DeprecationWarning,
+            stacklevel=3,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are using the datetime object {date} without a timezone. The timezone will be set to UTC.

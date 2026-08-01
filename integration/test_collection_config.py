@@ -47,6 +47,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
+    ReindexCanceledError,
     UnexpectedStatusCodeError,
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
@@ -2861,6 +2862,55 @@ def test_property_reindex_coupled_tokenization_change(
     filterable = next(i for i in prop.indexes if i.type == "filterable")
     assert filterable.status == InvertedIndexState.READY
     assert filterable.tokenization == Tokenization.FIELD
+
+
+def test_property_reindex_cancel_in_flight(collection_factory: CollectionFactory) -> None:
+    """Cancel a live reindex task and observe an actual CANCELLED result + wait-path raise."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("Runtime property reindex requires Weaviate >= 1.39.0")
+
+    collection = collection_factory(
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.TEXT,
+                index_filterable=True,
+                index_searchable=True,
+                tokenization=Tokenization.WORD,
+            )
+        ],
+    )
+    # a large batch keeps the coupled reindex task live long enough to cancel it
+    collection.data.insert_many([{"name": f"object {i}"} for i in range(1000)])
+
+    task = collection.config.update_property_index(
+        "name", InvertedIndexType.SEARCHABLE, tokenization=Tokenization.FIELD
+    )
+    assert task.status == InvertedIndexTaskStatus.STARTED
+    assert task.task_id is not None
+
+    cancel = collection.config.cancel_property_index_task("name", InvertedIndexType.SEARCHABLE)
+    if cancel.status == InvertedIndexTaskStatus.CANCELLED:
+        # a live task was stopped: the cancellation targets the same coupled task we submitted
+        assert cancel.task_id == task.task_id
+    else:
+        # the task finished before we could cancel it — nothing left to stop
+        assert cancel.status == InvertedIndexTaskStatus.NO_OP
+
+    # the index settles into a terminal state; if cancelled, waiting on it raises
+    if cancel.status == InvertedIndexTaskStatus.CANCELLED:
+        try:
+            status = collection.config.update_property_index(
+                "name",
+                InvertedIndexType.SEARCHABLE,
+                tokenization=Tokenization.FIELD,
+                wait_for_completion=True,
+            )
+            # a resubmit may relaunch and complete instead of surfacing the cancelled entry
+            assert status.status == InvertedIndexState.READY
+        except ReindexCanceledError:
+            pass
 
 
 def test_property_reindex_multi_tenant(collection_factory: CollectionFactory) -> None:

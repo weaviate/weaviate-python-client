@@ -102,23 +102,45 @@ def _find_property_index_status(
     return None
 
 
-def _terminal_property_index_status(
-    entry: Optional[InvertedIndexStatus], property_name: str, index_name: IndexName
-) -> Optional[InvertedIndexStatus]:
-    """Return the entry once it is ready, raise on failure/cancellation, or return None to keep polling."""
+def _property_index_wait_step(
+    entry: Optional[InvertedIndexStatus],
+    task_id: str,
+    task_seen: bool,
+    property_name: str,
+    index_name: IndexName,
+) -> Tuple[Optional[InvertedIndexStatus], bool]:
+    """Decide one poll step of a ``task_id``-gated wait.
+
+    Returns ``(terminal_entry_or_None, task_seen)``. A ``None`` terminal means "keep polling".
+    Terminal acceptance is gated on the submitted ``task_id`` so that we never mistake a stale
+    entry from a prior reindex for the result of the task we just submitted:
+
+    - ``failed``/``cancelled`` is terminal (raises) ONLY when the entry belongs to ``task_id``;
+      a stale failed/cancelled entry with a different/absent task id is ignored (keep polling).
+    - ``ready`` is terminal ONLY after we have observed the entry driven by ``task_id`` on this
+      or an earlier poll (``task_seen``). During the finalize window the entry shows
+      ``indexing`` at progress 1.0 WITH the task id before it flips to a plain ``ready`` (which
+      may carry no task id), so ``task_id`` is observable before ``ready`` — a ``ready`` not yet
+      associated with ``task_id`` is the stale pre-flip state and must not be accepted.
+    """
     if entry is None:
-        return None
-    if entry.status == InvertedIndexState.READY:
-        return entry
-    if entry.status == InvertedIndexState.FAILED:
+        return None, task_seen
+    belongs = entry.task_id == task_id
+    if belongs:
+        task_seen = True
+    if belongs and entry.status == InvertedIndexState.FAILED:
         raise ReindexFailedError(
-            f"Reindexing the '{index_name}' index of property '{property_name}' failed."
+            f"Reindexing the '{index_name}' index of property '{property_name}' failed "
+            f"(task '{task_id}'). Inspect GET /v1/tasks for the failure detail."
         )
-    if entry.status == InvertedIndexState.CANCELLED:
+    if belongs and entry.status == InvertedIndexState.CANCELLED:
         raise ReindexCanceledError(
-            f"Reindexing the '{index_name}' index of property '{property_name}' was cancelled."
+            f"Reindexing the '{index_name}' index of property '{property_name}' was cancelled "
+            f"(task '{task_id}')."
         )
-    return None
+    if task_seen and entry.status == InvertedIndexState.READY:
+        return entry, task_seen
+    return None, task_seen
 
 
 class _ConfigCollectionExecutor(Generic[ConnectionType]):
@@ -680,26 +702,27 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
         Args:
             property_name: The property name from which to delete the index.
-            index_name: The type of the index to delete, an `InvertedIndexType` value or one of
-                the literals `searchable`, `filterable` or `rangeFilters`.
+            index_name: The type of the index to delete, an `InvertedIndexType` value. Passing a
+                raw string (`searchable`, `filterable` or `rangeFilters`) is deprecated but still
+                accepted.
 
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInvalidInputError: If the property or index does not exist.
         """
-        if isinstance(index_name, InvertedIndexType):
-            index_name = cast(IndexName, index_name.value)
+        if not isinstance(index_name, InvertedIndexType):
+            _Warnings.string_index_name_is_deprecated()
+        index = cast(
+            IndexName,
+            index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
+        )
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
         )
-        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
 
-        path = (
-            f"/schema/{_capitalize_first_letter(self._name)}"
-            + f"/properties/{property_name}"
-            + f"/index/{index_name}"
-        )
+        path = self.__property_index_path(property_name, index)
 
         def resp(res: Response) -> bool:
             return res.status_code == 200
@@ -728,27 +751,133 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         )
 
     def __wait_for_property_index(
-        self, property_name: str, index_name: IndexName
+        self, property_name: str, index_name: IndexName, task: InvertedIndexTask
     ) -> executor.Result[InvertedIndexStatus]:
+        """Poll the index status endpoint until the submitted ``task`` reaches a terminal state.
+
+        A ``NO_OP`` submission (no task id) means the configuration already matched, so the
+        current status is fetched once and returned without polling. Otherwise the poll is gated
+        on ``task.task_id`` (see ``_property_index_wait_step``). There is deliberately no timeout,
+        matching the export/backup wait precedent; if the targeted entry never appears (e.g. the
+        index is deleted out from under the wait) the loop spins indefinitely.
+        """
+        task_id = task.task_id
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> InvertedIndexStatus:
+                if task_id is None:
+                    indexes = await executor.aresult(self.get_property_indexes())
+                    entry = _find_property_index_status(indexes, property_name, index_name)
+                    assert entry is not None
+                    return entry
+                task_seen = False
                 while True:
                     indexes = await executor.aresult(self.get_property_indexes())
                     entry = _find_property_index_status(indexes, property_name, index_name)
-                    done = _terminal_property_index_status(entry, property_name, index_name)
+                    done, task_seen = _property_index_wait_step(
+                        entry, task_id, task_seen, property_name, index_name
+                    )
                     if done is not None:
                         return done
                     await asyncio.sleep(1)
 
             return _execute()
+        if task_id is None:
+            indexes = executor.result(self.get_property_indexes())
+            entry = _find_property_index_status(indexes, property_name, index_name)
+            assert entry is not None
+            return entry
+        task_seen = False
         while True:
             indexes = executor.result(self.get_property_indexes())
             entry = _find_property_index_status(indexes, property_name, index_name)
-            done = _terminal_property_index_status(entry, property_name, index_name)
+            done, task_seen = _property_index_wait_step(
+                entry, task_id, task_seen, property_name, index_name
+            )
             if done is not None:
                 return done
             time.sleep(1)
+
+    def __submit_property_index_task(
+        self,
+        *,
+        property_name: str,
+        index_name: IndexName,
+        path_suffix: str,
+        http_method: Literal["PUT", "POST"],
+        body: Dict[str, Any],
+        tenants: Union[List[str], str, None],
+        wait_for_completion: bool,
+        error_verb: str,
+        error_label: str,
+        ok_in: List[int],
+    ) -> executor.Result[Union[InvertedIndexTask, InvertedIndexStatus]]:
+        """Submit a reindex task (PUT upsert or POST rebuild) and optionally wait for it.
+
+        Shared by ``update_property_index`` and ``rebuild_property_index``: input validation,
+        tenant csv encoding, the sync/async fork and the ``task_id``-gated wait all live here.
+        """
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        )
+        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index_name)])
+        _validate_input(
+            [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
+        )
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[bool], name="wait_for_completion", value=wait_for_completion
+                )
+            ]
+        )
+
+        path = self.__property_index_path(property_name, index_name) + path_suffix
+        if isinstance(tenants, str):
+            tenants = [tenants]
+        # An empty tenant selection means "all tenants"; send no param rather than ?tenants= .
+        params: Optional[Dict[str, Any]] = {"tenants": ",".join(tenants)} if tenants else None
+        error_msg = f"Property index may not have been {error_verb}."
+        conn_method = self._connection.put if http_method == "PUT" else self._connection.post
+
+        def resp(res: Response) -> InvertedIndexTask:
+            response = _decode_json_response_dict(res, error_label)
+            assert response is not None
+            return _inverted_index_task_from_json(response)
+
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> Union[InvertedIndexTask, InvertedIndexStatus]:
+                res = await executor.aresult(
+                    conn_method(
+                        path=path,
+                        weaviate_object=body,
+                        params=params,
+                        error_msg=error_msg,
+                        status_codes=_ExpectedStatusCodes(ok_in=ok_in, error=error_label),
+                    )
+                )
+                task = resp(res)
+                if wait_for_completion:
+                    return await executor.aresult(
+                        self.__wait_for_property_index(property_name, index_name, task)
+                    )
+                return task
+
+            return _execute()
+        res = executor.result(
+            conn_method(
+                path=path,
+                weaviate_object=body,
+                params=params,
+                error_msg=error_msg,
+                status_codes=_ExpectedStatusCodes(ok_in=ok_in, error=error_label),
+            )
+        )
+        task = resp(res)
+        if wait_for_completion:
+            return executor.result(self.__wait_for_property_index(property_name, index_name, task))
+        return task
 
     @overload
     def update_property_index(
@@ -825,15 +954,6 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             IndexName,
             index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
         )
-        _validate_input(
-            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
-        )
-        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
-        _validate_input(
-            [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
-        )
-
-        path = self.__property_index_path(property_name, index)
         body: Dict[str, Any] = {}
         if tokenization is not None:
             body["tokenization"] = (
@@ -841,52 +961,18 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             )
         if algorithm is not None:
             body["algorithm"] = algorithm
-        if isinstance(tenants, str):
-            tenants = [tenants]
-        params: Optional[Dict[str, Any]] = (
-            {"tenants": ",".join(tenants)} if tenants is not None else None
+        return self.__submit_property_index_task(
+            property_name=property_name,
+            index_name=index,
+            path_suffix="",
+            http_method="PUT",
+            body=body,
+            tenants=tenants,
+            wait_for_completion=wait_for_completion,
+            error_verb="updated",
+            error_label="Update property index",
+            ok_in=[200, 202],
         )
-
-        def resp(res: Response) -> InvertedIndexTask:
-            response = _decode_json_response_dict(res, "Update property index")
-            assert response is not None
-            return _inverted_index_task_from_json(response)
-
-        if isinstance(self._connection, ConnectionAsync):
-
-            async def _execute() -> Union[InvertedIndexTask, InvertedIndexStatus]:
-                res = await executor.aresult(
-                    self._connection.put(
-                        path=path,
-                        weaviate_object=body,
-                        params=params,
-                        error_msg="Property index may not have been updated.",
-                        status_codes=_ExpectedStatusCodes(
-                            ok_in=[200, 202], error="Update property index"
-                        ),
-                    )
-                )
-                task = resp(res)
-                if wait_for_completion:
-                    return await executor.aresult(
-                        self.__wait_for_property_index(property_name, index)
-                    )
-                return task
-
-            return _execute()
-        res = executor.result(
-            self._connection.put(
-                path=path,
-                weaviate_object=body,
-                params=params,
-                error_msg="Property index may not have been updated.",
-                status_codes=_ExpectedStatusCodes(ok_in=[200, 202], error="Update property index"),
-            )
-        )
-        task = resp(res)
-        if wait_for_completion:
-            return executor.result(self.__wait_for_property_index(property_name, index))
-        return task
 
     @overload
     def rebuild_property_index(
@@ -941,61 +1027,18 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             IndexName,
             index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
         )
-        _validate_input(
-            [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
+        return self.__submit_property_index_task(
+            property_name=property_name,
+            index_name=index,
+            path_suffix="/rebuild",
+            http_method="POST",
+            body={},
+            tenants=tenants,
+            wait_for_completion=wait_for_completion,
+            error_verb="rebuilt",
+            error_label="Rebuild property index",
+            ok_in=[202],
         )
-        _validate_input([_ValidateArgument(expected=[str], name="index_name", value=index)])
-        _validate_input(
-            [_ValidateArgument(expected=[str, List[str], None], name="tenants", value=tenants)]
-        )
-
-        path = self.__property_index_path(property_name, index) + "/rebuild"
-        if isinstance(tenants, str):
-            tenants = [tenants]
-        params: Optional[Dict[str, Any]] = (
-            {"tenants": ",".join(tenants)} if tenants is not None else None
-        )
-
-        def resp(res: Response) -> InvertedIndexTask:
-            response = _decode_json_response_dict(res, "Rebuild property index")
-            assert response is not None
-            return _inverted_index_task_from_json(response)
-
-        if isinstance(self._connection, ConnectionAsync):
-
-            async def _execute() -> Union[InvertedIndexTask, InvertedIndexStatus]:
-                res = await executor.aresult(
-                    self._connection.post(
-                        path=path,
-                        weaviate_object={},
-                        params=params,
-                        error_msg="Property index may not have been rebuilt.",
-                        status_codes=_ExpectedStatusCodes(
-                            ok_in=[202], error="Rebuild property index"
-                        ),
-                    )
-                )
-                task = resp(res)
-                if wait_for_completion:
-                    return await executor.aresult(
-                        self.__wait_for_property_index(property_name, index)
-                    )
-                return task
-
-            return _execute()
-        res = executor.result(
-            self._connection.post(
-                path=path,
-                weaviate_object={},
-                params=params,
-                error_msg="Property index may not have been rebuilt.",
-                status_codes=_ExpectedStatusCodes(ok_in=[202], error="Rebuild property index"),
-            )
-        )
-        task = resp(res)
-        if wait_for_completion:
-            return executor.result(self.__wait_for_property_index(property_name, index))
-        return task
 
     def cancel_property_index_task(
         self,
@@ -1038,6 +1081,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             assert response is not None
             return _inverted_index_task_from_json(response)
 
+        # Cancel is always 202 in merged core: CANCELLED when a live task was stopped, NO_OP otherwise.
         return executor.execute(
             response_callback=resp,
             method=self._connection.post,

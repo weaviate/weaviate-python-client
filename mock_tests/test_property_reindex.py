@@ -1,4 +1,5 @@
 import json
+import warnings
 from typing import Generator, Union
 
 import grpc
@@ -51,16 +52,36 @@ def client_139(
 def test_update_property_index_started(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
+    """A single tokenization change is a valid PUT body (the server allows at most one change)."""
     weaviate_139_mock.expect_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable",
         method="PUT",
-        json={"tokenization": "word", "algorithm": "blockmax"},
+        json={"tokenization": "word"},
     ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
 
     task = client_139.collections.use(COLLECTION).config.update_property_index(
         "name",
         "searchable",
         tokenization=Tokenization.WORD,
+    )
+    assert task.task_id == TASK_ID
+    assert task.status == InvertedIndexTaskStatus.STARTED
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_algorithm_only(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """An algorithm-only change is also a valid single-change PUT body."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"algorithm": "blockmax"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+
+    task = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name",
+        "searchable",
         algorithm="blockmax",
     )
     assert task.task_id == TASK_ID
@@ -112,6 +133,7 @@ def test_update_property_index_wait_for_completion(
         method="PUT",
         json={"tokenization": "word"},
     ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # the ready entry still carries the submitted task id, so the task_id-gated wait accepts it
     weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
         {
             "collection": COLLECTION,
@@ -119,7 +141,14 @@ def test_update_property_index_wait_for_completion(
                 {
                     "name": "name",
                     "dataType": "text",
-                    "indexes": [{"type": "searchable", "status": "ready", "tokenization": "word"}],
+                    "indexes": [
+                        {
+                            "type": "searchable",
+                            "status": "ready",
+                            "taskId": TASK_ID,
+                            "tokenization": "word",
+                        }
+                    ],
                 }
             ],
         }
@@ -378,6 +407,8 @@ def test_get_property_indexes(
     assert name.description == "a text property"
     assert len(name.indexes) == 2
     searchable, filterable = name.indexes
+    # `type` parses strictly into the InvertedIndexType enum; str-enum equality still holds
+    assert searchable.type is InvertedIndexType.SEARCHABLE
     assert searchable.type == "searchable"
     assert searchable.status == InvertedIndexState.INDEXING
     assert searchable.progress == 0.5
@@ -591,6 +622,26 @@ def test_delete_property_index_surfaces_server_message(
     weaviate_139_mock.check_assertions()
 
 
+def test_delete_property_index_string_deprecation_warning(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A raw-string index_name on delete_property_index warns; the enum form does not."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="DELETE",
+    ).respond_with_json({}, status=200)
+
+    config = client_139.collections.use(COLLECTION).config
+    with pytest.warns(DeprecationWarning, match="Dep030"):
+        assert config.delete_property_index("name", "searchable") is True
+
+    # the InvertedIndexType form is the supported path and must not warn
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert config.delete_property_index("name", InvertedIndexType.SEARCHABLE) is True
+    weaviate_139_mock.check_assertions()
+
+
 def test_property_reindex_invalid_input(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
@@ -603,6 +654,126 @@ def test_property_reindex_invalid_input(
         config.rebuild_property_index("age", "rangeFilters", tenants=[1, 2])  # type: ignore
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
         config.cancel_property_index_task(123, "searchable")  # type: ignore
+    weaviate_139_mock.check_assertions()
+
+
+def _single_index_payload(entry: dict) -> dict:
+    return {
+        "collection": COLLECTION,
+        "properties": [{"name": "name", "dataType": "text", "indexes": [entry]}],
+    }
+
+
+def test_update_property_index_wait_polls_until_submitted_task_ready(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """Regression for the task_id gate (fix #1).
+
+    The wait must ignore a stale ``ready`` left by a PRIOR reindex and only accept the ``ready``
+    that follows the submitted task's own progress — never returning early. If the task_id gate
+    were removed, the first (stale) ready would be returned and the tokenization assertion below
+    would fail.
+    """
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # poll 1: a stale ready from a prior reindex (different task id) — must NOT be accepted
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/indexes", method="GET"
+    ).respond_with_json(
+        _single_index_payload(
+            {
+                "type": "searchable",
+                "status": "ready",
+                "taskId": "stale-task",
+                "tokenization": "word",
+            }
+        )
+    )
+    # poll 2: our task mid-finalize (indexing @ 1.0 carrying our task id)
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/indexes", method="GET"
+    ).respond_with_json(
+        _single_index_payload(
+            {
+                "type": "searchable",
+                "status": "indexing",
+                "progress": 1.0,
+                "taskId": TASK_ID,
+                "tokenization": "word",
+                "targetTokenization": "field",
+            }
+        )
+    )
+    # poll 3: flipped to plain ready with the new tokenization
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/indexes", method="GET"
+    ).respond_with_json(
+        _single_index_payload({"type": "searchable", "status": "ready", "tokenization": "field"})
+    )
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name",
+        InvertedIndexType.SEARCHABLE,
+        tokenization=Tokenization.FIELD,
+        wait_for_completion=True,
+    )
+    assert status.status == InvertedIndexState.READY
+    assert status.tokenization == Tokenization.FIELD
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_update_property_index_async(
+    weaviate_139_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """The async fork of update_property_index submits and waits via the task_id gate."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "word"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
+        _single_index_payload(
+            {"type": "searchable", "status": "ready", "taskId": TASK_ID, "tokenization": "word"}
+        )
+    )
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
+        status = await client.collections.use(COLLECTION).config.update_property_index(
+            "name",
+            InvertedIndexType.SEARCHABLE,
+            tokenization=Tokenization.WORD,
+            wait_for_completion=True,
+        )
+    assert status.status == InvertedIndexState.READY
+    assert status.tokenization == Tokenization.WORD
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_rebuild_property_index_async(
+    weaviate_139_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """The async fork of rebuild_property_index submits a POST and returns the task."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable/rebuild",
+        method="POST",
+        json={},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
+        task = await client.collections.use(COLLECTION).config.rebuild_property_index(
+            "name", InvertedIndexType.SEARCHABLE
+        )
+    assert task.task_id == TASK_ID
+    assert task.status == InvertedIndexTaskStatus.STARTED
     weaviate_139_mock.check_assertions()
 
 

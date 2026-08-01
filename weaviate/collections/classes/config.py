@@ -110,6 +110,12 @@ OpenAiReasoningEffort: TypeAlias = Literal[
     "high",
 ]
 
+# Deprecated: this string alias is superseded by the ``InvertedIndexType`` enum and will be
+# removed in a future release. Prefer ``InvertedIndexType`` for property index type arguments;
+# the string form is still accepted by ``delete_property_index`` (which emits a
+# ``DeprecationWarning``) for backwards compatibility. ``typing_extensions.deprecated`` (PEP 702)
+# cannot annotate a bare type alias — it decorates classes/functions/overloads — so the
+# deprecation is surfaced via this comment and the runtime warning on the accepting method.
 IndexName: TypeAlias = Literal[
     "searchable",
     "filterable",
@@ -2322,8 +2328,14 @@ InvertedIndexTask = _InvertedIndexTask
 
 @dataclass
 class _InvertedIndexStatus(_ConfigBase):
-    type: IndexName  # noqa: A003
-    status: InvertedIndexState
+    """The status of a single property index as reported by the index status endpoint.
+
+    Known `status` values parse to `InvertedIndexState`; unknown server values pass through
+    as plain strings, so that polling a status endpoint never crashes on a new state name.
+    """
+
+    type: InvertedIndexType  # noqa: A003
+    status: Union[InvertedIndexState, str]
     progress: Optional[float]
     task_id: Optional[str]
     tokenization: Optional[Tokenization]
