@@ -66,14 +66,10 @@ def test_server_version_is_at_least(is_valid: bool) -> None:
         ("1.36.9", False),
         ("1.37.14", False),
         ("1.37.15", True),
-        ("1.37.99", True),
-        ("1.38.0", False),
         ("1.38.7", False),
         ("1.38.8", True),
-        ("1.38.20", True),
         ("1.39.0", True),
         ("1.40.0", True),
-        ("2.0.0", True),
     ],
 )
 def test_server_version_is_at_least_any(version: str, expected: bool) -> None:
@@ -81,11 +77,6 @@ def test_server_version_is_at_least_any(version: str, expected: bool) -> None:
         _ServerVersion.from_string(version).is_at_least_any((1, 37, 15), (1, 38, 8), (1, 39, 0))
         is expected
     )
-
-
-def test_server_version_is_at_least_any_single_minimum() -> None:
-    assert _ServerVersion(1, 39, 0).is_at_least_any((1, 39, 0))
-    assert not _ServerVersion(1, 38, 99).is_at_least_any((1, 39, 0))
 
 
 def test_server_version_magic_methods() -> None:

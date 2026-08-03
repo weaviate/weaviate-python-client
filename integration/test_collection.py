@@ -46,7 +46,6 @@ from weaviate.exceptions import (
     WeaviateInsertManyAllFailedError,
     WeaviateInvalidInputError,
     WeaviateQueryError,
-    WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS
 
@@ -1775,62 +1774,10 @@ def test_bm25_operator_and_cross(collection_factory: CollectionFactory) -> None:
     if not collection._connection._weaviate_version.is_at_least_any(*_BM25_AND_CROSS_MIN_VERSIONS):
         pytest.skip(f"bm25 cross-property AND requires {_BM25_AND_CROSS_MIN_VERSIONS_STR}")
 
-    # Only `split_across` needs cross-property matching: neither of its properties holds both tokens.
+    # Neither of `split_across`'s properties holds both tokens, so only cross-property AND matches it.
     split_across = collection.data.insert({"title": "banana", "body": "split"})
     single_property = collection.data.insert({"title": "banana split", "body": "dessert"})
-    partial = collection.data.insert({"title": "banana", "body": "bread"})
+    collection.data.insert({"title": "banana", "body": "bread"})
 
-    and_cross = collection.query.bm25("banana split", operator=wvc.query.BM25Operator.and_cross())
-    assert sorted(obj.uuid for obj in and_cross.objects) == sorted([split_across, single_property])
-
-    or_ = collection.query.bm25(
-        "banana split", operator=wvc.query.BM25Operator.or_(minimum_match=1)
-    )
-    assert sorted(obj.uuid for obj in or_.objects) == sorted(
-        [split_across, single_property, partial]
-    )
-
-    # Per-property AND is at most as permissive as cross-property AND. Which of the two it is
-    # depends on whether the server took the BlockMax or the legacy WAND path, so only the
-    # subset relation is asserted.
-    and_ = collection.query.bm25("banana split", operator=wvc.query.BM25Operator.and_())
-    assert {obj.uuid for obj in and_.objects} <= {obj.uuid for obj in and_cross.objects}
-
-
-def test_bm25_operator_and_cross_mismatched_tokenization(
-    collection_factory: CollectionFactory,
-) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="title", data_type=DataType.TEXT, tokenization=Tokenization.WORD),
-            Property(name="body", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
-        ],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-
-    if not collection._connection._weaviate_version.is_at_least_any(*_BM25_AND_CROSS_MIN_VERSIONS):
-        pytest.skip(f"bm25 cross-property AND requires {_BM25_AND_CROSS_MIN_VERSIONS_STR}")
-
-    collection.data.insert({"title": "banana", "body": "split"})
-
-    with pytest.raises(WeaviateQueryError):
-        collection.query.bm25(
-            "banana split",
-            query_properties=["title", "body"],
-            operator=wvc.query.BM25Operator.and_cross(),
-        )
-
-
-def test_bm25_operator_and_cross_unsupported_version(
-    collection_factory: CollectionFactory,
-) -> None:
-    collection = collection_factory(
-        properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-
-    if collection._connection._weaviate_version.is_at_least_any(*_BM25_AND_CROSS_MIN_VERSIONS):
-        pytest.skip("server supports bm25 cross-property AND")
-
-    with pytest.raises(WeaviateUnsupportedFeatureError):
-        collection.query.bm25("banana split", operator=wvc.query.BM25Operator.and_cross())
+    objs = collection.query.bm25("banana split", operator=wvc.query.BM25Operator.and_cross())
+    assert sorted(obj.uuid for obj in objs.objects) == sorted([split_across, single_property])

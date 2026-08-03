@@ -608,11 +608,10 @@ class _ServerVersion:
             )
 
     def is_at_least_any(self, *minimums: Tuple[int, int, int]) -> bool:
-        """Check a feature that was backported to several release branches.
+        """Check a minimum that was backported to several release branches.
 
-        Each entry is the first version on its own minor branch to carry the feature, given in
-        ascending order. A server is supported if it is at least the minimum of the newest listed
-        branch that is not newer than itself.
+        Each entry is the first version on its own minor branch to carry the feature, in ascending
+        order; the server is checked against the newest branch that is not newer than itself.
         """
         for major, minor, patch in reversed(minimums):
             if (self.major, self.minor) >= (major, minor):

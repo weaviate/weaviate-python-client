@@ -1,12 +1,6 @@
 Changelog
 =========
 
-Version 4.23.0
---------------
-This minor version includes:
-    - Support for new 1.39 features:
-        - Add support for the new cross-property ``And`` BM25 search operator through ``BM25Operator.and_cross()``, available on the ``bm25`` and ``hybrid`` query, generative-query, and aggregation methods. Unlike ``BM25Operator.and_()``, a query token may be matched by any of the searched properties instead of having to occur within a single one. All searched properties must share the same tokenization and analyzer settings. Requires Weaviate ``1.37.15``, ``1.38.8``, ``1.39.0`` or higher
-
 Version 4.22.0
 --------------
 This minor version includes:
