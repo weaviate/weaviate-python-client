@@ -575,6 +575,7 @@ class _GenerativeGoogleConfig(_GenerativeProvider):
     apiEndpoint: Optional[str]
     endpointId: Optional[str]
     region: Optional[str]
+    location: Optional[str]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
     projectId: str
@@ -1082,6 +1083,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1124,6 +1126,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1141,6 +1144,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         project_id: str,
         api_endpoint: Optional[str] = None,
         region: Optional[str] = None,
+        location: Optional[str] = None,
         max_output_tokens: Optional[int] = None,
         model_id: Optional[str] = None,
         endpoint_id: Optional[str] = None,
@@ -1157,6 +1161,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             project_id: The Google Vertex project ID to use.
             api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
             region: The region to use. Defaults to `None`, which uses the server-defined default
+            location: The location to use. Defaults to `None`, which uses the server-defined default of `us-central1`
             max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
             endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
@@ -1167,6 +1172,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=region,
+            location=location,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1202,6 +1208,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=None,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model,
             projectId="",
