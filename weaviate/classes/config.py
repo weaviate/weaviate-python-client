@@ -1,4 +1,5 @@
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     Configure,
     ConsistencyLevel,
     DataType,
@@ -27,6 +28,7 @@ from weaviate.collections.classes.config_vectorizers import Multi2VecField, Vect
 from weaviate.connect.integrations import Integrations
 
 __all__ = [
+    "BM25Algorithm",
     "Configure",
     "ConsistencyLevel",
     "Reconfigure",

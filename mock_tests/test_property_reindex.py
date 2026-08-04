@@ -10,6 +10,7 @@ from werkzeug.wrappers import Response
 import weaviate
 from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     DataType,
     InvertedIndexState,
     InvertedIndexTaskStatus,
@@ -72,7 +73,7 @@ def test_update_property_index_started(
 def test_update_property_index_algorithm_only(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
-    """An algorithm-only change is also a valid single-change PUT body."""
+    """An algorithm-only change is a valid single-change PUT; the enum serializes to its wire value."""
     weaviate_139_mock.expect_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable",
         method="PUT",
@@ -82,7 +83,7 @@ def test_update_property_index_algorithm_only(
     task = client_139.collections.use(COLLECTION).config.update_property_index(
         "name",
         "searchable",
-        algorithm="blockmax",
+        algorithm=BM25Algorithm.BLOCKMAX,
     )
     assert task.task_id == TASK_ID
     assert task.status == InvertedIndexTaskStatus.STARTED
@@ -158,7 +159,7 @@ def test_update_property_index_wait_for_completion(
         "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
     )
     assert status.type == "searchable"
-    assert status.status == InvertedIndexState.READY
+    assert status.state == InvertedIndexState.READY
     assert status.tokenization == Tokenization.WORD
     weaviate_139_mock.check_assertions()
 
@@ -410,12 +411,15 @@ def test_get_property_indexes(
     # `type` parses strictly into the InvertedIndexType enum; str-enum equality still holds
     assert searchable.type is InvertedIndexType.SEARCHABLE
     assert searchable.type == "searchable"
-    assert searchable.status == InvertedIndexState.INDEXING
+    assert searchable.state == InvertedIndexState.INDEXING
     assert searchable.progress == 0.5
     assert searchable.task_id == TASK_ID
     assert searchable.tokenization == Tokenization.WORD
     assert searchable.target_tokenization == Tokenization.FIELD
+    # algorithm/target_algorithm parse into the BM25Algorithm enum; str-enum equality still holds
+    assert searchable.algorithm is BM25Algorithm.WAND
     assert searchable.algorithm == "wand"
+    assert searchable.target_algorithm is BM25Algorithm.BLOCKMAX
     assert searchable.target_algorithm == "blockmax"
     assert filterable.type == "filterable"
     assert filterable.task_id == TASK_ID  # coupled change: one task drives both entries
@@ -429,7 +433,7 @@ def test_get_property_indexes(
     assert age.description is None
     assert len(age.indexes) == 1
     assert age.indexes[0].type == "rangeFilters"
-    assert age.indexes[0].status == InvertedIndexState.READY
+    assert age.indexes[0].state == InvertedIndexState.READY
     assert age.indexes[0].progress is None
     assert age.indexes[0].task_id is None
     assert age.indexes[0].tokenization is None
@@ -440,7 +444,7 @@ def test_get_property_indexes(
     assert out["properties"][0]["indexes"][0]["taskId"] == TASK_ID
     assert out["properties"][0]["indexes"][0]["targetTokenization"] == "field"
     assert out["properties"][1]["dataType"] == "int"
-    assert out["properties"][1]["indexes"][0]["status"] == "ready"
+    assert out["properties"][1]["indexes"][0]["state"] == "ready"
 
     weaviate_139_mock.check_assertions()
 
@@ -599,6 +603,42 @@ def test_get_property_indexes_reference_property(
     weaviate_139_mock.check_assertions()
 
 
+def test_get_property_indexes_tolerant_algorithm(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """An unknown BM25 algorithm passes through as a raw string without raising."""
+    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
+        {
+            "collection": COLLECTION,
+            "properties": [
+                {
+                    "name": "name",
+                    "dataType": "text",
+                    "indexes": [
+                        {
+                            "type": "searchable",
+                            "status": "indexing",
+                            "algorithm": "wand",
+                            "targetAlgorithm": "future_bm25",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    entry = (
+        client_139.collections.use(COLLECTION)
+        .config.get_property_indexes()
+        .properties[0]
+        .indexes[0]
+    )
+    assert entry.algorithm is BM25Algorithm.WAND
+    assert entry.target_algorithm == "future_bm25"
+    assert not isinstance(entry.target_algorithm, BM25Algorithm)
+    weaviate_139_mock.check_assertions()
+
+
 def test_delete_property_index_surfaces_server_message(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
@@ -720,7 +760,7 @@ def test_update_property_index_wait_polls_until_submitted_task_ready(
         tokenization=Tokenization.FIELD,
         wait_for_completion=True,
     )
-    assert status.status == InvertedIndexState.READY
+    assert status.state == InvertedIndexState.READY
     assert status.tokenization == Tokenization.FIELD
     weaviate_139_mock.check_assertions()
 
@@ -750,7 +790,7 @@ async def test_update_property_index_async(
             tokenization=Tokenization.WORD,
             wait_for_completion=True,
         )
-    assert status.status == InvertedIndexState.READY
+    assert status.state == InvertedIndexState.READY
     assert status.tokenization == Tokenization.WORD
     weaviate_139_mock.check_assertions()
 

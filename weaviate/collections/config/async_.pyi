@@ -3,6 +3,7 @@ from typing import Dict, List, Literal, Optional, Union, overload
 from typing_extensions import deprecated
 
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     CollectionConfig,
     CollectionConfigSimple,
     CollectionInvertedIndexes,
@@ -104,7 +105,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
-        algorithm: Optional[Literal["blockmax"]] = None,
+        algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
     ) -> InvertedIndexStatus: ...
@@ -115,7 +116,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
-        algorithm: Optional[Literal["blockmax"]] = None,
+        algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> InvertedIndexTask: ...

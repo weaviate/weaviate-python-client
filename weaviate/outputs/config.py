@@ -1,5 +1,6 @@
 from weaviate.collections.classes.config import (
     AsyncReplicationConfig,
+    BM25Algorithm,
     BM25Config,
     CollectionConfig,
     CollectionConfigSimple,
@@ -39,6 +40,7 @@ from weaviate.collections.classes.config import (
 
 __all__ = [
     "AsyncReplicationConfig",
+    "BM25Algorithm",
     "BM25Config",
     "CollectionConfig",
     "CollectionConfigSimple",

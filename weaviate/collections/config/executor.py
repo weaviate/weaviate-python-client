@@ -19,6 +19,7 @@ from pydantic_core import ValidationError
 from typing_extensions import deprecated
 
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     CollectionConfig,
     CollectionConfigSimple,
     CollectionInvertedIndexes,
@@ -120,7 +121,7 @@ def _property_index_wait_step(
     - ``ready`` is terminal ONLY after we have observed the entry driven by ``task_id`` on this
       or an earlier poll (``task_seen``). During the finalize window the entry shows
       ``indexing`` at progress 1.0 WITH the task id before it flips to a plain ``ready`` (which
-      may carry no task id), so ``task_id`` is observable before ``ready`` — a ``ready`` not yet
+      may carry no task id), so ``task_id`` is observable before ``ready``; a ``ready`` not yet
       associated with ``task_id`` is the stale pre-flip state and must not be accepted.
     """
     if entry is None:
@@ -128,17 +129,17 @@ def _property_index_wait_step(
     belongs = entry.task_id == task_id
     if belongs:
         task_seen = True
-    if belongs and entry.status == InvertedIndexState.FAILED:
+    if belongs and entry.state == InvertedIndexState.FAILED:
         raise ReindexFailedError(
             f"Reindexing the '{index_name}' index of property '{property_name}' failed "
             f"(task '{task_id}'). Inspect GET /v1/tasks for the failure detail."
         )
-    if belongs and entry.status == InvertedIndexState.CANCELLED:
+    if belongs and entry.state == InvertedIndexState.CANCELLED:
         raise ReindexCanceledError(
             f"Reindexing the '{index_name}' index of property '{property_name}' was cancelled "
             f"(task '{task_id}')."
         )
-    if task_seen and entry.status == InvertedIndexState.READY:
+    if task_seen and entry.state == InvertedIndexState.READY:
         return entry, task_seen
     return None, task_seen
 
@@ -886,7 +887,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
-        algorithm: Optional[Literal["blockmax"]] = None,
+        algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
     ) -> executor.Result[InvertedIndexStatus]: ...
@@ -898,7 +899,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
-        algorithm: Optional[Literal["blockmax"]] = None,
+        algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
     ) -> executor.Result[InvertedIndexTask]: ...
@@ -909,7 +910,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         index_name: InvertedIndexType,
         *,
         tokenization: Optional[Tokenization] = None,
-        algorithm: Optional[Literal["blockmax"]] = None,
+        algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
     ) -> executor.Result[Union[InvertedIndexTask, InvertedIndexStatus]]:
@@ -932,7 +933,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             tokenization: The tokenization of the index. Required when creating a `searchable` index;
                 optional as a change on an existing `searchable` or `filterable` index. Not valid for
                 `rangeFilters`.
-            algorithm: The search algorithm of a `searchable` index. Only `blockmax` may be requested.
+            algorithm: The BM25 scoring algorithm of a `searchable` index. Only
+                `BM25Algorithm.BLOCKMAX` is a valid target (the `wand` to `blockmax` migration is
+                the only supported transition; the server rejects a request back to `wand`).
             tenants: The tenant/list of tenants for which to create the index. Only valid when
                 creating a `rangeFilters` index on a multi-tenant collection. If not provided, all
                 tenants are affected.
@@ -960,7 +963,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 tokenization.value if isinstance(tokenization, Tokenization) else tokenization
             )
         if algorithm is not None:
-            body["algorithm"] = algorithm
+            body["algorithm"] = (
+                algorithm.value if isinstance(algorithm, BM25Algorithm) else algorithm
+            )
         return self.__submit_property_index_task(
             property_name=property_name,
             index_name=index,

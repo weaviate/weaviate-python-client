@@ -114,7 +114,7 @@ OpenAiReasoningEffort: TypeAlias = Literal[
 # removed in a future release. Prefer ``InvertedIndexType`` for property index type arguments;
 # the string form is still accepted by ``delete_property_index`` (which emits a
 # ``DeprecationWarning``) for backwards compatibility. ``typing_extensions.deprecated`` (PEP 702)
-# cannot annotate a bare type alias — it decorates classes/functions/overloads — so the
+# cannot annotate a bare type alias (it decorates classes/functions/overloads), so the
 # deprecation is surfaced via this comment and the runtime warning on the accepting method.
 IndexName: TypeAlias = Literal[
     "searchable",
@@ -219,6 +219,18 @@ class Tokenization(str, BaseEnum):
     KAGOME_JA = "kagome_ja"
     KAGOME_KR = "kagome_kr"
     GSE_CH = "gse_ch"
+
+
+class BM25Algorithm(str, BaseEnum):
+    """The BM25 scoring algorithm of a searchable property index.
+
+    Attributes:
+        WAND: The Weak-AND scoring algorithm.
+        BLOCKMAX: The BlockMax-WAND scoring algorithm.
+    """
+
+    WAND = "wand"
+    BLOCKMAX = "blockmax"
 
 
 class GenerativeSearches(str, BaseEnum):
@@ -2328,20 +2340,22 @@ InvertedIndexTask = _InvertedIndexTask
 
 @dataclass
 class _InvertedIndexStatus(_ConfigBase):
-    """The status of a single property index as reported by the index status endpoint.
+    """A snapshot of a single property index as reported by the index status endpoint.
 
-    Known `status` values parse to `InvertedIndexState`; unknown server values pass through
-    as plain strings, so that polling a status endpoint never crashes on a new state name.
+    Known `state` values parse to `InvertedIndexState` and known `algorithm`/`target_algorithm`
+    values parse to `BM25Algorithm`; unknown server values pass through as plain strings, so that
+    polling the endpoint never crashes on a newly-added lifecycle state or scoring algorithm name.
     """
 
     type: InvertedIndexType  # noqa: A003
-    status: Union[InvertedIndexState, str]
+    state: Union[InvertedIndexState, str]
     progress: Optional[float]
     task_id: Optional[str]
     tokenization: Optional[Tokenization]
     target_tokenization: Optional[Tokenization]
-    algorithm: Optional[str]
-    target_algorithm: Optional[str]
+    # searchable only: the current and in-flight BM25 scoring algorithm
+    algorithm: Optional[Union[BM25Algorithm, str]]
+    target_algorithm: Optional[Union[BM25Algorithm, str]]
 
 
 InvertedIndexStatus = _InvertedIndexStatus

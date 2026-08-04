@@ -2,6 +2,7 @@ import datetime
 from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     DataType,
     GenerativeSearches,
     InvertedIndexState,
@@ -580,29 +581,40 @@ def _inverted_index_task_from_json(response: Dict[str, Any]) -> _InvertedIndexTa
     )
 
 
+def _bm25_algorithm_or_raw(value: Optional[str]) -> Optional[Union[BM25Algorithm, str]]:
+    if value is None:
+        return None
+    try:
+        # known values parse to the enum; unknown ones pass through so that a future BM25
+        # scoring algorithm never crashes a read
+        return BM25Algorithm(value)
+    except ValueError:
+        return value
+
+
 def _inverted_index_status_from_json(index: Dict[str, Any]) -> _InvertedIndexStatus:
     tokenization = index.get("tokenization")
     target_tokenization = index.get("targetTokenization")
-    raw_status = index["status"]
+    raw_state = index["status"]
     try:
-        status: Union[InvertedIndexState, str] = InvertedIndexState(raw_status)
+        state: Union[InvertedIndexState, str] = InvertedIndexState(raw_state)
     except ValueError:
         # the spec declares the field open-vocabulary; pass unknown values through so that
-        # polling a status endpoint never crashes on a newly-added state name
-        status = raw_status
+        # polling the endpoint never crashes on a newly-added lifecycle state name
+        state = raw_state
     return _InvertedIndexStatus(
         # `type` is closed-vocabulary and server-canonical (always filterable|searchable|
         # rangeFilters), so parse it strictly into the enum, matching the file convention.
         type=InvertedIndexType(index["type"]),
-        status=status,
+        state=state,
         progress=index.get("progress"),
         task_id=index.get("taskId"),
         tokenization=Tokenization(tokenization) if tokenization is not None else None,
         target_tokenization=(
             Tokenization(target_tokenization) if target_tokenization is not None else None
         ),
-        algorithm=index.get("algorithm"),
-        target_algorithm=index.get("targetAlgorithm"),
+        algorithm=_bm25_algorithm_or_raw(index.get("algorithm")),
+        target_algorithm=_bm25_algorithm_or_raw(index.get("targetAlgorithm")),
     )
 
 
