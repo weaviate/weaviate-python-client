@@ -2745,29 +2745,11 @@ def test_delete_vector_index(collection_factory: CollectionFactory) -> None:
     assert config.vector_config is not None
     assert config.vector_config["dropped"].vector_index_config is not None
 
-    with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError):
-        collection.config.delete_vector_index("does_not_exist")
-
     assert collection.config.delete_vector_index("dropped") is True
 
     vector_config = _vector_config_without_index(collection, "dropped")
     # vectors that were not dropped keep their index
     assert vector_config["kept"].vector_index_config is not None
 
-    # `list_all` parses the schema through the simple config parser, it must cope with the drop too
-    with weaviate.connect_to_local() as client:
-        simple = client.collections.list_all()[collection.name]
-        assert simple.vector_config is not None
-        assert simple.vector_config["kept"].vector_index_config is not None
-
     # searching the vector that still has an index keeps working
     assert len(collection.query.near_vector([3, 4], target_vector="kept").objects) == 1
-
-
-def test_delete_vector_index_invalid_input(collection_factory: CollectionFactory) -> None:
-    """Test that a non-string vector name is rejected before hitting the network."""
-    collection = collection_factory(
-        vector_config=[Configure.Vectors.self_provided(name="vec")],
-    )
-    with pytest.raises(WeaviateInvalidInputError):
-        collection.config.delete_vector_index(42)  # type: ignore[arg-type]

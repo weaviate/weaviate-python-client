@@ -1,6 +1,9 @@
 from typing import Any, Dict
 
+import pytest
+
 from weaviate.collections.classes.config import VectorIndexType
+from weaviate.exceptions import SchemaValidationError
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
@@ -77,6 +80,16 @@ def test_collection_config_from_json_with_dropped_vector_index() -> None:
     assert as_dict["vectorConfig"]["dropped"]["vectorIndexType"] == VectorIndexType.NONE.value
     assert "vectorIndexConfig" not in as_dict["vectorConfig"]["dropped"]
     assert as_dict["vectorConfig"]["kept"]["vectorIndexType"] == VectorIndexType.HNSW.value
+
+
+def test_collection_config_from_json_missing_vector_index_config_raises() -> None:
+    """A non-dropped vector missing its vectorIndexConfig must fail fast, not parse as None."""
+    schema = _schema_with_vector_config(
+        {"broken": {"vectorizer": {"none": {}}, "vectorIndexType": "hnsw"}}
+    )
+
+    with pytest.raises(SchemaValidationError, match="broken"):
+        _collection_config_from_json(schema)
 
 
 def test_collection_config_simple_from_json_with_dropped_vector_index() -> None:
