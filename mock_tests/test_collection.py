@@ -489,11 +489,21 @@ def test_delete_vector_index(weaviate_mock: HTTPServer) -> None:
     weaviate_mock.expect_request(
         "/v1/schema/Test/vectors/vec/index", method="DELETE"
     ).respond_with_json(response_json={}, status=200)
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/missing/index", method="DELETE"
+    ).respond_with_json(
+        response_json={"error": [{"message": "vector index missing not found"}]}, status=422
+    )
 
     with weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     ) as client:
         assert client.collections.use("test").config.delete_vector_index("vec")
+
+        # a non-OK answer (e.g. unknown vector name) surfaces as UnexpectedStatusCodeError
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            client.collections.use("test").config.delete_vector_index("missing")
+        assert e.value.status_code == 422
 
         with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
             client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
