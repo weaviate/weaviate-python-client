@@ -5,8 +5,6 @@ import sys
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
-from . import _authlib_compat  # noqa: F401  # side-effect: silence authlib.jose deprecation
-
 try:
     __version__ = version("weaviate-client")
 except PackageNotFoundError:
