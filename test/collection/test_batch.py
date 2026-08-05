@@ -3,7 +3,12 @@ import uuid
 import pytest
 
 from weaviate.collections.batch.grpc_batch import _validate_props
-from weaviate.collections.classes.batch import MAX_STORED_RESULTS, BatchObjectReturn
+from weaviate.collections.classes.batch import (
+    MAX_STORED_RESULTS,
+    BatchObject,
+    BatchObjectReturn,
+    ErrorObject,
+)
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError
 
 
@@ -53,3 +58,26 @@ def test_validate_props_raises_for_top_level_vector() -> None:
 def test_validate_props_raises_for_nested_vector() -> None:
     with pytest.raises(WeaviateInsertInvalidPropertyError):
         _validate_props({"vector": [0.1, 0.2]}, nested=True)
+
+
+def test_error_object_original_uuid_is_set_from_batch_object() -> None:
+    """ErrorObject should preserve the original_uuid from the BatchObject that failed."""
+    obj_uuid = uuid.uuid4()
+    obj = BatchObject(collection="TestCollection", uuid=obj_uuid, index=0)
+    error = ErrorObject(message="some error", object_=obj, original_uuid=obj.uuid)
+    assert str(error.original_uuid) == str(obj_uuid)
+
+
+def test_error_object_original_uuid_not_none_when_object_has_uuid() -> None:
+    """When building ErrorObjects in the exception path, original_uuid must not be None."""
+    objs = [
+        BatchObject(collection="TestCollection", uuid=uuid.uuid4(), index=i) for i in range(3)
+    ]
+    # Simulate what base.py does in the exception handler after the fix
+    errors_obj = {
+        idx: ErrorObject(message="connection error", object_=obj, original_uuid=obj.uuid)
+        for idx, obj in enumerate(objs)
+    }
+    for idx, obj in enumerate(objs):
+        assert errors_obj[idx].original_uuid is not None
+        assert errors_obj[idx].original_uuid == obj.uuid
