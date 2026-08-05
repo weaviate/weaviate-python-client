@@ -750,7 +750,9 @@ def _datetime_to_string(value: TIME) -> str:
     return value.isoformat(sep="T", timespec="microseconds")
 
 
-def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+def _datetime_from_weaviate_str(string: str) -> Optional[datetime.datetime]:
+    if not string:
+        return None
     if string[-1] != "Z":
         string = "".join(string.rsplit(":", 1))
 
