@@ -104,6 +104,52 @@ def test_collection_config_simple_from_json_with_dropped_vector_index() -> None:
     assert config.vector_config["dropped"].vector_index_config is None
 
 
+def _legacy_schema_without_vectorizer() -> Dict[str, Any]:
+    """Schema of a legacy (single-vector) collection whose vector index was dropped.
+
+    After the drop finalizes the server omits the top-level `vectorizer`, `vectorIndexType`
+    and `vectorIndexConfig`, and there is no `vectorConfig` block.
+    """
+    return {
+        "class": "TestCollection",
+        "properties": [],
+        "invertedIndexConfig": {
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "cleanupIntervalSeconds": 60,
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+        },
+        "multiTenancyConfig": {"enabled": False},
+        "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
+        "shardingConfig": {
+            "virtualPerPhysical": 128,
+            "desiredCount": 1,
+            "actualCount": 1,
+            "desiredVirtualCount": 128,
+            "actualVirtualCount": 128,
+            "key": "_id",
+            "strategy": "hash",
+            "function": "murmur3",
+        },
+    }
+
+
+def test_collection_config_from_json_legacy_dropped_vector_index() -> None:
+    """A legacy collection whose vector index was dropped has no top-level vectorizer."""
+    config = _collection_config_from_json(_legacy_schema_without_vectorizer())
+
+    assert config.vectorizer is None
+    assert config.vector_index_type is None
+    assert config.vector_config is None
+
+
+def test_collection_config_simple_from_json_legacy_dropped_vector_index() -> None:
+    """`collections.list_all()` must not choke on a legacy collection with a dropped index."""
+    config = _collection_config_simple_from_json(_legacy_schema_without_vectorizer())
+
+    assert config.vectorizer is None
+    assert config.vector_config is None
+
+
 def test_collection_config_simple_from_json_with_none_vectorizer_config() -> None:
     """Test that _collection_configs_simple_from_json handles None vectorizer config."""
     schema = {
