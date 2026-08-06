@@ -1,7 +1,8 @@
-from typing import Generator
+from typing import AsyncGenerator, Generator, List
 
 import grpc
 import pytest
+import pytest_asyncio
 import weaviate
 from weaviate.proto.v1 import batch_pb2, weaviate_pb2_grpc
 from .conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, mock_class, HTTPServer
@@ -60,3 +61,97 @@ def test_ssb_canceled_stream(
         for i in range(HOW_MANY):
             batch.add_object({"name": f"Object {i}"})
     assert len(service.uuids) == HOW_MANY
+
+
+class MockPartialFailureStreamWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    """Accepts every other object and rejects the rest, so a batch of 4 gives 2 uuids and 2 errors."""
+
+    def __init__(self) -> None:
+        self.seen = 0
+
+    def BatchStream(
+        self,
+        request_iterator: Generator[batch_pb2.BatchStreamRequest, None, None],
+        context: grpc.ServicerContext,
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        yield batch_pb2.BatchStreamReply(started=batch_pb2.BatchStreamReply.Started())
+        for request in request_iterator:
+            if request.HasField("data"):
+                uuids: List[str] = []
+                errors: List[batch_pb2.BatchStreamReply.Results.Error] = []
+                successes: List[batch_pb2.BatchStreamReply.Results.Success] = []
+                for obj in request.data.objects.values:
+                    uuids.append(obj.uuid)
+                    if self.seen % 2 == 1:
+                        errors.append(
+                            batch_pb2.BatchStreamReply.Results.Error(
+                                error="mock server rejected this object", uuid=obj.uuid
+                            )
+                        )
+                    else:
+                        successes.append(batch_pb2.BatchStreamReply.Results.Success(uuid=obj.uuid))
+                    self.seen += 1
+                yield batch_pb2.BatchStreamReply(acks=batch_pb2.BatchStreamReply.Acks(uuids=uuids))
+                yield batch_pb2.BatchStreamReply(
+                    results=batch_pb2.BatchStreamReply.Results(errors=errors, successes=successes)
+                )
+            if request.HasField("stop"):
+                return
+
+
+@pytest.fixture(scope="function")
+def partial_failure_stream(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> Generator[weaviate.collections.Collection, None, None]:
+    weaviate_mock.expect_request(f"/v1/schema/{mock_class['class']}").respond_with_json(mock_class)
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(
+        MockPartialFailureStreamWeaviateService(), start_grpc_server
+    )
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    yield client.collections.use(mock_class["class"])
+    client.close()
+
+
+@pytest_asyncio.fixture
+async def partial_failure_stream_async(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> AsyncGenerator[weaviate.collections.CollectionAsync, None]:
+    weaviate_mock.expect_request(f"/v1/schema/{mock_class['class']}").respond_with_json(mock_class)
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(
+        MockPartialFailureStreamWeaviateService(), start_grpc_server
+    )
+    client = weaviate.use_async_with_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    await client.connect()
+    yield client.collections.use(mock_class["class"])
+    await client.close()
+
+
+def test_ssb_ingest_reports_has_errors(
+    partial_failure_stream: weaviate.collections.Collection,
+) -> None:
+    result = partial_failure_stream.data.ingest({"name": f"Object {i}"} for i in range(4))
+    assert len(result.errors) == 2
+    assert len(result.uuids) == 2
+    assert result.has_errors
+
+
+@pytest.mark.asyncio
+async def test_ssb_ingest_reports_has_errors_async(
+    partial_failure_stream_async: weaviate.collections.CollectionAsync,
+) -> None:
+    result = await partial_failure_stream_async.data.ingest(
+        {"name": f"Object {i}"} for i in range(4)
+    )
+    assert len(result.errors) == 2
+    assert len(result.uuids) == 2
+    assert result.has_errors
+
+
+def test_ssb_stream_reports_has_errors(
+    partial_failure_stream: weaviate.collections.Collection,
+) -> None:
+    with partial_failure_stream.batch.stream() as batch:
+        for i in range(4):
+            batch.add_object({"name": f"Object {i}"})
+    assert len(partial_failure_stream.batch.failed_objects) == 2
+    assert partial_failure_stream.batch.results.objs.has_errors
