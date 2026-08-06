@@ -317,6 +317,10 @@ def __get_vector_config(
 def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]]:
     if "vectorConfig" in schema:
         return None
+    # A legacy (non-named-vector) collection whose vector index was dropped with
+    # `collection.config.delete_vector_index` comes back with no top-level `vectorizer`.
+    if "vectorizer" not in schema:
+        return None
 
     vectorizer = str(schema["vectorizer"])
     try:
