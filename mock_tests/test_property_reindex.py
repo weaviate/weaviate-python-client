@@ -9,6 +9,7 @@ from werkzeug.wrappers import Response
 
 import weaviate
 from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
+from weaviate.collections.config import executor as reindex_executor
 from weaviate.collections.classes.config import (
     BM25Algorithm,
     DataType,
@@ -20,12 +21,38 @@ from weaviate.collections.classes.config import (
 from weaviate.exceptions import (
     ReindexCanceledError,
     ReindexFailedError,
+    ReindexTimeoutError,
     WeaviateUnsupportedFeatureError,
 )
 
 COLLECTION = "TestCollection"
 SCHEMA_PATH = f"/v1/schema/{COLLECTION}"
-TASK_ID = "00000000-0000-0000-0000-000000000001"
+INDEXES_PATH = f"{SCHEMA_PATH}/indexes"
+TASK_ID = "TestCollection:change-tokenization:name:ab3f"
+
+
+def _indexes(index_name: str = "searchable", **fields: object) -> dict:
+    """A realistic GET /schema/{class}/indexes payload wrapping a single index entry.
+
+    Pass wire fields, e.g. status="ready"/"indexing"/"failed", tokenization, targetTokenization,
+    algorithm, targetAlgorithm, progress, taskId. A plain ready entry carries NO taskId.
+    """
+    entry: dict = {"type": index_name, **fields}
+    return {
+        "collection": COLLECTION,
+        "properties": [{"name": "name", "dataType": "text", "indexes": [entry]}],
+    }
+
+
+def _no_index() -> dict:
+    """An /indexes payload where the target property/index entry is absent (vanished / missing)."""
+    return {"collection": COLLECTION, "properties": []}
+
+
+@pytest.fixture(scope="function")
+def fast_poll(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Shrink the reindex poll interval so stall/grace tests run against the REAL thresholds fast."""
+    monkeypatch.setattr(reindex_executor, "_REINDEX_POLL_INTERVAL_SECONDS", 0.005)
 
 
 @pytest.fixture(scope="function")
@@ -126,41 +153,359 @@ def test_update_property_index_range_filters_with_tenants(
     weaviate_139_mock.check_assertions()
 
 
-def test_update_property_index_wait_for_completion(
+def test_update_property_index_wait_tokenization_change(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
-    weaviate_139_mock.expect_request(
+    """A tokenization change converges when a ready entry reports the NEW tokenization.
+
+    The in-flight entry (indexing, target_tokenization=new) must not be treated as done; only the
+    ready entry carrying the new tokenization returns.
+    """
+    weaviate_139_mock.expect_ordered_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable",
         method="PUT",
-        json={"tokenization": "word"},
+        json={"tokenization": "field"},
     ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
-    # the ready entry still carries the submitted task id, so the task_id-gated wait accepts it
-    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
+    # poll 1: migration in flight (still old tokenization, target set, carries our taskId)
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(
+            status="indexing",
+            progress=0.5,
+            taskId=TASK_ID,
+            tokenization="word",
+            targetTokenization="field",
+        )
+    )
+    # poll 2: ready with the new tokenization (a plain ready entry carries no taskId)
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="field")
+    )
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+    )
+    assert status.type == "searchable"
+    assert status.state == InvertedIndexState.READY
+    assert status.tokenization == Tokenization.FIELD
+    assert status.task_id is None  # a ready entry carries no task id
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_stale_pre_flip_not_accepted(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A ready entry with the OLD tokenization is the stale pre-flip state and must not return.
+
+    Regression pin for finding #1: the wait keeps polling until the ready entry reports the
+    requested (new) tokenization. If a stale-old ready were accepted, the assertion below fails.
+    """
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # poll 1: a ready entry still on the OLD tokenization (pre-flip) - must NOT be accepted
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="word")
+    )
+    # poll 2: ready on the NEW tokenization
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="field")
+    )
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+    )
+    assert status.tokenization == Tokenization.FIELD
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_finalize_window_not_done(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """Regression pin for finding #1: indexing@progress=1.0 is NOT done, only ready is.
+
+    The finalize window shows indexing at progress 1.0 with the target still set; the wait must
+    keep polling and return only on the subsequent ready poll.
+    """
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # poll 1: finalize window - indexing at progress 1.0 with the target still set
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(
+            status="indexing",
+            progress=1.0,
+            taskId=TASK_ID,
+            tokenization="word",
+            targetTokenization="field",
+        )
+    )
+    # poll 2: flipped to ready on the new tokenization
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="field")
+    )
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+    )
+    assert status.state == InvertedIndexState.READY
+    assert status.tokenization == Tokenization.FIELD
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_algorithm_change(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """An algorithm change (wand -> blockmax) converges on a ready entry reporting blockmax."""
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"algorithm": "blockmax"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # poll 1: in-flight, still wand with the target set
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="indexing", taskId=TASK_ID, algorithm="wand", targetAlgorithm="blockmax")
+    )
+    # poll 2: ready on blockmax
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", algorithm="blockmax")
+    )
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name", "searchable", algorithm=BM25Algorithm.BLOCKMAX, wait_for_completion=True
+    )
+    assert status.algorithm is BM25Algorithm.BLOCKMAX
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_create_range_filters(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A create with an empty body converges as soon as the index exists and is ready."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/age/index/rangeFilters",
+        method="PUT",
+        json={},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
         {
             "collection": COLLECTION,
             "properties": [
                 {
-                    "name": "name",
-                    "dataType": "text",
-                    "indexes": [
-                        {
-                            "type": "searchable",
-                            "status": "ready",
-                            "taskId": TASK_ID,
-                            "tokenization": "word",
-                        }
-                    ],
+                    "name": "age",
+                    "dataType": "int",
+                    "indexes": [{"type": "rangeFilters", "status": "ready"}],
                 }
             ],
         }
     )
 
     status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "age", "rangeFilters", wait_for_completion=True
+    )
+    assert status.type == "rangeFilters"
+    assert status.state == InvertedIndexState.READY
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_no_op(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A NO_OP submit returns the current status via a single get_property_indexes fetch."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "word"},
+    ).respond_with_json({"status": "NO_OP"}, status=200)
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="word")
+    )
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
         "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
     )
-    assert status.type == "searchable"
     assert status.state == InvertedIndexState.READY
     assert status.tokenization == Tokenization.WORD
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_timeout(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """An index that never reaches ready past the timeout raises ReindexTimeoutError."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # /indexes always reports the migration still in flight
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(
+            status="indexing",
+            progress=0.3,
+            taskId=TASK_ID,
+            tokenization="word",
+            targetTokenization="field",
+        )
+    )
+
+    with pytest.raises(ReindexTimeoutError):
+        client_139.collections.use(COLLECTION).config.update_property_index(
+            "name",
+            "searchable",
+            tokenization=Tokenization.FIELD,
+            wait_for_completion=True,
+            timeout=0.5,
+        )
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_stall_vanished_after_active(
+    fast_poll: None, weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A task seen active then vanishing from /indexes is bounded (timeout=None must not hang)."""
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # poll 1: our task is active (resets the stall counter) ...
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="indexing", taskId=TASK_ID, tokenization="word", targetTokenization="field")
+    )
+    # ... then the entry vanishes for good (server fault) - bounded by the no-progress guard
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(_no_index())
+
+    with pytest.raises(ReindexTimeoutError, match="did not progress"):
+        client_139.collections.use(COLLECTION).config.update_property_index(
+            "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+        )
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_stall_never_appears(
+    fast_poll: None, weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """An entry absent from the very first poll (never appears) is bounded, not an infinite wait."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(_no_index())
+
+    with pytest.raises(ReindexTimeoutError, match="did not progress"):
+        client_139.collections.use(COLLECTION).config.update_property_index(
+            "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+        )
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_stall_ready_on_old_config(
+    fast_poll: None, weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A ready entry stuck on the OLD tokenization forever is bounded by the no-progress guard."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # ready, but never flips to the requested tokenization (server never completed the swap)
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="word")
+    )
+
+    with pytest.raises(ReindexTimeoutError, match="did not progress"):
+        client_139.collections.use(COLLECTION).config.update_property_index(
+            "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+        )
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_healthy_long_not_cut_off(
+    fast_poll: None, weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A legitimately long reindex (indexing for well past the stall bound) must NOT be cut off.
+
+    Proves the no-progress guard never trips a healthy migration: each indexing poll (including the
+    finalize window at progress 1.0) resets the stall counter, so it completes normally on ready.
+    """
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+
+    # stay INDEXING for well beyond the stall threshold, then flip to ready on the new tokenization
+    indexing_polls = reindex_executor._REINDEX_STALL_POLLS + 5
+    state = {"n": 0}
+
+    def handler(request: object) -> Response:
+        state["n"] += 1
+        if state["n"] <= indexing_polls:
+            # include the finalize window (progress 1.0) on the last indexing poll
+            progress = 1.0 if state["n"] == indexing_polls else 0.5
+            body = _indexes(
+                status="indexing",
+                progress=progress,
+                taskId=TASK_ID,
+                tokenization="word",
+                targetTokenization="field",
+            )
+        else:
+            body = _indexes(status="ready", tokenization="field")
+        return Response(json.dumps(body), content_type="application/json")
+
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_handler(handler)
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+    )
+    assert status.state == InvertedIndexState.READY
+    assert status.tokenization == Tokenization.FIELD
+    assert state["n"] > reindex_executor._REINDEX_STALL_POLLS  # actually polled past the bound
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_no_op_missing_entry(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A NO_OP whose index is missing from /indexes raises a clear error, not a bare assert."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "word"},
+    ).respond_with_json({"status": "NO_OP"}, status=200)
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(_no_index())
+
+    with pytest.raises(ReindexFailedError, match="NO_OP"):
+        client_139.collections.use(COLLECTION).config.update_property_index(
+            "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
+        )
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_enum_vs_str_convergence(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """Convergence compares by wire value, so the parsed Tokenization enum matches the wire string."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # entry.tokenization parses to Tokenization.FIELD (enum); expected is the wire string "field"
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="field")
+    )
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+    )
+    assert status.tokenization is Tokenization.FIELD
     weaviate_139_mock.check_assertions()
 
 
@@ -201,89 +546,119 @@ def test_update_property_index_bare_str_tenant(
     weaviate_139_mock.check_assertions()
 
 
-@pytest.mark.parametrize(
-    "index_status,exception",
-    [("failed", ReindexFailedError), ("cancelled", ReindexCanceledError)],
-)
-def test_update_property_index_wait_raises(
-    weaviate_139_mock: HTTPServer,
-    client_139: weaviate.WeaviateClient,
-    index_status: str,
-    exception: type,
+def test_update_property_index_wait_raises_failed(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
+    """A failed entry belonging to our task raises ReindexFailedError naming the task id."""
     weaviate_139_mock.expect_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable",
         method="PUT",
         json={"tokenization": "word"},
     ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
-    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
-        {
-            "collection": COLLECTION,
-            "properties": [
-                {
-                    "name": "name",
-                    "dataType": "text",
-                    "indexes": [
-                        {
-                            "type": "searchable",
-                            "status": index_status,
-                            "progress": 0.42,
-                            "taskId": TASK_ID,
-                            "tokenization": "word",
-                        }
-                    ],
-                }
-            ],
-        }
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="failed", taskId=TASK_ID, tokenization="word")
     )
 
-    with pytest.raises(exception):
+    with pytest.raises(ReindexFailedError) as e:
+        client_139.collections.use(COLLECTION).config.update_property_index(
+            "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
+        )
+    assert TASK_ID in str(e.value)
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_stale_failed_not_raised(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A stale failed entry with a DIFFERENT task id must not raise; the wait keeps polling.
+
+    Regression pin: only a failed entry that belongs to our submitted task is terminal.
+    """
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # poll 1: a stale failed entry from a PRIOR reindex (different task id) - must NOT raise
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="failed", taskId="stale-other-task:x:y:0000", tokenization="word")
+    )
+    # poll 2: our migration completes to ready on the new tokenization
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="field")
+    )
+
+    status = client_139.collections.use(COLLECTION).config.update_property_index(
+        "name", "searchable", tokenization=Tokenization.FIELD, wait_for_completion=True
+    )
+    assert status.state == InvertedIndexState.READY
+    assert status.tokenization == Tokenization.FIELD
+    weaviate_139_mock.check_assertions()
+
+
+def test_update_property_index_wait_raises_cancelled(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A cancelled entry belonging to our task raises ReindexCanceledError."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "word"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="cancelled", taskId=TASK_ID, tokenization="word")
+    )
+
+    with pytest.raises(ReindexCanceledError):
         client_139.collections.use(COLLECTION).config.update_property_index(
             "name", "searchable", tokenization=Tokenization.WORD, wait_for_completion=True
         )
     weaviate_139_mock.check_assertions()
 
 
-@pytest.mark.parametrize(
-    "index_status,exception",
-    [("failed", ReindexFailedError), ("cancelled", ReindexCanceledError)],
-)
-def test_rebuild_property_index_wait_raises(
-    weaviate_139_mock: HTTPServer,
-    client_139: weaviate.WeaviateClient,
-    index_status: str,
-    exception: type,
+def test_rebuild_property_index_wait(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
+    """A rebuild wait returns once the entry (seen active) reaches ready (best-effort)."""
+    weaviate_139_mock.expect_ordered_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable/rebuild",
+        method="POST",
+        json={},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    # poll 1: rebuild in flight, carrying our task id
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="indexing", progress=0.5, taskId=TASK_ID, tokenization="word")
+    )
+    # poll 2: ready (task seen active -> best-effort completion)
+    weaviate_139_mock.expect_ordered_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="word")
+    )
+
+    status = client_139.collections.use(COLLECTION).config.rebuild_property_index(
+        "name", "searchable", wait_for_completion=True
+    )
+    assert status.state == InvertedIndexState.READY
+    weaviate_139_mock.check_assertions()
+
+
+def test_rebuild_property_index_wait_fast_ready_grace(
+    fast_poll: None, weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """A fast rebuild whose task is never observed active returns after the (wide) ready grace."""
     weaviate_139_mock.expect_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable/rebuild",
         method="POST",
         json={},
     ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
-    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
-        {
-            "collection": COLLECTION,
-            "properties": [
-                {
-                    "name": "name",
-                    "dataType": "text",
-                    "indexes": [
-                        {
-                            "type": "searchable",
-                            "status": index_status,
-                            "progress": 0.42,
-                            "taskId": TASK_ID,
-                            "tokenization": "word",
-                        }
-                    ],
-                }
-            ],
-        }
+    # the index is ready from the first poll and stays ready (no active task ever observed)
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="word")
     )
 
-    with pytest.raises(exception):
-        client_139.collections.use(COLLECTION).config.rebuild_property_index(
-            "name", "searchable", wait_for_completion=True
-        )
+    status = client_139.collections.use(COLLECTION).config.rebuild_property_index(
+        "name", "searchable", wait_for_completion=True
+    )
+    assert status.state == InvertedIndexState.READY
     weaviate_139_mock.check_assertions()
 
 
@@ -697,71 +1072,27 @@ def test_property_reindex_invalid_input(
     weaviate_139_mock.check_assertions()
 
 
-def _single_index_payload(entry: dict) -> dict:
-    return {
-        "collection": COLLECTION,
-        "properties": [{"name": "name", "dataType": "text", "indexes": [entry]}],
-    }
-
-
-def test_update_property_index_wait_polls_until_submitted_task_ready(
+def test_update_property_index_rejects_wand_algorithm(
     weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
 ) -> None:
-    """Regression for the task_id gate (fix #1).
+    """5c: WAND is never a valid target; both the enum and the wire string raise."""
+    config = client_139.collections.use(COLLECTION).config
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError, match="not a valid target"):
+        config.update_property_index("name", "searchable", algorithm=BM25Algorithm.WAND)
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError, match="not a valid target"):
+        config.update_property_index("name", "searchable", algorithm="wand")  # type: ignore
+    weaviate_139_mock.check_assertions()
 
-    The wait must ignore a stale ``ready`` left by a PRIOR reindex and only accept the ``ready``
-    that follows the submitted task's own progress — never returning early. If the task_id gate
-    were removed, the first (stale) ready would be returned and the tokenization assertion below
-    would fail.
-    """
-    weaviate_139_mock.expect_ordered_request(
-        f"{SCHEMA_PATH}/properties/name/index/searchable",
-        method="PUT",
-        json={"tokenization": "field"},
-    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
-    # poll 1: a stale ready from a prior reindex (different task id) — must NOT be accepted
-    weaviate_139_mock.expect_ordered_request(
-        f"{SCHEMA_PATH}/indexes", method="GET"
-    ).respond_with_json(
-        _single_index_payload(
-            {
-                "type": "searchable",
-                "status": "ready",
-                "taskId": "stale-task",
-                "tokenization": "word",
-            }
-        )
-    )
-    # poll 2: our task mid-finalize (indexing @ 1.0 carrying our task id)
-    weaviate_139_mock.expect_ordered_request(
-        f"{SCHEMA_PATH}/indexes", method="GET"
-    ).respond_with_json(
-        _single_index_payload(
-            {
-                "type": "searchable",
-                "status": "indexing",
-                "progress": 1.0,
-                "taskId": TASK_ID,
-                "tokenization": "word",
-                "targetTokenization": "field",
-            }
-        )
-    )
-    # poll 3: flipped to plain ready with the new tokenization
-    weaviate_139_mock.expect_ordered_request(
-        f"{SCHEMA_PATH}/indexes", method="GET"
-    ).respond_with_json(
-        _single_index_payload({"type": "searchable", "status": "ready", "tokenization": "field"})
-    )
 
-    status = client_139.collections.use(COLLECTION).config.update_property_index(
-        "name",
-        InvertedIndexType.SEARCHABLE,
-        tokenization=Tokenization.FIELD,
-        wait_for_completion=True,
-    )
-    assert status.state == InvertedIndexState.READY
-    assert status.tokenization == Tokenization.FIELD
+def test_update_property_index_rejects_garbage_config_types(
+    weaviate_139_mock: HTTPServer, client_139: weaviate.WeaviateClient
+) -> None:
+    """5d: non-str/enum tokenization or algorithm is rejected with a clear input error."""
+    config = client_139.collections.use(COLLECTION).config
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        config.update_property_index("name", "searchable", tokenization=123)  # type: ignore
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        config.update_property_index("name", "searchable", algorithm=123)  # type: ignore
     weaviate_139_mock.check_assertions()
 
 
@@ -769,16 +1100,19 @@ def test_update_property_index_wait_polls_until_submitted_task_ready(
 async def test_update_property_index_async(
     weaviate_139_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> None:
-    """The async fork of update_property_index submits and waits via the task_id gate."""
+    """The async fork of update_property_index submits and waits by polling /indexes.
+
+    Uses unordered handlers because the async client connects inside the test body (its startup
+    meta/nodes calls would collide with an ordered sequence); a ready-on-first-poll /indexes still
+    exercises the async convergence path.
+    """
     weaviate_139_mock.expect_request(
         f"{SCHEMA_PATH}/properties/name/index/searchable",
         method="PUT",
-        json={"tokenization": "word"},
+        json={"tokenization": "field"},
     ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
-    weaviate_139_mock.expect_request(f"{SCHEMA_PATH}/indexes", method="GET").respond_with_json(
-        _single_index_payload(
-            {"type": "searchable", "status": "ready", "taskId": TASK_ID, "tokenization": "word"}
-        )
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="ready", tokenization="field")
     )
 
     async with weaviate.use_async_with_local(
@@ -787,11 +1121,39 @@ async def test_update_property_index_async(
         status = await client.collections.use(COLLECTION).config.update_property_index(
             "name",
             InvertedIndexType.SEARCHABLE,
-            tokenization=Tokenization.WORD,
+            tokenization=Tokenization.FIELD,
             wait_for_completion=True,
         )
     assert status.state == InvertedIndexState.READY
-    assert status.tokenization == Tokenization.WORD
+    assert status.tokenization == Tokenization.FIELD
+    weaviate_139_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_update_property_index_async_timeout(
+    weaviate_139_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """The async wait honors the timeout when the index never reaches ready."""
+    weaviate_139_mock.expect_request(
+        f"{SCHEMA_PATH}/properties/name/index/searchable",
+        method="PUT",
+        json={"tokenization": "field"},
+    ).respond_with_json({"taskId": TASK_ID, "status": "STARTED"}, status=202)
+    weaviate_139_mock.expect_request(INDEXES_PATH, method="GET").respond_with_json(
+        _indexes(status="indexing", taskId=TASK_ID, tokenization="word", targetTokenization="field")
+    )
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+    ) as client:
+        with pytest.raises(ReindexTimeoutError):
+            await client.collections.use(COLLECTION).config.update_property_index(
+                "name",
+                InvertedIndexType.SEARCHABLE,
+                tokenization=Tokenization.FIELD,
+                wait_for_completion=True,
+                timeout=0.5,
+            )
     weaviate_139_mock.check_assertions()
 
 

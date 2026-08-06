@@ -108,6 +108,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
+        timeout: Optional[float] = None,
     ) -> InvertedIndexStatus: ...
     @overload
     async def update_property_index(
@@ -119,6 +120,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
+        timeout: Optional[float] = None,
     ) -> InvertedIndexTask: ...
     @overload
     async def rebuild_property_index(
@@ -128,6 +130,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
+        timeout: Optional[float] = None,
     ) -> InvertedIndexStatus: ...
     @overload
     async def rebuild_property_index(
@@ -137,6 +140,7 @@ class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
+        timeout: Optional[float] = None,
     ) -> InvertedIndexTask: ...
     async def cancel_property_index_task(
         self, property_name: str, index_name: InvertedIndexType

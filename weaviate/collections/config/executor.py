@@ -1,5 +1,6 @@
 import asyncio
 import time
+from enum import Enum
 from typing import (
     Any,
     Dict,
@@ -65,6 +66,7 @@ from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatus
 from weaviate.exceptions import (
     ReindexCanceledError,
     ReindexFailedError,
+    ReindexTimeoutError,
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
@@ -103,45 +105,54 @@ def _find_property_index_status(
     return None
 
 
-def _property_index_wait_step(
-    entry: Optional[InvertedIndexStatus],
-    task_id: str,
-    task_seen: bool,
-    property_name: str,
-    index_name: IndexName,
-) -> Tuple[Optional[InvertedIndexStatus], bool]:
-    """Decide one poll step of a ``task_id``-gated wait.
+# A rebuild has no observable end-state on the index projection (the configuration does not
+# change), so its wait is best-effort: if the task is never seen active, accept a ready entry after
+# this many consecutive ready polls. We cannot positively observe a rebuild's completion, so a
+# rebuild whose task is still queued on a lagging RAFT follower could report done up to roughly
+# this many seconds early (dirkkul's original race, bounded). Kept generous to tolerate read lag.
+_REINDEX_REBUILD_READY_GRACE_POLLS = 10
 
-    Returns ``(terminal_entry_or_None, task_seen)``. A ``None`` terminal means "keep polling".
-    Terminal acceptance is gated on the submitted ``task_id`` so that we never mistake a stale
-    entry from a prior reindex for the result of the task we just submitted:
+# No-progress bound: if the index entry stops advancing toward the requested state (vanishes, or
+# sits ready on the OLD config) for this many consecutive polls, give up rather than hang forever
+# (a server-side fault, e.g. an incomplete swap). Set well above RAFT read-lag and any brief
+# transition window so a healthy migration NEVER trips it (any progressing poll resets the count).
+_REINDEX_STALL_POLLS = 30
 
-    - ``failed``/``cancelled`` is terminal (raises) ONLY when the entry belongs to ``task_id``;
-      a stale failed/cancelled entry with a different/absent task id is ignored (keep polling).
-    - ``ready`` is terminal ONLY after we have observed the entry driven by ``task_id`` on this
-      or an earlier poll (``task_seen``). During the finalize window the entry shows
-      ``indexing`` at progress 1.0 WITH the task id before it flips to a plain ``ready`` (which
-      may carry no task id), so ``task_id`` is observable before ``ready``; a ``ready`` not yet
-      associated with ``task_id`` is the stale pre-flip state and must not be accepted.
+# Seconds between index-status polls. A module constant so tests can shrink it.
+_REINDEX_POLL_INTERVAL_SECONDS = 1.0
+
+
+def _enum_value(value: Any) -> Any:
+    """Normalize a str-enum (Tokenization / BM25Algorithm) to its wire string for comparison."""
+    return value.value if isinstance(value, Enum) else value
+
+
+def _reindex_converged(
+    entry: InvertedIndexStatus,
+    expected_tokenization: Optional[str],
+    expected_algorithm: Optional[str],
+    is_rebuild: bool,
+    task_seen_active: bool,
+    ready_polls: int,
+) -> bool:
+    """Decide whether a READY index ``entry`` reflects the completion of the submitted request.
+
+    Caller guarantees ``entry.state == READY``. Compares by wire-string value so an enum-vs-string
+    mismatch cannot cause a false negative.
     """
-    if entry is None:
-        return None, task_seen
-    belongs = entry.task_id == task_id
-    if belongs:
-        task_seen = True
-    if belongs and entry.state == InvertedIndexState.FAILED:
-        raise ReindexFailedError(
-            f"Reindexing the '{index_name}' index of property '{property_name}' failed "
-            f"(task '{task_id}'). Inspect GET /v1/tasks for the failure detail."
-        )
-    if belongs and entry.state == InvertedIndexState.CANCELLED:
-        raise ReindexCanceledError(
-            f"Reindexing the '{index_name}' index of property '{property_name}' was cancelled "
-            f"(task '{task_id}')."
-        )
-    if task_seen and entry.state == InvertedIndexState.READY:
-        return entry, task_seen
-    return None, task_seen
+    # A migration still in flight shows its target in these fields (finalize / pre-flip window).
+    if entry.target_tokenization is not None or entry.target_algorithm is not None:
+        return False
+    if expected_tokenization is not None:
+        # A stale pre-flip ready still carries the OLD tokenization, so this won't match early.
+        return _enum_value(entry.tokenization) == expected_tokenization
+    if expected_algorithm is not None:
+        return _enum_value(entry.algorithm) == expected_algorithm
+    if is_rebuild:
+        # No visible end-state: accept once we saw the task active, or after a small ready grace.
+        return task_seen_active or ready_polls >= _REINDEX_REBUILD_READY_GRACE_POLLS
+    # A create with an empty body ({}) that returned 202: the index now exists and is ready.
+    return True
 
 
 class _ConfigCollectionExecutor(Generic[ConnectionType]):
@@ -752,52 +763,166 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         )
 
     def __wait_for_property_index(
-        self, property_name: str, index_name: IndexName, task: InvertedIndexTask
+        self,
+        property_name: str,
+        index_name: IndexName,
+        task: InvertedIndexTask,
+        timeout: Optional[float],
+        expected_tokenization: Optional[str],
+        expected_algorithm: Optional[str],
+        is_rebuild: bool,
     ) -> executor.Result[InvertedIndexStatus]:
-        """Poll the index status endpoint until the submitted ``task`` reaches a terminal state.
+        """Poll GET /schema/{class}/indexes until the submitted request converges, then return it.
 
-        A ``NO_OP`` submission (no task id) means the configuration already matched, so the
-        current status is fetched once and returned without polling. Otherwise the poll is gated
-        on ``task.task_id`` (see ``_property_index_wait_step``). There is deliberately no timeout,
-        matching the export/backup wait precedent; if the targeted entry never appears (e.g. the
-        index is deleted out from under the wait) the loop spins indefinitely.
+        The index status endpoint is the completion signal (it authorizes on collection metadata,
+        the same access as the reindex operation itself, and strips the caller namespace from the
+        entry's ``task_id``). A ``NO_OP`` submission (no task id) means the configuration already
+        matched, so the current status is fetched once and returned without polling. Otherwise poll
+        every second: FAILED/CANCELLED on our task raise; a READY entry that matches the requested
+        state (see ``_reindex_converged``) is returned. The finalize window (``indexing`` at
+        progress 1.0) is never treated as done.
+
+        A rebuild has no observable end-state, so its wait is best-effort: it returns once the entry
+        has been ready (having seen the task active, or after a consecutive-ready grace).
+
+        The wait is bounded two ways: an explicit ``timeout`` (total seconds), and a no-progress
+        guard - if the entry stops advancing toward the requested state (vanishes, or sits ready on
+        the old config) for ``_REINDEX_STALL_POLLS`` consecutive polls, ``ReindexTimeoutError`` is
+        raised rather than hanging forever on a server-side fault. Any progressing poll resets it.
         """
         task_id = task.task_id
+
+        def deadline() -> Optional[float]:
+            return time.monotonic() + timeout if timeout is not None else None
+
+        timeout_error = ReindexTimeoutError(
+            f"Timed out after {timeout}s waiting for the reindex of the '{index_name}' index of "
+            f"property '{property_name}' (task '{task_id}') to complete. Poll "
+            f"collection.config.get_property_indexes() to check on it."
+        )
+        stall_error = ReindexTimeoutError(
+            f"The reindex of the '{index_name}' index of property '{property_name}' (task "
+            f"'{task_id}') did not progress toward the requested state and its entry is no longer "
+            f"advancing (the task may have failed server-side, e.g. an incomplete swap). Could not "
+            f"confirm completion; inspect collection.config.get_property_indexes() and GET /v1/tasks."
+        )
+        no_op_missing_error = ReindexFailedError(
+            f"The configuration already matched (NO_OP) but the '{index_name}' index of property "
+            f"'{property_name}' is not present in get_property_indexes()."
+        )
+
+        def check(entry: Optional[InvertedIndexStatus], ready_polls: int) -> Tuple[int, bool]:
+            """Classify one poll. Returns (ready_polls, task_seen_active_this_poll).
+
+            Raises on a failed/cancelled entry that belongs to our task.
+            """
+            if entry is None:
+                return 0, False
+            seen_active = entry.task_id == task_id
+            if seen_active and entry.state == InvertedIndexState.FAILED:
+                raise ReindexFailedError(
+                    f"Reindexing the '{index_name}' index of property '{property_name}' failed "
+                    f"(task '{task_id}'). Inspect collection.config.get_property_indexes() for detail."
+                )
+            if seen_active and entry.state == InvertedIndexState.CANCELLED:
+                raise ReindexCanceledError(
+                    f"Reindexing the '{index_name}' index of property '{property_name}' was "
+                    f"cancelled (task '{task_id}')."
+                )
+            if entry.state == InvertedIndexState.READY:
+                ready_polls += 1
+            else:
+                ready_polls = 0
+            return ready_polls, seen_active
+
+        def stalled(entry: Optional[InvertedIndexStatus], seen: bool) -> bool:
+            """Whether this poll counts as no-progress toward the requested state.
+
+            Reset (returns False) when actively progressing: entry PENDING/INDEXING, or our task is
+            seen active. A ready rebuild entry (no requested config change) is left to the ready
+            grace, not counted as a stall. Otherwise - entry vanished, or a ready entry still on the
+            old config for a requested change - it is a stall.
+            """
+            if entry is not None and (
+                seen or entry.state in (InvertedIndexState.PENDING, InvertedIndexState.INDEXING)
+            ):
+                return False
+            if entry is not None and is_rebuild and entry.state == InvertedIndexState.READY:
+                return False
+            return True
+
+        converged_args = (expected_tokenization, expected_algorithm, is_rebuild)
+
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> InvertedIndexStatus:
                 if task_id is None:
                     indexes = await executor.aresult(self.get_property_indexes())
                     entry = _find_property_index_status(indexes, property_name, index_name)
-                    assert entry is not None
+                    if entry is None:
+                        raise no_op_missing_error
                     return entry
-                task_seen = False
+                limit = deadline()
+                task_seen_active = False
+                ready_polls = 0
+                stall_polls = 0
                 while True:
                     indexes = await executor.aresult(self.get_property_indexes())
                     entry = _find_property_index_status(indexes, property_name, index_name)
-                    done, task_seen = _property_index_wait_step(
-                        entry, task_id, task_seen, property_name, index_name
-                    )
-                    if done is not None:
-                        return done
-                    await asyncio.sleep(1)
+                    ready_polls, seen = check(entry, ready_polls)
+                    task_seen_active = task_seen_active or seen
+                    if (
+                        entry is not None
+                        and entry.state == InvertedIndexState.READY
+                        and _reindex_converged(
+                            entry, *converged_args, task_seen_active, ready_polls
+                        )
+                    ):
+                        return entry
+                    stall_polls = stall_polls + 1 if stalled(entry, seen) else 0
+                    if stall_polls >= _REINDEX_STALL_POLLS:
+                        raise stall_error
+                    if limit is not None:
+                        remaining = limit - time.monotonic()
+                        if remaining <= 0:
+                            raise timeout_error
+                        await asyncio.sleep(min(_REINDEX_POLL_INTERVAL_SECONDS, remaining))
+                    else:
+                        await asyncio.sleep(_REINDEX_POLL_INTERVAL_SECONDS)
 
             return _execute()
+
         if task_id is None:
             indexes = executor.result(self.get_property_indexes())
             entry = _find_property_index_status(indexes, property_name, index_name)
-            assert entry is not None
+            if entry is None:
+                raise no_op_missing_error
             return entry
-        task_seen = False
+        limit = deadline()
+        task_seen_active = False
+        ready_polls = 0
+        stall_polls = 0
         while True:
             indexes = executor.result(self.get_property_indexes())
             entry = _find_property_index_status(indexes, property_name, index_name)
-            done, task_seen = _property_index_wait_step(
-                entry, task_id, task_seen, property_name, index_name
-            )
-            if done is not None:
-                return done
-            time.sleep(1)
+            ready_polls, seen = check(entry, ready_polls)
+            task_seen_active = task_seen_active or seen
+            if (
+                entry is not None
+                and entry.state == InvertedIndexState.READY
+                and _reindex_converged(entry, *converged_args, task_seen_active, ready_polls)
+            ):
+                return entry
+            stall_polls = stall_polls + 1 if stalled(entry, seen) else 0
+            if stall_polls >= _REINDEX_STALL_POLLS:
+                raise stall_error
+            if limit is not None:
+                remaining = limit - time.monotonic()
+                if remaining <= 0:
+                    raise timeout_error
+                time.sleep(min(_REINDEX_POLL_INTERVAL_SECONDS, remaining))
+            else:
+                time.sleep(_REINDEX_POLL_INTERVAL_SECONDS)
 
     def __submit_property_index_task(
         self,
@@ -809,6 +934,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         body: Dict[str, Any],
         tenants: Union[List[str], str, None],
         wait_for_completion: bool,
+        timeout: Optional[float],
         error_verb: str,
         error_label: str,
         ok_in: List[int],
@@ -816,7 +942,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         """Submit a reindex task (PUT upsert or POST rebuild) and optionally wait for it.
 
         Shared by ``update_property_index`` and ``rebuild_property_index``: input validation,
-        tenant csv encoding, the sync/async fork and the ``task_id``-gated wait all live here.
+        tenant csv encoding, the sync/async fork and the index-projection wait all live here.
         """
         _validate_input(
             [_ValidateArgument(expected=[str], name="property_name", value=property_name)]
@@ -832,6 +958,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 )
             ]
         )
+        _validate_input(
+            [_ValidateArgument(expected=[int, float, None], name="timeout", value=timeout)]
+        )
 
         path = self.__property_index_path(property_name, index_name) + path_suffix
         if isinstance(tenants, str):
@@ -840,6 +969,10 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         params: Optional[Dict[str, Any]] = {"tenants": ",".join(tenants)} if tenants else None
         error_msg = f"Property index may not have been {error_verb}."
         conn_method = self._connection.put if http_method == "PUT" else self._connection.post
+        # What was requested, as wire strings, so the wait can detect convergence on /indexes.
+        expected_tokenization = body.get("tokenization")
+        expected_algorithm = body.get("algorithm")
+        is_rebuild = path_suffix == "/rebuild"
 
         def resp(res: Response) -> InvertedIndexTask:
             response = _decode_json_response_dict(res, error_label)
@@ -861,7 +994,15 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 task = resp(res)
                 if wait_for_completion:
                     return await executor.aresult(
-                        self.__wait_for_property_index(property_name, index_name, task)
+                        self.__wait_for_property_index(
+                            property_name,
+                            index_name,
+                            task,
+                            timeout,
+                            expected_tokenization,
+                            expected_algorithm,
+                            is_rebuild,
+                        )
                     )
                 return task
 
@@ -877,7 +1018,17 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         )
         task = resp(res)
         if wait_for_completion:
-            return executor.result(self.__wait_for_property_index(property_name, index_name, task))
+            return executor.result(
+                self.__wait_for_property_index(
+                    property_name,
+                    index_name,
+                    task,
+                    timeout,
+                    expected_tokenization,
+                    expected_algorithm,
+                    is_rebuild,
+                )
+            )
         return task
 
     @overload
@@ -890,6 +1041,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
+        timeout: Optional[float] = None,
     ) -> executor.Result[InvertedIndexStatus]: ...
 
     @overload
@@ -902,6 +1054,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
+        timeout: Optional[float] = None,
     ) -> executor.Result[InvertedIndexTask]: ...
 
     def update_property_index(
@@ -913,6 +1066,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         algorithm: Optional[BM25Algorithm] = None,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
+        timeout: Optional[float] = None,
     ) -> executor.Result[Union[InvertedIndexTask, InvertedIndexStatus]]:
         """Create or migrate a property index in this collection.
 
@@ -939,7 +1093,11 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             tenants: The tenant/list of tenants for which to create the index. Only valid when
                 creating a `rangeFilters` index on a multi-tenant collection. If not provided, all
                 tenants are affected.
-            wait_for_completion: Whether to wait until the index reports `ready`. By default False.
+            wait_for_completion: Whether to poll the index status until the index reports ready for
+                the requested configuration. By default False.
+            timeout: When `wait_for_completion=True`, the maximum number of seconds to wait. `None`
+                (the default) waits while the task keeps progressing; a stalled or vanished task is
+                bounded by an internal no-progress guard, after which `ReindexTimeoutError` is raised.
 
         Returns:
             A `InvertedIndexTask` when `wait_for_completion=False`, or the final `InvertedIndexStatus`
@@ -951,8 +1109,24 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.ReindexFailedError: If `wait_for_completion=True` and the reindexing task failed.
             weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
+            weaviate.exceptions.ReindexTimeoutError: If `wait_for_completion=True` and `timeout` is exceeded.
         """
         self.__check_property_reindex_support("Collection config update_property_index")
+        # 5d: type validation (keeps enum / wire-string / None leniency, rejects genuine garbage).
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[Tokenization, str, None], name="tokenization", value=tokenization
+                )
+            ]
+        )
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[BM25Algorithm, str, None], name="algorithm", value=algorithm
+                )
+            ]
+        )
         index = cast(
             IndexName,
             index_name.value if isinstance(index_name, InvertedIndexType) else index_name,
@@ -963,9 +1137,14 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 tokenization.value if isinstance(tokenization, Tokenization) else tokenization
             )
         if algorithm is not None:
-            body["algorithm"] = (
-                algorithm.value if isinstance(algorithm, BM25Algorithm) else algorithm
-            )
+            algorithm_value = algorithm.value if isinstance(algorithm, BM25Algorithm) else algorithm
+            # 5c: WAND is never a valid target (the server always 400s); reject it clearly.
+            if algorithm_value == BM25Algorithm.WAND.value:
+                raise WeaviateInvalidInputError(
+                    "algorithm=WAND is not a valid target; only BM25Algorithm.BLOCKMAX is supported "
+                    "(wand->blockmax is the only transition; downgrade is not supported)."
+                )
+            body["algorithm"] = algorithm_value
         return self.__submit_property_index_task(
             property_name=property_name,
             index_name=index,
@@ -974,6 +1153,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             body=body,
             tenants=tenants,
             wait_for_completion=wait_for_completion,
+            timeout=timeout,
             error_verb="updated",
             error_label="Update property index",
             ok_in=[200, 202],
@@ -987,6 +1167,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[True],
+        timeout: Optional[float] = None,
     ) -> executor.Result[InvertedIndexStatus]: ...
 
     @overload
@@ -997,6 +1178,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: Literal[False] = False,
+        timeout: Optional[float] = None,
     ) -> executor.Result[InvertedIndexTask]: ...
 
     def rebuild_property_index(
@@ -1006,6 +1188,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         tenants: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
+        timeout: Optional[float] = None,
     ) -> executor.Result[Union[InvertedIndexTask, InvertedIndexStatus]]:
         """Rebuild an existing property index from scratch with its current configuration.
 
@@ -1014,7 +1197,13 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             index_name: The type of the index, an `InvertedIndexType` value.
             tenants: The tenant/list of tenants for which to rebuild the index on a multi-tenant
                 collection. If not provided, all tenants are affected.
-            wait_for_completion: Whether to wait until the index reports `ready`. By default False.
+            wait_for_completion: Whether to poll the index status until the rebuild is done. By
+                default False. Because a rebuild does not change the index configuration it has no
+                observable end-state, so this wait is best-effort: it returns once the index has
+                reported ready.
+            timeout: When `wait_for_completion=True`, the maximum number of seconds to wait. `None`
+                (the default) waits while the task keeps progressing; a stalled or vanished task is
+                bounded by an internal no-progress guard, after which `ReindexTimeoutError` is raised.
 
         Returns:
             A `InvertedIndexTask` when `wait_for_completion=False`, or the final `InvertedIndexStatus`
@@ -1026,6 +1215,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.ReindexFailedError: If `wait_for_completion=True` and the reindexing task failed.
             weaviate.exceptions.ReindexCanceledError: If `wait_for_completion=True` and the reindexing task was cancelled.
+            weaviate.exceptions.ReindexTimeoutError: If `wait_for_completion=True` and `timeout` is exceeded.
         """
         self.__check_property_reindex_support("Collection config rebuild_property_index")
         index = cast(
@@ -1040,6 +1230,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             body={},
             tenants=tenants,
             wait_for_completion=wait_for_completion,
+            timeout=timeout,
             error_verb="rebuilt",
             error_label="Rebuild property index",
             ok_in=[202],
