@@ -143,6 +143,7 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
+    frequency_penalty: Optional[float]
     k: Optional[int]
     max_tokens: Optional[int]
     model: Optional[str]
@@ -156,6 +157,7 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
             return_metadata=opts.return_metadata,
             cohere=generative_pb2.GenerativeCohere(
                 base_url=_parse_anyhttpurl(self.base_url),
+                frequency_penalty=self.frequency_penalty,
                 k=self.k,
                 max_tokens=self.max_tokens,
                 model=self.model,
@@ -711,6 +713,7 @@ class GenerativeConfig:
     def cohere(
         *,
         base_url: Optional[str] = None,
+        frequency_penalty: Optional[float] = None,
         k: Optional[int] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
@@ -726,6 +729,7 @@ class GenerativeConfig:
 
         Args:
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
             k: The top K property to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
@@ -738,6 +742,7 @@ class GenerativeConfig:
             base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
             if base_url is not None
             else None,
+            frequency_penalty=frequency_penalty,
             k=k,
             max_tokens=max_tokens,
             model=model,
