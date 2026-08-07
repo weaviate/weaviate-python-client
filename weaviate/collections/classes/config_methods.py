@@ -46,6 +46,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigHNSW,
     _VectorizerConfig,
 )
+from weaviate.exceptions import SchemaValidationError
 
 
 def _is_primitive(d_type: str) -> bool:
@@ -283,7 +284,17 @@ def __get_vector_config(
             props = vec_config.pop("properties", None)
 
             vector_index_config = __get_vector_index_config(named_vector)
-            assert vector_index_config is not None
+            # A vector whose index was dropped with `collection.config.delete_vector_index` is
+            # returned as `vectorIndexType: "none"` without any `vectorIndexConfig`.
+            if (
+                vector_index_config is None
+                and named_vector.get("vectorIndexType") != VectorIndexType.NONE.value
+            ):
+                raise SchemaValidationError(
+                    f"Named vector {name!r} has vectorIndexType "
+                    f"{named_vector.get('vectorIndexType')!r} but no vectorIndexConfig in the "
+                    "schema returned by Weaviate"
+                )
             try:
                 vec: Union[str, Vectorizers] = Vectorizers(vectorizer_str)
             except ValueError:
@@ -305,6 +316,10 @@ def __get_vector_config(
 
 def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]]:
     if "vectorConfig" in schema:
+        return None
+    # A legacy (non-named-vector) collection whose vector index was dropped with
+    # `collection.config.delete_vector_index` comes back with no top-level `vectorizer`.
+    if "vectorizer" not in schema:
         return None
 
     vectorizer = str(schema["vectorizer"])
