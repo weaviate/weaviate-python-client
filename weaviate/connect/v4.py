@@ -109,6 +109,14 @@ AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
 
 PERMISSION_DENIED = "PERMISSION_DENIED"
+_RETRYABLE_OAUTH_ERRORS = {"server_error", "temporarily_unavailable"}
+
+
+def _is_retryable_token_refresh_error(exc: Union[HTTPError, AuthlibBaseError]) -> bool:
+    """Return whether a token refresh failure may succeed on retry."""
+    if isinstance(exc, HTTPError):
+        return True
+    return exc.error in _RETRYABLE_OAUTH_ERRORS
 
 
 @dataclass
@@ -593,11 +601,12 @@ class _ConnectionBase:
                         refresh_session()
                     refresh_time = update_refresh_time()
                 except (HTTPError, AuthlibBaseError) as exc:
-                    # retry again after one second, might be an unstable connection
-                    # or an OAuth2 protocol-level rejection (e.g. invalid_grant
-                    # from authlib) — neither should kill the refresh thread (#2110)
-                    refresh_time = 1
                     _Warnings.token_refresh_failed(exc)
+                    if not _is_retryable_token_refresh_error(exc):
+                        return
+                    # Retry transport failures and transient OAuth errors after
+                    # one second. Permanent OAuth errors require re-authentication.
+                    refresh_time = 1
 
         demon = Thread(
             target=periodic_refresh_token,
