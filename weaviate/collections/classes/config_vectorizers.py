@@ -110,6 +110,7 @@ class Vectorizers(str, Enum):
         MULTI2VEC_BIND: Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         MULTI2VEC_VOYAGEAI: Weaviate module backed by a Voyage AI multimodal embedding models.
         MULTI2VEC_NVIDIA: Weaviate module backed by NVIDIA multimodal embedding models.
+        MULTI2VEC_TWELVELABS: Weaviate module backed by TwelveLabs multimodal embedding models.
         REF2VEC_CENTROID: Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
     """
 
@@ -144,6 +145,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
     MULTI2VEC_NVIDIA = "multi2vec-nvidia"
+    MULTI2VEC_TWELVELABS = "multi2vec-twelvelabs"
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
@@ -611,6 +613,20 @@ class _Multi2VecNvidiaConfig(_Multi2VecBase):
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncation: Optional[bool]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Multi2VecTwelvelabsConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_TWELVELABS, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
