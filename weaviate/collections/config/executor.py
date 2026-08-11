@@ -365,8 +365,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             return [
                 _ShardStatus(
                     name=shard["name"],
-                    status=shard["status"],
-                    vector_queue_size=shard["vectorQueueSize"],
+                    status=shard.get("status"),
+                    vector_queue_size=None,
+                    per_node_status=shard.get("per_node_status"),
                 )
                 for shard in shards
             ]
