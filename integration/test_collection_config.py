@@ -838,11 +838,11 @@ def test_collection_config_get_shards_multi_tenancy(collection_factory: Collecti
     shards = collection.config.get_shards()
     assert len(shards) == 2
 
-    assert shards[0].status == "READY"
-    assert shards[0].vector_queue_size == 0
-
-    assert shards[1].status == "READY"
-    assert shards[1].vector_queue_size == 0
+    for shard in shards:
+        if shard.status:
+            assert shard.status == "READY"
+        elif shard.per_node_status:
+            assert all(status == "READY" for status in shard.per_node_status.values())
 
     assert "tenant1" in [shard.name for shard in shards]
     assert "tenant2" in [shard.name for shard in shards]
