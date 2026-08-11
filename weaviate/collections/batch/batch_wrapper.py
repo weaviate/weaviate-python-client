@@ -98,9 +98,7 @@ class _BatchWrapper:
             (
                 all(
                     status == "READY"
-                    for status in cast(
-                        dict[str, str], shard["per_node_status"]
-                    ).values()
+                    for status in cast(dict[str, str], shard["per_node_status"]).values()
                 )
                 if "per_node_status" in shard
                 else cast(str, shard["status"]) == "READY"
@@ -207,9 +205,7 @@ class _BatchWrapperAsync:
             (
                 all(
                     status == "READY"
-                    for status in cast(
-                        dict[str, str], shard["per_node_status"]
-                    ).values()
+                    for status in cast(dict[str, str], shard["per_node_status"]).values()
                 )
                 if "per_node_status" in shard
                 else cast(str, shard["status"]) == "READY"
