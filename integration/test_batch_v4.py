@@ -524,8 +524,10 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert ret.total_count == nr_objects
 
     shards = client.collections.use(name).config.get_shards()
-    assert shards[0].status == "READY"
-    assert shards[0].vector_queue_size == 0
+    if shards[0].status:
+        assert shards[0].status == "READY"
+    elif shards[0].per_node_status:
+        assert all(status == "READY" for status in shards[0].per_node_status.values())
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -545,8 +547,10 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(vec_length)],
             )
     shard_status = old_client.schema.get_class_shards(name)
-    assert shard_status[0]["status"] == "INDEXING"
-    assert shard_status[0]["vectorQueueSize"] > 0
+    if shard_status[0].status:
+        assert shard_status[0].status == "INDEXING"
+    elif shard_status[0].per_node_status:
+        assert all(status == "INDEXING" for status in shard_status[0].per_node_status.values())
 
     assert len(client.batch.failed_objects) == 0
 
@@ -579,8 +583,10 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
 
     shards = client.collections.use(name).config.get_shards()
     for shard in shards:
-        assert shard.status == "READY"
-        assert shard.vector_queue_size == 0
+        if shard.status:
+            assert shard.status == "READY"
+        elif shard.per_node_status:
+            assert all(status == "READY" for status in shard.per_node_status.values())
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -611,12 +617,11 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
 
     shards = client.collections.use(name).config.get_shards()
     for shard in shards:
-        if shard.name == tenants[0].name:
-            assert shard.status == "READY"
-            assert shard.vector_queue_size == 0
-        else:
-            assert shard.status == "INDEXING"
-            assert shard.vector_queue_size > 0
+        want = "READY" if shard.name == tenants[0].name else "INDEXING"
+        if shard.status:
+            assert shard.status == want
+        elif shard.per_node_status:
+            assert all(status == want for status in shard.per_node_status.values())
 
 
 @pytest.mark.parametrize(

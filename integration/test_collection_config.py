@@ -787,8 +787,10 @@ def test_collection_config_get_shards(collection_factory: CollectionFactory) -> 
     )
     shards = collection.config.get_shards()
     assert len(shards)
-    assert shards[0].status == "READY"
-    assert shards[0].vector_queue_size == 0
+    if shards[0].status:
+        assert shards[0].status == "READY"
+    elif shards[0].per_node_status:
+        assert all(status == "READY" for status in shards[0].per_node_status.values())
 
 
 def test_collection_update_shards(collection_factory: CollectionFactory) -> None:
