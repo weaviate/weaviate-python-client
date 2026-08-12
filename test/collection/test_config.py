@@ -1059,6 +1059,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_p=0.5,
             base_url="https://api.openai.com",
+            api_version="2024-06-01",
         ),
         {
             "generative-openai": {
@@ -1070,6 +1071,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
+                "apiVersion": "2024-06-01",
             }
         },
     ),
