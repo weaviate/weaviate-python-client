@@ -672,6 +672,13 @@ class BM25OperatorAnd(BM25OperatorOptions):
     operator = base_search_pb2.SearchOperatorOptions.OPERATOR_AND
 
 
+@dataclass
+class BM25OperatorAndCross(BM25OperatorOptions):
+    """Define the cross-property 'And' operator for keyword queries."""
+
+    operator = base_search_pb2.SearchOperatorOptions.OPERATOR_AND_CROSS
+
+
 class BM25OperatorFactory:
     """Define how the BM25 query's token matching should be performed."""
 
@@ -696,6 +703,20 @@ class BM25OperatorFactory:
         Note that the query is tokenized using the respective tokenization method of each property.
         """
         return BM25OperatorAnd()
+
+    @staticmethod
+    def and_cross() -> BM25OperatorOptions:
+        """Use the cross-property 'And' operator for keyword queries, where all query tokens must match across the searched properties combined.
+
+        Unlike `and_()`, which requires every token to occur within a single property, a token may be
+        matched by any of the searched properties, as long as each token is matched by at least one.
+
+        All searched properties must share the same tokenization and analyzer settings; the server
+        rejects the query otherwise.
+
+        Requires Weaviate `1.37.15`, `1.38.8`, `1.39.0` or higher.
+        """
+        return BM25OperatorAndCross()
 
 
 OneDimensionalVectorType = Sequence[NUMBER]

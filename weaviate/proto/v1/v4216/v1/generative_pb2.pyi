@@ -254,7 +254,7 @@ class GenerativeOpenAI(_message.Message):
     def __init__(self, frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., presence_penalty: _Optional[float] = ..., stop: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., base_url: _Optional[str] = ..., api_version: _Optional[str] = ..., resource_name: _Optional[str] = ..., deployment_id: _Optional[str] = ..., is_azure: bool = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., reasoning_effort: _Optional[_Union[GenerativeOpenAI.ReasoningEffort, str]] = ..., verbosity: _Optional[_Union[GenerativeOpenAI.Verbosity, str]] = ...) -> None: ...
 
 class GenerativeGoogle(_message.Message):
-    __slots__ = ["frequency_penalty", "max_tokens", "model", "presence_penalty", "temperature", "top_k", "top_p", "stop_sequences", "api_endpoint", "project_id", "endpoint_id", "region", "images", "image_properties"]
+    __slots__ = ["frequency_penalty", "max_tokens", "model", "presence_penalty", "temperature", "top_k", "top_p", "stop_sequences", "api_endpoint", "project_id", "endpoint_id", "region", "images", "image_properties", "location"]
     FREQUENCY_PENALTY_FIELD_NUMBER: _ClassVar[int]
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
@@ -269,6 +269,7 @@ class GenerativeGoogle(_message.Message):
     REGION_FIELD_NUMBER: _ClassVar[int]
     IMAGES_FIELD_NUMBER: _ClassVar[int]
     IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    LOCATION_FIELD_NUMBER: _ClassVar[int]
     frequency_penalty: float
     max_tokens: int
     model: str
@@ -283,7 +284,8 @@ class GenerativeGoogle(_message.Message):
     region: str
     images: _base_pb2.TextArray
     image_properties: _base_pb2.TextArray
-    def __init__(self, frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., presence_penalty: _Optional[float] = ..., temperature: _Optional[float] = ..., top_k: _Optional[int] = ..., top_p: _Optional[float] = ..., stop_sequences: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., api_endpoint: _Optional[str] = ..., project_id: _Optional[str] = ..., endpoint_id: _Optional[str] = ..., region: _Optional[str] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...) -> None: ...
+    location: str
+    def __init__(self, frequency_penalty: _Optional[float] = ..., max_tokens: _Optional[int] = ..., model: _Optional[str] = ..., presence_penalty: _Optional[float] = ..., temperature: _Optional[float] = ..., top_k: _Optional[int] = ..., top_p: _Optional[float] = ..., stop_sequences: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., api_endpoint: _Optional[str] = ..., project_id: _Optional[str] = ..., endpoint_id: _Optional[str] = ..., region: _Optional[str] = ..., images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ..., location: _Optional[str] = ...) -> None: ...
 
 class GenerativeDatabricks(_message.Message):
     __slots__ = ["endpoint", "model", "frequency_penalty", "log_probs", "top_log_probs", "max_tokens", "n", "presence_penalty", "stop", "temperature", "top_p"]
