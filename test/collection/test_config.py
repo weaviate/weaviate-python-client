@@ -2282,6 +2282,28 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.multi2vec_twelvelabs(
+                name="test",
+                image_fields=["image"],
+                text_fields=["prop"],
+                model="marengo3.0",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-twelvelabs": {
+                        "imageFields": ["image"],
+                        "textFields": ["prop"],
+                        "model": "marengo3.0",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.multi2vec_jinaai(name="test", dimensions=256, text_fields=["prop"])],
         {
             "test": {
