@@ -24,7 +24,6 @@ from weaviate.collections.classes.grpc import (
     REFERENCE,
     REFERENCES,
     BM25OperatorOptions,
-    BM25OperatorOr,
     HybridFusion,
     HybridVectorType,
     Move,
@@ -243,14 +242,7 @@ class _QueryGRPC(_BaseGRPC):
                 base_search_pb2.BM25(
                     query=query,
                     properties=properties if properties is not None else [],
-                    search_operator=base_search_pb2.SearchOperatorOptions(
-                        operator=operator.operator,
-                        minimum_or_tokens_match=operator.minimum_should_match
-                        if isinstance(operator, BM25OperatorOr)
-                        else None,
-                    )
-                    if operator is not None
-                    else None,
+                    search_operator=self._bm25_operator_to_grpc(operator),
                 )
                 if query is not None
                 else None

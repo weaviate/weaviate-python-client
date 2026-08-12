@@ -535,6 +535,7 @@ class _GenerativeOpenAIConfig(_GenerativeOpenAIConfigBase):
 class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
     resourceName: str
     deploymentId: str
+    apiVersion: Optional[str]
 
 
 class _GenerativeCohereConfig(_GenerativeProvider):
@@ -952,6 +953,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
+        api_version: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAzureOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
@@ -967,8 +969,10 @@ class _Generative:
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            api_version: The Azure OpenAI API version to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAzureOpenAIConfig(
+            apiVersion=api_version,
             baseURL=base_url,
             deploymentId=deployment_id,
             frequencyPenalty=frequency_penalty,
