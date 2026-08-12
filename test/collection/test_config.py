@@ -1041,6 +1041,42 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.google_vertex(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
+        Configure.Generative.google_vertex(
+            project_id="project",
+            api_endpoint="https://api.google.com",
+            region="europe-west4",
+            location="europe-west4",
+            max_output_tokens=100,
+            model_id="model",
+            endpoint_id="endpoint",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://api.google.com",
+                "region": "europe-west4",
+                "location": "europe-west4",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "endpointId": "endpoint",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.aws(
             model="cohere.command-light-text-v14",
             region="us-east-1",
