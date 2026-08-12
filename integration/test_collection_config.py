@@ -54,11 +54,11 @@ from weaviate.util import _ServerVersion
 def _expected_async_enabled(version: _ServerVersion, factor: int) -> bool:
     """Whether the server reports async replication as enabled for a collection.
 
-    Up to 1.38 the server stores whatever `async_enabled` the collection was created with. From
-    1.39 it ignores that and derives the field as `factor > 1 and not globally disabled` instead,
+    Up to 1.38.9 the server stores whatever `async_enabled` the collection was created with. From
+    1.38.9 it ignores that and derives the field as `factor > 1 and not globally disabled` instead,
     so a collection with a single replica always reports `False`.
     """
-    if version.is_at_least(1, 39, 0):
+    if version.is_at_least(1, 38, 9):
         return factor > 1
     return version.is_at_least(1, 26, 0)
 
