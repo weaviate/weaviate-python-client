@@ -23,6 +23,7 @@ from typing import (
 )
 
 import grpc
+from authlib.common.errors import AuthlibBaseError  # type: ignore
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
@@ -108,6 +109,14 @@ AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
 
 PERMISSION_DENIED = "PERMISSION_DENIED"
+_RETRYABLE_OAUTH_ERRORS = {"server_error", "temporarily_unavailable"}
+
+
+def _is_retryable_token_refresh_error(exc: Union[HTTPError, AuthlibBaseError]) -> bool:
+    """Return whether a token refresh failure may succeed on retry."""
+    if isinstance(exc, HTTPError):
+        return True
+    return exc.error in _RETRYABLE_OAUTH_ERRORS
 
 
 @dataclass
@@ -591,10 +600,13 @@ class _ConnectionBase:
                         # saved credentials
                         refresh_session()
                     refresh_time = update_refresh_time()
-                except HTTPError as exc:
-                    # retry again after one second, might be an unstable connection
-                    refresh_time = 1
+                except (HTTPError, AuthlibBaseError) as exc:
                     _Warnings.token_refresh_failed(exc)
+                    if not _is_retryable_token_refresh_error(exc):
+                        return
+                    # Retry transport failures and transient OAuth errors after
+                    # one second. Permanent OAuth errors require re-authentication.
+                    refresh_time = 1
 
         demon = Thread(
             target=periodic_refresh_token,
