@@ -1,9 +1,11 @@
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     Configure,
     ConsistencyLevel,
     DataType,
     GenerativeSearches,
     IndexName,
+    InvertedIndexType,
     PQEncoderDistribution,
     PQEncoderType,
     Property,
@@ -26,6 +28,7 @@ from weaviate.collections.classes.config_vectorizers import Multi2VecField, Vect
 from weaviate.connect.integrations import Integrations
 
 __all__ = [
+    "BM25Algorithm",
     "Configure",
     "ConsistencyLevel",
     "Reconfigure",
@@ -37,6 +40,7 @@ __all__ = [
     "MultiVectorAggregation",
     "ReplicationDeletionStrategy",
     "Property",
+    "InvertedIndexType",
     "PQEncoderDistribution",
     "PQEncoderType",
     "ReferenceProperty",

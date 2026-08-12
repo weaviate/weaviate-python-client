@@ -110,11 +110,31 @@ OpenAiReasoningEffort: TypeAlias = Literal[
     "high",
 ]
 
+# Deprecated: this string alias is superseded by the ``InvertedIndexType`` enum and will be
+# removed in a future release. Prefer ``InvertedIndexType`` for property index type arguments;
+# the string form is still accepted by ``delete_property_index`` (which emits a
+# ``DeprecationWarning``) for backwards compatibility. ``typing_extensions.deprecated`` (PEP 702)
+# cannot annotate a bare type alias (it decorates classes/functions/overloads), so the
+# deprecation is surfaced via this comment and the runtime warning on the accepting method.
 IndexName: TypeAlias = Literal[
     "searchable",
     "filterable",
     "rangeFilters",
 ]
+
+
+class InvertedIndexType(str, BaseEnum):
+    """The available property index types in Weaviate.
+
+    Attributes:
+        SEARCHABLE: The searchable index, used for keyword (BM25) searches over text properties.
+        FILTERABLE: The filterable index, used for exact-match filtering.
+        RANGE_FILTERS: The rangeFilters index, used for range filtering.
+    """
+
+    SEARCHABLE = "searchable"
+    FILTERABLE = "filterable"
+    RANGE_FILTERS = "rangeFilters"
 
 
 class ConsistencyLevel(str, BaseEnum):
@@ -199,6 +219,18 @@ class Tokenization(str, BaseEnum):
     KAGOME_JA = "kagome_ja"
     KAGOME_KR = "kagome_kr"
     GSE_CH = "gse_ch"
+
+
+class BM25Algorithm(str, BaseEnum):
+    """The BM25 scoring algorithm of a searchable property index.
+
+    Attributes:
+        WAND: The Weak-AND scoring algorithm.
+        BLOCKMAX: The BlockMax-WAND scoring algorithm.
+    """
+
+    WAND = "wand"
+    BLOCKMAX = "blockmax"
 
 
 class GenerativeSearches(str, BaseEnum):
@@ -2256,6 +2288,110 @@ class _ShardStatus:
 
 
 ShardStatus = _ShardStatus
+
+
+class InvertedIndexTaskStatus(str, BaseEnum):
+    """The status of a runtime property index task submission.
+
+    Attributes:
+        STARTED: A reindexing task was submitted and started.
+        CANCELLED: A live reindexing task was cancelled.
+        NO_OP: No work was necessary, e.g. the index configuration already matched the request
+            or there was no live task to cancel.
+    """
+
+    STARTED = "STARTED"
+    CANCELLED = "CANCELLED"
+    NO_OP = "NO_OP"
+
+
+class InvertedIndexState(str, BaseEnum):
+    """The state of a property index as reported by the index status endpoint.
+
+    Attributes:
+        READY: The index is ready to serve queries.
+        PENDING: A reindexing task for the index is queued but has not started yet.
+        INDEXING: A reindexing task for the index is in progress.
+        FAILED: The reindexing task for the index failed.
+        CANCELLED: The reindexing task for the index was cancelled.
+    """
+
+    READY = "ready"
+    PENDING = "pending"
+    INDEXING = "indexing"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+@dataclass
+class _InvertedIndexTask(_ConfigBase):
+    """A submitted property index task.
+
+    Known `status` values parse to `InvertedIndexTaskStatus`; unknown server values pass
+    through as plain strings, since the spec declares the field open-vocabulary.
+    """
+
+    task_id: Optional[str]
+    status: Union[InvertedIndexTaskStatus, str]
+
+
+InvertedIndexTask = _InvertedIndexTask
+
+
+@dataclass
+class _InvertedIndexStatus(_ConfigBase):
+    """A snapshot of a single property index as reported by the index status endpoint.
+
+    Known `state` values parse to `InvertedIndexState` and known `algorithm`/`target_algorithm`
+    values parse to `BM25Algorithm`; unknown server values pass through as plain strings, so that
+    polling the endpoint never crashes on a newly-added lifecycle state or scoring algorithm name.
+    """
+
+    type: InvertedIndexType  # noqa: A003
+    state: Union[InvertedIndexState, str]
+    progress: Optional[float]
+    task_id: Optional[str]
+    tokenization: Optional[Tokenization]
+    target_tokenization: Optional[Tokenization]
+    # searchable only: the current and in-flight BM25 scoring algorithm
+    algorithm: Optional[Union[BM25Algorithm, str]]
+    target_algorithm: Optional[Union[BM25Algorithm, str]]
+
+
+InvertedIndexStatus = _InvertedIndexStatus
+
+
+@dataclass
+class _PropertyInvertedIndexes(_ConfigBase):
+    name: str
+    # For primitive properties the value matches the `DataType` str-enum (comparisons like
+    # `data_type == DataType.TEXT` work); reference properties instead carry the qualified
+    # target collection name (e.g. "Article"), which is why this is a plain str, not `DataType`.
+    data_type: str
+    description: Optional[str]
+    indexes: List[InvertedIndexStatus]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["indexes"] = [index.to_dict() for index in self.indexes]
+        return out
+
+
+PropertyInvertedIndexes = _PropertyInvertedIndexes
+
+
+@dataclass
+class _CollectionInvertedIndexes(_ConfigBase):
+    collection: str
+    properties: List[PropertyInvertedIndexes]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["properties"] = [prop.to_dict() for prop in self.properties]
+        return out
+
+
+CollectionInvertedIndexes = _CollectionInvertedIndexes
 
 
 class _TextAnalyzerConfigCreate(_ConfigCreateModel):

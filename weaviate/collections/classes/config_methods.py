@@ -2,8 +2,12 @@ import datetime
 from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     DataType,
     GenerativeSearches,
+    InvertedIndexState,
+    InvertedIndexTaskStatus,
+    InvertedIndexType,
     PQEncoderDistribution,
     PQEncoderType,
     ReplicationDeletionStrategy,
@@ -19,8 +23,11 @@ from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
+    _CollectionInvertedIndexes,
     _GenerativeConfig,
     _InvertedIndexConfig,
+    _InvertedIndexStatus,
+    _InvertedIndexTask,
     _MultiTenancyConfig,
     _MultiVectorConfig,
     _MuveraConfig,
@@ -31,6 +38,7 @@ from weaviate.collections.classes.config import (
     _PQConfig,
     _PQEncoderConfig,
     _Property,
+    _PropertyInvertedIndexes,
     _PropertyVectorizerConfig,
     _ReferenceProperty,
     _ReplicationConfig,
@@ -558,3 +566,70 @@ def _references_from_config(schema: Dict[str, Any]) -> List[_ReferenceProperty]:
         for prop in schema["properties"]
         if not _is_primitive(prop["dataType"])
     ]
+
+
+def _inverted_index_task_from_json(response: Dict[str, Any]) -> _InvertedIndexTask:
+    raw_status = response["status"]
+    try:
+        status: Union[InvertedIndexTaskStatus, str] = InvertedIndexTaskStatus(raw_status)
+    except ValueError:
+        # the spec declares the field open-vocabulary; pass unknown values through
+        status = raw_status
+    return _InvertedIndexTask(
+        task_id=response.get("taskId"),
+        status=status,
+    )
+
+
+def _bm25_algorithm_or_raw(value: Optional[str]) -> Optional[Union[BM25Algorithm, str]]:
+    if value is None:
+        return None
+    try:
+        # known values parse to the enum; unknown ones pass through so that a future BM25
+        # scoring algorithm never crashes a read
+        return BM25Algorithm(value)
+    except ValueError:
+        return value
+
+
+def _inverted_index_status_from_json(index: Dict[str, Any]) -> _InvertedIndexStatus:
+    tokenization = index.get("tokenization")
+    target_tokenization = index.get("targetTokenization")
+    raw_state = index["status"]
+    try:
+        state: Union[InvertedIndexState, str] = InvertedIndexState(raw_state)
+    except ValueError:
+        # the spec declares the field open-vocabulary; pass unknown values through so that
+        # polling the endpoint never crashes on a newly-added lifecycle state name
+        state = raw_state
+    return _InvertedIndexStatus(
+        # `type` is closed-vocabulary and server-canonical (always filterable|searchable|
+        # rangeFilters), so parse it strictly into the enum, matching the file convention.
+        type=InvertedIndexType(index["type"]),
+        state=state,
+        progress=index.get("progress"),
+        task_id=index.get("taskId"),
+        tokenization=Tokenization(tokenization) if tokenization is not None else None,
+        target_tokenization=(
+            Tokenization(target_tokenization) if target_tokenization is not None else None
+        ),
+        algorithm=_bm25_algorithm_or_raw(index.get("algorithm")),
+        target_algorithm=_bm25_algorithm_or_raw(index.get("targetAlgorithm")),
+    )
+
+
+def _collection_inverted_indexes_from_json(response: Dict[str, Any]) -> _CollectionInvertedIndexes:
+    return _CollectionInvertedIndexes(
+        collection=response["collection"],
+        properties=[
+            _PropertyInvertedIndexes(
+                name=prop["name"],
+                data_type=prop["dataType"],
+                description=prop.get("description"),
+                indexes=[
+                    _inverted_index_status_from_json(index) for index in prop.get("indexes") or []
+                ],
+            )
+            for prop in response.get("properties") or []
+        ],
+    )

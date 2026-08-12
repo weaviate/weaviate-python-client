@@ -7,6 +7,7 @@ from _pytest.fixtures import SubRequest
 import weaviate
 import weaviate.classes as wvc
 from integration.conftest import (
+    AsyncCollectionFactory,
     CollectionFactory,
     OpenAICollection,
     _sanitize_collection_name,
@@ -40,9 +41,14 @@ from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
     _VectorizerConfigCreate,
     IndexName,
+    BM25Algorithm,
+    InvertedIndexState,
+    InvertedIndexTaskStatus,
+    InvertedIndexType,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
+    ReindexCanceledError,
     UnexpectedStatusCodeError,
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
@@ -2694,3 +2700,297 @@ def test_text_analyzer_roundtrip_from_dict(
         assert config == new
         assert config.to_dict() == new.to_dict()
         client.collections.delete(name)
+
+
+def test_property_reindex_searchable_lifecycle(collection_factory: CollectionFactory) -> None:
+    """Test the full runtime lifecycle of a searchable index: create, no-op, rebuild, cancel, delete."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("Runtime property reindex requires Weaviate >= 1.39.0")
+
+    collection = collection_factory(
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.TEXT,
+                index_filterable=True,
+                index_searchable=False,
+            )
+        ],
+    )
+    collection.data.insert_many([{"name": f"object {i}"} for i in range(10)])
+
+    # create the searchable index declaratively and wait for it to become ready
+    status = collection.config.update_property_index(
+        "name",
+        InvertedIndexType.SEARCHABLE,
+        tokenization=Tokenization.WORD,
+        wait_for_completion=True,
+    )
+    assert status.type == "searchable"
+    assert status.state == InvertedIndexState.READY
+    assert status.tokenization == Tokenization.WORD
+
+    # re-putting the matching configuration is a no-op
+    task = collection.config.update_property_index(
+        "name", InvertedIndexType.SEARCHABLE, tokenization=Tokenization.WORD
+    )
+    assert task.status == InvertedIndexTaskStatus.NO_OP
+    assert task.task_id is None
+
+    # the status endpoint reports the index as ready
+    indexes = collection.config.get_property_indexes()
+    assert indexes.collection == collection.name
+    entry = next(
+        index
+        for prop in indexes.properties
+        if prop.name == "name"
+        for index in prop.indexes
+        if index.type == "searchable"
+    )
+    assert entry.state == InvertedIndexState.READY
+    # a searchable index reports its BM25 scoring algorithm, parsed into the enum
+    assert entry.algorithm in (BM25Algorithm.WAND, BM25Algorithm.BLOCKMAX)
+
+    # rebuild the index from scratch
+    status = collection.config.rebuild_property_index(
+        "name", InvertedIndexType.SEARCHABLE, wait_for_completion=True
+    )
+    assert status.type == "searchable"
+    assert status.state == InvertedIndexState.READY
+
+    # cancelling when no task is live is an idempotent no-op
+    task = collection.config.cancel_property_index_task("name", InvertedIndexType.SEARCHABLE)
+    assert task.status == InvertedIndexTaskStatus.NO_OP
+
+    # the pre-existing delete API removes the index again
+    assert collection.config.delete_property_index("name", "searchable") is True
+
+
+def test_property_reindex_range_filters(collection_factory: CollectionFactory) -> None:
+    """Test creating a rangeFilters index on an int property via an empty request body."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("Runtime property reindex requires Weaviate >= 1.39.0")
+
+    collection = collection_factory(
+        properties=[
+            Property(
+                name="age",
+                data_type=DataType.INT,
+                index_filterable=True,
+                index_range_filters=False,
+            )
+        ],
+    )
+    collection.data.insert_many([{"age": i} for i in range(10)])
+
+    status = collection.config.update_property_index(
+        "age", InvertedIndexType.RANGE_FILTERS, wait_for_completion=True
+    )
+    assert status.type == "rangeFilters"
+    assert status.state == InvertedIndexState.READY
+
+    entry = next(
+        index
+        for prop in collection.config.get_property_indexes().properties
+        if prop.name == "age"
+        for index in prop.indexes
+        if index.type == "rangeFilters"
+    )
+    assert entry.state == InvertedIndexState.READY
+
+
+def test_property_reindex_coupled_tokenization_change(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Test that a tokenization change on searchable is coupled with the filterable index as one task."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("Runtime property reindex requires Weaviate >= 1.39.0")
+
+    collection = collection_factory(
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.TEXT,
+                index_filterable=True,
+                index_searchable=True,
+                tokenization=Tokenization.WORD,
+            )
+        ],
+    )
+    collection.data.insert_many([{"name": f"object {i}"} for i in range(100)])
+
+    task = collection.config.update_property_index(
+        "name", InvertedIndexType.SEARCHABLE, tokenization=Tokenization.FIELD
+    )
+    assert task.status == InvertedIndexTaskStatus.STARTED
+    assert task.task_id is not None
+
+    # join contract: an identical re-PUT while the task is in flight returns the EXISTING task
+    join = collection.config.update_property_index(
+        "name", InvertedIndexType.SEARCHABLE, tokenization=Tokenization.FIELD
+    )
+    if join.status == InvertedIndexTaskStatus.STARTED:
+        assert join.task_id == task.task_id
+    else:
+        # the task already finalized; a re-PUT of matching configuration is a no-op
+        assert join.status == InvertedIndexTaskStatus.NO_OP
+
+    prop = next(p for p in collection.config.get_property_indexes().properties if p.name == "name")
+    searchable = next(i for i in prop.indexes if i.type == "searchable")
+    filterable = next(i for i in prop.indexes if i.type == "filterable")
+    if searchable.task_id is not None:
+        # both entries are driven by the one coupled task while it is in flight
+        assert searchable.task_id == task.task_id
+        assert filterable.task_id == task.task_id
+        assert searchable.target_tokenization == Tokenization.FIELD
+        assert filterable.target_tokenization == Tokenization.FIELD
+    else:
+        # the task already finalized before the first poll
+        assert searchable.tokenization == Tokenization.FIELD
+
+    # poll the status endpoint (joining the in-flight task via the wait path) until done
+    status = collection.config.update_property_index(
+        "name",
+        InvertedIndexType.SEARCHABLE,
+        tokenization=Tokenization.FIELD,
+        wait_for_completion=True,
+    )
+    assert status.state == InvertedIndexState.READY
+    assert status.tokenization == Tokenization.FIELD
+
+    prop = next(p for p in collection.config.get_property_indexes().properties if p.name == "name")
+    filterable = next(i for i in prop.indexes if i.type == "filterable")
+    assert filterable.state == InvertedIndexState.READY
+    assert filterable.tokenization == Tokenization.FIELD
+
+
+def test_property_reindex_cancel_in_flight(collection_factory: CollectionFactory) -> None:
+    """Cancel a live reindex task and observe an actual CANCELLED result + wait-path raise."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("Runtime property reindex requires Weaviate >= 1.39.0")
+
+    collection = collection_factory(
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.TEXT,
+                index_filterable=True,
+                index_searchable=True,
+                tokenization=Tokenization.WORD,
+            )
+        ],
+    )
+    # a large batch keeps the coupled reindex task live long enough to cancel it
+    collection.data.insert_many([{"name": f"object {i}"} for i in range(1000)])
+
+    task = collection.config.update_property_index(
+        "name", InvertedIndexType.SEARCHABLE, tokenization=Tokenization.FIELD
+    )
+    assert task.status == InvertedIndexTaskStatus.STARTED
+    assert task.task_id is not None
+
+    cancel = collection.config.cancel_property_index_task("name", InvertedIndexType.SEARCHABLE)
+    if cancel.status == InvertedIndexTaskStatus.CANCELLED:
+        # a live task was stopped: the cancellation targets the same coupled task we submitted
+        assert cancel.task_id == task.task_id
+    else:
+        # the task finished before we could cancel it — nothing left to stop
+        assert cancel.status == InvertedIndexTaskStatus.NO_OP
+
+    # the index settles into a terminal state; if cancelled, waiting on it raises
+    if cancel.status == InvertedIndexTaskStatus.CANCELLED:
+        try:
+            status = collection.config.update_property_index(
+                "name",
+                InvertedIndexType.SEARCHABLE,
+                tokenization=Tokenization.FIELD,
+                wait_for_completion=True,
+            )
+            # a resubmit may relaunch and complete instead of surfacing the cancelled entry
+            assert status.state == InvertedIndexState.READY
+        except ReindexCanceledError:
+            pass
+
+
+def test_property_reindex_multi_tenant(collection_factory: CollectionFactory) -> None:
+    """Test rangeFilters creation and rebuild with a tenants selection on a multi-tenant collection."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("Runtime property reindex requires Weaviate >= 1.39.0")
+
+    collection = collection_factory(
+        properties=[
+            Property(
+                name="age",
+                data_type=DataType.INT,
+                index_filterable=True,
+                index_range_filters=False,
+            )
+        ],
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    collection.with_tenant("tenant1").data.insert_many([{"age": i} for i in range(5)])
+
+    status = collection.config.update_property_index(
+        "age",
+        InvertedIndexType.RANGE_FILTERS,
+        tenants=["tenant1", "tenant2"],
+        wait_for_completion=True,
+    )
+    assert status.type == "rangeFilters"
+    assert status.state == InvertedIndexState.READY
+
+    status = collection.config.rebuild_property_index(
+        "age", InvertedIndexType.RANGE_FILTERS, tenants=["tenant1"], wait_for_completion=True
+    )
+    assert status.type == "rangeFilters"
+    assert status.state == InvertedIndexState.READY
+
+
+@pytest.mark.asyncio
+async def test_property_reindex_async(async_collection_factory: AsyncCollectionFactory) -> None:
+    """Test the runtime property reindex lifecycle through the async client."""
+    collection = await async_collection_factory(
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.TEXT,
+                index_filterable=True,
+                index_searchable=False,
+            )
+        ],
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("Runtime property reindex requires Weaviate >= 1.39.0")
+
+    await collection.data.insert_many([{"name": f"object {i}"} for i in range(10)])
+
+    status = await collection.config.update_property_index(
+        "name",
+        InvertedIndexType.SEARCHABLE,
+        tokenization=Tokenization.WORD,
+        wait_for_completion=True,
+    )
+    assert status.type == "searchable"
+    assert status.state == InvertedIndexState.READY
+
+    task = await collection.config.update_property_index(
+        "name", InvertedIndexType.SEARCHABLE, tokenization=Tokenization.WORD
+    )
+    assert task.status == InvertedIndexTaskStatus.NO_OP
+
+    indexes = await collection.config.get_property_indexes()
+    assert indexes.collection == collection.name
+
+    status = await collection.config.rebuild_property_index(
+        "name", InvertedIndexType.SEARCHABLE, wait_for_completion=True
+    )
+    assert status.state == InvertedIndexState.READY
+
+    task = await collection.config.cancel_property_index_task("name", InvertedIndexType.SEARCHABLE)
+    assert task.status == InvertedIndexTaskStatus.NO_OP

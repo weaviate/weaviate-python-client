@@ -3,13 +3,19 @@ from typing import Dict, List, Literal, Optional, Union, overload
 from typing_extensions import deprecated
 
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     CollectionConfig,
     CollectionConfigSimple,
+    CollectionInvertedIndexes,
     IndexName,
+    InvertedIndexStatus,
+    InvertedIndexTask,
+    InvertedIndexType,
     Property,
     ReferenceProperty,
     ShardStatus,
     ShardTypes,
+    Tokenization,
     _GenerativeProvider,
     _InvertedIndexConfigUpdate,
     _MultiTenancyConfigUpdate,
@@ -87,4 +93,54 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     def add_vector(
         self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
     ) -> None: ...
-    def delete_property_index(self, property_name: str, index_name: IndexName) -> bool: ...
+    def delete_property_index(
+        self, property_name: str, index_name: Union[InvertedIndexType, IndexName]
+    ) -> bool: ...
+    @overload
+    def update_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tokenization: Optional[Tokenization] = None,
+        algorithm: Optional[BM25Algorithm] = None,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[True],
+        timeout: Optional[float] = None,
+    ) -> InvertedIndexStatus: ...
+    @overload
+    def update_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tokenization: Optional[Tokenization] = None,
+        algorithm: Optional[BM25Algorithm] = None,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[False] = False,
+        timeout: Optional[float] = None,
+    ) -> InvertedIndexTask: ...
+    @overload
+    def rebuild_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[True],
+        timeout: Optional[float] = None,
+    ) -> InvertedIndexStatus: ...
+    @overload
+    def rebuild_property_index(
+        self,
+        property_name: str,
+        index_name: InvertedIndexType,
+        *,
+        tenants: Union[List[str], str, None] = None,
+        wait_for_completion: Literal[False] = False,
+        timeout: Optional[float] = None,
+    ) -> InvertedIndexTask: ...
+    def cancel_property_index_task(
+        self, property_name: str, index_name: InvertedIndexType
+    ) -> InvertedIndexTask: ...
+    def get_property_indexes(self) -> CollectionInvertedIndexes: ...
