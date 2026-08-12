@@ -129,6 +129,7 @@ def test_generative_parameters_images_parsing(
         (
             GenerativeConfig.cohere(
                 base_url="http://localhost:8080",
+                frequency_penalty=0.4,
                 k=5,
                 max_tokens=100,
                 model="text-to-image",
@@ -141,6 +142,7 @@ def test_generative_parameters_images_parsing(
                 return_metadata=True,
                 cohere=generative_pb2.GenerativeCohere(
                     base_url="http://localhost:8080",
+                    frequency_penalty=0.4,
                     k=5,
                     max_tokens=100,
                     model="text-to-image",
