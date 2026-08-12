@@ -36,6 +36,10 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.internal import Object, ReferenceToMulti, _CrossReference
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties, _PhoneNumber
+from weaviate.collections.grpc.shared import (
+    _BM25_AND_CROSS_MIN_VERSIONS,
+    _BM25_AND_CROSS_MIN_VERSIONS_STR,
+)
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     WeaviateInsertInvalidPropertyError,
@@ -1756,3 +1760,24 @@ def test_bm25_operators(collection_factory: CollectionFactory) -> None:
     assert len(objs.objects) == 4
     assert objs.objects[0].uuid == uuid2
     assert sorted(obj.uuid for obj in objs.objects[1:]) == sorted([uuid1, uuid3, uuid4])
+
+
+def test_bm25_operator_and_cross(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="title", data_type=DataType.TEXT),
+            Property(name="body", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    if not collection._connection._weaviate_version.is_at_least_any(*_BM25_AND_CROSS_MIN_VERSIONS):
+        pytest.skip(f"bm25 cross-property AND requires {_BM25_AND_CROSS_MIN_VERSIONS_STR}")
+
+    # Neither of `split_across`'s properties holds both tokens, so only cross-property AND matches it.
+    split_across = collection.data.insert({"title": "banana", "body": "split"})
+    single_property = collection.data.insert({"title": "banana split", "body": "dessert"})
+    collection.data.insert({"title": "banana", "body": "bread"})
+
+    objs = collection.query.bm25("banana split", operator=wvc.query.BM25Operator.and_cross())
+    assert sorted(obj.uuid for obj in objs.objects) == sorted([split_across, single_property])

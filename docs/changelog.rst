@@ -1,6 +1,28 @@
 Changelog
 =========
 
+Version 4.23.0
+--------------
+This minor version includes:
+    - Support for new 1.39 features:
+        - Add support for the cross-property ``And`` operator in keyword queries through ``BM25Operator.and_cross()``, where each query token must be matched by at least one of the searched properties instead of all tokens occurring within a single property
+    - Add support for diversity selection in ``hybrid`` queries via the ``diversity_selection`` parameter
+    - Add support for the new ``multi2vec-twelvelabs`` vectorizer module
+    - Add support for the new ``generative-deepseek`` module
+    - Add ``dimensions`` to the ``text2vec-aws`` vectorizer configuration
+    - Add ``location`` to the ``text2vec-google`` vectorizer configuration
+    - Add ``endpoint`` to the ``text2vec-openai`` and ``text2vec-morph`` vectorizer configurations
+    - Add ``incremental_base_backup_id`` to ``BackupListReturn``
+    - Add ``INTEGRATING`` to ``ReplicateOperationState``
+    - Minor bug fixes and improvements:
+        - Fix ``has_errors`` not being set on ``batch.stream`` returns when individual objects or references failed
+        - Fix ``tenants.activate()``, ``tenants.deactivate()`` and ``tenants.offload()`` not returning their result in the async client, so they could not be awaited properly
+        - Fix ``collections.exists()`` in the async client swallowing non-404 errors and returning ``False`` instead of raising
+        - Fix blocking of the event loop when the async client waits for Weaviate to become ready
+        - Include the gRPC status code in ``delete_many`` error messages
+        - Fix validation of ``Sequence[Union[...]]`` inputs, which previously passed if only one element matched
+        - Reject boolean values where an integer is expected in configuration and timeout validation
+
 Version 4.22.0
 --------------
 This minor version includes:
