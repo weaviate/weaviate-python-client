@@ -257,6 +257,10 @@ class _FixedSizeBatching:
 class _RateLimitedBatching:
     requests_per_minute: int
 
+    def get_sleep_time(self, number_objects: int, elapsed_time: float, base_time: float) -> float:
+        batch_interval = base_time * number_objects / self.requests_per_minute
+        return max(batch_interval - elapsed_time, 0)
+
 
 @dataclass
 class _ServerSideBatching:
@@ -346,6 +350,7 @@ class _BatchBase:
 
         # fixed rate batching
         self.__time_stamp_last_request: float = 0
+        self.__num_objects_in_previous_batch: int = 0
         # do 62 secs to give us some buffer to the "per-minute" calculation
         self.__fix_rate_batching_base_time = 62
 
@@ -395,11 +400,13 @@ class _BatchBase:
             and not self.__shut_background_thread_down.is_set()
         ):
             if isinstance(self.__batching_mode, _RateLimitedBatching):
-                if (
-                    time.time() - self.__time_stamp_last_request
-                    < self.__fix_rate_batching_base_time // self.__concurrent_requests
-                ):
-                    time.sleep(1)
+                sleep_time = self.__batching_mode.get_sleep_time(
+                    number_objects=self.__num_objects_in_previous_batch,
+                    elapsed_time=time.time() - self.__time_stamp_last_request,
+                    base_time=self.__fix_rate_batching_base_time,
+                )
+                if sleep_time > 0:
+                    time.sleep(min(sleep_time, 1))
                     continue
                 refresh_time = 0
             elif isinstance(self.__batching_mode, _DynamicBatching) and self.__vectorizer_batching:
@@ -415,7 +422,8 @@ class _BatchBase:
                 self.__active_requests < self.__concurrent_requests
                 and len(self.__batch_objects) + len(self.__batch_references) > 0
             ):
-                self.__time_stamp_last_request = time.time()
+                if not isinstance(self.__batching_mode, _RateLimitedBatching):
+                    self.__time_stamp_last_request = time.time()
 
                 self._batch_send = True
                 with self.__active_requests_lock:
@@ -444,6 +452,12 @@ class _BatchBase:
                     self.__recommended_num_refs,
                     uuid_lookup=self.__uuid_lookup,
                 )
+                if isinstance(self.__batching_mode, _RateLimitedBatching):
+                    # Preserve a future timestamp set by a concurrent rate-limit retry.
+                    self.__time_stamp_last_request = max(
+                        self.__time_stamp_last_request, time.time()
+                    )
+                    self.__num_objects_in_previous_batch = len(objs)
                 # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                 ctx = contextvars.copy_context()
                 self.__executor.submit(
