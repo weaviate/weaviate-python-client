@@ -477,6 +477,7 @@ class _GenerativeNvidia(_GenerativeProvider):
     model: Optional[str]
     maxTokens: Optional[int]
     baseURL: Optional[str]
+    topP: Optional[float]
 
 
 class _GenerativeXai(_GenerativeProvider):
@@ -616,6 +617,7 @@ class _GenerativeAnthropicConfig(_GenerativeProvider):
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
+    baseURL: Optional[str]
 
 
 class _RerankerProvider(_ConfigCreateModel):
@@ -852,6 +854,7 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
 
@@ -860,9 +863,14 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeNvidia(
-            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+            model=model,
+            temperature=temperature,
+            maxTokens=max_tokens,
+            baseURL=base_url,
+            topP=top_p,
         )
 
     @staticmethod
@@ -1355,6 +1363,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
+        base_url: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
 
@@ -1365,6 +1374,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnthropicConfig(
             model=model,
@@ -1373,6 +1383,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            baseURL=base_url,
         )
 
 
