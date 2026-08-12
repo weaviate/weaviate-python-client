@@ -353,6 +353,7 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
     is_azure: bool
     max_tokens: Optional[int]
     model: Optional[str]
+    n: Optional[int]
     presence_penalty: Optional[float]
     resource_name: Optional[str]
     stop: Optional[List[str]]
@@ -371,6 +372,7 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
                 frequency_penalty=self.frequency_penalty,
                 max_tokens=self.max_tokens,
                 model=self.model,
+                n=self.n,
                 presence_penalty=self.presence_penalty,
                 resource_name=self.resource_name,
                 stop=_to_text_array(self.stop),
@@ -1151,6 +1153,7 @@ class GenerativeConfig:
         frequency_penalty: Optional[float] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
+        n: Optional[int] = None,
         presence_penalty: Optional[float] = None,
         reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]] = None,
         resource_name: Optional[str] = None,
@@ -1171,6 +1174,7 @@ class GenerativeConfig:
             frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
+            n: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
             presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
             reasoning_effort: The reasoning effort to use. Defaults to `None`, which uses the server-defined default
             resource_name: The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
@@ -1188,6 +1192,7 @@ class GenerativeConfig:
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
             model=model,
+            n=n,
             presence_penalty=presence_penalty,
             resource_name=resource_name,
             stop=stop,
@@ -1207,6 +1212,7 @@ class GenerativeConfig:
         frequency_penalty: Optional[float] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
+        n: Optional[int] = None,
         presence_penalty: Optional[float] = None,
         resource_name: Optional[str] = None,
         stop: Optional[List[str]] = None,
@@ -1225,6 +1231,7 @@ class GenerativeConfig:
             frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
+            n: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
             presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
             resource_name: The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
             stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
@@ -1240,6 +1247,7 @@ class GenerativeConfig:
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
             model=model,
+            n=n,
             presence_penalty=presence_penalty,
             resource_name=resource_name,
             stop=stop,
