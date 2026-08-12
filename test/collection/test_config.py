@@ -883,6 +883,24 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-nvidia": {}},
     ),
     (
+        Configure.Generative.nvidia(
+            base_url="https://integrate.api.nvidia.com",
+            model="model",
+            temperature=0.5,
+            max_tokens=100,
+            top_p=0.5,
+        ),
+        {
+            "generative-nvidia": {
+                "baseURL": "https://integrate.api.nvidia.com",
+                "model": "model",
+                "temperature": 0.5,
+                "maxTokens": 100,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.anyscale(),
         {"generative-anyscale": {}},
     ),
@@ -1083,6 +1101,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_k=10,
             top_p=0.5,
+            base_url="https://api.anthropic.com",
         ),
         {
             "generative-anthropic": {
@@ -1092,6 +1111,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
+                "baseURL": "https://api.anthropic.com",
             }
         },
     ),
