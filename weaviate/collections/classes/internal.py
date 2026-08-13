@@ -42,15 +42,18 @@ from weaviate.collections.classes.grpc import (
     _QueryReferenceMultiTarget,
 )
 from weaviate.collections.classes.types import (
+    GeoCoordinate,
     IReferences,
     M,
     P,
+    PhoneNumber,
     Properties,
     R,
     References,
     TProperties,
     TReferences,
     WeaviateProperties,
+    _PhoneNumber,
     _WeaviateInput,
 )
 from weaviate.exceptions import (
@@ -120,6 +123,21 @@ class GroupByMetadataReturn:
     distance: Optional[float] = None
 
 
+def _weaviate_field_to_json(value: Any) -> Any:
+    """Recursively convert a `WeaviateField` property value into a JSON-serializable value."""
+    if isinstance(value, datetime.datetime):
+        return value.isoformat()
+    if isinstance(value, uuid_package.UUID):
+        return str(value)
+    if isinstance(value, (GeoCoordinate, PhoneNumber, _PhoneNumber)):
+        return value.model_dump(mode="json")
+    if isinstance(value, Mapping):
+        return {k: _weaviate_field_to_json(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_weaviate_field_to_json(v) for v in value]
+    return value
+
+
 @dataclass
 class _Object(Generic[P, R, M]):
     uuid: uuid_package.UUID
@@ -128,6 +146,26 @@ class _Object(Generic[P, R, M]):
     references: R
     vector: Dict[str, Union[List[float], List[List[float]]]]
     collection: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert this object into a JSON-serializable dictionary.
+
+        Cross-references are expanded recursively into their own `to_dict()` representation, so
+        take care when calling this on objects that are part of a reference cycle.
+        """
+        return {
+            "uuid": str(self.uuid),
+            "metadata": {k: _weaviate_field_to_json(v) for k, v in vars(self.metadata).items()},
+            "properties": {
+                key: _weaviate_field_to_json(val) for key, val in self.properties.items()
+            },
+            "references": {
+                link: [obj.to_dict() for obj in ref.objects]
+                for link, ref in (self.references or {}).items()
+            },
+            "vector": self.vector,
+            "collection": self.collection,
+        }
 
 
 @dataclass
@@ -534,6 +572,9 @@ class _CrossReference(Generic[Properties, IReferences]):
     def objects(self) -> List[Object[Properties, IReferences]]:
         """Returns the objects of the cross reference."""
         return self.__objects or []
+
+    def __repr__(self) -> str:
+        return f"CrossReference(objects={self.objects!r})"
 
 
 CrossReference: TypeAlias = _CrossReference[Properties, IReferences]
