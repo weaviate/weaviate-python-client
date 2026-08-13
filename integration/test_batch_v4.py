@@ -17,6 +17,7 @@ from weaviate.collections.classes.config import (
     DataType,
     Property,
     ReferenceProperty,
+    ShardStatus,
 )
 from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import (
@@ -524,10 +525,15 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert ret.total_count == nr_objects
 
     shards = client.collections.use(name).config.get_shards()
-    if shards[0].status:
-        assert shards[0].status == "READY"
-    elif shards[0].per_node_status:
-        assert all(status == "READY" for status in shards[0].per_node_status.values())
+    assert shard_status_is(shards[0], "READY")
+
+
+def shard_status_is(shard: ShardStatus, want: str) -> bool:
+    if shard.per_node_status:
+        return all(status == want for status in shard.per_node_status.values())
+    elif shard.status:
+        return shard.status == want
+    return False
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -547,11 +553,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(vec_length)],
             )
     shard_status = old_client.schema.get_class_shards(name)
-    if shard_status[0].status:
-        assert shard_status[0].status == "INDEXING"
-    elif shard_status[0].per_node_status:
-        assert all(status == "INDEXING" for status in shard_status[0].per_node_status.values())
-
+    assert shard_status_is(shard_status[0], "INDEXING")
     assert len(client.batch.failed_objects) == 0
 
     ret = client.collections.use(name).aggregate.over_all(total_count=True)
@@ -583,10 +585,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
 
     shards = client.collections.use(name).config.get_shards()
     for shard in shards:
-        if shard.status:
-            assert shard.status == "READY"
-        elif shard.per_node_status:
-            assert all(status == "READY" for status in shard.per_node_status.values())
+        assert shard_status_is(shard, "READY")
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -618,10 +617,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     shards = client.collections.use(name).config.get_shards()
     for shard in shards:
         want = "READY" if shard.name == tenants[0].name else "INDEXING"
-        if shard.status:
-            assert shard.status == want
-        elif shard.per_node_status:
-            assert all(status == want for status in shard.per_node_status.values())
+        assert shard_status_is(shard, want)
 
 
 @pytest.mark.parametrize(
