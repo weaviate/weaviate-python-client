@@ -197,6 +197,27 @@ def test_empty_ok_response_with_grpc_status_has_no_cors_hint():
     assert "Access-Control-Expose-Headers" not in str(excinfo.value.details())
 
 
+def test_message_frame_without_grpc_status_is_internal_not_success():
+    # HTTP 200 with a valid message frame but no grpc-status anywhere (e.g. a proxy
+    # dropped the trailer frame) must be an error, never a fabricated success
+    channel = _channel(FakeSender(status=200, headers={}, body=_frame(b"reply-bytes")))
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q"))
+    assert excinfo.value.code() is StatusCode.INTERNAL
+    assert "missing grpc-status" in str(excinfo.value.details())
+
+
+def test_message_frame_with_grpc_status_header_still_succeeds():
+    # trailers-only-in-headers responses (grpc-status as an HTTP header, no trailer
+    # frame) remain valid per the grpc-web contract
+    channel = _channel(
+        FakeSender(status=200, headers={"grpc-status": "0"}, body=_frame(b"reply-bytes"))
+    )
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    assert asyncio.run(mc(b"q")) == b"reply-bytes"
+
+
 def test_stream_stream_error_recommends_insert_many_only():
     # batch.dynamic()/fixed_size()/rate_limit() do not exist on the async client (the
     # only one supported under WASM), so the error must not recommend them

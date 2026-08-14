@@ -246,6 +246,13 @@ class GrpcWebChannel(AioChannel):
                     code=_status_from_http(http_status),
                     details=f"HTTP {http_status} from grpc-web endpoint",
                 )
+            if messages:
+                # Every grpc-web unary response must carry a grpc-status (trailer frame
+                # or header); a proxy that drops the trailer must not read as success.
+                raise AioRpcError(
+                    code=StatusCode.INTERNAL,
+                    details="grpc-web response missing grpc-status trailers",
+                )
             code = StatusCode.OK
         else:
             code = status_from_int(int(raw_status))
