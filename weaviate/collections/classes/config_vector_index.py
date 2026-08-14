@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Dict, Literal, Optional, overload
 
 from pydantic import Field
-from typing_extensions import deprecated
+from typing_extensions import TypeAlias, deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
@@ -670,3 +670,6 @@ class _VectorIndex:
             quantizer=None,
             multivector=None,
         )
+
+
+VectorIndexConfigCreate: TypeAlias = _VectorIndexConfigCreate
