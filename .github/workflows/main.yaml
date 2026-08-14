@@ -125,6 +125,52 @@ jobs:
       - name: Run grpc-web package tests
         run: pytest packages/grpc-web/tests
 
+  pyodide-e2e:
+    name: Run Pyodide (WASM) e2e Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # No Python matrix: the pinned Pyodide bundle fixes the interpreter (see
+    # ci/pyodide-e2e/package.json for the exact pin).
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+          cache: 'pip' # caching pip dependencies
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+      - name: Login to Docker Hub
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Build pure wheels (base client + grpc-web)
+        run: |
+          pip install build
+          python -m build --wheel --outdir dist .
+          python -m build --wheel --outdir dist packages/grpc-web
+      - name: start weaviate
+        run: |
+          source ./ci/compose.sh
+          export WEAVIATE_VERSION=$WEAVIATE_139
+          docker compose -f ci/docker-compose-async.yml up -d
+          wait "http://localhost:8090"
+      - name: Run the e2e suite inside Pyodide under Node
+        env:
+          WEAVIATE_HOST: localhost
+          WEAVIATE_PORT: "8090"
+        run: |
+          npm install --prefix ci/pyodide-e2e
+          node ci/pyodide-e2e/run.mjs dist
+      - name: stop weaviate
+        if: always()
+        run: docker compose -f ci/docker-compose-async.yml down --remove-orphans
+
   proto-test:
     name: Run importing protos test
     runs-on: ubuntu-latest
