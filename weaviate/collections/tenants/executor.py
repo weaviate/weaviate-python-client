@@ -521,7 +521,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
         """
-        self.__update_tenant_activity_status(
+        return self.__update_tenant_activity_status(
             tenant=tenant,
             activity_status=TenantUpdateActivityStatus.ACTIVE,
         )
@@ -542,7 +542,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
         """
-        self.__update_tenant_activity_status(
+        return self.__update_tenant_activity_status(
             tenant=tenant,
             activity_status=TenantUpdateActivityStatus.INACTIVE,
         )
@@ -563,7 +563,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInvalidInputError: If `tenant` is not a list of `wvc.Tenant` objects.
         """
-        self.__update_tenant_activity_status(
+        return self.__update_tenant_activity_status(
             tenant=tenant,
             activity_status=TenantUpdateActivityStatus.OFFLOADED,
         )

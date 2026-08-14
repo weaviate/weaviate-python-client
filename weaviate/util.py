@@ -607,6 +607,17 @@ class _ServerVersion:
                 f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
             )
 
+    def is_at_least_any(self, *minimums: Tuple[int, int, int]) -> bool:
+        """Check a minimum that was backported to several release branches.
+
+        Each entry is the first version on its own minor branch to carry the feature, in ascending
+        order; the server is checked against the newest branch that is not newer than itself.
+        """
+        for major, minor, patch in reversed(minimums):
+            if (self.major, self.minor) >= (major, minor):
+                return self >= _ServerVersion(major, minor, patch)
+        return False
+
     def check_is_at_least_1_25_0(self, feature: str) -> None:
         if not self >= _ServerVersion(1, 25, 0):
             raise WeaviateUnsupportedFeatureError(feature, str(self), "1.25.0")
@@ -672,7 +683,7 @@ def _get_valid_timeout_config(
     """
 
     def check_number(num: Union[NUMBER, Tuple[NUMBER, NUMBER], None]) -> bool:
-        return isinstance(num, float) or isinstance(num, int)
+        return isinstance(num, float) or (isinstance(num, int) and not isinstance(num, bool))
 
     if (isinstance(timeout_config, float) or isinstance(timeout_config, int)) and not isinstance(
         timeout_config, bool

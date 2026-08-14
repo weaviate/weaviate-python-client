@@ -14,19 +14,27 @@ class ConnectionConfig:
     session_pool_timeout: int = 5
 
     def __post_init__(self) -> None:
-        if not isinstance(self.session_pool_connections, int):
+        if not isinstance(self.session_pool_connections, int) or isinstance(
+            self.session_pool_connections, bool
+        ):
             raise TypeError(
                 f"session_pool_connections must be {int}, received {type(self.session_pool_connections)}"
             )
-        if not isinstance(self.session_pool_maxsize, int):
+        if not isinstance(self.session_pool_maxsize, int) or isinstance(
+            self.session_pool_maxsize, bool
+        ):
             raise TypeError(
                 f"session_pool_maxsize must be {int}, received {type(self.session_pool_maxsize)}"
             )
-        if not isinstance(self.session_pool_max_retries, int):
+        if not isinstance(self.session_pool_max_retries, int) or isinstance(
+            self.session_pool_max_retries, bool
+        ):
             raise TypeError(
                 f"session_pool_max_retries must be {int}, received {type(self.session_pool_max_retries)}"
             )
-        if not isinstance(self.session_pool_timeout, int):
+        if not isinstance(self.session_pool_timeout, int) or isinstance(
+            self.session_pool_timeout, bool
+        ):
             raise TypeError(
                 f"session_pool_timeout must be {int}, received {type(self.session_pool_timeout)}"
             )

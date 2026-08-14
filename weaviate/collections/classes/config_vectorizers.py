@@ -110,6 +110,7 @@ class Vectorizers(str, Enum):
         MULTI2VEC_BIND: Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         MULTI2VEC_VOYAGEAI: Weaviate module backed by a Voyage AI multimodal embedding models.
         MULTI2VEC_NVIDIA: Weaviate module backed by NVIDIA multimodal embedding models.
+        MULTI2VEC_TWELVELABS: Weaviate module backed by TwelveLabs multimodal embedding models.
         REF2VEC_CENTROID: Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
     """
 
@@ -144,6 +145,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
     MULTI2VEC_NVIDIA = "multi2vec-nvidia"
+    MULTI2VEC_TWELVELABS = "multi2vec-twelvelabs"
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
@@ -215,6 +217,7 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     service: str
     targetModel: Optional[str]
     targetVariant: Optional[str]
+    dimensions: Optional[int]
     vectorizeClassName: bool
 
     @field_validator("region")
@@ -309,6 +312,7 @@ class _Text2VecMorphConfig(_VectorizerConfigCreate):
     model: Optional[str]
     vectorizeClassName: bool
     baseURL: Optional[AnyHttpUrl]
+    endpoint: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -335,6 +339,7 @@ class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
     )
     baseURL: Optional[AnyHttpUrl]
     dimensions: Optional[int]
+    endpoint: Optional[str]
     model: Optional[str]
     modelVersion: Optional[str]
     type_: Optional[OpenAIType]
@@ -616,6 +621,20 @@ class _Multi2VecNvidiaConfig(_Multi2VecBase):
         return ret_dict
 
 
+class _Multi2VecTwelvelabsConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_TWELVELABS, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
 class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.REF2VEC_CENTROID, frozen=True, exclude=True
@@ -679,7 +698,7 @@ class _Vectorizer:
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
             inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `image_fields` or `text_fields` are not `None` or a `list`.
@@ -726,7 +745,7 @@ class _Vectorizer:
             text_fields: The text fields to use in vectorization.
             thermal_fields: The thermal fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If any of the `*_fields` are not `None` or a `list`.
@@ -770,6 +789,7 @@ class _Vectorizer:
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
         vectorize_collection_name: bool = True,
+        dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
 
@@ -782,6 +802,7 @@ class _Vectorizer:
             endpoint: The model to use, REQUIRED for service "sagemaker".
             service: The AWS service to use, options are "bedrock" and "sagemaker".
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
         return _Text2VecAWSConfig(
             model=model,
@@ -791,6 +812,7 @@ class _Vectorizer:
             endpoint=endpoint,
             targetModel=None,
             targetVariant=None,
+            dimensions=dimensions,
         )
 
     @staticmethod
@@ -904,7 +926,7 @@ class _Vectorizer:
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
@@ -1133,6 +1155,7 @@ class _Vectorizer:
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
+        endpoint: Optional[str] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOpenAIConfigCreate` object for use when vectorizing using the `text2vec-openai` model.
 
@@ -1146,6 +1169,7 @@ class _Vectorizer:
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+            endpoint: The API path to append to `base_url`, e.g. `/api/v3/embeddings`. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `type_` is not a valid value from the `OpenAIType` type.
@@ -1157,6 +1181,7 @@ class _Vectorizer:
             type_=type_,
             vectorizeClassName=vectorize_collection_name,
             dimensions=dimensions,
+            endpoint=endpoint,
         )
 
     @staticmethod
@@ -1306,7 +1331,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1349,7 +1374,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             video_fields: The video fields to use in vectorization.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1444,7 +1469,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.

@@ -434,7 +434,7 @@ class _BatchBase:
                         # shutdown was requested, exit the loop
                         break
                     if time.time() - start >= 1 and (
-                        len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
+                        len_o == len(self.__batch_objects) and len_r == len(self.__batch_references)
                     ):
                         # no new objects were added in the last second, exit the loop
                         break

@@ -617,9 +617,13 @@ class Boost:
 class MMR:
     """Define MMR (Maximal Marginal Relevance) diversity selection.
 
+    Not supported for multi-vector indexes.
+
     Args:
-        limit: Optional number of candidates to consider for diversification.
-        balance: Optional MMR lambda in [0.0, 1.0] — 1.0 is pure relevance, 0.0 is pure diversity.
+        limit: Number of objects to select. The server requires it: it must be at least 1 and
+            no larger than the query's own `limit` when one is set.
+        balance: Optional MMR lambda in [0.0, 1.0]. 1.0 ranks purely by relevance to the query,
+            0.0 purely by dissimilarity to the objects already selected.
     """
 
     limit: Optional[int] = None
@@ -636,9 +640,13 @@ class Diversity:
     def mmr(limit: Optional[int] = None, balance: Optional[float] = None) -> MMR:
         """Maximal Marginal Relevance diversity selection.
 
+        Not supported for multi-vector indexes.
+
         Args:
-            limit: Number of candidates to consider for diversification.
-            balance: MMR lambda in [0.0, 1.0] — 1.0 pure relevance, 0.0 pure diversity.
+            limit: Number of objects to select. The server requires it: it must be at least 1
+                and no larger than the query's own `limit` when one is set.
+            balance: MMR lambda in [0.0, 1.0]. 1.0 ranks purely by relevance to the query,
+                0.0 purely by dissimilarity to the objects already selected.
         """
         return MMR(limit=limit, balance=balance)
 
@@ -662,6 +670,13 @@ class BM25OperatorAnd(BM25OperatorOptions):
     """Define the 'And' operator for keyword queries."""
 
     operator = base_search_pb2.SearchOperatorOptions.OPERATOR_AND
+
+
+@dataclass
+class BM25OperatorAndCross(BM25OperatorOptions):
+    """Define the cross-property 'And' operator for keyword queries."""
+
+    operator = base_search_pb2.SearchOperatorOptions.OPERATOR_AND_CROSS
 
 
 class BM25OperatorFactory:
@@ -688,6 +703,20 @@ class BM25OperatorFactory:
         Note that the query is tokenized using the respective tokenization method of each property.
         """
         return BM25OperatorAnd()
+
+    @staticmethod
+    def and_cross() -> BM25OperatorOptions:
+        """Use the cross-property 'And' operator for keyword queries, where all query tokens must match across the searched properties combined.
+
+        Unlike `and_()`, which requires every token to occur within a single property, a token may be
+        matched by any of the searched properties, as long as each token is matched by at least one.
+
+        All searched properties must share the same tokenization and analyzer settings; the server
+        rejects the query otherwise.
+
+        Requires Weaviate `1.37.15`, `1.38.8`, `1.39.0` or higher.
+        """
+        return BM25OperatorAndCross()
 
 
 OneDimensionalVectorType = Sequence[NUMBER]

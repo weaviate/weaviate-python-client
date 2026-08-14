@@ -238,6 +238,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             model="cohere.embed-english-v3",
             region="us-east-1",
             service="bedrock",
+            dimensions=512,
         ),
         {
             "text2vec-aws": {
@@ -245,6 +246,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "cohere.embed-english-v3",
                 "region": "us-east-1",
                 "service": "bedrock",
+                "dimensions": 512,
             }
         },
     ),
@@ -313,6 +315,21 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "type": "text",
                 "baseURL": "https://api.openai.com/",
                 "dimensions": 100,
+                "isAzure": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_openai(
+            vectorize_collection_name=False,
+            model="ada",
+            endpoint="/api/v3/embeddings",
+        ),
+        {
+            "text2vec-openai": {
+                "vectorizeClassName": False,
+                "model": "ada",
+                "endpoint": "/api/v3/embeddings",
                 "isAzure": False,
             }
         },
@@ -866,6 +883,24 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-nvidia": {}},
     ),
     (
+        Configure.Generative.nvidia(
+            base_url="https://integrate.api.nvidia.com",
+            model="model",
+            temperature=0.5,
+            max_tokens=100,
+            top_p=0.5,
+        ),
+        {
+            "generative-nvidia": {
+                "baseURL": "https://integrate.api.nvidia.com",
+                "model": "model",
+                "temperature": 0.5,
+                "maxTokens": 100,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.anyscale(),
         {"generative-anyscale": {}},
     ),
@@ -1006,6 +1041,42 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.google_vertex(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
+        Configure.Generative.google_vertex(
+            project_id="project",
+            api_endpoint="https://api.google.com",
+            region="europe-west4",
+            location="europe-west4",
+            max_output_tokens=100,
+            model_id="model",
+            endpoint_id="endpoint",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://api.google.com",
+                "region": "europe-west4",
+                "location": "europe-west4",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "endpointId": "endpoint",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.aws(
             model="cohere.command-light-text-v14",
             region="us-east-1",
@@ -1042,6 +1113,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_p=0.5,
             base_url="https://api.openai.com",
+            api_version="2024-06-01",
         ),
         {
             "generative-openai": {
@@ -1053,6 +1125,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
+                "apiVersion": "2024-06-01",
             }
         },
     ),
@@ -1064,6 +1137,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_k=10,
             top_p=0.5,
+            base_url="https://api.anthropic.com",
         ),
         {
             "generative-anthropic": {
@@ -1073,6 +1147,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
+                "baseURL": "https://api.anthropic.com",
             }
         },
     ),
@@ -1099,6 +1174,30 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
+            }
+        },
+    ),
+    (
+        Configure.Generative.deepseek(
+            model="deepseek-chat",
+            max_tokens=100,
+            temperature=0.5,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            top_p=0.9,
+            base_url="https://api.deepseek.com",
+            stop=["\n"],
+        ),
+        {
+            "generative-deepseek": {
+                "model": "deepseek-chat",
+                "maxTokens": 100,
+                "temperature": 0.5,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "topP": 0.9,
+                "baseURL": "https://api.deepseek.com",
+                "stop": ["\n"],
             }
         },
     ),
@@ -1758,6 +1857,28 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.NamedVectors.text2vec_openai(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "endpoint": "/api/v3/embeddings",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.NamedVectors.text2vec_mistral(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -2199,6 +2320,28 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.multi2vec_twelvelabs(
+                name="test",
+                image_fields=["image"],
+                text_fields=["prop"],
+                model="marengo3.0",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-twelvelabs": {
+                        "imageFields": ["image"],
+                        "textFields": ["prop"],
+                        "model": "marengo3.0",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.multi2vec_jinaai(name="test", dimensions=256, text_fields=["prop"])],
         {
             "test": {
@@ -2360,6 +2503,28 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.text2vec_openai(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "endpoint": "/api/v3/embeddings",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.text2vec_mistral(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -2400,6 +2565,27 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-morph": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_morph(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-morph": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                        "endpoint": "/api/v3/embeddings",
                     }
                 },
                 "vectorIndexType": "hnsw",
