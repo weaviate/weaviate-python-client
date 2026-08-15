@@ -350,6 +350,7 @@ class _BatchBase:
 
         # fixed rate batching
         self.__time_stamp_last_request: float = 0
+        # No previous batch exists yet, so zero lets the first batch dispatch immediately.
         self.__num_objects_in_previous_batch: int = 0
         # do 62 secs to give us some buffer to the "per-minute" calculation
         self.__fix_rate_batching_base_time = 62

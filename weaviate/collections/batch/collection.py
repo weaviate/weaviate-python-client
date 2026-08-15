@@ -281,7 +281,8 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         When you exit the context manager, the final batch will be sent automatically.
 
         Args:
-            requests_per_minute: The number of requests that the vectorizer can process per minute.
+            requests_per_minute: The number of objects to send to Weaviate per minute,
+                used to avoid exceeding the vectorizer's rate limit.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)
         return self.__create_batch_and_reset(_BatchCollection)
