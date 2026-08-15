@@ -588,7 +588,6 @@ class GenerativeConfig:
         target_model: Optional[str] = None,
         target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
-        stop_sequences: Optional[List[str]] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
 
@@ -604,7 +603,6 @@ class GenerativeConfig:
             target_model: The target model to use. Defaults to `None`, which uses the server-defined default
             target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
-            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAWS(
             model=model,
@@ -619,7 +617,7 @@ class GenerativeConfig:
             temperature=temperature,
             top_k=None,
             top_p=None,
-            stop_sequences=stop_sequences,
+            stop_sequences=None,
         )
 
     @staticmethod

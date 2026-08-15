@@ -98,11 +98,9 @@ def test_generative_parameters_images_parsing(
             ),
         ),
         (
-            GenerativeConfig.aws(
+            GenerativeConfig.aws_sagemaker(
                 endpoint="http://localhost:8080",
-                model="text-to-image",
                 region="us-west-2",
-                service="sagemaker",
                 target_model="arn:aws:sagemaker:us-west-2:123456789012:model/text-to-image",
                 target_variant="variant-1",
                 temperature=0.5,
@@ -116,7 +114,6 @@ def test_generative_parameters_images_parsing(
                 return_metadata=True,
                 aws=generative_pb2.GenerativeAWS(
                     endpoint="http://localhost:8080",
-                    model="text-to-image",
                     region="us-west-2",
                     service="sagemaker",
                     target_model="arn:aws:sagemaker:us-west-2:123456789012:model/text-to-image",
