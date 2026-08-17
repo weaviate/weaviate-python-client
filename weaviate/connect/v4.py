@@ -23,6 +23,7 @@ from typing import (
 )
 
 import grpc
+from authlib.integrations.base_client import OAuthError  # type: ignore
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
@@ -595,6 +596,20 @@ class _ConnectionBase:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
                     _Warnings.token_refresh_failed(exc)
+                except OAuthError as exc:
+                    # The identity provider rejected the refresh at the OAuth2 protocol level,
+                    # e.g. the refresh token was rotated, reused or revoked. OAuthError is not an
+                    # HTTPError, so without this branch it would escape the thread and silently
+                    # stop all further refreshes. Retrying the same refresh token cannot succeed,
+                    # so re-authenticate from scratch when credentials are available.
+                    refresh_time = 1
+                    _Warnings.token_refresh_failed(exc)
+                    if _auth is not None:
+                        try:
+                            refresh_session()
+                            refresh_time = update_refresh_time()
+                        except (HTTPError, OAuthError) as reauth_exc:
+                            _Warnings.token_refresh_failed(reauth_exc)
 
         demon = Thread(
             target=periodic_refresh_token,
