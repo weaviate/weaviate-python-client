@@ -13,7 +13,7 @@ the base client imports this package itself under Emscripten before anything els
     client = weaviate.use_async_with_local(skip_init_checks=True)
     await client.connect()
 
-An explicit ``import weaviate_grpc_web`` before ``import weaviate`` also works and
+An explicit ``import weaviate_client_web`` before ``import weaviate`` also works and
 remains the explicit form. The shim is installed automatically only under Emscripten, so
 importing this package on a normal CPython install never clobbers a real, working
 ``grpcio``. Async clients only — the synchronous client is not supported in the browser.

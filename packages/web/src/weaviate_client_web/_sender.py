@@ -2,7 +2,7 @@
 
 A *sender* is ``async def sender(url, headers, body, timeout) -> (status, headers, body)``.
 The default uses ``pyodide.http.pyfetch`` (browser fetch); a sender can be injected for
-testing or for non-browser runtimes via :func:`weaviate_grpc_web.set_sender`.
+testing or for non-browser runtimes via :func:`weaviate_client_web.set_sender`.
 """
 
 from typing import Awaitable, Callable, Dict, Optional, Tuple

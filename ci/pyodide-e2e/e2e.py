@@ -12,7 +12,7 @@ and OIDC auth flows (anonymous access only).
 import os
 import warnings
 
-import weaviate_grpc_web  # bootstraps the grpc shim + fetch transport under Emscripten
+import weaviate_client_web  # bootstraps the grpc shim + fetch transport under Emscripten
 
 import grpc
 import weaviate
@@ -34,8 +34,10 @@ def ok(step: str) -> None:
 
 
 async def main() -> None:
-    assert weaviate_grpc_web.is_installed(), "grpc shim did not install under Emscripten"
-    assert getattr(grpc, "__weaviate_grpc_web_shim__", False), "sys.modules['grpc'] is not the shim"
+    assert weaviate_client_web.is_installed(), "grpc shim did not install under Emscripten"
+    assert getattr(grpc, "__weaviate_client_web_shim__", False), (
+        "sys.modules['grpc'] is not the shim"
+    )
 
     host = os.environ.get("WEAVIATE_HOST", "localhost")
     port = int(os.environ.get("WEAVIATE_PORT", "8090"))

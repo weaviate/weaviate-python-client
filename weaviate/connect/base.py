@@ -22,14 +22,14 @@ MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC 
 
 
 def _grpc_web_shim_active() -> bool:
-    """Whether the 'weaviate-python-grpc-web' shim has replaced the grpc module.
+    """Whether the 'weaviate-client-web' shim has replaced the grpc module.
 
     The shim (used under WASM/Pyodide, where there is no grpcio wheel) routes unary RPCs
     over grpc-web/fetch and cannot do bidirectional streaming. The marker attribute is
     the documented contract between the two packages — keep all sniffs going through
     this helper.
     """
-    return getattr(grpc, "__weaviate_grpc_web_shim__", False) is True
+    return getattr(grpc, "__weaviate_client_web_shim__", False) is True
 
 
 class ProtocolParams(BaseModel):
@@ -173,7 +173,7 @@ class ConnectionParams(BaseModel):
             options.extend(grpc_config.channel_options)
 
         # grpc-web mode (prefix set): only valid for an async client, and only when the
-        # weaviate-python-grpc-web shim has replaced the grpc module (it consumes the
+        # weaviate-client-web shim has replaced the grpc module (it consumes the
         # grpc-web.path_prefix option). Fail fast otherwise — a native grpcio channel
         # would silently ignore the option and route over native gRPC, a confusing
         # misconfiguration. Nothing is added for native gRPC, so its channel options stay
@@ -187,7 +187,7 @@ class ConnectionParams(BaseModel):
             if not _grpc_web_shim_active():
                 raise WeaviateInvalidInputError(
                     "grpc_path_prefix enables grpc-web, which requires the "
-                    "'weaviate-python-grpc-web' package (it installs a grpc shim before "
+                    "'weaviate-client-web' package (it installs a grpc shim before "
                     "'import weaviate'); it is not active in this environment"
                 )
             options.append(("grpc-web.path_prefix", prefix))

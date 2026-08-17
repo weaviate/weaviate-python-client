@@ -2,7 +2,7 @@
 //
 // Usage: node run.mjs <wheels-dir>
 //   <wheels-dir> must contain exactly the two locally-built pure wheels:
-//   weaviate_client-*.whl and weaviate_python_grpc_web-*.whl.
+//   weaviate_client-*.whl and weaviate_client_web-*.whl.
 // Env: WEAVIATE_HOST (default localhost), WEAVIATE_PORT (default 8090).
 //
 // The pinned `pyodide` npm package fixes the interpreter (the 314.x line bundles
@@ -26,14 +26,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 const wheels = readdirSync(wheelsDir)
   .filter((f) => f.endsWith(".whl"))
-  .sort(); // installs weaviate_client before weaviate_python_grpc_web, which depends on it
-const prefixes = ["weaviate_client-", "weaviate_python_grpc_web-"];
+  .sort(); // installs weaviate_client before weaviate_client_web, which depends on it
+const prefixes = ["weaviate_client-", "weaviate_client_web-"];
 if (
   wheels.length !== 2 ||
   !prefixes.every((p) => wheels.some((w) => w.startsWith(p)))
 ) {
   console.error(
-    `expected exactly one weaviate_client-*.whl and one weaviate_python_grpc_web-*.whl in ${wheelsDir}, found: ${JSON.stringify(wheels)}`,
+    `expected exactly one weaviate_client-*.whl and one weaviate_client_web-*.whl in ${wheelsDir}, found: ${JSON.stringify(wheels)}`,
   );
   process.exit(2);
 }
@@ -51,7 +51,7 @@ console.log(
 await pyodide.loadPackage("micropip");
 const micropip = pyodide.pyimport("micropip");
 // anyio (needed because Pyodide's httpx recipe drops it, while authlib imports it
-// directly) resolves from the grpc-web wheel's `anyio ; sys_platform == "emscripten"`
+// directly) resolves from the companion wheel's `anyio ; sys_platform == "emscripten"`
 // marker — no explicit install here, so the marker stays proven.
 
 pyodide.FS.mkdirTree("/wheels");
@@ -65,9 +65,9 @@ for (const wheel of wheels) {
 // `import weaviate` — the base client must bootstrap the companion (and the shim) itself.
 pyodide.runPython(`
 import sys
-assert "weaviate_grpc_web" not in sys.modules
+assert "weaviate_client_web" not in sys.modules
 import weaviate
-assert getattr(sys.modules.get("grpc"), "__weaviate_grpc_web_shim__", False), \\
+assert getattr(sys.modules.get("grpc"), "__weaviate_client_web_shim__", False), \\
     "bare 'import weaviate' did not install the grpc shim"
 print("OK bare 'import weaviate' bootstrapped the grpc shim")
 `);

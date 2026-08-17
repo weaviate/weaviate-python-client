@@ -178,7 +178,7 @@ class GrpcWebChannel(AioChannel):
             "content-type": "application/grpc-web+proto",
             "accept": "application/grpc-web+proto",
             "x-grpc-web": "1",
-            "x-user-agent": "weaviate-python-grpc-web",
+            "x-user-agent": "weaviate-client-web",
         }
         _fold_metadata(headers, metadata)
         if timeout is not None:

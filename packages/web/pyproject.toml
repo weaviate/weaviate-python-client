@@ -3,7 +3,7 @@ requires = ["setuptools>=65", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "weaviate-python-grpc-web"
+name = "weaviate-client-web"
 description = "grpc-web / WASM (Pyodide) transport for the Weaviate Python client"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,4 +29,4 @@ Tracker = "https://github.com/weaviate/weaviate-python-client/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-weaviate_grpc_web = ["py.typed"]
+weaviate_client_web = ["py.typed"]

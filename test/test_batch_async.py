@@ -25,7 +25,7 @@ def _bare_batch(**mangled) -> _BatchBaseAsync:
 def test_start_fails_fast_when_grpc_web_shim_active(monkeypatch) -> None:
     # over grpc-web the BatchStream RPC would die inside the background tasks (silent
     # drop / endless flush); _start must raise before any task is created
-    monkeypatch.setattr(grpc, "__weaviate_grpc_web_shim__", True, raising=False)
+    monkeypatch.setattr(grpc, "__weaviate_client_web_shim__", True, raising=False)
     batch = _bare_batch()  # the guard runs before any attribute access
     with pytest.raises(WeaviateBatchStreamError, match="insert_many"):
         asyncio.run(batch._start())

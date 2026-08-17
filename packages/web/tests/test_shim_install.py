@@ -20,19 +20,19 @@ def _run(body: str) -> subprocess.CompletedProcess:
 def test_import_weaviate_under_shim():
     result = _run(
         """
-        import weaviate_grpc_web
-        assert weaviate_grpc_web.install(force=True) is True
-        assert weaviate_grpc_web.is_installed()
+        import weaviate_client_web
+        assert weaviate_client_web.install(force=True) is True
+        assert weaviate_client_web.is_installed()
 
         import grpc
-        assert getattr(grpc, "__weaviate_grpc_web_shim__", False) is True
+        assert getattr(grpc, "__weaviate_client_web_shim__", False) is True
         assert grpc.__version__ == "1.72.1"
         assert grpc._utilities.first_version_is_lower("1.0.0", "2.0.0") is False
         from grpc.aio._typing import ChannelArgumentType  # noqa: F401
 
         import weaviate  # must not raise even though grpcio is shimmed
         from weaviate.proto.v1 import weaviate_pb2_grpc
-        from weaviate_grpc_web import GrpcWebChannel
+        from weaviate_client_web import GrpcWebChannel
 
         ch = GrpcWebChannel("localhost:50051", secure=False)
         stub = weaviate_pb2_grpc.WeaviateStub(ch)
@@ -50,8 +50,8 @@ def test_import_weaviate_under_shim():
 def test_sync_channel_factory_raises_async_only():
     result = _run(
         """
-        import weaviate_grpc_web
-        weaviate_grpc_web.install(force=True)
+        import weaviate_client_web
+        weaviate_client_web.install(force=True)
         import grpc
         try:
             grpc.insecure_channel("localhost:50051")
@@ -71,8 +71,8 @@ def test_real_proto_unary_round_trip_under_shim():
         """
         import asyncio
         import struct
-        import weaviate_grpc_web
-        weaviate_grpc_web.install(force=True)
+        import weaviate_client_web
+        weaviate_client_web.install(force=True)
 
         import weaviate  # noqa: F401
         from weaviate.proto.v1 import tenants_pb2, weaviate_pb2_grpc
@@ -90,8 +90,8 @@ def test_real_proto_unary_round_trip_under_shim():
             assert url.endswith("/weaviate.v1.Weaviate/TenantsGet")
             return 200, {}, body
 
-        weaviate_grpc_web.set_sender(sender)
-        from weaviate_grpc_web import GrpcWebChannel
+        weaviate_client_web.set_sender(sender)
+        from weaviate_client_web import GrpcWebChannel
         ch = GrpcWebChannel("localhost:50051", secure=False)
         stub = weaviate_pb2_grpc.WeaviateStub(ch)
 
@@ -118,6 +118,6 @@ def test_fake_grpc_version_matches_base_fallback():
     # under Emscripten — the vendored stubs' version gates see both, so they must
     # never drift apart.
     from weaviate.proto.v1 import _GRPCIO_FALLBACK_VERSION
-    from weaviate_grpc_web._shim import FAKE_GRPC_VERSION
+    from weaviate_client_web._shim import FAKE_GRPC_VERSION
 
     assert FAKE_GRPC_VERSION == _GRPCIO_FALLBACK_VERSION

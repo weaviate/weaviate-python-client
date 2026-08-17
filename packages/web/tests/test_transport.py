@@ -1,7 +1,7 @@
 """In-process tests for the grpc-web channel/multicallable.
 
 These exercise the transport classes directly (they import their grpc base classes from
-``weaviate_grpc_web._shim``, not from ``sys.modules['grpc']``), so no shim install is
+``weaviate_client_web._shim``, not from ``sys.modules['grpc']``), so no shim install is
 needed and the real ``grpc`` in the dev environment is left untouched.
 """
 
@@ -11,8 +11,8 @@ from typing import Dict, List, Optional, Tuple
 
 import pytest
 
-from weaviate_grpc_web._channel import GrpcWebChannel, set_sender
-from weaviate_grpc_web._shim import AioChannel, AioRpcError, StatusCode
+from weaviate_client_web._channel import GrpcWebChannel, set_sender
+from weaviate_client_web._shim import AioChannel, AioRpcError, StatusCode
 
 
 def _frame(payload: bytes, flag: int = 0x00) -> bytes:
@@ -290,7 +290,7 @@ def test_path_prefix_normalized_in_url(raw, expected_url):
 
 
 def test_shim_factory_extracts_path_prefix_option():
-    from weaviate_grpc_web._shim import _aio_insecure_channel
+    from weaviate_client_web._shim import _aio_insecure_channel
 
     with_prefix = _aio_insecure_channel(
         target="h:1",
@@ -313,6 +313,6 @@ def test_set_sender_overrides_default():
         assert asyncio.run(mc(b"q")) == b"y"
     finally:
         # restore the real default so other tests/processes are unaffected
-        from weaviate_grpc_web._sender import pyfetch_sender
+        from weaviate_client_web._sender import pyfetch_sender
 
         set_sender(pyfetch_sender)

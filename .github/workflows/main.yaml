@@ -45,9 +45,9 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - name: "Ruff lint"
-        run: ruff check weaviate test mock_tests integration packages/grpc-web
+        run: ruff check weaviate test mock_tests integration packages/web
       - name: "Ruff format"
-        run: ruff format --diff weaviate test mock_tests integration packages/grpc-web
+        run: ruff format --diff weaviate test mock_tests integration packages/web
       - name: "Flake 8"
         run: flake8 weaviate test mock_tests integration
       - name: "Check release for pypi"
@@ -121,9 +121,9 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - run: |
           pip install -r requirements-test.txt -r requirements-devel.txt
-          pip install -e . -e packages/grpc-web
+          pip install -e . -e packages/web
       - name: Run grpc-web package tests
-        run: pytest packages/grpc-web/tests
+        run: pytest packages/web/tests
 
   pyodide-e2e:
     name: Run Pyodide (WASM) e2e Tests
@@ -153,7 +153,7 @@ jobs:
         run: |
           pip install build
           python -m build --wheel --outdir dist .
-          python -m build --wheel --outdir dist packages/grpc-web
+          python -m build --wheel --outdir dist packages/web
       - name: start weaviate
         run: |
           source ./ci/compose.sh

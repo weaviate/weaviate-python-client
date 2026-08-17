@@ -626,7 +626,7 @@ def use_async_with_custom(
         grpc_path_prefix: Optional base-path prefix for a grpc-web endpoint served on the
             same host:port as REST (e.g. "/grpc-web"). When set, gRPC requests are sent
             over grpc-web to ``<scheme>://<grpc_host>:<grpc_port><prefix>/...`` and sharing
-            the REST host:port is allowed. Requires the ``weaviate-python-grpc-web``
+            the REST host:port is allowed. Requires the ``weaviate-client-web``
             package. Defaults to None (native gRPC).
 
     Returns:

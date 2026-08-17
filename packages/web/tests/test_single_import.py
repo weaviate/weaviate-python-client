@@ -49,11 +49,11 @@ def test_bare_import_weaviate_installs_shim_under_emscripten():
 
         import weaviate  # the ONLY weaviate-side import: must bootstrap the companion
 
-        assert "weaviate_grpc_web" in sys.modules, "hook did not import the companion"
-        import weaviate_grpc_web
-        assert weaviate_grpc_web.is_installed()
+        assert "weaviate_client_web" in sys.modules, "hook did not import the companion"
+        import weaviate_client_web
+        assert weaviate_client_web.is_installed()
         import grpc
-        assert getattr(grpc, "__weaviate_grpc_web_shim__", False) is True
+        assert getattr(grpc, "__weaviate_client_web_shim__", False) is True
         print("OK")
         """,
     )
@@ -62,7 +62,7 @@ def test_bare_import_weaviate_installs_shim_under_emscripten():
 
 
 def test_bare_import_without_companion_raises_clear_import_error():
-    # No site-packages, so neither weaviate_grpc_web nor grpcio is importable; the repo
+    # No site-packages, so neither weaviate_client_web nor grpcio is importable; the repo
     # root goes on sys.path so the weaviate package itself is still found.
     result = _run(
         """
@@ -70,7 +70,7 @@ def test_bare_import_without_companion_raises_clear_import_error():
         try:
             import weaviate
         except ImportError as e:
-            assert "weaviate-python-grpc-web" in str(e), str(e)
+            assert "weaviate-client-web" in str(e), str(e)
             assert "WebAssembly/Pyodide" in str(e), str(e)
             print("OK")
         else:
@@ -90,12 +90,12 @@ def test_bare_import_with_grpc_present_falls_through_silently():
         prelude=_PRIME_SYSCONFIG,
         body="""
         sys.platform = "emscripten"
-        sys.modules["weaviate_grpc_web"] = None  # makes its import raise ImportError
+        sys.modules["weaviate_client_web"] = None  # makes its import raise ImportError
 
         import weaviate
         import grpc
 
-        assert not getattr(grpc, "__weaviate_grpc_web_shim__", False)
+        assert not getattr(grpc, "__weaviate_client_web_shim__", False)
         print("OK")
         """,
     )

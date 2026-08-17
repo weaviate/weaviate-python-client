@@ -2,7 +2,7 @@ import struct
 
 import pytest
 
-from weaviate_grpc_web._framing import (
+from weaviate_client_web._framing import (
     encode_message,
     iter_frames,
     parse_trailers,

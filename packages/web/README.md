@@ -1,4 +1,4 @@
-# weaviate-python-grpc-web
+# weaviate-client-web
 
 A grpc-web / WebAssembly (Pyodide) transport for the
 [Weaviate Python client](https://github.com/weaviate/weaviate-python-client), so the
@@ -36,11 +36,11 @@ transport.
 ## Usage
 
 With this package installed, a plain `import weaviate` is all you need — under
-Emscripten the base client imports `weaviate_grpc_web` itself before anything else,
+Emscripten the base client imports `weaviate_client_web` itself before anything else,
 which installs the shim (and raises a clear error if the package is missing):
 
 ```python
-import weaviate  # bootstraps weaviate_grpc_web automatically under Emscripten
+import weaviate  # bootstraps weaviate_client_web automatically under Emscripten
 
 client = weaviate.use_async_with_local(skip_init_checks=True)
 await client.connect()
@@ -51,7 +51,7 @@ await collection.query.near_text("hello", limit=3)
 Importing the companion explicitly first also works and remains the explicit form:
 
 ```python
-import weaviate_grpc_web   # installs the grpc shim under Emscripten (no-op elsewhere)
+import weaviate_client_web   # installs the grpc shim under Emscripten (no-op elsewhere)
 import weaviate
 ```
 
@@ -102,7 +102,7 @@ with CORS, or failures become hard to diagnose:
 
 ## Testing on CPython
 
-`weaviate_grpc_web.install(force=True)` installs the shim on a normal CPython
+`weaviate_client_web.install(force=True)` installs the shim on a normal CPython
 interpreter (run it in a fresh process, before importing `weaviate`). Inject a sender
-with `weaviate_grpc_web.set_sender(...)` (e.g. `make_httpx_sender()`) to exercise the
+with `weaviate_client_web.set_sender(...)` (e.g. `make_httpx_sender()`) to exercise the
 transport against an Envoy/vanguard transcoder without a browser.

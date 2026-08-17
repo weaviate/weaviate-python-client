@@ -27,7 +27,7 @@ from typing import Any, Optional
 # it makes the stub's import-time version gate pass. See weaviate/proto/v1/__init__.py.
 FAKE_GRPC_VERSION = "1.72.1"
 
-_SHIM_MARKER = "__weaviate_grpc_web_shim__"
+_SHIM_MARKER = "__weaviate_client_web_shim__"
 
 
 class StatusCode(enum.Enum):
@@ -159,7 +159,7 @@ def first_version_is_lower(_version: str, _other: str) -> bool:
 
 
 _ASYNC_ONLY_MESSAGE = (
-    "weaviate-python-grpc-web provides an asynchronous-only gRPC transport under "
+    "weaviate-client-web provides an asynchronous-only gRPC transport under "
     "WebAssembly/Pyodide. Use an async client (weaviate.use_async_with_local / "
     "use_async_with_weaviate_cloud / use_async_with_custom, or WeaviateAsyncClient); "
     "the synchronous client is not supported in the browser."

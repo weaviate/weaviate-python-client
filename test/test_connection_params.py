@@ -90,7 +90,7 @@ def test_grpc_channel_forwards_path_prefix_option(monkeypatch) -> None:
 
     monkeypatch.setattr(base_mod.grpc.aio, "insecure_channel", fake_insecure_channel)
     # grpc-web mode requires the shim to be active; simulate it being installed.
-    monkeypatch.setattr(base_mod.grpc, "__weaviate_grpc_web_shim__", True, raising=False)
+    monkeypatch.setattr(base_mod.grpc, "__weaviate_client_web_shim__", True, raising=False)
 
     params = ConnectionParams.from_params(
         http_host="localhost",
@@ -123,8 +123,8 @@ def _grpc_web_params() -> ConnectionParams:
 def test_grpc_channel_rejects_prefix_without_shim(monkeypatch) -> None:
     # No grpc-web shim active -> must fail fast instead of silently building a native
     # grpcio channel that ignores the prefix.
-    monkeypatch.delattr(base_mod.grpc, "__weaviate_grpc_web_shim__", raising=False)
-    with pytest.raises(WeaviateInvalidInputError, match="weaviate-python-grpc-web"):
+    monkeypatch.delattr(base_mod.grpc, "__weaviate_client_web_shim__", raising=False)
+    with pytest.raises(WeaviateInvalidInputError, match="weaviate-client-web"):
         _grpc_web_params()._grpc_channel(proxies={}, grpc_msg_size=None, is_async=True)
 
 

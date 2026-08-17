@@ -6,16 +6,16 @@ import sys
 # the companion installs the pure-Python grpc shim that everything below resolves against.
 if sys.platform == "emscripten":
     try:
-        import weaviate_grpc_web  # noqa: F401
+        import weaviate_client_web  # noqa: F401
     except ImportError:
         from importlib.util import find_spec
 
         if find_spec("grpc") is None:
             raise ImportError(
-                "weaviate requires the weaviate-python-grpc-web package under "
+                "weaviate requires the weaviate-client-web package under "
                 "WebAssembly/Pyodide: there is no grpcio wheel for Emscripten, and "
-                "weaviate-python-grpc-web provides the grpc-web (fetch) transport in its "
-                "place. Install it (e.g. micropip.install('weaviate-python-grpc-web')) and "
+                "weaviate-client-web provides the grpc-web (fetch) transport in its "
+                "place. Install it (e.g. micropip.install('weaviate-client-web')) and "
                 "import weaviate again."
             ) from None
 

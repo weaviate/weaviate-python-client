@@ -19,7 +19,7 @@ from weaviate.exceptions import WeaviateProtobufIncompatibility
 # Fallback grpcio version used only when grpcio is not installed as a distribution.
 # This happens under Pyodide/Emscripten, where grpcio has no wheel and is excluded
 # via the `sys_platform != "emscripten"` marker in setup.cfg; the grpc module itself
-# is provided there by a pure-Python shim (see the weaviate-python-grpc-web package).
+# is provided there by a pure-Python shim (see the weaviate-client-web package).
 # On every normal install grpcio's metadata is present and the real version is used, so
 # this branch is not taken. Restricted to grpcio AND to Emscripten, so that a broken or
 # partial grpcio install on a normal platform (metadata missing) still surfaces as

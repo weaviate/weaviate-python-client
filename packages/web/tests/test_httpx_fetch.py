@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 import pytest
 
-from weaviate_grpc_web._httpx_fetch import _fetch_handle_async_request
+from weaviate_client_web._httpx_fetch import _fetch_handle_async_request
 
 _SRC = str(pathlib.Path(__file__).resolve().parents[1] / "src")
 
@@ -289,7 +289,7 @@ def test_crlf_in_header_value_rejected(fake_pyfetch):
 def test_platform_jsfetch_detection(monkeypatch):
     import importlib.machinery
 
-    from weaviate_grpc_web._httpx_fetch import _platform_httpx_has_fetch_support
+    from weaviate_client_web._httpx_fetch import _platform_httpx_has_fetch_support
 
     # the dev environment runs PyPI httpx (httpcore-based): no jsfetch transport
     assert _platform_httpx_has_fetch_support() is False
@@ -338,7 +338,7 @@ def test_force_install_routes_async_client_through_pyfetch():
         prelude=_FAKE_PYODIDE_PRELUDE,
         body="""
         import asyncio, httpx
-        from weaviate_grpc_web import install_fetch_transport, is_fetch_transport_installed
+        from weaviate_client_web import install_fetch_transport, is_fetch_transport_installed
 
         install_fetch_transport(force=True)
         assert is_fetch_transport_installed()
@@ -365,7 +365,7 @@ def test_install_without_force_is_noop_off_emscripten():
         assert sys.platform != "emscripten"
         import httpx
         before = httpx.AsyncHTTPTransport.handle_async_request
-        from weaviate_grpc_web import install_fetch_transport, is_fetch_transport_installed
+        from weaviate_client_web import install_fetch_transport, is_fetch_transport_installed
         install_fetch_transport()
         assert not is_fetch_transport_installed()
         assert httpx.AsyncHTTPTransport.handle_async_request is before
@@ -381,7 +381,7 @@ def test_force_install_is_idempotent():
         prelude=_FAKE_PYODIDE_PRELUDE,
         body="""
         import httpx
-        from weaviate_grpc_web import install_fetch_transport
+        from weaviate_client_web import install_fetch_transport
         install_fetch_transport(force=True)
         patched = httpx.AsyncHTTPTransport.handle_async_request
         install_fetch_transport(force=True)
@@ -399,7 +399,7 @@ def test_sync_transport_left_untouched():
         body="""
         import httpx
         sync_before = httpx.HTTPTransport.handle_request
-        from weaviate_grpc_web import install_fetch_transport
+        from weaviate_client_web import install_fetch_transport
         install_fetch_transport(force=True)
         assert httpx.HTTPTransport.handle_request is sync_before
         print("OK")
@@ -415,7 +415,7 @@ def test_uninstall_restores_original_transport():
         body="""
         import httpx
         before = httpx.AsyncHTTPTransport.handle_async_request
-        from weaviate_grpc_web import (
+        from weaviate_client_web import (
             install_fetch_transport,
             is_fetch_transport_installed,
             uninstall_fetch_transport,
@@ -439,7 +439,7 @@ def test_patched_method_carries_sentinel():
         prelude=_FAKE_PYODIDE_PRELUDE,
         body="""
         import httpx
-        from weaviate_grpc_web import install_fetch_transport
+        from weaviate_client_web import install_fetch_transport
         assert not getattr(
             httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
         )
@@ -461,7 +461,7 @@ def test_force_install_without_pyodide_fails_fast():
         """
         import httpx
         before = httpx.AsyncHTTPTransport.handle_async_request
-        from weaviate_grpc_web import install_fetch_transport, is_fetch_transport_installed
+        from weaviate_client_web import install_fetch_transport, is_fetch_transport_installed
         try:
             install_fetch_transport(force=True)
         except ModuleNotFoundError:
@@ -492,7 +492,7 @@ def test_emscripten_with_platform_jsfetch_skips_install():
 
         import httpx
         before = httpx.AsyncHTTPTransport.handle_async_request
-        from weaviate_grpc_web import install_fetch_transport, is_fetch_transport_installed
+        from weaviate_client_web import install_fetch_transport, is_fetch_transport_installed
         install_fetch_transport()  # no force: platform transport must win
         assert not is_fetch_transport_installed()
         assert httpx.AsyncHTTPTransport.handle_async_request is before
