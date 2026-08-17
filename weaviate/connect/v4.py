@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -984,6 +985,23 @@ class _ConnectionBase:
 
 class ConnectionSync(_ConnectionBase):
     """Connection class used to communicate to a weaviate instance."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if sys.platform == "emscripten":
+            # Fail at construction with the async-only message; otherwise the first
+            # REST call surfaces an opaque ConnectError long before the grpc-web
+            # shim's own sync guard is reached (wording mirrors the shim's
+            # _ASYNC_ONLY_MESSAGE). Pre-set the attributes __del__ reads so the
+            # never-initialized instance is collected quietly.
+            self._client = None
+            self._grpc_channel = None
+            raise WeaviateStartUpError(
+                "The synchronous client is not supported under WebAssembly/Pyodide. "
+                "Use an async client (weaviate.use_async_with_local / "
+                "use_async_with_weaviate_cloud / use_async_with_custom, or "
+                "WeaviateAsyncClient) instead."
+            )
+        super().__init__(*args, **kwargs)
 
     def connect(self, force: bool = False) -> None:
         if self._connected and not force:

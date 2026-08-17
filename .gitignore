@@ -27,3 +27,5 @@ scratch/
 *-test.sh
 *.hdf5
 *.jsonl
+ci/pyodide-e2e/node_modules/
+ci/pyodide-e2e/package-lock.json

@@ -109,3 +109,15 @@ def test_real_proto_unary_round_trip_under_shim():
     )
     assert result.returncode == 0, result.stderr
     assert "OK" in result.stdout
+
+
+def test_fake_grpc_version_matches_base_fallback():
+    # In-process on purpose: nothing here installs the shim, we only compare the two
+    # copies of the pinned version. The shim advertises FAKE_GRPC_VERSION as
+    # grpc.__version__ and the base package falls back to _GRPCIO_FALLBACK_VERSION
+    # under Emscripten — the vendored stubs' version gates see both, so they must
+    # never drift apart.
+    from weaviate.proto.v1 import _GRPCIO_FALLBACK_VERSION
+    from weaviate_grpc_web._shim import FAKE_GRPC_VERSION
+
+    assert FAKE_GRPC_VERSION == _GRPCIO_FALLBACK_VERSION

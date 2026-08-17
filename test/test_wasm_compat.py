@@ -10,6 +10,8 @@ import sys
 import pytest
 from httpx import ConnectError, ReadTimeout
 
+from weaviate import WeaviateAsyncClient, WeaviateClient
+from weaviate.connect.base import ConnectionParams
 from weaviate.connect.v4 import _ConnectionBase, _exc_detail
 from weaviate.embedded import _EmbeddedBase
 from weaviate.exceptions import (
@@ -31,6 +33,23 @@ def test_embedded_raises_explicit_error_under_emscripten(monkeypatch) -> None:
 def test_embedded_platform_check_passes_on_supported_platforms() -> None:
     assert sys.platform != "emscripten"
     _EmbeddedBase.check_supported_platform()  # must not raise on this dev platform
+
+
+def test_sync_client_construction_raises_async_only_under_emscripten(monkeypatch) -> None:
+    # without the guard the sync client constructs fine and the first REST call fails
+    # with an opaque ConnectError; the clear async-only error must win, at construction
+    monkeypatch.setattr(sys, "platform", "emscripten")
+    with pytest.raises(WeaviateStartUpError, match="async client"):
+        WeaviateClient(connection_params=ConnectionParams.from_url("http://localhost:8080", 50051))
+
+
+def test_async_client_construction_allowed_under_emscripten(monkeypatch) -> None:
+    # the async client is the supported one under WASM — the guard must not catch it
+    monkeypatch.setattr(sys, "platform", "emscripten")
+    client = WeaviateAsyncClient(
+        connection_params=ConnectionParams.from_url("http://localhost:8080", 50051)
+    )
+    assert client is not None
 
 
 def _handle_exceptions(e: Exception, error_msg: str = "") -> None:
