@@ -310,6 +310,11 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         Args:
             concurrency: The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate. If not provided, the default value is 1.
+
+        Raises:
+            WeaviateBatchStreamError: On exit, if the background stream failed or ended with objects or references
+                still unsent. An exception raised inside the block is propagated unchanged; a background failure is
+                then only logged.
         """
         if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
@@ -370,6 +375,11 @@ class _BatchCollectionWrapperAsync(Generic[Properties], _BatchWrapperAsync):
         Args:
             concurrency: The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate. If not provided, the default value is 1.
+
+        Raises:
+            WeaviateBatchStreamError: On exit, if the background stream failed or ended with objects or references
+                still unsent. An exception raised inside the block is propagated unchanged; a background failure is
+                then only logged.
         """
         if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
