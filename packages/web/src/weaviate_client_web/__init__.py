@@ -3,15 +3,25 @@
 Under Pyodide/Emscripten there is no ``grpcio`` wheel. Importing this package installs a
 pure-Python ``grpc`` shim into ``sys.modules`` (and forces the pure-Python protobuf
 runtime) so that the subsequent ``import weaviate`` succeeds and its async gRPC data path
-runs over grpc-web (``fetch``) instead of HTTP/2 sockets.
+runs over grpc-web (``fetch``) instead of HTTP/2 sockets; REST runs through the package's
+own ``fetch``-based httpx transport.
 
-Usage under Pyodide (with this package installed, a bare ``import weaviate`` suffices —
+Usage under Pyodide against Weaviate >= 1.38.3, which serves grpc-web on its REST port
+under ``/v1/grpc-web`` (with this package installed, a bare ``import weaviate`` suffices —
 the base client imports this package itself under Emscripten before anything else)::
 
     import weaviate
 
-    client = weaviate.use_async_with_local(skip_init_checks=True)
+    client = weaviate.use_async_with_custom(
+        http_host="localhost", http_port=8080, http_secure=False,
+        grpc_host="localhost", grpc_port=8080, grpc_secure=False,
+        grpc_path_prefix="/v1/grpc-web",
+    )
     await client.connect()
+
+``use_async_with_local`` / ``use_async_with_weaviate_cloud`` have no ``grpc_path_prefix``
+and therefore only work with a grpc-web transcoder (Envoy, vanguard) at the root of
+``grpc_host:grpc_port``.
 
 An explicit ``import weaviate_client_web`` before ``import weaviate`` also works and
 remains the explicit form. The shim is installed automatically only under Emscripten, so
