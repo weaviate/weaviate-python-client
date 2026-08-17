@@ -11,6 +11,7 @@ from werkzeug import Request, Response
 
 import weaviate
 from mock_tests.conftest import CLIENT_ID, MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
+from weaviate.connect.v4 import _ConnectionBase
 from weaviate.exceptions import MissingScopeException
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -120,6 +121,89 @@ async def test_client_credentials_refresh_async(
         first = token_requests
         await asyncio.sleep(3)  # refresh interval is max(expires_in - 30, 1) -> 1s
         assert token_requests > first  # a fresh token was fetched with the credentials
+
+
+@pytest.mark.asyncio
+async def test_token_refresh_survives_non_http_error_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, recwarn
+) -> None:
+    """A refresh failure that is NOT an httpx.HTTPError must warn and keep the refresher alive.
+
+    An IdP rejecting the refresh (400 invalid_grant) makes authlib raise OAuthError. When
+    only HTTPError was caught, the refresh task died silently — nothing awaits it, so not
+    even asyncio's 'exception was never retrieved' fired — and every later request 401ed
+    with nothing pointing at the token refresh.
+    """
+    weaviate_auth_mock.expect_request("/auth").respond_with_response(
+        Response(
+            json.dumps({"error": "invalid_grant", "error_description": "refresh token expired"}),
+            status=400,
+            content_type="application/json",
+        )
+    )
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN,
+            refresh_token=REFRESH_TOKEN,
+            expires_in=1,  # force an immediate (and failing) refresh
+        ),
+    ) as client:
+        task = getattr(client._connection, "_ConnectionBase__token_refresh_task")  # noqa: B009
+        assert task is not None
+        await asyncio.sleep(2.5)  # long enough for at least two failed attempts
+        assert not task.done()  # the refresher survived the failure
+        await client.collections.list_all()  # ... and the client still works
+
+    failed = [w for w in recwarn if str(w.message).startswith("Con001")]
+    assert len(failed) >= 1
+    assert "invalid_grant" in str(failed[0].message)
+    # the task ended by close()'s cancellation, not by dying on the exception
+    assert [w for w in recwarn if str(w.message).startswith("Con003")] == []
+
+
+@pytest.mark.asyncio
+async def test_token_refresh_death_outside_loop_body_is_surfaced() -> None:
+    """A refresher that dies where the loop body cannot catch it must still warn.
+
+    Nothing awaits the task and _cancel_background_token_refresh drops the reference, so
+    the done-callback is the only thing that can observe such a death.
+    """
+    on_done = getattr(_ConnectionBase, "_ConnectionBase__warn_if_token_refresh_died")  # noqa: B009
+
+    async def dies() -> None:
+        raise ValueError("boom")
+
+    async def forever() -> None:
+        await asyncio.sleep(3600)
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        task = asyncio.get_running_loop().create_task(dies())
+        task.add_done_callback(on_done)
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)  # let the done-callback run
+
+    stopped = [w for w in caught if str(w.message).startswith("Con003")]
+    assert len(stopped) == 1
+    assert "boom" in str(stopped[0].message)
+
+    # a cancelled refresher (the normal close() path) must stay quiet
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        task = asyncio.get_running_loop().create_task(forever())
+        task.add_done_callback(on_done)
+        task.cancel()
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+
+    assert [w for w in caught if str(w.message).startswith("Con003")] == []
 
 
 @pytest.mark.parametrize("header_name", ["Authorization", "authorization"])

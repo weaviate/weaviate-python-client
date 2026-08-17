@@ -217,6 +217,13 @@ class _BatchBaseAsync:
             # surface background-task failures instead of returning partial results
             # as if the batch had succeeded
             raise self.__bg_exception
+        if (
+            len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
+        ) and not self.__all_tasks_alive():
+            # the tasks are gone with data still queued and nothing recorded in
+            # __bg_exception (a BaseException escaping loop_wrapper/recv_wrapper): the
+            # batch did NOT complete, so do not return as if it had
+            raise self.__bg_task_death_cause()
 
     async def _shutdown(self) -> None:
         self.__is_stopped.set()
@@ -226,7 +233,13 @@ class _BatchBaseAsync:
             await asyncio.wait_for(self.__reqs.put(req), timeout=1)
             return True
         except asyncio.TimeoutError:
-            if self.__bg_exception is not None or self.__shutdown_loop.is_set():
+            # __all_tasks_alive: if the receiver is gone the queue will never drain again,
+            # so retrying forever (and recursing once per second) only defers the hang
+            if (
+                self.__bg_exception is not None
+                or self.__shutdown_loop.is_set()
+                or not self.__all_tasks_alive()
+            ):
                 return False
             return await self.__put(req)
 
@@ -547,10 +560,13 @@ class _BatchBaseAsync:
         """Flush the batch queue and wait for all requests to be finished."""
         # bg thread is sending objs+refs automatically, so simply wait for everything to be done
         while len(self.__batch_objects) > 0 or len(self.__batch_references) > 0:
-            if self.__bg_exception is not None:
-                # the background tasks died; nothing will drain the queues, so waiting
-                # any longer would hang forever
-                raise self.__bg_exception
+            # a dead task is the condition to check, not __bg_exception: loop_wrapper /
+            # recv_wrapper only catch Exception, so a BaseException (notably the
+            # asyncio.CancelledError grpc.aio raises on a cancelled streaming call) ends
+            # the task with __bg_exception unset. Nothing then drains the queues, so
+            # waiting any longer would hang forever. Mirrors the sync colour's
+            # __check_bg_threads_alive().
+            self.__check_bg_tasks_alive()
             await asyncio.sleep(0.01)
 
     async def _add_object(
@@ -648,4 +664,29 @@ class _BatchBaseAsync:
         if self.__all_tasks_alive():
             return
 
-        raise self.__bg_exception or Exception("Batch tasks died unexpectedly")
+        raise self.__bg_exception or self.__bg_task_death_cause()
+
+    def __bg_task_death_cause(self) -> Exception:
+        """Explain a background task that ended without setting __bg_exception.
+
+        loop_wrapper/recv_wrapper only catch Exception, so a BaseException — notably the
+        asyncio.CancelledError grpc.aio raises when a streaming call is cancelled — ends
+        the task with nothing recorded. Cancellation is re-wrapped rather than re-raised:
+        a bare CancelledError escaping a public call would look like the caller itself
+        was cancelled and would slip past the user's `except Exception`.
+        """
+        if self.__bg_tasks is not None:
+            for name, task in (
+                ("receive", self.__bg_tasks.recv),
+                ("loop", self.__bg_tasks.loop),
+            ):
+                if not task.done():
+                    continue
+                if task.cancelled():
+                    return WeaviateBatchStreamError(f"the background {name} task was cancelled")
+                exc = task.exception()
+                if isinstance(exc, Exception):
+                    return exc
+                if exc is not None:
+                    return WeaviateBatchStreamError(f"the background {name} task died with {exc!r}")
+        return WeaviateBatchStreamError("the background tasks died unexpectedly")

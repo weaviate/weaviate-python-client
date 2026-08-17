@@ -80,6 +80,19 @@ class _Warnings:
         )
 
     @staticmethod
+    def token_refresh_stopped(exc: BaseException) -> None:
+        warnings.warn(
+            message=f"""Con003: The periodic token refresh stopped unexpectedly. This client will NOT refresh its
+            access token again and will become unauthenticated once the current token expires (requests will
+            then fail with 401). Reconnect the client to restart the refresh.
+
+            Exception: {exc!r}
+            """,
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def weaviate_too_old_vs_latest(server_version: str) -> None:
         warnings.warn(
             message=f"""Dep004: You are connected to Weaviate {server_version}.

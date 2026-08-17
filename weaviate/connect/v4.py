@@ -50,6 +50,7 @@ from httpx import (
     RequestError,
     Response,
     Timeout,
+    TimeoutException,
 )
 
 from weaviate import __version__ as client_version
@@ -351,14 +352,26 @@ class _ConnectionBase:
     def __handle_ping_response(self, res: health_weaviate_pb2.WeaviateHealthCheckResponse) -> None:
         if res.status != health_weaviate_pb2.WeaviateHealthCheckResponse.SERVING:
             raise WeaviateGRPCUnavailableError(
-                f"v{self.server_version}", self._connection_params._grpc_address
+                f"v{self.server_version}",
+                self._connection_params._grpc_address,
+                grpc_path_prefix=self.__grpc_web_prefix(),
             )
         return None
 
     def __handle_ping_exception(self, e: Exception) -> None:
+        # pass the error along: its code()/details() are the only thing that says what
+        # actually went wrong, and the generic advice is wrong in grpc-web mode (no
+        # separate gRPC port, no firewall — REST just succeeded against this endpoint)
         raise WeaviateGRPCUnavailableError(
-            f"v{self.server_version}", self._connection_params._grpc_address
+            f"v{self.server_version}",
+            self._connection_params._grpc_address,
+            grpc_path_prefix=self.__grpc_web_prefix(),
+            error=e,
         ) from e
+
+    def __grpc_web_prefix(self) -> Optional[str]:
+        """The configured grpc-web base path, or None when this is native gRPC."""
+        return self._connection_params._grpc_web_path_prefix or None
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
@@ -562,9 +575,9 @@ class _ConnectionBase:
             if loop is not None:
                 # The async colour refreshes on its own already-running loop: threads
                 # cannot start under WASM/Pyodide and are unnecessary here anyway.
-                self.__token_refresh_task = loop.create_task(
-                    self.__periodic_token_refresh_async(expires_in, _auth)
-                )
+                task = loop.create_task(self.__periodic_token_refresh_async(expires_in, _auth))
+                task.add_done_callback(self.__warn_if_token_refresh_died)
+                self.__token_refresh_task = task
                 return
 
         # sync colour (or async without a running loop): refresh on a daemon thread,
@@ -648,6 +661,20 @@ class _ConnectionBase:
             self.__token_refresh_task.cancel()
             self.__token_refresh_task = None
 
+    @staticmethod
+    def __warn_if_token_refresh_died(task: "asyncio.Task[None]") -> None:
+        """Surface a refresher death that happened outside the loop body's own handler.
+
+        Nothing ever awaits this task and ``_cancel_background_token_refresh`` drops the
+        reference, so without this callback not even asyncio's "exception was never
+        retrieved" message fires — the client just silently stops refreshing.
+        """
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            _Warnings.token_refresh_stopped(exc)
+
     async def __periodic_token_refresh_async(
         self, refresh_time: int, _auth: Optional[_Auth]
     ) -> None:
@@ -674,8 +701,15 @@ class _ConnectionBase:
                     new_session = await _Auth.aresult(_auth.get_auth_session())
                     client.token = await new_session.fetch_token()
                 refresh_time = client.token.get("expires_in", 60) - 30
-            except HTTPError as exc:
-                # retry again after one second, might be an unstable connection
+            except asyncio.CancelledError:
+                # close() cancels this task — cancellation must never be swallowed
+                raise
+            except Exception as exc:
+                # retry again after one second, might be an unstable connection.
+                # Catch broadly: an authlib OAuthError (e.g. invalid_grant), a KeyError on
+                # a missing token_endpoint or a malformed IdP body would otherwise kill the
+                # task with nobody watching, and every later request would 401 with nothing
+                # pointing at the token refresh.
                 refresh_time = 1
                 _Warnings.token_refresh_failed(exc)
 
@@ -706,6 +740,9 @@ class _ConnectionBase:
         They specify the times depending on how they expect Weaviate to behave. For example, a query might take longer than an insert or vice versa
         but, in either case, the user only cares about how long it takes for a response to be received.
 
+        The one exception is Emscripten/Pyodide, where the connect timeout bounds the whole fetch
+        promise rather than connection setup, so it has to follow the request timeout (see below).
+
         https://www.python-httpx.org/advanced/timeouts/
         """
         timeout = None
@@ -717,8 +754,18 @@ class _ConnectionBase:
             timeout = self.timeout_config.query
         elif method == "POST" and not is_gql_query:
             timeout = self.timeout_config.insert
+
+        connect: float = 5.0
+        if sys.platform == "emscripten" and timeout is not None:
+            # Under Pyodide the REST transport is httpx's AsyncJavascriptFetchTransport,
+            # where the connect timeout bounds the WHOLE fetch promise (upload + response)
+            # rather than connection setup only. A fixed 5s there silently caps every
+            # request at ~5s of wall clock and ignores the configured insert/query
+            # timeouts. Never below 5s, and untouched off Emscripten, so native platforms
+            # keep the httpx default for connect/write.
+            connect = max(connect, float(timeout))
         return Timeout(
-            timeout=5.0,
+            timeout=connect,
             read=timeout,
             pool=self.__connection_config.session_pool_timeout,
         )
@@ -733,6 +780,12 @@ class _ConnectionBase:
         if isinstance(e, ConnectError):
             raise WeaviateConnectionError(self.__error_msg_with_detail(error_msg, e)) from e
         if isinstance(e, ReadTimeout):
+            raise WeaviateTimeoutError(self.__error_msg_with_detail(error_msg, e)) from e
+        if isinstance(e, TimeoutException):
+            # ConnectTimeout/WriteTimeout/PoolTimeout subclass TimeoutException but neither
+            # ConnectError nor ReadTimeout, so they used to escape as raw httpx errors,
+            # outside the weaviate exception taxonomy (Pyodide raises ConnectTimeout for a
+            # whole-request timeout). Checked last: the branches above keep their behavior.
             raise WeaviateTimeoutError(self.__error_msg_with_detail(error_msg, e)) from e
         raise e
 
