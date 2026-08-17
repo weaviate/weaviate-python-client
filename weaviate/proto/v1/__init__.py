@@ -16,15 +16,10 @@ from importlib.metadata import PackageNotFoundError, version as metadata_version
 
 from weaviate.exceptions import WeaviateProtobufIncompatibility
 
-# Fallback grpcio version used only when grpcio is not installed as a distribution.
-# This happens under Pyodide/Emscripten, where grpcio has no wheel and is excluded
-# via the `sys_platform != "emscripten"` marker in setup.cfg; the grpc module itself
-# is provided there by a pure-Python shim (see the weaviate-client-web package).
-# On every normal install grpcio's metadata is present and the real version is used, so
-# this branch is not taken. Restricted to grpcio AND to Emscripten, so that a broken or
-# partial grpcio install on a normal platform (metadata missing) still surfaces as
-# PackageNotFoundError instead of silently selecting a fallback stub, and so a genuinely
-# missing protobuf (required and pure-Python under Pyodide) is never masked.
+# grpcio version assumed under Pyodide/Emscripten, where grpcio has no wheel (excluded by
+# the `sys_platform != "emscripten"` marker in setup.cfg) and the grpc module is the
+# weaviate-client-web shim. Restricted to grpcio AND Emscripten so a broken grpcio install
+# elsewhere still raises PackageNotFoundError, and a missing protobuf is never masked.
 _GRPCIO_FALLBACK_VERSION = "1.72.1"
 
 def get_version(pkg: str) -> version.Version:

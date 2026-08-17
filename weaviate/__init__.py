@@ -7,9 +7,13 @@ import sys
 if sys.platform == "emscripten":
     try:
         import weaviate_client_web  # noqa: F401
-    except ImportError:
+    except ImportError as exc:
         from importlib.util import find_spec
 
+        # Only an absent companion earns the install hint; a companion that is present
+        # but fails to import (a broken dependency of its own) must surface that error.
+        if not (isinstance(exc, ModuleNotFoundError) and exc.name == "weaviate_client_web"):
+            raise
         if find_spec("grpc") is None:
             raise ImportError(
                 "weaviate requires the weaviate-client-web package under "
@@ -17,7 +21,7 @@ if sys.platform == "emscripten":
                 "weaviate-client-web provides the grpc-web (fetch) transport in its "
                 "place. Install it (e.g. micropip.install('weaviate-client-web')) and "
                 "import weaviate again."
-            ) from None
+            ) from exc
 
 import os
 from importlib.metadata import PackageNotFoundError, version

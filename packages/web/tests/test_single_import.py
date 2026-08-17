@@ -23,6 +23,19 @@ import sysconfig
 sysconfig.get_config_vars()
 """
 
+# The companion's bootstrap installs the fetch transport under Emscripten and fails fast
+# if pyodide.http cannot be imported, so a faked platform needs a stand-in module.
+_FAKE_PYODIDE = """
+import types
+
+_pyodide = types.ModuleType("pyodide")
+_http = types.ModuleType("pyodide.http")
+_http.pyfetch = None
+_pyodide.http = _http
+sys.modules["pyodide"] = _pyodide
+sys.modules["pyodide.http"] = _http
+"""
+
 
 def _run(
     body: str, *, prelude: str = "", path_entry: str = _SRC, no_site: bool = False
@@ -36,22 +49,16 @@ def _run(
 
 def test_bare_import_weaviate_installs_shim_under_emscripten():
     result = _run(
-        prelude=_PRIME_SYSCONFIG,
+        prelude=_PRIME_SYSCONFIG + _FAKE_PYODIDE,
         body="""
-        import importlib.machinery, types
-
         sys.platform = "emscripten"
-        # Pretend httpx is Pyodide's jsfetch build so the companion's bootstrap skips
-        # the fetch-transport install (there is no pyodide module on CPython).
-        fake = types.ModuleType("httpx._transports.jsfetch")
-        fake.__spec__ = importlib.machinery.ModuleSpec("httpx._transports.jsfetch", loader=None)
-        sys.modules["httpx._transports.jsfetch"] = fake
 
         import weaviate  # the ONLY weaviate-side import: must bootstrap the companion
 
         assert "weaviate_client_web" in sys.modules, "hook did not import the companion"
         import weaviate_client_web
         assert weaviate_client_web.is_installed()
+        assert weaviate_client_web.is_fetch_transport_installed()
         import grpc
         assert getattr(grpc, "__weaviate_client_web_shim__", False) is True
         print("OK")
@@ -98,6 +105,35 @@ def test_bare_import_with_grpc_present_falls_through_silently():
         assert not getattr(grpc, "__weaviate_client_web_shim__", False)
         print("OK")
         """,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_bare_import_with_broken_companion_surfaces_its_own_error(tmp_path):
+    # An INSTALLED companion whose import fails (here: a missing dependency of its own)
+    # must raise that error, not the "install weaviate-client-web" hint — the hint would
+    # send the user to reinstall a package that is already there.
+    fake_pkg = tmp_path / "weaviate_client_web"
+    fake_pkg.mkdir()
+    (fake_pkg / "__init__.py").write_text(
+        "raise ModuleNotFoundError(\"No module named 'anyio'\", name='anyio')\n"
+    )
+    result = _run(
+        prelude=_PRIME_SYSCONFIG,
+        body="""
+        sys.platform = "emscripten"
+        try:
+            import weaviate
+        except ImportError as e:
+            assert e.name == "anyio", (e.name, str(e))
+            assert "anyio" in str(e), str(e)
+            assert "weaviate-client-web" not in str(e), str(e)
+            print("OK")
+        else:
+            raise AssertionError("expected the companion's own ImportError to surface")
+        """,
+        path_entry=str(tmp_path),
     )
     assert result.returncode == 0, result.stderr
     assert "OK" in result.stdout
