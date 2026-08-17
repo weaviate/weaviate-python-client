@@ -85,6 +85,13 @@ class _BatchWrapper:
                 logger.debug("Waiting for async indexing to finish...")
             time.sleep(0.25)
             waiting_count += 1
+        # Stability check: wait briefly and re-verify to prevent race condition
+        # where shards report READY + vectorQueueSize=0 while objectCount
+        # has not yet caught up to the inserted objects.
+        # See: https://github.com/weaviate/weaviate-python-client/issues/1412
+        time.sleep(0.5)
+        if not self.__is_ready(how_many_failures, shards):
+            return self.wait_for_vector_indexing(shards, how_many_failures)
         logger.debug("Async indexing finished!")
 
     def __get_shards_readiness(self, shard: Shard) -> List[bool]:
@@ -186,6 +193,13 @@ class _BatchWrapperAsync:
                 logger.debug("Waiting for async indexing to finish...")
             await asyncio.sleep(0.25)
             waiting_count += 1
+        # Stability check: wait briefly and re-verify to prevent race condition
+        # where shards report READY + vectorQueueSize=0 while objectCount
+        # has not yet caught up to the inserted objects.
+        # See: https://github.com/weaviate/weaviate-python-client/issues/1412
+        await asyncio.sleep(0.5)
+        if not await self.__is_ready(how_many_failures, shards):
+            return await self.wait_for_vector_indexing(shards, how_many_failures)
         logger.debug("Async indexing finished!")
 
     async def __get_shards_readiness(self, shard: Shard) -> List[bool]:
