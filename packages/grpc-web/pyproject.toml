@@ -17,6 +17,8 @@ version = "0.0.1.dev0"
 # Emscripten by the `sys_platform != "emscripten"` marker in the base package's deps).
 dependencies = [
     "weaviate-client",
+    # Pyodide's bundled httpx build omits anyio, but authlib imports it directly.
+    'anyio ; sys_platform == "emscripten"',
 ]
 
 [project.urls]

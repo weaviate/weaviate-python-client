@@ -35,14 +35,24 @@ transport.
 
 ## Usage
 
+With this package installed, a plain `import weaviate` is all you need — under
+Emscripten the base client imports `weaviate_grpc_web` itself before anything else,
+which installs the shim (and raises a clear error if the package is missing):
+
 ```python
-import weaviate_grpc_web   # installs the grpc shim under Emscripten (no-op elsewhere)
-import weaviate
+import weaviate  # bootstraps weaviate_grpc_web automatically under Emscripten
 
 client = weaviate.use_async_with_local(skip_init_checks=True)
 await client.connect()
 collection = client.collections.get("Article")
 await collection.query.near_text("hello", limit=3)
+```
+
+Importing the companion explicitly first also works and remains the explicit form:
+
+```python
+import weaviate_grpc_web   # installs the grpc shim under Emscripten (no-op elsewhere)
+import weaviate
 ```
 
 ## Supported / unsupported

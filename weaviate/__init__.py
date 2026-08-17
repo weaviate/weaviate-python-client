@@ -1,7 +1,25 @@
 """Weaviate Python Client Library used to interact with a Weaviate instance."""
 
-import os
 import sys
+
+# Must run before every other import: under Pyodide there is no grpcio wheel, and importing
+# the companion installs the pure-Python grpc shim that everything below resolves against.
+if sys.platform == "emscripten":
+    try:
+        import weaviate_grpc_web  # noqa: F401
+    except ImportError:
+        from importlib.util import find_spec
+
+        if find_spec("grpc") is None:
+            raise ImportError(
+                "weaviate requires the weaviate-python-grpc-web package under "
+                "WebAssembly/Pyodide: there is no grpcio wheel for Emscripten, and "
+                "weaviate-python-grpc-web provides the grpc-web (fetch) transport in its "
+                "place. Install it (e.g. micropip.install('weaviate-python-grpc-web')) and "
+                "import weaviate again."
+            ) from None
+
+import os
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 

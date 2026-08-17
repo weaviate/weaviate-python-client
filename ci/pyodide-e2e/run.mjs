@@ -50,10 +50,9 @@ console.log(
 
 await pyodide.loadPackage("micropip");
 const micropip = pyodide.pyimport("micropip");
-// Pyodide's bundled httpx recipe drops httpx's anyio dependency (its fetch-based
-// transport needs no sockets), but authlib's httpx_client imports anyio directly —
-// without this, `import weaviate` fails with ModuleNotFoundError.
-await micropip.install("anyio");
+// anyio (needed because Pyodide's httpx recipe drops it, while authlib imports it
+// directly) resolves from the grpc-web wheel's `anyio ; sys_platform == "emscripten"`
+// marker — no explicit install here, so the marker stays proven.
 
 pyodide.FS.mkdirTree("/wheels");
 pyodide.mountNodeFS("/wheels", wheelsDir);
@@ -61,6 +60,17 @@ for (const wheel of wheels) {
   console.log(`micropip install ${wheel}`);
   await micropip.install(`emfs:/wheels/${wheel}`);
 }
+
+// Single-import check: the FIRST weaviate-side import in this interpreter is a bare
+// `import weaviate` — the base client must bootstrap the companion (and the shim) itself.
+pyodide.runPython(`
+import sys
+assert "weaviate_grpc_web" not in sys.modules
+import weaviate
+assert getattr(sys.modules.get("grpc"), "__weaviate_grpc_web_shim__", False), \\
+    "bare 'import weaviate' did not install the grpc shim"
+print("OK bare 'import weaviate' bootstrapped the grpc shim")
+`);
 
 // Define e2e.py's globals (imports run here, installing the grpc shim), then await
 // main() on Pyodide's event loop — asyncio.run() cannot be used inside Pyodide.

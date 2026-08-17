@@ -5,17 +5,18 @@ pure-Python ``grpc`` shim into ``sys.modules`` (and forces the pure-Python proto
 runtime) so that the subsequent ``import weaviate`` succeeds and its async gRPC data path
 runs over grpc-web (``fetch``) instead of HTTP/2 sockets.
 
-Usage under Pyodide::
+Usage under Pyodide (with this package installed, a bare ``import weaviate`` suffices —
+the base client imports this package itself under Emscripten before anything else)::
 
-    import weaviate_grpc_web   # installs the grpc shim (no-op off Emscripten)
     import weaviate
 
     client = weaviate.use_async_with_local(skip_init_checks=True)
     await client.connect()
 
-The shim is installed automatically only under Emscripten, so importing this package on a
-normal CPython install never clobbers a real, working ``grpcio``. Async clients only —
-the synchronous client is not supported in the browser.
+An explicit ``import weaviate_grpc_web`` before ``import weaviate`` also works and
+remains the explicit form. The shim is installed automatically only under Emscripten, so
+importing this package on a normal CPython install never clobbers a real, working
+``grpcio``. Async clients only — the synchronous client is not supported in the browser.
 """
 
 import os
