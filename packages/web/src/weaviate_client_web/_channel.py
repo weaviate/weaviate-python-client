@@ -16,7 +16,7 @@ import asyncio
 import base64
 import math
 import urllib.parse
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from ._framing import encode_message, split_response
 from ._sender import Sender, pyfetch_sender
@@ -214,7 +214,7 @@ class GrpcWebChannel(AioChannel):
             ) from exc
 
         try:
-            return self._handle_response(status, resp_headers, body, deserialize)
+            return self._handle_response(status, resp_headers, body, deserialize, url)
         except AioRpcError:
             raise
         except Exception as exc:  # malformed framing / status / payload
@@ -229,8 +229,21 @@ class GrpcWebChannel(AioChannel):
         resp_headers: Dict[str, str],
         body: bytes,
         deserialize: Callable[[bytes], Any],
+        url: str = "",
     ) -> Any:
-        messages, trailers = split_response(body) if body else ([], {})
+        # Frame-parse defensively, and never let a parse failure decide the outcome:
+        # every real error response carries a body that is NOT grpc-web framing
+        # (Weaviate's 404 JSON, an nginx error page), so reading '{' or '<' as a frame
+        # flag would report "malformed grpc-web response" and throw away the HTTP
+        # status, the URL and the server's own explanation.
+        messages: List[bytes] = []
+        trailers: Dict[str, str] = {}
+        frame_error: Optional[BaseException] = None
+        if body:
+            try:
+                messages, trailers = split_response(body)
+            except Exception as exc:
+                frame_error = exc
 
         raw_status = trailers.get("grpc-status")
         if raw_status is None:
@@ -241,11 +254,10 @@ class GrpcWebChannel(AioChannel):
         message = urllib.parse.unquote(raw_message)
 
         if raw_status is None:
-            if http_status != 200:
-                raise AioRpcError(
-                    code=_status_from_http(http_status),
-                    details=f"HTTP {http_status} from grpc-web endpoint",
-                )
+            # No grpc-status anywhere AND either a non-200 or a body that is not
+            # grpc-web framing: a gRPC service did not answer this request at all.
+            if http_status != 200 or frame_error is not None:
+                raise _non_grpc_web_error(http_status, url, body, frame_error)
             if messages:
                 # Every grpc-web unary response must carry a grpc-status (trailer frame
                 # or header); a proxy that drops the trailer must not read as success.
@@ -259,6 +271,10 @@ class GrpcWebChannel(AioChannel):
 
         if code is not StatusCode.OK:
             raise AioRpcError(code=code, details=message)
+        if frame_error is not None:
+            # grpc-status said OK but the body will not parse — report what actually
+            # came back rather than a bare "no message frame".
+            raise _non_grpc_web_error(http_status, url, body, frame_error)
         if not messages:
             details = "grpc-web response contained no message frame"
             if raw_status is None:
@@ -273,6 +289,65 @@ class GrpcWebChannel(AioChannel):
                 )
             raise AioRpcError(code=StatusCode.INTERNAL, details=details)
         return deserialize(messages[0])
+
+
+_BODY_EXCERPT_LIMIT = 200
+
+
+def _body_excerpt(body: bytes, limit: int = _BODY_EXCERPT_LIMIT) -> str:
+    """Render a short, printable, one-line excerpt of a response body for error details.
+
+    The body here is whatever a server or proxy sent — JSON, HTML, or binary — so decode
+    leniently and drop non-printables: building an error detail must never itself raise.
+    """
+    if not body:
+        return "<empty>"
+    text = body[:limit].decode("utf-8", "replace")
+    text = " ".join("".join(ch if ch.isprintable() else " " for ch in text).split())
+    if not text:
+        return f"<{len(body)} non-printable bytes>"
+    return text + ("..." if len(body) > limit else "")
+
+
+def _non_grpc_web_error(
+    http_status: int,
+    url: str,
+    body: bytes,
+    frame_error: Optional[BaseException] = None,
+) -> AioRpcError:
+    """Build the error for a response that is not a grpc-web response at all.
+
+    Details always begin with ``HTTP <status>`` and carry the request URL plus a body
+    excerpt (``weaviate/connect`` matches on that prefix). The status alone rarely
+    separates "endpoint missing" from "proxy misconfigured"; the server's own body
+    text usually does.
+    """
+    what = "not a grpc-web response"
+    if http_status == 200 and frame_error is not None:
+        what = f"the body is not grpc-web framing ({frame_error})"
+    parts = [f"HTTP {http_status} from {url or '<unknown url>'}: {what}."]
+
+    if http_status == 404:
+        # Two candidate causes, and the channel cannot tell them apart (it does not know
+        # the server version) — name both rather than guess.
+        parts.append(
+            "The grpc-web endpoint does not exist at that path: either this Weaviate "
+            "server predates 1.38.3, the first release to serve grpc-web natively, or "
+            "the configured grpc-web path prefix is wrong for the proxy in front of it. "
+            "Weaviate's native prefix is '/v1/grpc-web'."
+        )
+    elif http_status in (502, 503, 504):
+        parts.append("Weaviate or the proxy in front of it is unavailable.")
+    elif http_status == 200:
+        parts.append(
+            "Something other than a grpc-web endpoint answered — typically a proxy "
+            "error page or a single-page-app catch-all route serving index.html. Check "
+            "the grpc-web path prefix (Weaviate's native prefix is '/v1/grpc-web')."
+        )
+    parts.append(f"Response body: {_body_excerpt(body)}")
+
+    code = StatusCode.INTERNAL if http_status == 200 else _status_from_http(http_status)
+    return AioRpcError(code=code, details=" ".join(parts))
 
 
 def _status_from_http(http_status: int) -> StatusCode:

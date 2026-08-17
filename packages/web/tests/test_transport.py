@@ -115,12 +115,151 @@ def test_trailers_only_status_in_http_headers():
     assert excinfo.value.code() is StatusCode.UNAUTHENTICATED
 
 
-def test_http_error_without_grpc_status_maps_to_code():
-    channel = _channel(FakeSender(status=403, headers={}, body=b""))
-    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+# --- non-grpc-web responses -------------------------------------------------------
+#
+# Every real error response carries a body, and none of them is grpc-web framing. The
+# bodies below are verbatim shapes seen in the wild; an empty error body (the old
+# fixture) is the one shape no server or proxy produces, which is why these tests used
+# to pass against a code path that never ran.
+
+# Weaviate's own 404, verbatim from a 1.39.0 server asked for the wrong prefix.
+WEAVIATE_404_JSON = (
+    b'{"code":404,"message":"path /grpc-web/grpc.health.v1.Health/Check was not found"}'
+)
+NGINX_502_HTML = (
+    b"<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n"
+    b"<center><h1>502 Bad Gateway</h1></center>\r\n<hr><center>nginx/1.27.3</center>\r\n"
+    b"</body>\r\n</html>\r\n"
+)
+NGINX_404_HTML = (
+    b"<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n"
+    b"<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx/1.27.3</center>\r\n"
+    b"</body>\r\n</html>\r\n"
+)
+# A single-page app's catch-all route answers 200 with index.html for unknown paths.
+SPA_INDEX_HTML = (
+    b'<!doctype html>\n<html lang="en">\n  <head>\n    <title>My App</title>\n'
+    b'    <script type="module" src="/assets/index-4f21a0.js"></script>\n'
+    b'  </head>\n  <body><div id="root"></div></body>\n</html>\n'
+)
+
+
+def _details_of(status, body, headers=None, path="/grpc.health.v1.Health/Check"):
+    """Run one request against a canned HTTP response and return the AioRpcError."""
+    channel = _channel(FakeSender(status=status, headers=headers or {}, body=body))
+    mc = channel.unary_unary(path, lambda x: x, lambda b: b)
     with pytest.raises(AioRpcError) as excinfo:
         asyncio.run(mc(b"q"))
-    assert excinfo.value.code() is StatusCode.PERMISSION_DENIED
+    return excinfo.value
+
+
+def test_weaviate_404_json_names_both_candidate_causes():
+    # A 404 means EITHER the server predates the native /v1/grpc-web endpoint OR the
+    # configured path prefix is wrong. The channel cannot tell which, so it must say both.
+    err = _details_of(404, WEAVIATE_404_JSON, {"content-type": "application/json"})
+    details = err.details()
+
+    assert err.code() is StatusCode.UNIMPLEMENTED
+    assert details.startswith("HTTP 404 ")
+    assert "/grpc.health.v1.Health/Check" in details  # the request path
+    assert "1.38.3" in details  # candidate 1: server too old
+    assert "path prefix" in details  # candidate 2: wrong prefix
+    assert "/v1/grpc-web" in details  # the native prefix, spelled out
+    assert "was not found" in details  # the server's own explanation
+    assert "malformed grpc-web response" not in details
+
+
+def test_nginx_502_maps_to_unavailable_so_the_client_retries():
+    # weaviate/retry.py retries UNAVAILABLE and nothing else; a gateway error arriving
+    # as INTERNAL is silently un-retried, which is the regression this pins.
+    err = _details_of(502, NGINX_502_HTML)
+    assert err.code() is StatusCode.UNAVAILABLE
+    assert err.details().startswith("HTTP 502 ")
+    assert "502 Bad Gateway" in err.details()
+
+
+@pytest.mark.parametrize("status", [503, 504])
+def test_gateway_errors_are_unavailable(status):
+    err = _details_of(status, b"<html><body>upstream down</body></html>")
+    assert err.code() is StatusCode.UNAVAILABLE
+
+
+def test_nginx_404_html_is_reported_as_an_http_404():
+    err = _details_of(404, NGINX_404_HTML)
+    assert err.code() is StatusCode.UNIMPLEMENTED
+    assert err.details().startswith("HTTP 404 ")
+    assert "404 Not Found" in err.details()
+    assert "malformed grpc-web response" not in err.details()
+
+
+def test_spa_fallback_html_200_is_distinguishable_from_a_404():
+    # An HTTP 200 serving index.html is the other half of a wrong path prefix: the app's
+    # catch-all route answers instead of Weaviate. It must not read as malformed framing.
+    err = _details_of(200, SPA_INDEX_HTML)
+    details = err.details()
+
+    assert details.startswith("HTTP 200 ")
+    assert "<!doctype html>" in details
+    assert "single-page-app" in details  # names the actual cause
+    assert "malformed grpc-web response" not in details
+    # distinguishable from the 404 case, not the same generic message
+    assert details != _details_of(404, NGINX_404_HTML).details()
+
+
+def test_401_json_body_maps_to_unauthenticated():
+    err = _details_of(401, b'{"error":[{"message":"anonymous access not enabled"}]}')
+    assert err.code() is StatusCode.UNAUTHENTICATED
+    assert err.details().startswith("HTTP 401 ")
+    assert "anonymous access not enabled" in err.details()
+
+
+def test_403_error_body_reaches_details():
+    # regression: the response body is the most actionable part of the error and must
+    # survive into details() rather than being parsed as frames and discarded
+    err = _details_of(403, b'{"code":403,"message":"forbidden: rbac denied"}')
+    assert err.code() is StatusCode.PERMISSION_DENIED
+    assert "forbidden: rbac denied" in err.details()
+
+
+def test_error_body_excerpt_is_capped():
+    err = _details_of(500, b"E" * 5000)
+    details = err.details()
+    assert "EEEE" in details
+    assert details.endswith("...")
+    assert len(details) < 600  # the 5000-byte body is excerpted, not pasted in
+
+
+def test_binary_error_body_does_not_break_the_error():
+    # a proxy answering with a binary payload must not raise UnicodeDecodeError while
+    # the error message is being built
+    err = _details_of(502, b"\xff\xfe\x00\x01\x02")
+    assert err.code() is StatusCode.UNAVAILABLE
+    assert err.details().startswith("HTTP 502 ")
+
+
+def test_non_200_with_valid_grpc_web_trailers_still_uses_grpc_status():
+    # guard on the fix's shape: the HTTP status must not shadow a real grpc-status that
+    # a proxy shipped alongside a non-200
+    err = _details_of(500, _frame(b"grpc-status:7\r\ngrpc-message:denied\r\n", 0x80))
+    assert err.code() is StatusCode.PERMISSION_DENIED
+    assert err.details() == "denied"
+
+
+def test_non_ascii_grpc_message_preserves_the_status():
+    # a trailer carrying raw UTF-8 (an un-percent-encoded proxy, or an error quoting a
+    # collection name) must not degrade to INTERNAL and lose grpc-status
+    body = _frame("grpc-status:5\r\ngrpc-message:collection Café not found\r\n".encode(), 0x80)
+    err = _details_of(200, body)
+    assert err.code() is StatusCode.NOT_FOUND
+    assert "Caf" in err.details()
+
+
+def test_invalid_utf8_grpc_message_preserves_the_status():
+    # latin-1 bytes are not valid UTF-8; the status must still survive
+    body = _frame(b"grpc-status:9\r\ngrpc-message:tenant caf\xe9 is COLD\r\n", 0x80)
+    err = _details_of(200, body)
+    assert err.code() is StatusCode.FAILED_PRECONDITION
+    assert "tenant caf" in err.details()
 
 
 def test_binary_metadata_base64_encoded():

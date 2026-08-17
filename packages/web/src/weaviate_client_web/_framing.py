@@ -42,13 +42,19 @@ def iter_frames(buf: bytes) -> Iterator[Tuple[int, bytes]]:
 
 
 def parse_trailers(raw: bytes) -> Dict[str, str]:
-    """Parse a trailer frame payload into a lower-cased header dict."""
+    """Parse a trailer frame payload into a lower-cased header dict.
+
+    Names are ASCII by spec, but values are decoded leniently: a proxy that does not
+    percent-encode ``grpc-message``, or a server error quoting a UTF-8 collection /
+    tenant / property name, puts raw non-ASCII bytes in the trailer. Failing here would
+    throw away the ``grpc-status`` that came with it.
+    """
     out: Dict[str, str] = {}
     for line in raw.split(b"\r\n"):
         if not line:
             continue
         key, _, value = line.partition(b":")
-        out[key.strip().decode("ascii").lower()] = value.strip().decode("ascii")
+        out[key.strip().decode("ascii").lower()] = value.strip().decode("utf-8", "replace")
     return out
 
 
