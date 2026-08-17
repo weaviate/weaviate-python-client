@@ -883,6 +883,24 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-nvidia": {}},
     ),
     (
+        Configure.Generative.nvidia(
+            base_url="https://integrate.api.nvidia.com",
+            model="model",
+            temperature=0.5,
+            max_tokens=100,
+            top_p=0.5,
+        ),
+        {
+            "generative-nvidia": {
+                "baseURL": "https://integrate.api.nvidia.com",
+                "model": "model",
+                "temperature": 0.5,
+                "maxTokens": 100,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.anyscale(),
         {"generative-anyscale": {}},
     ),
@@ -1023,6 +1041,42 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.google_vertex(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
+        Configure.Generative.google_vertex(
+            project_id="project",
+            api_endpoint="https://api.google.com",
+            region="europe-west4",
+            location="europe-west4",
+            max_output_tokens=100,
+            model_id="model",
+            endpoint_id="endpoint",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://api.google.com",
+                "region": "europe-west4",
+                "location": "europe-west4",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "endpointId": "endpoint",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.aws(
             model="cohere.command-light-text-v14",
             region="us-east-1",
@@ -1059,6 +1113,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_p=0.5,
             base_url="https://api.openai.com",
+            api_version="2024-06-01",
         ),
         {
             "generative-openai": {
@@ -1070,6 +1125,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
+                "apiVersion": "2024-06-01",
             }
         },
     ),
@@ -1081,6 +1137,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_k=10,
             top_p=0.5,
+            base_url="https://api.anthropic.com",
         ),
         {
             "generative-anthropic": {
@@ -1090,6 +1147,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
+                "baseURL": "https://api.anthropic.com",
             }
         },
     ),

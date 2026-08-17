@@ -9,6 +9,7 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import (
     MMR,
     BM25OperatorAnd,
+    BM25OperatorAndCross,
     BM25OperatorOr,
     ListOfVectorsQuery,
     NearVectorInputType,
@@ -62,6 +63,7 @@ __all__ = [
     "GenerativeSearchReturnType",
     "GeoCoordinate",
     "BM25OperatorAnd",
+    "BM25OperatorAndCross",
     "BM25OperatorOr",
     "ListOfVectorsQuery",
     "MMR",

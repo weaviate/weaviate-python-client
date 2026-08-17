@@ -477,6 +477,7 @@ class _GenerativeNvidia(_GenerativeProvider):
     model: Optional[str]
     maxTokens: Optional[int]
     baseURL: Optional[str]
+    topP: Optional[float]
 
 
 class _GenerativeXai(_GenerativeProvider):
@@ -535,6 +536,7 @@ class _GenerativeOpenAIConfig(_GenerativeOpenAIConfigBase):
 class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
     resourceName: str
     deploymentId: str
+    apiVersion: Optional[str]
 
 
 class _GenerativeCohereConfig(_GenerativeProvider):
@@ -575,6 +577,7 @@ class _GenerativeGoogleConfig(_GenerativeProvider):
     apiEndpoint: Optional[str]
     endpointId: Optional[str]
     region: Optional[str]
+    location: Optional[str]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
     projectId: str
@@ -614,6 +617,7 @@ class _GenerativeAnthropicConfig(_GenerativeProvider):
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
+    baseURL: Optional[str]
 
 
 class _RerankerProvider(_ConfigCreateModel):
@@ -850,6 +854,7 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
 
@@ -858,9 +863,14 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeNvidia(
-            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+            model=model,
+            temperature=temperature,
+            maxTokens=max_tokens,
+            baseURL=base_url,
+            topP=top_p,
         )
 
     @staticmethod
@@ -951,6 +961,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
+        api_version: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAzureOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
@@ -966,8 +977,10 @@ class _Generative:
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            api_version: The Azure OpenAI API version to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAzureOpenAIConfig(
+            apiVersion=api_version,
             baseURL=base_url,
             deploymentId=deployment_id,
             frequencyPenalty=frequency_penalty,
@@ -1082,6 +1095,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1124,6 +1138,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1147,6 +1162,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
+        location: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module.
 
@@ -1156,17 +1172,24 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Args:
             project_id: The Google Vertex project ID to use.
             api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            region: The region to use. Defaults to `None`, which uses the server-defined default
+            region: The region the Vertex AI endpoint is served from. For `gemini*` models this selects the API host
+                (`<region>-aiplatform.googleapis.com`); for the other models the host comes from `api_endpoint` instead.
+                Defaults to `None`, which uses the server-defined default
             max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
             endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            location: The Vertex AI location, i.e. the `locations/<location>` segment of the request URL. This is
+                distinct from `region`: `region` picks the host, `location` picks the path. For `gemini*` models the
+                special value `"global"` selects the region-less `aiplatform.googleapis.com` host, so `region` is then
+                unused. Defaults to `None`, which uses the server-defined default of `us-central1`
         """
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=region,
+            location=location,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1202,6 +1225,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=None,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model,
             projectId="",
@@ -1339,6 +1363,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
+        base_url: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
 
@@ -1349,6 +1374,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnthropicConfig(
             model=model,
@@ -1357,6 +1383,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            baseURL=base_url,
         )
 
 

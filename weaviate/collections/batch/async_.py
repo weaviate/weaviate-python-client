@@ -225,7 +225,7 @@ class _BatchBaseAsync:
                     # wait for more objects to be added up to the batch size
                     await asyncio.sleep(refresh_time)
                     if time.time() - start >= 1 and (
-                        len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
+                        len_o == len(self.__batch_objects) and len_r == len(self.__batch_references)
                     ):
                         # no new objects were added in the last second, exit the loop
                         break

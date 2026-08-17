@@ -70,9 +70,11 @@ class SearchOperatorOptions(_message.Message):
         OPERATOR_UNSPECIFIED: _ClassVar[SearchOperatorOptions.Operator]
         OPERATOR_OR: _ClassVar[SearchOperatorOptions.Operator]
         OPERATOR_AND: _ClassVar[SearchOperatorOptions.Operator]
+        OPERATOR_AND_CROSS: _ClassVar[SearchOperatorOptions.Operator]
     OPERATOR_UNSPECIFIED: SearchOperatorOptions.Operator
     OPERATOR_OR: SearchOperatorOptions.Operator
     OPERATOR_AND: SearchOperatorOptions.Operator
+    OPERATOR_AND_CROSS: SearchOperatorOptions.Operator
     OPERATOR_FIELD_NUMBER: _ClassVar[int]
     MINIMUM_OR_TOKENS_MATCH_FIELD_NUMBER: _ClassVar[int]
     operator: SearchOperatorOptions.Operator
