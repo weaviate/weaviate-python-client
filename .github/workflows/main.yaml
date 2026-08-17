@@ -418,7 +418,7 @@ jobs:
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package, proto-test]
+    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package, proto-test, grpc-web-tests, pyodide-e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
