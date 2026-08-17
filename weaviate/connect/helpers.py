@@ -351,22 +351,23 @@ def connect_to_custom(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
-    if grpc_path_prefix:
+    connection_params = ConnectionParams.from_params(
+        http_host=http_host,
+        http_port=http_port,
+        http_secure=http_secure,
+        grpc_host=grpc_host,
+        grpc_port=grpc_port,
+        grpc_secure=grpc_secure,
+        grpc_path_prefix=grpc_path_prefix,
+    )
+    if connection_params._grpc_web_path_prefix:  # normalized: "/" is native gRPC
         raise WeaviateInvalidInputError(
             "grpc_path_prefix enables grpc-web, which is async-only; use "
             "use_async_with_custom(...) instead of connect_to_custom(...)"
         )
     return __connect(
         WeaviateClient(
-            ConnectionParams.from_params(
-                http_host=http_host,
-                http_port=http_port,
-                http_secure=http_secure,
-                grpc_host=grpc_host,
-                grpc_port=grpc_port,
-                grpc_secure=grpc_secure,
-                grpc_path_prefix=grpc_path_prefix,
-            ),
+            connection_params,
             auth_client_secret=__parse_auth_credentials(auth_credentials),
             additional_headers=headers,
             additional_config=additional_config,

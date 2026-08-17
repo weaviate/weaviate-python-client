@@ -6,8 +6,10 @@ environment without needing a browser.
 """
 
 import sys
+from typing import Optional
 
 import grpc
+import httpx
 import pytest
 from grpc.aio import AioRpcError, Metadata
 from httpx import ConnectError, ConnectTimeout, PoolTimeout, ReadTimeout, WriteTimeout
@@ -16,7 +18,7 @@ from weaviate import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import ConnectionConfig
 from weaviate.config import Timeout as TimeoutConfig
 from weaviate.connect.base import ConnectionParams
-from weaviate.connect.v4 import _ConnectionBase, _exc_detail
+from weaviate.connect.v4 import _ConnectionBase, _deadline, _exc_detail
 from weaviate.embedded import _EmbeddedBase
 from weaviate.exceptions import (
     WeaviateClosedClientError,
@@ -58,25 +60,33 @@ def test_async_client_construction_allowed_under_emscripten(monkeypatch) -> None
     assert client is not None
 
 
-def _handle_exceptions(e: Exception, error_msg: str = "") -> None:
+def _handle_exceptions(
+    e: Exception, error_msg: str = "", client: Optional[httpx.Client] = None
+) -> None:
     conn = object.__new__(_ConnectionBase)
-    # keep the bare instance's __del__ quiet (it checks these for unclosed connections)
-    conn._client = None
+    # __del__ checks these for unclosed connections; None also means "no client at all"
+    conn._client = client
     conn._grpc_channel = None
     getattr(conn, "_ConnectionBase__handle_exceptions")(e, error_msg)  # noqa: B009
 
 
-def test_httpx_closed_client_runtime_error_maps_to_closed_client() -> None:
-    # the exact message httpx raises for a closed AsyncClient/Client
+def test_runtime_error_from_a_closed_client_maps_to_closed_client() -> None:
+    # httpx raises a bare RuntimeError('Cannot send a request, as the client has been
+    # closed.'); the client's state, not the message text, is what makes it 'closed'
+    closed = httpx.Client()
+    closed.close()
     with pytest.raises(WeaviateClosedClientError):
         _handle_exceptions(RuntimeError("Cannot send a request, as the client has been closed."))
+    with pytest.raises(WeaviateClosedClientError):
+        _handle_exceptions(RuntimeError("some other wording"), client=closed)
 
 
 def test_unrelated_runtime_error_is_not_rewritten_as_closed_client() -> None:
     # Emscripten's canonical thread failure must propagate as-is, not as a misleading
     # 'client is closed - run client.connect()'
-    with pytest.raises(RuntimeError, match="can't start new thread"):
-        _handle_exceptions(RuntimeError("can't start new thread"))
+    with httpx.Client() as open_client:
+        with pytest.raises(RuntimeError, match="can't start new thread"):
+            _handle_exceptions(RuntimeError("can't start new thread"), client=open_client)
 
 
 def test_connect_error_message_includes_exception_type() -> None:
@@ -206,21 +216,52 @@ def test_rest_timeouts_are_capped_at_five_seconds_on_native_platforms() -> None:
     assert insert.read == 90
 
 
-def test_rest_connect_timeout_follows_the_request_timeout_under_emscripten(monkeypatch) -> None:
-    # under Pyodide the connect timeout bounds the entire fetch promise, so a fixed 5s
-    # silently caps every request at ~5s of wall clock
+def test_rest_deadline_under_emscripten_is_the_read_timeout(monkeypatch) -> None:
+    # the fetch transport (weaviate-client-web) reads only `read` as the whole-request
+    # deadline; connect/write/pool are never consulted there, so nothing platform-specific
+    # is computed: same httpx.Timeout as on CPython, finite -> value, non-finite -> None
     monkeypatch.setattr(sys, "platform", "emscripten")
-    conn = _connection()
 
-    insert = _get_timeout(conn, "POST")
-    assert insert.connect == 90 and insert.write == 90
-    assert insert.read == 90
-
-    query = _get_timeout(conn, "GET")
-    assert query.connect == 30
+    insert = _get_timeout(_connection(), "POST")
+    assert insert.read == 90 and insert.connect == 5.0
+    query = _get_timeout(_connection(), "GET")
     assert query.read == 30
 
-    # a configured timeout below the httpx default must not make connecting stricter
     short = _get_timeout(_connection(insert=1, query=1), "POST")
-    assert short.connect == 5.0
     assert short.read == 1
+    unbounded = _get_timeout(_connection(insert=float("inf")), "POST")
+    assert unbounded.read is None
+
+
+@pytest.mark.parametrize("value", [float("inf"), float("nan")])
+def test_deadline_maps_non_finite_to_none(value: float) -> None:
+    # Timeout(query=float('inf')) passes pydantic's ge=0; handed on as-is it overflows in
+    # the fetch layer under Pyodide (int(inf * 1000)). None is "no deadline" for both
+    # httpx and grpc.
+    assert _deadline(value) is None
+    assert _deadline(None) is None
+    assert _deadline(0) == 0
+    assert _deadline(2.5) == 2.5
+
+
+def test_infinite_rest_timeouts_become_no_read_timeout() -> None:
+    conn = _connection(insert=float("inf"), query=float("inf"))
+    insert = _get_timeout(conn, "POST")
+    assert insert.read is None
+    assert insert.connect == 5.0  # the httpx default is kept on native platforms
+    query = _get_timeout(conn, "GET")
+    assert query.read is None
+
+
+def test_deadlines_view_sanitises_every_timeout() -> None:
+    conn = _connection()
+    conn.timeout_config = TimeoutConfig(
+        query=float("inf"), insert=90, init=float("inf"), stream=float("inf")
+    )
+    deadlines = conn._deadlines
+    assert deadlines.query is None
+    assert deadlines.insert == 90
+    assert deadlines.init is None  # Timeout(init=inf) used to end in an OverflowError
+    assert deadlines.stream is None
+    # the user's own config object is left untouched
+    assert conn.timeout_config.init == float("inf")

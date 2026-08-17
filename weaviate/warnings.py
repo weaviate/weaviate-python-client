@@ -67,13 +67,11 @@ class _Warnings:
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
-    def token_refresh_failed(exc: Exception) -> None:
+    def token_refresh_failed(exc: Exception, retry_in: float, failures: int) -> None:
+        detail = f"{type(exc).__name__}: {exc}" if str(exc) else repr(exc)
         warnings.warn(
-            message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically
-            retry to refresh. If the retry does not succeed, the client will become unauthenticated.
-
-            The cause might be an unstable internet connection or a problem with your authentication provider.
-            Exception: {exc}
+            message=f"""Con001: Token refresh failed ({detail}); retrying in {retry_in}s (consecutive failures: {failures}).
+            The client will become unauthenticated once the current token expires if the refresh keeps failing.
             """,
             category=UserWarning,
             stacklevel=1,
