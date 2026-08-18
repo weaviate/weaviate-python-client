@@ -470,8 +470,9 @@ class Multi2VecField(BaseModel):
 
 
 class _Multi2VecBase(_VectorizerConfigCreate):
-    imageFields: Optional[List[Multi2VecField]]
-    textFields: Optional[List[Multi2VecField]]
+    imageFields: Optional[List[Multi2VecField]] = None
+    textFields: Optional[List[Multi2VecField]] = None
+    vectorizeClassName: bool = True
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -719,6 +720,7 @@ class _Vectorizer:
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             inferenceUrl=inference_url,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -758,6 +760,7 @@ class _Vectorizer:
             textFields=_map_multi2vec_fields(text_fields),
             thermalFields=_map_multi2vec_fields(thermal_fields),
             videoFields=_map_multi2vec_fields(video_fields),
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -941,6 +944,7 @@ class _Vectorizer:
             truncate=truncate,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -979,6 +983,7 @@ class _Vectorizer:
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             videoFields=None,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -1015,6 +1020,7 @@ class _Vectorizer:
             truncation=truncation,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -1484,6 +1490,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             dimensions=dimensions,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
