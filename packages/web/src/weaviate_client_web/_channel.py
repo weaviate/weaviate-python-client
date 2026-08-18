@@ -15,10 +15,11 @@ raises a clear error.
 import asyncio
 import base64
 import math
+import sys
 import urllib.parse
 from typing import Any, Callable, Dict, List, Optional
 
-from ._framing import encode_message, split_response
+from ._framing import TruncatedFrameError, UnknownFrameFlagError, encode_message, split_response
 from ._sender import Sender, pyfetch_sender
 from ._shim import AioChannel, AioRpcError, StatusCode, status_from_int
 
@@ -36,14 +37,26 @@ def get_sender() -> Sender:
     return _default_sender
 
 
-def _encode_timeout(seconds: float) -> str:
-    """Encode a timeout as a grpc-timeout header value (``<positive int><unit>``)."""
-    # Round up so we never advertise a shorter deadline than requested (which would risk
-    # premature server-side cancellation); grpc-timeout takes a positive integer + unit.
-    millis = max(1, math.ceil(seconds * 1000))
-    if millis < 100_000_000:
-        return f"{millis}m"
-    return f"{max(1, math.ceil(seconds))}S"
+# grpc-timeout is at most 8 digits plus a unit; anything longer is rejected by the server.
+_GRPC_TIMEOUT_MAX = 100_000_000
+
+
+def _encode_timeout(seconds: Optional[float]) -> Optional[str]:
+    """Encode a timeout as a grpc-timeout header value; ``None`` means no deadline.
+
+    ``None``, non-finite values and anything beyond 99,999,999 minutes (~190 years) carry
+    no deadline. Rounds up so we never advertise a shorter deadline than requested (which
+    would risk premature server-side cancellation), moving to a coarser unit
+    (m -> S -> M) to stay within 8 digits. Hours are never emitted: grpc-web transcoders
+    (vanguard) reject any H value above 8H with HTTP 400.
+    """
+    if seconds is None or not math.isfinite(seconds):
+        return None
+    for amount, unit in ((seconds * 1000, "m"), (seconds, "S"), (seconds / 60, "M")):
+        value = max(1, math.ceil(amount))
+        if value < _GRPC_TIMEOUT_MAX:
+            return f"{value}{unit}"
+    return None
 
 
 def _fold_metadata(headers: Dict[str, str], metadata: Any) -> None:
@@ -57,9 +70,13 @@ def _fold_metadata(headers: Dict[str, str], metadata: Any) -> None:
         name = key.lower()
         if name.endswith("-bin"):
             raw = value if isinstance(value, (bytes, bytearray)) else str(value).encode()
-            headers[name] = base64.b64encode(raw).decode("ascii")
+            text = base64.b64encode(raw).decode("ascii")
         else:
-            headers[name] = value if isinstance(value, str) else str(value)
+            text = value if isinstance(value, str) else str(value)
+        # This path bypasses h11/grpcio's header validation, so keep their defence here.
+        if any(c in name or c in text for c in ("\r", "\n", "\0")):
+            raise ValueError(f"Illegal character in gRPC metadata {name!r}")
+        headers[name] = text
 
 
 def _header_lookup(headers: Dict[str, str], name: str) -> Optional[str]:
@@ -106,8 +123,8 @@ class _UnaryUnaryMultiCallable:
 class _UnsupportedStreamMultiCallable:
     """Placeholder for ``stream_stream`` (bidirectional streaming).
 
-    Calling it raises immediately, before the ``async for`` in ``connect/v4.py:1243``
-    begins iterating.
+    Calling it raises immediately, before the ``async for`` in ``connect/v4.py`` begins
+    iterating.
     """
 
     def __init__(self, path: str) -> None:
@@ -181,16 +198,20 @@ class GrpcWebChannel(AioChannel):
             "x-user-agent": "weaviate-client-web",
         }
         _fold_metadata(headers, metadata)
-        if timeout is not None:
-            headers["grpc-timeout"] = _encode_timeout(timeout)
+        grpc_timeout = _encode_timeout(timeout)
+        if grpc_timeout is None:
+            timeout = None  # None / non-finite: no deadline, server- or client-side
+        else:
+            headers["grpc-timeout"] = grpc_timeout
 
         url = self._base_url + self._path_prefix + path
         framed = encode_message(payload)
 
         # Send. Enforce a client-side deadline (the grpc-timeout header is server-side
         # only; pyfetch ignores its timeout arg, so without this a stalled request could
-        # hang forever). Any transport/parse failure is surfaced as AioRpcError so the
-        # client only ever sees gRPC error types (never a bare ValueError/TimeoutError).
+        # hang forever). Any transport/parse failure is surfaced as AioRpcError; the only
+        # non-gRPC error a caller can see is the ValueError from metadata validation
+        # above, raised before any I/O (as native grpcio does).
         try:
             send = self._sender(url, headers, framed, timeout)
             if timeout is not None:
@@ -208,10 +229,10 @@ class GrpcWebChannel(AioChannel):
             # str() of transport errors can be empty (e.g. httpx.ConnectError) — always
             # include the exception type so failures stay diagnosable
             detail = f"{type(exc).__name__}: {exc}" if str(exc) else repr(exc)
-            raise AioRpcError(
-                code=StatusCode.UNAVAILABLE,
-                details=f"grpc-web transport error for {path}: {detail}",
-            ) from exc
+            details = f"grpc-web transport error for {path}: {detail}"
+            if not self._path_prefix and sys.platform == "emscripten":
+                details += " " + _no_path_prefix_hint()
+            raise AioRpcError(code=StatusCode.UNAVAILABLE, details=details) from exc
 
         try:
             return self._handle_response(status, resp_headers, body, deserialize, url)
@@ -231,11 +252,9 @@ class GrpcWebChannel(AioChannel):
         deserialize: Callable[[bytes], Any],
         url: str = "",
     ) -> Any:
-        # Frame-parse defensively, and never let a parse failure decide the outcome:
-        # every real error response carries a body that is NOT grpc-web framing
-        # (Weaviate's 404 JSON, an nginx error page), so reading '{' or '<' as a frame
-        # flag would report "malformed grpc-web response" and throw away the HTTP
-        # status, the URL and the server's own explanation.
+        # A frame-parse failure must never decide the outcome by itself: real error
+        # responses carry non-grpc-web bodies (Weaviate's 404 JSON, an nginx page), and
+        # the HTTP status, URL and the server's own text must survive into the error.
         messages: List[bytes] = []
         trailers: Dict[str, str] = {}
         frame_error: Optional[BaseException] = None
@@ -257,7 +276,7 @@ class GrpcWebChannel(AioChannel):
             # No grpc-status anywhere AND either a non-200 or a body that is not
             # grpc-web framing: a gRPC service did not answer this request at all.
             if http_status != 200 or frame_error is not None:
-                raise _non_grpc_web_error(http_status, url, body, frame_error)
+                raise _frame_error_to_rpc(http_status, url, body, frame_error)
             if messages:
                 # Every grpc-web unary response must carry a grpc-status (trailer frame
                 # or header); a proxy that drops the trailer must not read as success.
@@ -274,7 +293,12 @@ class GrpcWebChannel(AioChannel):
         if frame_error is not None:
             # grpc-status said OK but the body will not parse — report what actually
             # came back rather than a bare "no message frame".
-            raise _non_grpc_web_error(http_status, url, body, frame_error)
+            raise _frame_error_to_rpc(http_status, url, body, frame_error)
+        if len(messages) > 1:
+            raise AioRpcError(
+                code=StatusCode.INTERNAL,
+                details=f"unary grpc-web response carried {len(messages)} message frames",
+            )
         if not messages:
             details = "grpc-web response contained no message frame"
             if raw_status is None:
@@ -309,22 +333,53 @@ def _body_excerpt(body: bytes, limit: int = _BODY_EXCERPT_LIMIT) -> str:
     return text + ("..." if len(body) > limit else "")
 
 
+def _no_path_prefix_hint() -> str:
+    # Lazy import: this module is imported while ``weaviate/__init__`` is still
+    # bootstrapping the shim under Emscripten.
+    from weaviate.exceptions import GRPC_WEB_MIN_SERVER_VERSION, GRPC_WEB_SERVER_PATH_PREFIX
+
+    return (
+        "(no grpc_path_prefix set — for Weaviate >= "
+        f"{GRPC_WEB_MIN_SERVER_VERSION} use use_async_with_custom(..., "
+        f"grpc_path_prefix='{GRPC_WEB_SERVER_PATH_PREFIX}') on the REST port, or point "
+        "grpc_host/grpc_port at a grpc-web transcoder)"
+    )
+
+
+def _frame_error_to_rpc(
+    http_status: int, url: str, body: bytes, frame_error: Optional[BaseException]
+) -> AioRpcError:
+    """Choose the error for a body that did not parse as grpc-web frames."""
+    if http_status != 200 or isinstance(frame_error, (UnknownFrameFlagError, TruncatedFrameError)):
+        return _non_grpc_web_error(http_status, url, body, frame_error)
+    # Well-formed grpc-web up to the point of failure: a grpc-web endpoint answered but
+    # broke the protocol (compressed frame, message after trailer, …).
+    return AioRpcError(
+        code=StatusCode.INTERNAL,
+        details=f"malformed grpc-web response from {url or '<unknown url>'}: {frame_error}",
+    )
+
+
 def _non_grpc_web_error(
     http_status: int,
     url: str,
     body: bytes,
     frame_error: Optional[BaseException] = None,
 ) -> AioRpcError:
-    """Build the error for a response that is not a grpc-web response at all.
+    """Build the error for a response that is not a usable grpc-web response.
 
     Details always begin with ``HTTP <status>`` and carry the request URL plus a body
     excerpt (``weaviate/connect`` matches on that prefix). The status alone rarely
     separates "endpoint missing" from "proxy misconfigured"; the server's own body
     text usually does.
     """
+    truncated = isinstance(frame_error, TruncatedFrameError)
     what = "not a grpc-web response"
     if http_status == 200 and frame_error is not None:
-        what = f"the body is not grpc-web framing ({frame_error})"
+        if truncated:
+            what = f"the grpc-web body is truncated ({frame_error})"
+        else:
+            what = f"the body is not grpc-web framing ({frame_error})"
     parts = [f"HTTP {http_status} from {url or '<unknown url>'}: {what}."]
 
     if http_status == 404:
@@ -336,8 +391,20 @@ def _non_grpc_web_error(
             "the configured grpc-web path prefix is wrong for the proxy in front of it. "
             "Weaviate's native prefix is '/v1/grpc-web'."
         )
+    elif http_status == 405:
+        # A 405 can only come from an existing HTTP route: the prefix points at one.
+        parts.append(
+            "An HTTP route answered instead of the grpc-web endpoint (method not "
+            "allowed): the configured grpc-web path prefix is wrong. Weaviate's native "
+            "prefix is '/v1/grpc-web'."
+        )
     elif http_status in (502, 503, 504):
         parts.append("Weaviate or the proxy in front of it is unavailable.")
+    elif http_status == 200 and truncated:
+        parts.append(
+            "The response was cut short — a proxy or browser buffering limit, or the "
+            "connection dropped mid-response."
+        )
     elif http_status == 200:
         parts.append(
             "Something other than a grpc-web endpoint answered — typically a proxy "

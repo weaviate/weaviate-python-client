@@ -8,14 +8,14 @@ exist. The shim satisfies two contracts at once:
 
 1. **Import surface** — every ``import grpc`` / ``from grpc(.aio) import ...`` executed
    while ``weaviate`` and its generated ``*_pb2_grpc`` stubs are imported
-   (``weaviate/config.py:4-5``, ``exceptions.py:7-8``, ``retry.py:5-6``,
-   ``connect/base.py:5-8``, ``connect/v4.py:24,29-32``, and the v6300 stub's
-   ``grpc.__version__`` / ``grpc._utilities.first_version_is_lower`` version gate).
+   (``weaviate/config.py``, ``exceptions.py``, ``retry.py``, ``connect/base.py``,
+   ``connect/v4.py``, and the v6300 stub's ``grpc.__version__`` /
+   ``grpc._utilities.first_version_is_lower`` version gate).
 2. **Runtime type contract** — :class:`AioChannel` becomes ``grpc.aio.Channel`` so the
    real grpc-web channel (which subclasses it) passes the
-   ``isinstance(..., grpc.aio.Channel)`` assertions in ``connect/v4.py`` (lines 722,
-   1241); :class:`AioRpcError` is the error the client catches and inspects via
-   ``.code()`` / ``.details()`` (``exceptions.py:62-76``, ``retry.py:30-31``).
+   ``isinstance(..., grpc.aio.Channel)`` assertions in ``connect/v4.py``;
+   :class:`AioRpcError` is the error the client catches and inspects via ``.code()`` /
+   ``.details()`` (``exceptions.py``, ``retry.py``).
 """
 
 import enum
@@ -34,8 +34,8 @@ class StatusCode(enum.Enum):
     """Mirror of ``grpc.StatusCode``.
 
     ``value`` is the canonical ``(int, str)`` tuple, matching grpcio so ``code.value[0]``
-    / ``code.value[1]`` (``exceptions.py:63,66``) and ``code.name``
-    (``connect/v4.py:1189``) behave identically.
+    / ``code.value[1]`` (``exceptions.py``) and ``code.name`` (``connect/v4.py``) behave
+    identically.
     """
 
     OK = (0, "ok")
@@ -122,11 +122,11 @@ class AioRpcError(RpcError):
 
 
 class StreamStreamCall:
-    """Stand-in for ``grpc.aio.StreamStreamCall`` (imported as a type at ``v4.py:31``)."""
+    """Stand-in for ``grpc.aio.StreamStreamCall`` (imported as a type by ``connect/v4.py``)."""
 
 
 class ChannelCredentials:
-    """Stand-in for ``grpc.ChannelCredentials`` (imported by ``config.py:4``)."""
+    """Stand-in for ``grpc.ChannelCredentials`` (imported by ``config.py``)."""
 
 
 def ssl_channel_credentials(*_args: Any, **_kwargs: Any) -> ChannelCredentials:
@@ -152,8 +152,8 @@ class AioChannel:
 def first_version_is_lower(_version: str, _other: str) -> bool:
     """Stand-in for ``grpc._utilities.first_version_is_lower``.
 
-    Returning ``False`` makes the v6300 stub's version gate
-    (``weaviate_pb2_grpc.py:17-29``) pass.
+    Returning ``False`` makes the v6300 stub's import-time version gate
+    (``weaviate_pb2_grpc.py``) pass.
     """
     return False
 

@@ -10,14 +10,17 @@ and OIDC auth flows (anonymous access only).
 """
 
 import os
+import uuid
 import warnings
 
 import weaviate_client_web  # bootstraps the grpc shim + fetch transport under Emscripten
 
 import grpc
+import httpx
 import weaviate
 import weaviate.classes as wvc
-from weaviate.classes.config import DataType, Property
+from weaviate.classes.config import DataType, Property, ReferenceProperty
+from weaviate.classes.data import DataReference
 from weaviate.classes.query import Filter
 from weaviate.classes.tenants import Tenant
 from weaviate.exceptions import WeaviateBatchStreamError, WeaviateQueryError
@@ -38,6 +41,13 @@ async def main() -> None:
     assert getattr(grpc, "__weaviate_client_web_shim__", False), (
         "sys.modules['grpc'] is not the shim"
     )
+    # REST must run through the package's own fetch transport, not Pyodide's bundled
+    # httpx transport (which cannot read the null body of HEAD / 204 responses).
+    assert weaviate_client_web.is_fetch_transport_installed(), "fetch transport not installed"
+    assert getattr(
+        httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
+    ), "httpx.AsyncHTTPTransport is not the package's fetch transport"
+    ok("self-check: package fetch transport is the active httpx transport")
 
     host = os.environ.get("WEAVIATE_HOST", "localhost")
     port = int(os.environ.get("WEAVIATE_PORT", "8090"))
@@ -66,6 +76,7 @@ async def main() -> None:
                 Property(name="title", data_type=DataType.TEXT),
                 Property(name="idx", data_type=DataType.INT),
             ],
+            references=[ReferenceProperty(name="related", target_collection=COLL)],
         )
         ok("collections.create")
 
@@ -97,6 +108,40 @@ async def main() -> None:
         assert idx.minimum == 0 and idx.maximum == 49, agg.properties
         ok("aggregate count=50 min=0 max=49")
 
+        # REST calls answered without a body (HEAD 204/404, PATCH/DELETE 204) and the
+        # batch-references path, which reads httpx's response.elapsed.
+        first, second, last = ret.uuids[0], ret.uuids[1], ret.uuids[49]
+        assert await coll.data.exists(first) is True
+        assert await coll.data.exists(uuid.uuid4()) is False
+        ok("data.exists (HEAD 204 / 404) = True / False")
+
+        await coll.data.update(uuid=first, properties={"title": "article 0 (updated)"})
+        obj = await coll.query.fetch_object_by_id(first)
+        assert obj is not None and obj.properties["title"] == "article 0 (updated)", obj
+        ok("data.update (PATCH 204) -> fetch_object_by_id sees the update")
+
+        refs = await coll.data.reference_add_many(
+            [
+                DataReference(
+                    from_property="related", from_uuid=ret.uuids[i], to_uuid=ret.uuids[i + 1]
+                )
+                for i in range(5)
+            ]
+        )
+        assert not refs.has_errors, f"reference_add_many errors: {refs.errors}"
+        assert refs.elapsed_seconds >= 0, refs
+        ok("data.reference_add_many (REST /batch/references) = 5")
+
+        await coll.data.reference_delete(from_uuid=first, from_property="related", to=second)
+        ok("data.reference_delete (DELETE 204)")
+
+        assert await coll.data.delete_by_id(last) is True
+        assert await coll.data.exists(last) is False
+        # deleting a missing object answers 204 or 404 depending on the server topology;
+        # either way it is a body-less response the transport must handle
+        assert isinstance(await coll.data.delete_by_id(last), bool)
+        ok("data.delete_by_id (DELETE 204; repeat -> 204/404) = True, then bool")
+
         await client.collections.create(
             MT_COLL,
             vector_config=wvc.config.Configure.Vectors.self_provided(),
@@ -108,6 +153,10 @@ async def main() -> None:
         tenants = await mt.tenants.get()
         assert set(tenants.keys()) == {"t1", "t2"}, f"TenantsGet: {set(tenants.keys())}"
         ok("multi-tenant create + TenantsGet = {t1, t2}")
+
+        assert await mt.tenants.exists("t1") is True
+        assert await mt.tenants.exists("t404") is False
+        ok("tenants.exists (HEAD 200 / 404) = True / False")
 
         t1 = mt.with_tenant("t1")
         ret = await t1.data.insert_many([{"title": f"tenant doc {i}"} for i in range(10)])
@@ -126,8 +175,8 @@ async def main() -> None:
             await client.collections.get("DoesNotExistXyz").query.fetch_objects(limit=1)
             raise AssertionError("expected WeaviateQueryError for nonexistent collection")
         except WeaviateQueryError as e:
-            assert "DoesNotExistXyz" in str(e) or "not" in str(e).lower(), str(e)
-        ok("error mapping: nonexistent collection -> WeaviateQueryError")
+            assert "DoesNotExistXyz" in str(e), str(e)
+        ok("error mapping: nonexistent collection -> WeaviateQueryError names the collection")
 
         try:
             async with client.batch.stream() as batch:

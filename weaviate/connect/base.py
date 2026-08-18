@@ -149,6 +149,29 @@ class ConnectionParams(BaseModel):
         cleaned = (self.grpc_path_prefix or "").strip("/")
         return f"/{cleaned}" if cleaned else ""
 
+    def _check_grpc_web_usable(self, is_async: bool) -> None:
+        """Fail fast on a grpc-web prefix this process cannot honour; a no-op for native gRPC.
+
+        A native grpcio channel would silently ignore the ``grpc-web.path_prefix`` option
+        and route over native gRPC, so the shim (which consumes it) must be in place.
+        """
+        if self._grpc_web_path_prefix == "":
+            return
+        if not is_async:
+            raise WeaviateInvalidInputError(
+                "grpc_path_prefix (grpc-web) is only supported for async clients; "
+                "use use_async_with_custom(...) / WeaviateAsyncClient"
+            )
+        if not _grpc_web_shim_active():
+            raise WeaviateInvalidInputError(
+                "grpc_path_prefix enables grpc-web, which requires the "
+                "'weaviate-client-web' package (it installs a grpc shim before "
+                "'import weaviate'); it is not active in this environment. Under Pyodide a "
+                "plain `import weaviate` activates it; on CPython call "
+                "weaviate_client_web.install(force=True) and set_sender(make_httpx_sender()) "
+                "before importing weaviate (intended for integration testing)."
+            )
+
     def _grpc_channel(
         self,
         proxies: Dict[str, str],
@@ -172,24 +195,9 @@ class ConnectionParams(BaseModel):
         if grpc_config is not None and grpc_config.channel_options is not None:
             options.extend(grpc_config.channel_options)
 
-        # grpc-web mode (prefix set): only valid for an async client, and only when the
-        # weaviate-client-web shim has replaced the grpc module (it consumes the
-        # grpc-web.path_prefix option). Fail fast otherwise — a native grpcio channel
-        # would silently ignore the option and route over native gRPC, a confusing
-        # misconfiguration. Nothing is added for native gRPC, so its channel options stay
-        # byte-for-byte unchanged.
+        # nothing is added for native gRPC, so its channel options stay byte-for-byte unchanged
         if (prefix := self._grpc_web_path_prefix) != "":
-            if not is_async:
-                raise WeaviateInvalidInputError(
-                    "grpc_path_prefix (grpc-web) is only supported for async clients; "
-                    "use use_async_with_custom(...) / WeaviateAsyncClient"
-                )
-            if not _grpc_web_shim_active():
-                raise WeaviateInvalidInputError(
-                    "grpc_path_prefix enables grpc-web, which requires the "
-                    "'weaviate-client-web' package (it installs a grpc shim before "
-                    "'import weaviate'); it is not active in this environment"
-                )
+            self._check_grpc_web_usable(is_async)
             options.append(("grpc-web.path_prefix", prefix))
 
         if is_async:

@@ -7,11 +7,17 @@ needed and the real ``grpc`` in the dev environment is left untouched.
 
 import asyncio
 import struct
+import sys
 from typing import Dict, List, Optional, Tuple
 
 import pytest
 
-from weaviate_client_web._channel import GrpcWebChannel, set_sender
+from weaviate_client_web._channel import (
+    GrpcWebChannel,
+    _body_excerpt,
+    _encode_timeout,
+    set_sender,
+)
 from weaviate_client_web._shim import AioChannel, AioRpcError, StatusCode
 
 
@@ -80,7 +86,7 @@ def test_health_call_without_metadata():
     sender = FakeSender(body=_ok_response(b"pong"))
     channel = _channel(sender)
     mc = channel.unary_unary("/grpc.health.v1.Health/Check", lambda x: x, lambda b: b)
-    # mirrors connect/v4.py:316 — request + timeout, no metadata
+    # mirrors the health check in connect/v4.py — request + timeout, no metadata
     assert asyncio.run(mc(b"ping", timeout=2)) == b"pong"
 
 
@@ -118,9 +124,8 @@ def test_trailers_only_status_in_http_headers():
 # --- non-grpc-web responses -------------------------------------------------------
 #
 # Every real error response carries a body, and none of them is grpc-web framing. The
-# bodies below are verbatim shapes seen in the wild; an empty error body (the old
-# fixture) is the one shape no server or proxy produces, which is why these tests used
-# to pass against a code path that never ran.
+# bodies below are verbatim shapes seen in the wild (an empty error body is the one
+# shape no server or proxy produces).
 
 # Weaviate's own 404, verbatim from a 1.39.0 server asked for the wrong prefix.
 WEAVIATE_404_JSON = (
@@ -190,6 +195,61 @@ def test_nginx_404_html_is_reported_as_an_http_404():
     assert err.details().startswith("HTTP 404 ")
     assert "404 Not Found" in err.details()
     assert "malformed grpc-web response" not in err.details()
+
+
+def test_405_names_the_wrong_prefix():
+    # a 405 can only come from an existing HTTP route (measured live: a prefix pointing
+    # at /v1/objects answers "method POST is not allowed"), so the prefix is wrong
+    err = _details_of(405, b'{"code":405,"message":"method POST is not allowed, but [GET] are"}')
+    assert err.details().startswith("HTTP 405 ")
+    assert "path prefix" in err.details()
+    assert "/v1/grpc-web" in err.details()
+    assert "method POST is not allowed" in err.details()
+
+
+def test_truncated_grpc_web_body_is_reported_as_truncated_not_as_wrong_prefix():
+    # a valid frame header whose payload was cut short: the endpoint IS grpc-web, so the
+    # SPA / path-prefix hint would send the user the wrong way
+    body = _ok_response(b"reply-bytes")[:-6]
+    err = _details_of(200, body)
+    assert err.code() is StatusCode.INTERNAL
+    assert "truncated" in err.details()
+    assert "cut short" in err.details()
+    assert "single-page-app" not in err.details()
+    assert "path prefix" not in err.details()
+
+
+def test_spa_html_body_is_not_reported_as_truncated():
+    # text bodies decode to an unknown flag byte and a garbage length; they must read as
+    # "not grpc-web framing", never as a truncated grpc-web body
+    err = _details_of(200, SPA_INDEX_HTML)
+    assert "truncated" not in err.details()
+    assert "not grpc-web framing" in err.details()
+
+
+def test_message_frame_after_trailer_is_internal():
+    body = _frame(b"a") + _frame(b"grpc-status:0\r\n", 0x80) + _frame(b"late")
+    err = _details_of(200, body)
+    assert err.code() is StatusCode.INTERNAL
+    assert "malformed grpc-web response" in err.details()
+    assert "after the trailer" in err.details()
+    assert "single-page-app" not in err.details()
+
+
+def test_multiple_message_frames_in_unary_response_is_internal():
+    # a unary RPC has exactly one message; silently taking the first would hide a proxy
+    # or server that streams several
+    body = _frame(b"a") + _frame(b"bb") + _frame(b"grpc-status:0\r\n", 0x80)
+    err = _details_of(200, body)
+    assert err.code() is StatusCode.INTERNAL
+    assert "2 message frames" in err.details()
+
+
+def test_error_status_wins_over_multiple_message_frames():
+    body = _frame(b"a") + _frame(b"bb") + _frame(b"grpc-status:5\r\ngrpc-message:gone\r\n", 0x80)
+    err = _details_of(200, body)
+    assert err.code() is StatusCode.NOT_FOUND
+    assert err.details() == "gone"
 
 
 def test_spa_fallback_html_200_is_distinguishable_from_a_404():
@@ -394,6 +454,110 @@ def test_grpc_timeout_header_rounds_up():
     # 123.4ms must round UP to 124ms (never advertise a shorter deadline than requested).
     asyncio.run(mc(b"q", timeout=0.1234))
     assert sender.calls[0][1]["grpc-timeout"] == "124m"
+
+
+def test_body_excerpt_empty_and_non_printable():
+    assert _body_excerpt(b"") == "<empty>"
+    assert _body_excerpt(b"\x00\x01\x02\x7f") == "<4 non-printable bytes>"
+    assert _body_excerpt(b"ok\x00\x01") == "ok"
+
+
+@pytest.mark.parametrize(
+    "seconds,expected",
+    [
+        (None, None),
+        (float("inf"), None),
+        (float("nan"), None),
+        (0, "1m"),
+        (0.1234, "124m"),
+        (5, "5000m"),
+        (99_999, "99999000m"),
+        (100_000, "100000S"),  # 1e8 ms would be 9 digits
+        (1e8, "1666667M"),  # 1e8 s would be 9 digits
+        (1e9, "16666667M"),
+        (5_999_999_940, "99999999M"),  # the largest deadline that still fits in minutes
+        (1e10, None),  # would need hours, which transcoders reject above 8H: no deadline
+        (1e15, None),
+    ],
+)
+def test_encode_timeout_stays_within_eight_digits(seconds, expected):
+    encoded = _encode_timeout(seconds)
+    assert encoded == expected
+    if encoded is not None:
+        assert len(encoded) <= 9  # 8 digits + unit
+        assert not encoded.endswith("H")
+
+
+def test_infinite_timeout_sends_no_deadline():
+    # Timeout(query=inf): neither a grpc-timeout header nor a client-side wait
+    sender = FakeSender(body=_ok_response(b"x"))
+    channel = _channel(sender)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    assert asyncio.run(mc(b"q", timeout=float("inf"))) == b"x"
+    _, headers, _, timeout = sender.calls[0]
+    assert "grpc-timeout" not in headers
+    assert timeout is None
+
+
+def test_huge_timeout_uses_minutes_then_no_deadline():
+    # 1e8 s in milliseconds is 12 digits; the server rejects more than 8 ("timeout is
+    # too long", HTTP 400) and transcoders reject hour values above 8H, so past the
+    # minute range the request carries no deadline at all
+    sender = FakeSender(body=_ok_response(b"x"))
+    channel = _channel(sender)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    asyncio.run(mc(b"q", timeout=1e8))
+    asyncio.run(mc(b"q", timeout=1e9))
+    asyncio.run(mc(b"q", timeout=1e10))
+    assert sender.calls[0][1]["grpc-timeout"] == "1666667M"
+    assert sender.calls[1][1]["grpc-timeout"] == "16666667M"
+    assert "grpc-timeout" not in sender.calls[2][1]
+    assert sender.calls[2][3] is None  # no client-side wait either
+
+
+@pytest.mark.parametrize("bad", ["val\r\nx-injected: evil", "val\nx", "v\0"])
+def test_crlf_in_metadata_rejected(bad):
+    sender = FakeSender(body=_ok_response(b"x"))
+    channel = _channel(sender)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(ValueError, match="Illegal character"):
+        asyncio.run(mc(b"q", metadata=[("x-key", bad)]))
+    with pytest.raises(ValueError, match="Illegal character"):
+        asyncio.run(mc(b"q", metadata=[("x-key\r\n", "v")]))
+    assert sender.calls == []
+
+
+def _unavailable_details(monkeypatch, path_prefix, platform):
+    async def boom(url, headers, body, timeout):
+        raise ConnectionError("Failed to fetch")
+
+    monkeypatch.setattr(sys, "platform", platform)
+    channel = GrpcWebChannel("h:50051", secure=False, sender=boom, path_prefix=path_prefix)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        asyncio.run(mc(b"q"))
+    assert excinfo.value.code() is StatusCode.UNAVAILABLE
+    return excinfo.value.details()
+
+
+def test_unavailable_without_path_prefix_under_emscripten_hints_at_grpc_path_prefix(monkeypatch):
+    # use_async_with_local() under Pyodide builds a prefix-less channel aimed at the
+    # native gRPC port, which fetch cannot reach; the error must say what to do instead
+    details = _unavailable_details(monkeypatch, path_prefix="", platform="emscripten")
+    assert "grpc_path_prefix='/v1/grpc-web'" in details
+    assert "1.38.3" in details
+    assert "use_async_with_custom" in details
+
+
+def test_unavailable_with_path_prefix_has_no_prefix_hint(monkeypatch):
+    details = _unavailable_details(monkeypatch, path_prefix="/v1/grpc-web", platform="emscripten")
+    assert "no grpc_path_prefix" not in details
+
+
+def test_unavailable_without_path_prefix_off_emscripten_has_no_prefix_hint(monkeypatch):
+    # on CPython an empty prefix against a transcoder is the normal configuration
+    details = _unavailable_details(monkeypatch, path_prefix="", platform="linux")
+    assert "no grpc_path_prefix" not in details
 
 
 def test_close_is_awaitable_noop():

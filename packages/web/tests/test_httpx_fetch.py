@@ -18,19 +18,26 @@ from typing import Any, Dict, List, Optional
 import httpx
 import pytest
 
-from weaviate_client_web._httpx_fetch import _fetch_handle_async_request
+from weaviate_client_web._httpx_fetch import (
+    _MAX_ABORT_SIGNAL_MS,
+    _abort_signal_ms,
+    _fetch_handle_async_request,
+)
 
 _SRC = str(pathlib.Path(__file__).resolve().parents[1] / "src")
 
 
 class FakeFetchResponse:
-    def __init__(self, status: int = 200, headers: Optional[Any] = None, body: bytes = b""):
+    def __init__(
+        self, status: int = 200, headers: Optional[Any] = None, body: Optional[bytes] = b""
+    ):
         self.status = status
         self.headers: Any = headers or {}
         self._body = body
 
     async def bytes(self) -> bytes:  # noqa: A003 - mirrors pyodide's FetchResponse API
-        return self._body
+        # a null JS body (HEAD, 204) resolves to an empty ArrayBuffer, i.e. b""
+        return b"" if self._body is None else self._body
 
 
 class FakePyfetch:
@@ -55,10 +62,31 @@ def fake_pyfetch(monkeypatch) -> FakePyfetch:
     return fetch
 
 
-def _handle(request: httpx.Request) -> httpx.Response:
+async def _handle_async(request: httpx.Request) -> httpx.Response:
     # self is unused by the handler implementation; a bare transport instance suffices
     transport = httpx.AsyncHTTPTransport.__new__(httpx.AsyncHTTPTransport)
-    return asyncio.run(_fetch_handle_async_request(transport, request))
+    response = await _fetch_handle_async_request(transport, request)
+    await response.aread()  # httpx.AsyncClient reads non-streamed responses the same way
+    return response
+
+
+def _handle(request: httpx.Request) -> httpx.Response:
+    return asyncio.run(_handle_async(request))
+
+
+class _FetchTransport(httpx.AsyncBaseTransport):
+    """Route an ``httpx.AsyncClient`` through the handler without patching httpx globally."""
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        return await _fetch_handle_async_request(self, request)  # type: ignore[arg-type]
+
+
+def _via_client(method: str, url: str, **kwargs: Any) -> httpx.Response:
+    async def main() -> httpx.Response:
+        async with httpx.AsyncClient(transport=_FetchTransport()) as client:
+            return await client.request(method, url, **kwargs)
+
+    return asyncio.run(main())
 
 
 def test_basic_get_round_trip(fake_pyfetch):
@@ -80,6 +108,44 @@ def test_response_has_request_attached_for_raise_for_status(fake_pyfetch):
     response = _handle(httpx.Request("GET", "http://h:8080/v1/schema/Nope"))
     with pytest.raises(httpx.HTTPStatusError):
         response.raise_for_status()
+
+
+@pytest.mark.parametrize("status", [204, 404])
+def test_head_response_without_body_yields_empty_content(fake_pyfetch, status):
+    # data.exists() / tenants.exists() are HEAD requests answered 204/404 with a null
+    # body; the transport must hand httpx an empty response, not fail on the missing body
+    fake_pyfetch.response = FakeFetchResponse(status=status, body=None)
+    response = _handle(httpx.Request("HEAD", "http://h:8080/v1/objects/A/uuid"))
+    assert response.status_code == status
+    assert response.content == b""
+    assert "body" not in fake_pyfetch.calls[0]
+
+
+def test_delete_204_without_body_yields_empty_content(fake_pyfetch):
+    # data.delete_by_id() / reference_delete() are answered 204 with a null body
+    fake_pyfetch.response = FakeFetchResponse(status=204, body=None)
+    response = _handle(httpx.Request("DELETE", "http://h:8080/v1/objects/A/uuid"))
+    assert response.status_code == 204
+    assert response.content == b""
+
+
+def test_body_less_response_through_async_client(fake_pyfetch):
+    # the full httpx.AsyncClient path (stream wrapping + read) on a body-less response
+    fake_pyfetch.response = FakeFetchResponse(status=204, body=None)
+    response = _via_client("HEAD", "http://h:8080/v1/objects/A/uuid")
+    assert response.status_code == 204
+    assert response.content == b""
+
+
+def test_response_through_async_client_exposes_elapsed_and_content(fake_pyfetch):
+    # the batch-references path reads ``res.elapsed``, which httpx only sets after it
+    # has read/closed a stream-backed response; a pre-loaded body never gets one
+    payload = b'[{"result": {"status": "SUCCESS"}}]'
+    fake_pyfetch.response = FakeFetchResponse(status=200, body=payload)
+    response = _via_client("POST", "http://h:8080/v1/batch/references", content=b"[]")
+    assert response.content == payload
+    assert response.json() == [{"result": {"status": "SUCCESS"}}]
+    assert response.elapsed.total_seconds() >= 0
 
 
 def test_fetch_managed_request_headers_stripped(fake_pyfetch):
@@ -184,11 +250,22 @@ def test_read_timeout_maps_to_abort_signal_ms(fake_pyfetch, fake_abort_signal):
     assert fake_pyfetch.calls[0]["signal"] == "signal-30000"
 
 
-def test_timeout_falls_back_to_connect_then_pool(fake_pyfetch, fake_abort_signal):
+def test_read_none_means_no_deadline_even_with_pool_and_connect_set(
+    fake_pyfetch, fake_abort_signal
+):
+    # what the base client hands over for a non-finite request timeout: read=None with the
+    # session pool timeout still set; falling back to pool/connect would abort a long
+    # insert after 5 s
+    _handle(_request_with_timeout({"connect": None, "read": None, "write": None, "pool": 5}))
     _handle(_request_with_timeout({"connect": 2.0, "read": None, "write": None, "pool": 9.0}))
-    _handle(_request_with_timeout({"connect": None, "read": None, "write": None, "pool": 9.0}))
-    assert fake_abort_signal.timeouts == [2000, 9000]
-    assert [c["signal"] for c in fake_pyfetch.calls] == ["signal-2000", "signal-9000"]
+    assert fake_abort_signal.timeouts == []
+    assert all("signal" not in c for c in fake_pyfetch.calls)
+
+
+def test_read_timeout_alone_sets_the_deadline(fake_pyfetch, fake_abort_signal):
+    _handle(_request_with_timeout({"connect": None, "read": 7, "write": None, "pool": 5}))
+    assert fake_abort_signal.timeouts == [7000]
+    assert fake_pyfetch.calls[0]["signal"] == "signal-7000"
 
 
 def test_no_timeout_extension_sends_no_signal(fake_pyfetch, fake_abort_signal):
@@ -213,6 +290,40 @@ def test_zero_timeout_means_no_deadline(fake_pyfetch, fake_abort_signal):
     _handle(_request_with_timeout({"connect": 5.0, "read": 0, "write": None, "pool": None}))
     assert fake_abort_signal.timeouts == []
     assert "signal" not in fake_pyfetch.calls[0]
+
+
+@pytest.mark.parametrize(
+    "timeout,expected_ms",
+    [
+        (None, None),
+        (0, None),
+        (-1, None),
+        (float("inf"), None),
+        (float("nan"), None),
+        (0.0001, 1),  # rounds up: never an immediate AbortSignal.timeout(0)
+        (30.0, 30_000),
+        (1e8, _MAX_ABORT_SIGNAL_MS),
+        (1e10, _MAX_ABORT_SIGNAL_MS),
+    ],
+)
+def test_abort_signal_ms_bounds(timeout, expected_ms):
+    assert _abort_signal_ms(timeout) == expected_ms
+
+
+def test_infinite_timeout_sends_no_signal(fake_pyfetch, fake_abort_signal):
+    # an inf read deadline reaching the transport: no signal, not an OverflowError
+    _handle(
+        _request_with_timeout({"connect": None, "read": float("inf"), "write": None, "pool": 5})
+    )
+    assert fake_abort_signal.timeouts == []
+    assert "signal" not in fake_pyfetch.calls[0]
+
+
+def test_huge_timeout_is_capped_to_int32_ms(fake_pyfetch, fake_abort_signal):
+    # setTimeout delays above 2^31-1 ms overflow and fire at once, aborting the request
+    _handle(_request_with_timeout({"connect": None, "read": 1e10, "write": None, "pool": None}))
+    assert fake_abort_signal.timeouts == [_MAX_ABORT_SIGNAL_MS]
+    assert fake_pyfetch.calls[0]["signal"] == f"signal-{_MAX_ABORT_SIGNAL_MS}"
 
 
 class RaisingPyfetch:
@@ -284,20 +395,6 @@ def test_crlf_in_header_value_rejected(fake_pyfetch):
     with pytest.raises(httpx.LocalProtocolError):
         _handle(request)
     assert fake_pyfetch.calls == []
-
-
-def test_platform_jsfetch_detection(monkeypatch):
-    import importlib.machinery
-
-    from weaviate_client_web._httpx_fetch import _platform_httpx_has_fetch_support
-
-    # the dev environment runs PyPI httpx (httpcore-based): no jsfetch transport
-    assert _platform_httpx_has_fetch_support() is False
-
-    fake = types.ModuleType("httpx._transports.jsfetch")
-    fake.__spec__ = importlib.machinery.ModuleSpec("httpx._transports.jsfetch", loader=None)
-    monkeypatch.setitem(sys.modules, "httpx._transports.jsfetch", fake)
-    assert _platform_httpx_has_fetch_support() is True
 
 
 # ---------------------------------------------------------------------------
@@ -476,11 +573,12 @@ def test_force_install_without_pyodide_fails_fast():
     assert "OK" in result.stdout
 
 
-def test_emscripten_with_platform_jsfetch_skips_install():
-    # on Pyodide's distributed httpx (jsfetch transport built in), the shim must NOT
-    # overwrite the platform implementation
+def test_emscripten_installs_even_when_platform_httpx_has_jsfetch():
+    # Pyodide's bundled httpx ships a jsfetch transport that crashes on body-less
+    # responses (HEAD / 204); the shim must take over regardless of the httpx build
     result = _run(
-        """
+        prelude=_FAKE_PYODIDE_PRELUDE,
+        body="""
         import importlib.machinery, sys, types
 
         sys.platform = "emscripten"
@@ -493,11 +591,14 @@ def test_emscripten_with_platform_jsfetch_skips_install():
         import httpx
         before = httpx.AsyncHTTPTransport.handle_async_request
         from weaviate_client_web import install_fetch_transport, is_fetch_transport_installed
-        install_fetch_transport()  # no force: platform transport must win
-        assert not is_fetch_transport_installed()
-        assert httpx.AsyncHTTPTransport.handle_async_request is before
+        install_fetch_transport()  # no force: the platform alone must trigger it
+        assert is_fetch_transport_installed()
+        assert httpx.AsyncHTTPTransport.handle_async_request is not before
+        assert getattr(
+            httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
+        ) is True
         print("OK")
-        """
+        """,
     )
     assert result.returncode == 0, result.stderr
     assert "OK" in result.stdout

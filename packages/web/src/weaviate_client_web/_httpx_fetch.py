@@ -11,11 +11,11 @@ Installing reroutes ``AsyncHTTPTransport.handle_async_request`` through the brow
 philosophy as the grpc shim in ``_shim.py``. Responses are fully buffered, which matches
 how the base client consumes them (JSON bodies, no streaming).
 
-NOTE: Pyodide >= 0.27 distributes a patched httpx whose ``AsyncHTTPTransport`` already
-routes through JS ``fetch`` natively (``httpx/_transports/jsfetch.py``) with streaming
-support and a proper connect/read timeout split. When that build is detected, installing
-is skipped — overwriting it would replace a better implementation. This transport is the
-fallback for environments where httpx resolved from PyPI (httpcore + raw sockets).
+It installs under Emscripten even when Pyodide's bundled httpx carries its own JS-fetch
+transport (``httpx/_transports/jsfetch.py``): that transport reads ``Response.body``
+unconditionally, which is ``null`` for HEAD requests and 204 responses (``data.exists``,
+``data.delete_by_id``, ``tenants.exists``, …), and it does not enforce the per-request
+read timeout end-to-end.
 
 Known divergences from native httpx (acceptable for the weaviate client's usage):
 - the browser's fetch follows redirects internally, so httpx never sees a 3xx;
@@ -23,7 +23,7 @@ Known divergences from native httpx (acceptable for the weaviate client's usage)
 - responses are fully buffered (no streaming).
 """
 
-import importlib.util
+import math
 import sys
 from typing import Callable, Dict, Optional
 
@@ -56,6 +56,10 @@ _FETCH_DECODED_RESPONSE_HEADERS = {
 
 _TIMEOUT_HINTS = ("timeout", "timed out", "abort")
 
+# JS timers take a signed 32-bit millisecond delay; anything larger overflows and fires
+# immediately, so a huge timeout would abort every request at once.
+_MAX_ABORT_SIGNAL_MS = 2**31 - 1
+
 
 async def _read_request_body(request: httpx.Request) -> bytes:
     try:
@@ -65,18 +69,25 @@ async def _read_request_body(request: httpx.Request) -> bytes:
 
 
 def _pick_timeout(request: httpx.Request) -> Optional[float]:
-    """Pick the effective deadline from httpx's timeout extension.
+    """Pick the request deadline from httpx's timeout extension: the ``read`` value only.
 
-    httpx populates ``extensions['timeout']`` with connect/read/write/pool values; the
-    read timeout is what the weaviate client configures per request. ``get(...) or``
-    chains would silently skip an explicit 0, so check for None instead.
+    The base client sets ``read`` per request and passes ``read=None`` for "no deadline"
+    while still carrying a ``pool`` value; ``connect`` is not separable under fetch and a
+    pool-acquire timeout has no meaning there, so neither may stand in for ``read``.
     """
     timeouts = request.extensions.get("timeout") or {}
-    for key in ("read", "connect", "pool"):
-        value = timeouts.get(key)
-        if value is not None:
-            return value
-    return None
+    return timeouts.get("read")
+
+
+def _abort_signal_ms(timeout: Optional[float]) -> Optional[int]:
+    """Milliseconds for ``AbortSignal.timeout``; ``None`` means no client-side deadline.
+
+    Zero, negative and non-finite timeouts all mean "no deadline". Rounded up so a
+    sub-millisecond timeout never becomes an immediate abort.
+    """
+    if timeout is None or not math.isfinite(timeout) or timeout <= 0:
+        return None
+    return min(math.ceil(timeout * 1000), _MAX_ABORT_SIGNAL_MS)
 
 
 def _map_fetch_error(
@@ -121,19 +132,21 @@ async def _fetch_handle_async_request(
         # fetch rejects GET/HEAD requests that carry a body
         kwargs["body"] = body
 
-    timeout = _pick_timeout(request)
     deadline_set = False
-    if timeout is not None and timeout > 0:
+    deadline_ms = _abort_signal_ms(_pick_timeout(request))
+    if deadline_ms is not None:
         try:
             from js import AbortSignal  # type: ignore[import-not-found]
 
-            kwargs["signal"] = AbortSignal.timeout(int(timeout * 1000))
+            kwargs["signal"] = AbortSignal.timeout(deadline_ms)
             deadline_set = True
         except Exception:  # pragma: no cover - AbortSignal.timeout availability varies
             pass
 
     try:
         response = await pyfetch(str(request.url), method=request.method, headers=headers, **kwargs)
+        # A body-less response (HEAD, 204) reads as b"": fetch resolves a null body to
+        # an empty ArrayBuffer.
         data = await response.bytes()
     except OSError as e:  # incl. pyodide.http.AbortError
         raise _map_fetch_error(e, request, deadline_set) from e
@@ -146,10 +159,12 @@ async def _fetch_handle_async_request(
         }
     except Exception:  # pragma: no cover - header shape varies across Pyodide versions
         resp_headers = {}
+    # Hand httpx an unread stream, as its own transports do: the client reads it and
+    # only then stamps ``response.elapsed``, which the batch-references path relies on.
     return httpx.Response(
         status_code=int(response.status),
         headers=resp_headers,
-        content=data,
+        stream=httpx.ByteStream(data),
         request=request,
     )
 
@@ -158,34 +173,17 @@ async def _fetch_handle_async_request(
 _fetch_handle_async_request.__weaviate_fetch_shim__ = True  # type: ignore[attr-defined]
 
 
-def _platform_httpx_has_fetch_support() -> bool:
-    """True when the running httpx is Pyodide's distributed build.
-
-    That build replaces the httpcore transport with a native JS-fetch one
-    (httpx/_transports/jsfetch.py), so the weaviate REST path already works without
-    this shim — and works better (streaming, connect/read timeout split).
-    """
-    try:
-        return importlib.util.find_spec("httpx._transports.jsfetch") is not None
-    except (ImportError, ValueError):  # pragma: no cover - exotic import states
-        return False
-
-
 def install_fetch_transport(force: bool = False) -> None:
     """Patch ``httpx.AsyncHTTPTransport`` to send requests through ``fetch``.
 
     Installs only under Emscripten unless ``force=True`` (CPython testing, where a
-    ``pyodide`` stub must be importable), and is skipped when httpx itself already has
-    fetch support (Pyodide's distributed build). Idempotent.
+    ``pyodide`` stub must be importable). Idempotent.
     """
     global _installed, _original_handle_async_request
     if _installed:
         return
-    if not force:
-        if sys.platform != "emscripten":
-            return
-        if _platform_httpx_has_fetch_support():
-            return
+    if not force and sys.platform != "emscripten":
+        return
     # Fail fast: the handler imports pyfetch per request, so a missing pyodide module
     # would otherwise surface as a confusing ModuleNotFoundError on the first request.
     from pyodide.http import pyfetch  # type: ignore[import-not-found]  # noqa: F401

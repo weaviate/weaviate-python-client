@@ -171,3 +171,51 @@ def test_grpc_channel_omits_option_without_prefix(monkeypatch) -> None:
 
     option_keys = [key for key, _ in captured["options"]]
     assert "grpc-web.path_prefix" not in option_keys
+
+
+def test_connect_to_custom_treats_root_prefix_as_native_grpc(monkeypatch) -> None:
+    # "/" normalizes to "" (native gRPC), so the async-only guard must not fire on it
+    import weaviate
+    import weaviate.connect.helpers as helpers
+
+    monkeypatch.setattr(helpers, "__connect", lambda client: client)  # module-level: not mangled
+    client = weaviate.connect_to_custom(
+        http_host="localhost",
+        http_port=8080,
+        http_secure=False,
+        grpc_host="localhost",
+        grpc_port=50051,
+        grpc_secure=False,
+        grpc_path_prefix="/",
+    )
+    assert client._connection._connection_params._grpc_web_path_prefix == ""
+
+
+def test_async_client_construction_rejects_prefix_without_shim(monkeypatch) -> None:
+    # fail at construction with actionable text, not deep inside connect() after the
+    # OIDC and /v1/meta round trips already succeeded
+    from weaviate import WeaviateAsyncClient
+
+    monkeypatch.delattr(base_mod.grpc, "__weaviate_client_web_shim__", raising=False)
+    with pytest.raises(WeaviateInvalidInputError) as excinfo:
+        WeaviateAsyncClient(_grpc_web_params())
+    msg = str(excinfo.value)
+    assert "weaviate-client-web" in msg
+    assert "install(force=True)" in msg
+    assert "set_sender(make_httpx_sender())" in msg
+    assert "import weaviate" in msg  # ... and how Pyodide differs
+
+
+def test_async_client_construction_allows_prefix_with_shim(monkeypatch) -> None:
+    from weaviate import WeaviateAsyncClient
+
+    monkeypatch.setattr(base_mod.grpc, "__weaviate_client_web_shim__", True, raising=False)
+    client = WeaviateAsyncClient(_grpc_web_params())
+    assert client._connection._connection_params._grpc_web_path_prefix == "/grpc-web"
+
+
+def test_sync_client_construction_rejects_grpc_web_prefix() -> None:
+    from weaviate import WeaviateClient
+
+    with pytest.raises(WeaviateInvalidInputError, match="async"):
+        WeaviateClient(_grpc_web_params())

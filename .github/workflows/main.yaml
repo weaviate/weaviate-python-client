@@ -49,7 +49,7 @@ jobs:
       - name: "Ruff format"
         run: ruff format --diff weaviate test mock_tests integration packages/web
       - name: "Flake 8"
-        run: flake8 weaviate test mock_tests integration
+        run: flake8 weaviate test mock_tests integration packages/web
       - name: "Check release for pypi"
         run: |
           python -m build
