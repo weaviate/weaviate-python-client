@@ -800,7 +800,12 @@ def test_collection_update_shards(collection_factory: CollectionFactory) -> None
     )
 
     collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
-    assert all(shard.status == "READY" for shard in collection.config.get_shards())
+    assert all(
+        all(per_node == "READY" for per_node in shard.per_node_status)
+        if shard.per_node_status
+        else shard.status == "READY"
+        for shard in collection.config.get_shards()
+    )
 
     # all possibilites of calling the function
     updated_shards = collection.config.update_shards(status="READONLY", shard_names="tenant1")
