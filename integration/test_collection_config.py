@@ -789,8 +789,7 @@ def test_collection_config_get_shards(collection_factory: CollectionFactory) -> 
     assert len(shards)
     if shards[0].per_node_status:
         assert all(status == "READY" for status in shards[0].per_node_status.values())
-    else:
-        assert shards[0].status == "READY"
+    assert shards[0].status == "READY"
 
 
 def test_collection_update_shards(collection_factory: CollectionFactory) -> None:
@@ -800,12 +799,10 @@ def test_collection_update_shards(collection_factory: CollectionFactory) -> None
     )
 
     collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
-    assert all(
-        all(per_node == "READY" for per_node in shard.per_node_status)
-        if shard.per_node_status
-        else shard.status == "READY"
-        for shard in collection.config.get_shards()
-    )
+    for shard in collection.config.get_shards():
+        if shard.per_node_status:
+            assert all(per_node == "READY" for per_node in shard.per_node_status)
+        assert shard.status == "READY"
 
     # all possibilites of calling the function
     updated_shards = collection.config.update_shards(status="READONLY", shard_names="tenant1")
@@ -846,8 +843,7 @@ def test_collection_config_get_shards_multi_tenancy(collection_factory: Collecti
     for shard in shards:
         if shard.per_node_status:
             assert all(status == "READY" for status in shard.per_node_status.values())
-        else:
-            assert shard.status == "READY"
+        assert shard.status == "READY"
 
     assert "tenant1" in [shard.name for shard in shards]
     assert "tenant2" in [shard.name for shard in shards]
