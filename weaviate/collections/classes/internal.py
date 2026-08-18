@@ -1,4 +1,5 @@
 import datetime
+import json
 import sys
 import uuid as uuid_package
 from dataclasses import dataclass, field
@@ -62,6 +63,32 @@ from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
 from weaviate.util import _ServerVersion, _to_beacons
 
 
+_MAX_DISPLAY_VECTOR_LENGTH = 8
+
+
+def _to_serializable(val: Any, truncate_vectors: bool = True) -> Any:
+    if val is None:
+        return None
+    if isinstance(val, (str, int, float, bool)):
+        return val
+    if isinstance(val, (uuid_package.UUID, datetime.datetime)):
+        return str(val)
+    if isinstance(val, dict):
+        return {k: _to_serializable(v, truncate_vectors) for k, v in val.items()}
+    if isinstance(val, (list, tuple)):
+        items = list(val)
+        if (
+            truncate_vectors
+            and len(items) > _MAX_DISPLAY_VECTOR_LENGTH
+            and all(isinstance(x, (int, float)) for x in items[:_MAX_DISPLAY_VECTOR_LENGTH])
+        ):
+            return items[:_MAX_DISPLAY_VECTOR_LENGTH] + [f"... ({len(items)} total)"]
+        return [_to_serializable(v, truncate_vectors) for v in items]
+    if hasattr(val, "to_dict"):
+        return val.to_dict()
+    return str(val)
+
+
 @dataclass
 class MetadataReturn:
     """Metadata of an object returned by a query."""
@@ -88,6 +115,12 @@ class MetadataReturn:
                 self.rerank_score is None,
             ]
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {k: _to_serializable(v) for k, v in self.__dict__.items() if v is not None}
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
 
 
 @dataclass
@@ -119,6 +152,12 @@ class GroupByMetadataReturn:
 
     distance: Optional[float] = None
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {k: _to_serializable(v) for k, v in self.__dict__.items() if v is not None}
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
+
 
 @dataclass
 class _Object(Generic[P, R, M]):
@@ -128,6 +167,28 @@ class _Object(Generic[P, R, M]):
     references: R
     vector: Dict[str, Union[List[float], List[List[float]]]]
     collection: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "uuid": str(self.uuid),
+            "collection": self.collection,
+        }
+        if self.properties is not None:
+            d["properties"] = _to_serializable(self.properties)
+        if self.references is not None:
+            d["references"] = _to_serializable(self.references)
+        if hasattr(self.metadata, "to_dict"):
+            meta = self.metadata.to_dict()
+            if meta:
+                d["metadata"] = meta
+        elif self.metadata is not None:
+            d["metadata"] = _to_serializable(self.metadata)
+        if self.vector:
+            d["vector"] = _to_serializable(self.vector)
+        return d
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
 
 
 @dataclass
@@ -155,6 +216,11 @@ class GroupByObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
 
     belongs_to_group: str
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d["belongs_to_group"] = self.belongs_to_group
+        return d
+
 
 GenerativeMetadata = Union[
     generative_pb2.GenerativeAnthropicMetadata,
@@ -180,6 +246,19 @@ class GenerativeSingle:
     metadata: Optional[GenerativeMetadata]
     text: Optional[str]
 
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {}
+        if self.text is not None:
+            d["text"] = self.text
+        if self.debug is not None:
+            d["debug"] = str(self.debug)
+        if self.metadata is not None:
+            d["metadata"] = str(self.metadata)
+        return d
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
+
 
 @dataclass
 class GenerativeGrouped:
@@ -187,6 +266,17 @@ class GenerativeGrouped:
 
     metadata: Optional[GenerativeMetadata]
     text: Optional[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {}
+        if self.text is not None:
+            d["text"] = self.text
+        if self.metadata is not None:
+            d["metadata"] = str(self.metadata)
+        return d
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
 
 
 class GenerativeObject(Generic[P, R], Object[P, R]):
@@ -226,6 +316,12 @@ class GenerativeObject(Generic[P, R], Object[P, R]):
         """The single generated text of the object."""
         return self.__generated
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        if self.generative is not None:
+            d["generative"] = self.generative.to_dict()
+        return d
+
 
 class GenerativeReturn(Generic[P, R]):
     """The return type of a query within the `generate` namespace of a collection."""
@@ -256,6 +352,17 @@ class GenerativeReturn(Generic[P, R]):
         """The grouped generated text of the objects."""
         return self.__generated
 
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "objects": [o.to_dict() for o in self.objects],
+        }
+        if self.generative is not None:
+            d["generative"] = self.generative.to_dict()
+        return d
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
+
 
 @dataclass
 class Group(Generic[P, R]):
@@ -268,12 +375,33 @@ class Group(Generic[P, R]):
     objects: List[GroupByObject[P, R]]
     rerank_score: Optional[float]
 
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "name": self.name,
+            "min_distance": self.min_distance,
+            "max_distance": self.max_distance,
+            "number_of_objects": self.number_of_objects,
+            "objects": [o.to_dict() for o in self.objects],
+        }
+        if self.rerank_score is not None:
+            d["rerank_score"] = self.rerank_score
+        return d
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
+
 
 @dataclass
 class GenerativeGroup(Generic[P, R], Group[P, R]):
     """A group of objects returned in a generative group by query."""
 
     generated: Optional[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        if self.generated is not None:
+            d["generated"] = self.generated
+        return d
 
 
 @dataclass
@@ -285,6 +413,18 @@ class GenerativeGroupByReturn(Generic[P, R]):
     generated: Optional[str]
     query_profile: Optional[QueryProfileReturn] = None
 
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "objects": [o.to_dict() for o in self.objects],
+            "groups": {k: v.to_dict() for k, v in self.groups.items()},
+        }
+        if self.generated is not None:
+            d["generated"] = self.generated
+        return d
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
+
 
 @dataclass
 class GroupByReturn(Generic[P, R]):
@@ -294,6 +434,15 @@ class GroupByReturn(Generic[P, R]):
     groups: Dict[str, Group[P, R]]
     query_profile: Optional[QueryProfileReturn] = None
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "objects": [o.to_dict() for o in self.objects],
+            "groups": {k: v.to_dict() for k, v in self.groups.items()},
+        }
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
+
 
 @dataclass
 class QueryReturn(Generic[P, R]):
@@ -301,6 +450,12 @@ class QueryReturn(Generic[P, R]):
 
     objects: List[Object[P, R]]
     query_profile: Optional[QueryProfileReturn] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"objects": [o.to_dict() for o in self.objects]}
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
 
 
 _GQLEntryReturnType: TypeAlias = Dict[str, List[Dict[str, Any]]]
@@ -534,6 +689,12 @@ class _CrossReference(Generic[Properties, IReferences]):
     def objects(self) -> List[Object[Properties, IReferences]]:
         """Returns the objects of the cross reference."""
         return self.__objects or []
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"objects": [o.to_dict() for o in self.objects]}
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, default=str)
 
 
 CrossReference: TypeAlias = _CrossReference[Properties, IReferences]
