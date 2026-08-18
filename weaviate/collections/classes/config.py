@@ -2252,7 +2252,7 @@ ShardTypes = Literal["READONLY", "READY", "INDEXING"]
 class _ShardStatus:
     name: str
     status: ShardTypes
-    vector_queue_size: Optional[int]
+    vector_queue_size: int
     per_node_status: Optional[Dict[str, str]]
 
 
