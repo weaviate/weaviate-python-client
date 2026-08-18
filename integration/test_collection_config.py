@@ -789,7 +789,7 @@ def test_collection_config_get_shards(collection_factory: CollectionFactory) -> 
     assert len(shards)
     if shards[0].per_node_status:
         assert all(status == "READY" for status in shards[0].per_node_status.values())
-    elif shards[0].status:
+    else:
         assert shards[0].status == "READY"
 
 
@@ -841,7 +841,7 @@ def test_collection_config_get_shards_multi_tenancy(collection_factory: Collecti
     for shard in shards:
         if shard.per_node_status:
             assert all(status == "READY" for status in shard.per_node_status.values())
-        elif shard.status:
+        else:
             assert shard.status == "READY"
 
     assert "tenant1" in [shard.name for shard in shards]
