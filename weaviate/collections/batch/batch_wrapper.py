@@ -508,7 +508,18 @@ class _ContextManagerSync(Generic[T, P]):
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.__current_batch._shutdown()
-        self.__current_batch._wait()
+        if exc_type is None:
+            self.__current_batch._wait()
+            return
+        # the exception leaving the block wins; a background failure is only logged
+        # (unless it IS the one in flight, re-raised by _wait after flush/add already did)
+        try:
+            self.__current_batch._wait()
+        except Exception as e:
+            if e is not exc_val:
+                logger.warning(
+                    f"batch stream failed while the block raised {exc_type.__name__}: {e}"
+                )
 
     def __enter__(self) -> P:
         self.__current_batch._start()
@@ -521,7 +532,21 @@ class _ContextManagerAsync(Generic[Q]):
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         await self.__current_batch._shutdown()
-        await self.__current_batch._wait()
+        if exc_type is None:
+            await self.__current_batch._wait()
+            return
+        # the exception leaving the block wins (never replace a CancelledError or other
+        # BaseException); a background failure is only logged (unless it IS the one in
+        # flight, re-raised by _wait after flush/add already did)
+        try:
+            await self.__current_batch._wait()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            if e is not exc_val:
+                logger.warning(
+                    f"batch stream failed while the block raised {exc_type.__name__}: {e}"
+                )
 
     async def __aenter__(self) -> Q:
         await self.__current_batch._start()

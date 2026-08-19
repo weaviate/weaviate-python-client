@@ -35,7 +35,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect.executor import result
-from weaviate.connect.v4 import ConnectionSync
+from weaviate.connect.v4 import ConnectionSync, _deadline
 from weaviate.exceptions import (
     WeaviateBatchFailedToReestablishStreamError,
     WeaviateBatchStreamError,
@@ -134,7 +134,8 @@ class _BatchBaseSync:
 
     def _wait(self) -> None:
         # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
-        shutdown_timeout = self.__connection.timeout_config.insert + 5
+        insert = _deadline(self.__connection.timeout_config.insert)
+        shutdown_timeout = None if insert is None else insert + 5  # inf overflows Thread.join
         try:
             self.__bg_threads.join(shutdown_timeout)
         except TimeoutError as e:
@@ -142,7 +143,8 @@ class _BatchBaseSync:
                 "Background batch threads did not terminate after forced shutdown."
             ) from e
 
-        # copy the results to the public results
+        # copy the results to the public results — even on failure, so the user can
+        # still inspect batch.results / batch.failed_objects after catching
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
         self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
         self.__results_for_wrapper_backup.failed_references = (
@@ -151,6 +153,17 @@ class _BatchBaseSync:
         self.__results_for_wrapper_backup.imported_shards = (
             self.__results_for_wrapper.imported_shards
         )
+
+        if self.__bg_exception is not None:
+            # surface background-thread failures instead of returning partial results
+            # as if the batch had succeeded
+            raise self.__bg_exception
+        n_objs, n_refs = len(self.__batch_objects), len(self.__batch_references)
+        if n_objs + n_refs > 0 and not self.__all_threads_alive():
+            # the threads are gone with data still queued: the batch did NOT complete
+            raise WeaviateBatchStreamError(
+                f"batch stream ended with {n_objs} objects and {n_refs} references unsent"
+            )
 
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished
@@ -644,4 +657,4 @@ class _BatchBaseSync:
         if self.__all_threads_alive():
             return
 
-        raise self.__bg_exception or Exception("Batch thread died unexpectedly")
+        raise self.__bg_exception or WeaviateBatchStreamError("the batch stream has ended")

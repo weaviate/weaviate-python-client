@@ -285,6 +285,11 @@ class _BatchClientWrapper(_BatchWrapper):
         Args:
             concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
             consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
+
+        Raises:
+            WeaviateBatchStreamError: On exit, if the background stream failed or ended with objects or references
+                still unsent. An exception raised inside the block is propagated unchanged; a background failure is
+                then only logged.
         """
         if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(
@@ -344,6 +349,11 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
         Args:
             concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
             consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
+
+        Raises:
+            WeaviateBatchStreamError: On exit, if the background stream failed or ended with objects or references
+                still unsent. An exception raised inside the block is propagated unchanged; a background failure is
+                then only logged.
         """
         if self._connection._weaviate_version.is_lower_than(1, 36, 0):
             raise WeaviateUnsupportedFeatureError(

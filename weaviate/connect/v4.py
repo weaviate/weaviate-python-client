@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import math
+import sys
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -49,6 +51,7 @@ from httpx import (
     RequestError,
     Response,
     Timeout,
+    TimeoutException,
 )
 
 from weaviate import __version__ as client_version
@@ -109,6 +112,54 @@ HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
 
 PERMISSION_DENIED = "PERMISSION_DENIED"
 
+# ceiling (seconds) for the exponential backoff between failed token refresh attempts
+TOKEN_REFRESH_BACKOFF_CAP = 60
+
+
+def _token_refresh_backoff(consecutive_failures: int) -> int:
+    """Seconds to wait before the next refresh attempt: 1, 2, 4, ... up to the cap."""
+    return min(2 ** min(consecutive_failures - 1, 16), TOKEN_REFRESH_BACKOFF_CAP)
+
+
+def _deadline(timeout: Union[int, float, None]) -> Union[int, float, None]:
+    """A timeout as handed to httpx/grpc: non-finite (e.g. ``float('inf')``) means no deadline.
+
+    Passed on as-is, ``inf`` overflows in the fetch layer under Pyodide; None is "no
+    timeout" for httpx and "no deadline" for grpc alike.
+    """
+    if timeout is None or not math.isfinite(timeout):
+        return None
+    return timeout
+
+
+@dataclass(frozen=True)
+class _Deadlines:
+    """The user's timeout config as handed to httpx/grpc (each value through ``_deadline``)."""
+
+    query: Union[int, float, None]
+    insert: Union[int, float, None]
+    init: Union[int, float, None]
+    stream: Union[int, float, None]
+
+    @classmethod
+    def of(cls, config: TimeoutConfig) -> "_Deadlines":
+        return cls(
+            query=_deadline(config.query),
+            insert=_deadline(config.insert),
+            init=_deadline(config.init),
+            stream=_deadline(config.stream),
+        )
+
+
+def _exc_detail(e: BaseException) -> str:
+    """Format an exception for user-facing messages.
+
+    ``str()`` of transport errors is frequently empty (e.g. ``httpx.ConnectError``),
+    which produces messages like 'Details: ' with nothing after them — always include
+    the exception type.
+    """
+    return f"{type(e).__name__}: {e}" if str(e) else repr(e)
+
 
 @dataclass
 class _ExpectedStatusCodes:
@@ -146,6 +197,8 @@ class _ConnectionBase:
         self._connection_params = connection_params
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Union[AsyncChannel, SyncChannel, None] = None
+        # a grpc-web prefix this process cannot honour fails here, not deep inside connect()
+        connection_params._check_grpc_web_usable(is_async=not isinstance(self, ConnectionSync))
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
@@ -154,6 +207,8 @@ class _ConnectionBase:
         self._connected = False
         self._skip_init_checks = skip_init_checks
         self._grpc_config = grpc_config
+        self._shutdown_background_event: Optional[Event] = None
+        self.__token_refresh_task: Optional["asyncio.Task[None]"] = None
 
         client_type = "sync" if isinstance(self, ConnectionSync) else "async"
         embedded_suffix = "-embedded" if self.embedded_db is not None else ""
@@ -314,7 +369,7 @@ class _ConnectionBase:
                 "/grpc.health.v1.Health/Check",
                 request_serializer=health_weaviate_pb2.WeaviateHealthCheckRequest.SerializeToString,
                 response_deserializer=health_weaviate_pb2.WeaviateHealthCheckResponse.FromString,
-            )(health_weaviate_pb2.WeaviateHealthCheckRequest(), timeout=self.timeout_config.init)
+            )(health_weaviate_pb2.WeaviateHealthCheckRequest(), timeout=self._deadlines.init)
             if colour == "async":
 
                 async def execute():
@@ -338,14 +393,26 @@ class _ConnectionBase:
     def __handle_ping_response(self, res: health_weaviate_pb2.WeaviateHealthCheckResponse) -> None:
         if res.status != health_weaviate_pb2.WeaviateHealthCheckResponse.SERVING:
             raise WeaviateGRPCUnavailableError(
-                f"v{self.server_version}", self._connection_params._grpc_address
+                f"v{self.server_version}",
+                self._connection_params._grpc_address,
+                grpc_path_prefix=self.__grpc_web_prefix(),
             )
         return None
 
     def __handle_ping_exception(self, e: Exception) -> None:
+        # pass the error along: its code()/details() are the only thing that says what
+        # actually went wrong, and the generic advice is wrong in grpc-web mode (no
+        # separate gRPC port, no firewall — REST just succeeded against this endpoint)
         raise WeaviateGRPCUnavailableError(
-            f"v{self.server_version}", self._connection_params._grpc_address
+            f"v{self.server_version}",
+            self._connection_params._grpc_address,
+            grpc_path_prefix=self.__grpc_web_prefix(),
+            error=e,
         ) from e
+
+    def __grpc_web_prefix(self) -> Optional[str]:
+        """The configured grpc-web base path, or None when this is native gRPC."""
+        return self._connection_params._grpc_web_path_prefix or None
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
@@ -361,6 +428,10 @@ class _ConnectionBase:
     def server_version(self) -> str:
         """Version of the weaviate instance."""
         return str(self._weaviate_version)
+
+    @property
+    def _deadlines(self) -> _Deadlines:
+        return _Deadlines.of(self.timeout_config)
 
     def get_proxies(self) -> Dict[str, str]:
         return self._proxies
@@ -406,11 +477,11 @@ class _ConnectionBase:
             async def get_oidc() -> None:
                 async with self._make_client("async") as client:
                     try:
-                        response = await client.get(oidc_url, timeout=self.timeout_config.init)
+                        response = await client.get(oidc_url, timeout=self._deadlines.init)
                     except Exception as e:
                         raise WeaviateConnectionError(
-                            f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
-                        )
+                            f"Error: {_exc_detail(e)}. \nIs Weaviate running and reachable at {self.url}?"
+                        ) from e
                 res = self.__process_oidc_response(response, auth_client_secret, oidc_url, colour)
                 if isinstance(res, Awaitable):
                     return await res
@@ -421,11 +492,11 @@ class _ConnectionBase:
 
         with self._make_client("sync") as client:
             try:
-                response = client.get(oidc_url, timeout=self.timeout_config.init)
+                response = client.get(oidc_url, timeout=self._deadlines.init)
             except Exception as e:
                 raise WeaviateConnectionError(
-                    f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
-                )
+                    f"Error: {_exc_detail(e)}. \nIs Weaviate running and reachable at {self.url}?"
+                ) from e
         res = self.__process_oidc_response(response, auth_client_secret, oidc_url, colour)
         assert not isinstance(res, Awaitable)
         return res
@@ -531,17 +602,40 @@ class _ConnectionBase:
         if "refresh_token" not in self._client.token and _auth is None:
             return
 
-        # make an event loop sidecar thread for running async token refreshing
+        # stop the refresher a previous connect() may have left behind (e.g. a retry
+        # after a partially failed connect)
+        self._cancel_background_token_refresh()
+
+        expires_in: int = self._client.token.get(
+            "expires_in", 60
+        )  # use 1minute as token lifetime if not supplied
+        # captured by the refresher below, so that a later close()+connect() (which
+        # replaces the attribute) still stops THIS refresher and not the new one
+        shutdown = Event()
+        self._shutdown_background_event = shutdown
+
+        if isinstance(self._client, AsyncOAuth2Client):
+            try:
+                loop: Optional[asyncio.AbstractEventLoop] = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is not None:
+                # The async colour refreshes on its own already-running loop: threads
+                # cannot start under WASM/Pyodide and are unnecessary here anyway.
+                task = loop.create_task(
+                    self.__periodic_token_refresh_async(expires_in, _auth, shutdown)
+                )
+                task.add_done_callback(self.__warn_if_token_refresh_died)
+                self.__token_refresh_task = task
+                return
+
+        # sync colour (or async without a running loop): refresh on a daemon thread,
+        # with an event loop sidecar thread for running async token refreshing
         event_loop = (
             _EventLoopSingleton.get_instance()
             if isinstance(self._client, AsyncOAuth2Client)
             else None
         )
-
-        expires_in: int = self._client.token.get(
-            "expires_in", 60
-        )  # use 1minute as token lifetime if not supplied
-        self._shutdown_background_event = Event()
 
         def refresh_token() -> None:
             if isinstance(self._client, AsyncOAuth2Client):
@@ -572,12 +666,9 @@ class _ConnectionBase:
             return self._client.token.get("expires_in", 60) - 30
 
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
-            while (
-                self._shutdown_background_event is not None
-                and not self._shutdown_background_event.is_set()
-            ):
-                # use refresh token when available
-                time.sleep(max(refresh_time, 1))
+            failures = 0
+            # Event.wait instead of time.sleep so close() ends the thread promptly
+            while not shutdown.wait(timeout=max(refresh_time, 1)):
                 try:
                     if self._client is None:
                         continue
@@ -591,10 +682,12 @@ class _ConnectionBase:
                         # saved credentials
                         refresh_session()
                     refresh_time = update_refresh_time()
-                except HTTPError as exc:
-                    # retry again after one second, might be an unstable connection
-                    refresh_time = 1
-                    _Warnings.token_refresh_failed(exc)
+                    failures = 0
+                except Exception as exc:
+                    # any failure (not only transport errors) keeps the refresher alive
+                    failures += 1
+                    refresh_time = _token_refresh_backoff(failures)
+                    _Warnings.token_refresh_failed(exc, refresh_time, failures)
 
         demon = Thread(
             target=periodic_refresh_token,
@@ -603,6 +696,79 @@ class _ConnectionBase:
             name="TokenRefresh",
         )
         demon.start()
+
+    def _cancel_background_token_refresh(self) -> Optional["asyncio.Task[None]"]:
+        """Stop the token refresher, whichever form it took.
+
+        Sets the shutdown event (ends the sync colour's daemon thread) and cancels the
+        async colour's refresh task. Returns that task when it belongs to the running
+        loop so the caller can await its wind-down; a task on another loop is only asked
+        to cancel (thread-safely) and never awaited, which would hang.
+        """
+        if self._shutdown_background_event is not None:
+            self._shutdown_background_event.set()
+        task, self.__token_refresh_task = self.__token_refresh_task, None
+        if task is None:
+            return None
+        try:
+            running: Optional[asyncio.AbstractEventLoop] = asyncio.get_running_loop()
+        except RuntimeError:
+            running = None
+        loop = task.get_loop()
+        if loop is running:
+            task.cancel()
+            return task
+        if not loop.is_closed():
+            loop.call_soon_threadsafe(task.cancel)
+        return None
+
+    @staticmethod
+    def __warn_if_token_refresh_died(task: "asyncio.Task[None]") -> None:
+        """Surface a refresher death that happened outside the loop body's own handler.
+
+        Nothing awaits this task while it runs (close() only gathers it with
+        return_exceptions=True), so without this callback not even asyncio's "exception
+        was never retrieved" message fires — the client just silently stops refreshing.
+        """
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            _Warnings.token_refresh_stopped(exc)
+
+    async def __periodic_token_refresh_async(
+        self, refresh_time: int, _auth: Optional[_Auth], shutdown: Event
+    ) -> None:
+        """Thread-free equivalent of ``periodic_refresh_token`` for the async colour.
+
+        Cancelled by ``close('async')``.
+        """
+        failures = 0
+        while not shutdown.is_set():
+            await asyncio.sleep(max(refresh_time, 1))
+            try:
+                client = self._client
+                if not isinstance(client, AsyncOAuth2Client):
+                    continue
+                if "refresh_token" in client.token:
+                    client.token = await client.refresh_token(url=client.metadata["token_endpoint"])
+                else:
+                    # client credentials usually does not contain a refresh token => get a
+                    # new token using the saved credentials
+                    assert _auth is not None
+                    new_session = await _Auth.aresult(_auth.get_auth_session())
+                    client.token = await new_session.fetch_token()
+                refresh_time = client.token.get("expires_in", 60) - 30
+                failures = 0
+            except asyncio.CancelledError:
+                # close() cancels this task — cancellation must never be swallowed
+                raise
+            except Exception as exc:
+                # any failure (an authlib OAuthError such as invalid_grant, a KeyError on a
+                # malformed IdP body, ...) keeps the refresher alive
+                failures += 1
+                refresh_time = _token_refresh_backoff(failures)
+                _Warnings.token_refresh_failed(exc, refresh_time, failures)
 
     def __get_latest_headers(self) -> Dict[str, str]:
         if "authorization" in self._headers:
@@ -631,17 +797,22 @@ class _ConnectionBase:
         They specify the times depending on how they expect Weaviate to behave. For example, a query might take longer than an insert or vice versa
         but, in either case, the user only cares about how long it takes for a response to be received.
 
+        Under Emscripten/Pyodide the fetch transport (weaviate-client-web) reads only `read`,
+        so it is the whole-request deadline there; a non-finite value means no deadline.
+
         https://www.python-httpx.org/advanced/timeouts/
         """
+        deadlines = self._deadlines
         timeout = None
         if method == "DELETE" or method == "PATCH" or method == "PUT":
-            timeout = self.timeout_config.insert
+            timeout = deadlines.insert
         elif method == "GET" or method == "HEAD":
-            timeout = self.timeout_config.query
+            timeout = deadlines.query
         elif method == "POST" and is_gql_query:
-            timeout = self.timeout_config.query
+            timeout = deadlines.query
         elif method == "POST" and not is_gql_query:
-            timeout = self.timeout_config.insert
+            timeout = deadlines.insert
+
         return Timeout(
             timeout=5.0,
             read=timeout,
@@ -649,13 +820,26 @@ class _ConnectionBase:
         )
 
     def __handle_exceptions(self, e: Exception, error_msg: str) -> None:
-        if isinstance(e, RuntimeError):
+        # httpx raises a bare RuntimeError for a closed client; only rewrite when the
+        # client really is closed, so unrelated RuntimeErrors keep their meaning
+        if isinstance(e, RuntimeError) and (self._client is None or self._client.is_closed):
             raise WeaviateClosedClientError() from e
         if isinstance(e, ConnectError):
-            raise WeaviateConnectionError(error_msg) from e
+            raise WeaviateConnectionError(self.__error_msg_with_detail(error_msg, e)) from e
         if isinstance(e, ReadTimeout):
-            raise WeaviateTimeoutError(error_msg) from e
+            raise WeaviateTimeoutError(self.__error_msg_with_detail(error_msg, e)) from e
+        if isinstance(e, TimeoutException):
+            # ConnectTimeout/WriteTimeout/PoolTimeout subclass TimeoutException but neither
+            # ConnectError nor ReadTimeout, so they used to escape as raw httpx errors,
+            # outside the weaviate exception taxonomy (Pyodide raises ConnectTimeout for a
+            # whole-request timeout). Checked last: the branches above keep their behavior.
+            raise WeaviateTimeoutError(self.__error_msg_with_detail(error_msg, e)) from e
         raise e
+
+    @staticmethod
+    def __error_msg_with_detail(error_msg: str, e: Exception) -> str:
+        detail = _exc_detail(e)
+        return f"{error_msg} ({detail})" if error_msg else detail
 
     def __handle_response(
         self,
@@ -711,9 +895,14 @@ class _ConnectionBase:
     def close(self, colour: executor.Colour) -> executor.Result[None]:
         if self.embedded_db is not None:
             self.embedded_db.stop()
+        refresh_task = self._cancel_background_token_refresh()
         if colour == "async":
 
             async def execute() -> None:
+                if refresh_task is not None:
+                    # let the cancellation land before the client goes away; the task's
+                    # own outcome (cancelled, or dead earlier) is not close()'s error
+                    await asyncio.gather(refresh_task, return_exceptions=True)
                 if self._client is not None:
                     assert isinstance(self._client, AsyncClient)
                     await self._client.aclose()
@@ -751,18 +940,21 @@ class _ConnectionBase:
             async def _execute() -> None:
                 try:
                     async with AsyncClient() as client:
-                        res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
+                        res = await client.get(PYPI_PACKAGE_URL, timeout=self._deadlines.init)
                     return resp(res)
-                except RequestError:
-                    pass  # ignore any errors related to requests, it is a best-effort warning
+                except (RequestError, OSError):
+                    # ignore any errors related to requests, it is a best-effort warning.
+                    # OSError covers fetch failures under Pyodide/WASM, where a page CSP
+                    # commonly blocks pypi.org — that must not fail connect().
+                    pass
 
             return _execute()
 
         try:
             with Client() as client:
-                res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
+                res = client.get(PYPI_PACKAGE_URL, timeout=self._deadlines.init)
             return resp(res)
-        except RequestError:
+        except (RequestError, OSError):
             pass  # ignore any errors related to requests, it is a best-effort warning
 
     def delete(
@@ -898,53 +1090,92 @@ class _ConnectionBase:
 class ConnectionSync(_ConnectionBase):
     """Connection class used to communicate to a weaviate instance."""
 
+    def __init__(
+        self,
+        connection_params: ConnectionParams,
+        auth_client_secret: Optional[AuthCredentials],
+        timeout_config: TimeoutConfig,
+        proxies: Union[str, Proxies, None],
+        trust_env: bool,
+        additional_headers: Optional[Dict[str, Any]],
+        connection_config: ConnectionConfig,
+        embedded_db: Optional[EmbeddedV4] = None,
+        skip_init_checks: bool = False,
+        grpc_config: Optional[GrpcConfig] = None,
+    ) -> None:
+        if sys.platform == "emscripten":
+            # fail at construction, before the first REST call surfaces an opaque
+            # ConnectError; pre-set what __del__ reads so the instance is collected quietly
+            self._client = None
+            self._grpc_channel = None
+            raise WeaviateStartUpError(
+                "The synchronous client is not supported under WebAssembly/Pyodide. "
+                "Use an async client (weaviate.use_async_with_local / "
+                "use_async_with_weaviate_cloud / use_async_with_custom, or "
+                "WeaviateAsyncClient) instead."
+            )
+        super().__init__(
+            connection_params=connection_params,
+            auth_client_secret=auth_client_secret,
+            timeout_config=timeout_config,
+            proxies=proxies,
+            trust_env=trust_env,
+            additional_headers=additional_headers,
+            connection_config=connection_config,
+            embedded_db=embedded_db,
+            skip_init_checks=skip_init_checks,
+            grpc_config=grpc_config,
+        )
+
     def connect(self, force: bool = False) -> None:
         if self._connected and not force:
             return None
 
         self._open_connections_rest(self._auth, "sync")
 
-        # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = executor.result(self.get_meta(False))
-            self._weaviate_version = _ServerVersion.from_string(meta["version"])
-            if "grpcMaxMessageSize" in meta:
-                self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
-            # Add warning later, when weaviate supported it for a while
-            # else:
-            #     _Warnings.grpc_max_msg_size_not_found()
-        except (
-            WeaviateConnectionError,
-            ReadError,
-            RemoteProtocolError,
-            SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
-        ) as e:
-            self._connected = False
-            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
-
-        self.open_connection_grpc("sync")
-        if self.embedded_db is not None:
+            # need this to get the version of weaviate for version checks and proper GRPC configuration
             try:
-                self.wait_for_weaviate(10)
-            except WeaviateStartUpError as e:
-                self.embedded_db.stop()
-                self._connected = False
-                raise e
+                meta = executor.result(self.get_meta(False))
+                self._weaviate_version = _ServerVersion.from_string(meta["version"])
+                if "grpcMaxMessageSize" in meta:
+                    self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
+                # Add warning later, when weaviate supported it for a while
+                # else:
+                #     _Warnings.grpc_max_msg_size_not_found()
+            except (
+                WeaviateConnectionError,
+                ReadError,
+                RemoteProtocolError,
+                SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
+            ) as e:
+                raise WeaviateStartUpError(
+                    f"Could not connect to Weaviate: {_exc_detail(e)}."
+                ) from e
 
-        # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 27, patch=0):
-            self._connected = False
-            raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
-            )
+            self.open_connection_grpc("sync")
+            if self.embedded_db is not None:
+                try:
+                    self.wait_for_weaviate(10)
+                except WeaviateStartUpError:
+                    self.embedded_db.stop()
+                    raise
 
-        if not self._skip_init_checks:
-            try:
+            # do it after all other init checks so as not to break all the tests
+            if self._weaviate_version.is_lower_than(1, 27, patch=0):
+                raise WeaviateStartUpError(
+                    f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
+                )
+
+            if not self._skip_init_checks:
                 executor.result(self._ping_grpc("sync"))
                 executor.result(self._check_package_version("sync"))
-            except Exception as e:
-                self._connected = False
-                raise e
+        except BaseException:
+            # the OIDC step above may already have started the background token
+            # refresher; a failed connect must not leave it running
+            self._connected = False
+            self._cancel_background_token_refresh()
+            raise
 
         self._connected = True
 
@@ -977,7 +1208,7 @@ class ConnectionSync(_ConnectionBase):
                 self.grpc_stub.Search,
                 request,
                 metadata=self.grpc_headers(),
-                timeout=self.timeout_config.query,
+                timeout=self._deadlines.query,
             )
             return cast(search_get_pb2.SearchReply, res)
         except RpcError as e:
@@ -1002,7 +1233,7 @@ class ConnectionSync(_ConnectionBase):
                 f=self.grpc_stub.BatchObjects,
                 request=request,
                 metadata=self.grpc_headers(),
-                timeout=timeout,
+                timeout=_deadline(timeout),
             )
             res = cast(batch_pb2.BatchObjectsReply, res)
 
@@ -1024,7 +1255,7 @@ class ConnectionSync(_ConnectionBase):
             assert self.grpc_stub is not None
             for msg in self.grpc_stub.BatchStream(
                 request_iterator=requests,
-                timeout=self.timeout_config.stream,
+                timeout=self._deadlines.stream,
                 metadata=self.grpc_headers(),
             ):
                 yield msg
@@ -1046,7 +1277,7 @@ class ConnectionSync(_ConnectionBase):
                 self.grpc_stub.BatchDelete(
                     request,
                     metadata=self.grpc_headers(),
-                    timeout=self.timeout_config.insert,
+                    timeout=self._deadlines.insert,
                 ),
             )
         except RpcError as e:
@@ -1066,7 +1297,7 @@ class ConnectionSync(_ConnectionBase):
                 self.grpc_stub.TenantsGet,
                 request,
                 metadata=self.grpc_headers(),
-                timeout=self.timeout_config.query,
+                timeout=self._deadlines.query,
             )
         except RpcError as e:
             error = cast(Call, e)
@@ -1087,7 +1318,7 @@ class ConnectionSync(_ConnectionBase):
                 self.grpc_stub.Aggregate,
                 request,
                 metadata=self.grpc_headers(),
-                timeout=self.timeout_config.query,
+                timeout=self._deadlines.query,
             )
             return cast(aggregate_pb2.AggregateReply, res)
         except RpcError as e:
@@ -1108,47 +1339,50 @@ class ConnectionAsync(_ConnectionBase):
 
         await executor.aresult(self._open_connections_rest(self._auth, "async"))
 
-        # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = await self.get_meta(False)
-            self._weaviate_version = _ServerVersion.from_string(meta["version"])
-            if "grpcMaxMessageSize" in meta:
-                self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
-            # Add warning later, when weaviate supported it for a while
-            # else:
-            #     _Warnings.grpc_max_msg_size_not_found()
-        except (
-            WeaviateConnectionError,
-            ReadError,
-            RemoteProtocolError,
-            SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
-        ) as e:
-            self._connected = False
-            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
-
-        self.open_connection_grpc("async")
-        if self.embedded_db is not None:
+            # need this to get the version of weaviate for version checks and proper GRPC configuration
             try:
-                await self.wait_for_weaviate(10)
-            except WeaviateStartUpError as e:
-                self.embedded_db.stop()
-                self._connected = False
-                raise e
+                meta = await self.get_meta(False)
+                self._weaviate_version = _ServerVersion.from_string(meta["version"])
+                if "grpcMaxMessageSize" in meta:
+                    self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
+                # Add warning later, when weaviate supported it for a while
+                # else:
+                #     _Warnings.grpc_max_msg_size_not_found()
+            except (
+                WeaviateConnectionError,
+                ReadError,
+                RemoteProtocolError,
+                SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
+            ) as e:
+                raise WeaviateStartUpError(
+                    f"Could not connect to Weaviate: {_exc_detail(e)}."
+                ) from e
 
-        # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 27, 0):
-            self._connected = False
-            raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
-            )
+            self.open_connection_grpc("async")
+            if self.embedded_db is not None:
+                try:
+                    await self.wait_for_weaviate(10)
+                except WeaviateStartUpError:
+                    self.embedded_db.stop()
+                    raise
 
-        if not self._skip_init_checks:
-            try:
+            # do it after all other init checks so as not to break all the tests
+            if self._weaviate_version.is_lower_than(1, 27, 0):
+                raise WeaviateStartUpError(
+                    f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
+                )
+
+            if not self._skip_init_checks:
                 await executor.aresult(self._ping_grpc("async"))
                 await executor.aresult(self._check_package_version("async"))
-            except Exception as e:
-                self._connected = False
-                raise e
+        except BaseException:
+            # the OIDC step above may already have started the background token
+            # refresher; a failed connect must not leave it running (it would keep
+            # hitting the IdP with no way for the user to stop it)
+            self._connected = False
+            self._cancel_background_token_refresh()
+            raise
 
         self._connected = True
 
@@ -1160,6 +1394,8 @@ class ConnectionAsync(_ConnectionBase):
                 ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
+                # asyncio.sleep, not time.sleep: a blocking sleep inside a coroutine
+                # stalls the event loop (and deadlocks single-threaded WASM runtimes)
                 await asyncio.sleep(1)
 
         try:
@@ -1183,7 +1419,7 @@ class ConnectionAsync(_ConnectionBase):
                 self.grpc_stub.Search,
                 request,
                 metadata=self.grpc_headers(),
-                timeout=self.timeout_config.query,
+                timeout=self._deadlines.query,
             )
             return cast(search_get_pb2.SearchReply, res)
         except AioRpcError as e:
@@ -1207,7 +1443,7 @@ class ConnectionAsync(_ConnectionBase):
                 f=self.grpc_stub.BatchObjects,
                 request=request,
                 metadata=self.grpc_headers(),
-                timeout=timeout,
+                timeout=_deadline(timeout),
             )
             res = cast(batch_pb2.BatchObjectsReply, res)
 
@@ -1218,7 +1454,7 @@ class ConnectionAsync(_ConnectionBase):
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
-            raise WeaviateBatchError(str(e)) from e
+            raise WeaviateBatchError(str(e.details())) from e
 
     async def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest
@@ -1228,7 +1464,7 @@ class ConnectionAsync(_ConnectionBase):
             return await self.grpc_stub.BatchDelete(
                 request,
                 metadata=self.grpc_headers(),
-                timeout=self.timeout_config.insert,
+                timeout=self._deadlines.insert,
             )
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
@@ -1247,7 +1483,7 @@ class ConnectionAsync(_ConnectionBase):
                 response_deserializer=batch_pb2.BatchStreamReply.FromString,
             )(
                 request_iterator=requests,
-                timeout=self.timeout_config.stream,
+                timeout=self._deadlines.stream,
                 metadata=self.grpc_headers(),
             ):
                 yield msg
@@ -1302,7 +1538,7 @@ class ConnectionAsync(_ConnectionBase):
                 self.grpc_stub.TenantsGet,
                 request,
                 metadata=self.grpc_headers(),
-                timeout=self.timeout_config.query,
+                timeout=self._deadlines.query,
             )
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
@@ -1322,7 +1558,7 @@ class ConnectionAsync(_ConnectionBase):
                 self.grpc_stub.Aggregate,
                 request,
                 metadata=self.grpc_headers(),
-                timeout=self.timeout_config.query,
+                timeout=self._deadlines.query,
             )
             return cast(aggregate_pb2.AggregateReply, res)
         except AioRpcError as e:

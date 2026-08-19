@@ -1,3 +1,4 @@
+import sys
 import warnings
 
 
@@ -11,12 +12,23 @@ warnings.filterwarnings(
 
 from packaging import version
 
-from importlib.metadata import version as metadata_version
+from importlib.metadata import PackageNotFoundError, version as metadata_version
 
 from weaviate.exceptions import WeaviateProtobufIncompatibility
 
-def get_version(pkg: str)-> version.Version:
-    return version.parse(metadata_version(pkg))
+# grpcio version assumed under Pyodide/Emscripten, where grpcio has no wheel (excluded by
+# the `sys_platform != "emscripten"` marker in setup.cfg) and the grpc module is the
+# weaviate-client-web shim. Restricted to grpcio AND Emscripten so a broken grpcio install
+# elsewhere still raises PackageNotFoundError, and a missing protobuf is never masked.
+_GRPCIO_FALLBACK_VERSION = "1.72.1"
+
+def get_version(pkg: str) -> version.Version:
+    try:
+        return version.parse(metadata_version(pkg))
+    except PackageNotFoundError:
+        if pkg == "grpcio" and sys.platform == "emscripten":
+            return version.parse(_GRPCIO_FALLBACK_VERSION)
+        raise
 
 pb_version, grpc_version = get_version("protobuf"), get_version("grpcio")
 if pb_version >= version.parse("6.30.0"):

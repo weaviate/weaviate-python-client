@@ -317,6 +317,24 @@ class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
         super().__init__(msg)
 
 
+def _grpc_status_of(
+    error: Optional[BaseException],
+) -> Tuple[Optional[StatusCode], Optional[str]]:
+    """Return the (code, details) of a gRPC error, or (None, None) if it carries none."""
+    if isinstance(error, (AioRpcError, Call)):
+        try:
+            return cast(Optional[StatusCode], error.code()), error.details()
+        except Exception:  # a half-initialized call can raise instead of answering
+            return None, None
+    return None, None
+
+
+# first Weaviate release that serves grpc-web on the REST port
+GRPC_WEB_MIN_SERVER_VERSION = "1.38.3"
+# the base path Weaviate itself serves grpc-web from
+GRPC_WEB_SERVER_PATH_PREFIX = "/v1/grpc-web"
+
+
 class WeaviateGRPCUnavailableError(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
@@ -324,7 +342,44 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
         self,
         weaviate_version: str = "",
         grpc_address: Tuple[str, int] = ("not provided", 0),
+        grpc_path_prefix: Optional[str] = None,
+        error: Optional[BaseException] = None,
     ) -> None:
+        code, details = _grpc_status_of(error)
+        observed = ""
+        if code is not None or details:
+            code_name = code.name if code is not None else "unknown status"
+            observed = (
+                f"\nThe gRPC call failed with: {code_name}{f' - {details}' if details else ''}\n"
+            )
+
+        if grpc_path_prefix:
+            # grpc-web multiplexes gRPC onto the REST host:port under a base path: there
+            # is no separate gRPC port to unblock, and the client has already talked to
+            # this exact endpoint over REST — so no firewall/wrong-port advice here.
+            address = f"{grpc_address[0]}:{grpc_address[1]}"
+            if code is StatusCode.UNIMPLEMENTED:
+                reason = f"""The server did not route the grpc-web path '{grpc_path_prefix}' at {address}. Either:
+- the server is too old: grpc-web is served from Weaviate {GRPC_WEB_MIN_SERVER_VERSION} onwards, and this server reports {weaviate_version or "an unknown version"}, or
+- the grpc-web base path is wrong: Weaviate serves grpc-web at '{GRPC_WEB_SERVER_PATH_PREFIX}'. The connect helpers set it themselves; only hand-built ConnectionParams choose it (grpc_path_prefix).
+"""
+            else:
+                reason = f"""This error could be due to one of several reasons:
+- grpc-web is not enabled or is incorrectly configured on the server at {address}.
+- your connection is unstable or has a high latency. In this case you can:
+    - increase init-timeout in `weaviate.use_async_with_custom(additional_config=wvc.init.AdditionalConfig(timeout=wvc.init.Timeout(init=X)))`
+    - disable startup checks by connecting using `skip_init_checks=True`
+"""
+            msg = f"""
+Weaviate {weaviate_version} makes use of a high-speed gRPC API as well as a REST API.
+Unfortunately, the gRPC health check against Weaviate could not be completed.
+
+This client speaks grpc-web (base path '{grpc_path_prefix}'), which carries gRPC over the REST endpoint {address}; there is no separate gRPC port.
+
+{reason}{observed}"""
+            super().__init__(msg)
+            return
+
         if grpc_address[0] == "not provided":
             grpc_msg = "Please check the server address and port."
         else:
@@ -340,7 +395,7 @@ This error could be due to one of several reasons:
 - your connection is unstable or has a high latency. In this case you can:
     - increase init-timeout in `weaviate.connect_to_local(additional_config=wvc.init.AdditionalConfig(timeout=wvc.init.Timeout(init=X)))`
     - disable startup checks by connecting using `skip_init_checks=True`
-"""
+{observed}"""
         super().__init__(msg)
 
 
@@ -418,5 +473,8 @@ class WeaviateProtobufIncompatibility(Exception):
         )
 
 
-class _BatchStreamShutdownError(Exception):
-    """Internal exception to signal that the batch stream was shutdown."""
+class _BatchStreamShutdownError(WeaviateBatchStreamError):
+    """Internal exception to signal that the batch stream was shutdown (gRPC ABORTED)."""
+
+    def __init__(self, message: str = "the server aborted the batch stream") -> None:
+        super().__init__(message)

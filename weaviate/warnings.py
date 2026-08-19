@@ -67,13 +67,24 @@ class _Warnings:
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
-    def token_refresh_failed(exc: Exception) -> None:
+    def token_refresh_failed(exc: Exception, retry_in: float, failures: int) -> None:
+        detail = f"{type(exc).__name__}: {exc}" if str(exc) else repr(exc)
         warnings.warn(
-            message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically
-            retry to refresh. If the retry does not succeed, the client will become unauthenticated.
+            message=f"""Con001: Token refresh failed ({detail}); retrying in {retry_in}s (consecutive failures: {failures}).
+            The client will become unauthenticated once the current token expires if the refresh keeps failing.
+            """,
+            category=UserWarning,
+            stacklevel=1,
+        )
 
-            The cause might be an unstable internet connection or a problem with your authentication provider.
-            Exception: {exc}
+    @staticmethod
+    def token_refresh_stopped(exc: BaseException) -> None:
+        warnings.warn(
+            message=f"""Con003: The periodic token refresh stopped unexpectedly. This client will NOT refresh its
+            access token again and will become unauthenticated once the current token expires (requests will
+            then fail with 401). Reconnect the client to restart the refresh.
+
+            Exception: {exc!r}
             """,
             category=UserWarning,
             stacklevel=1,
@@ -321,6 +332,19 @@ class _Warnings:
         warnings.warn(
             message="""Con005: Could not retrieve the maximum GRPC message size from the weaviate server. Using the default
             value of 10mb. If you need a larger message size, please update weaviate.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def grpc_endpoint_forced_to_grpc_web(requested: str, effective: str) -> None:
+        warnings.warn(
+            message=f"""Con006: The gRPC endpoint you gave ({requested}) was overridden with {effective}.
+
+            Under WebAssembly/Pyodide there is no socket and no grpcio wheel, so native gRPC cannot be used at all;
+            gRPC runs over grpc-web on the REST listener, which is the endpoint above. Pass gRPC arguments matching
+            the HTTP ones to silence this warning. A grpc-web transcoder on a separate endpoint is not reachable
+            through these helpers - build weaviate.connect.ConnectionParams yourself if you need one.""",
             category=UserWarning,
             stacklevel=1,
         )

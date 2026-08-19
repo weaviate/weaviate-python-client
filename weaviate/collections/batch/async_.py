@@ -37,8 +37,9 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
 )
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.connect.base import _grpc_web_shim_active
 from weaviate.connect.executor import aresult
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.v4 import ConnectionAsync, _deadline
 from weaviate.exceptions import (
     WeaviateBatchFailedToReestablishStreamError,
     WeaviateBatchStreamError,
@@ -133,6 +134,15 @@ class _BatchBaseAsync:
         return self.__bg_tasks is not None and self.__bg_tasks.all_alive()
 
     async def _start(self):
+        if _grpc_web_shim_active():
+            # fail fast and loud: over grpc-web the BatchStream RPC raises inside the
+            # background tasks, where it would otherwise surface as a silent drop or a
+            # never-ending flush()
+            raise WeaviateBatchStreamError(
+                "batch.stream() requires bidirectional gRPC streaming, which is not "
+                "possible over grpc-web/fetch (WebAssembly/Pyodide). Use "
+                "collection.data.insert_many() instead."
+            )
         self.__number_of_nodes = await self.__cluster.get_number_of_nodes()
 
         async def loop_wrapper() -> None:
@@ -184,7 +194,8 @@ class _BatchBaseAsync:
     async def _wait(self) -> None:
         assert self.__bg_tasks is not None
         # this is how long an insert will take to timeout for, so we wait at most this time +5s for the batch to finish after shutdown is initiated, in case the server never hangs up
-        shutdown_timeout = self.__connection.timeout_config.insert + 5
+        insert = _deadline(self.__connection.timeout_config.insert)
+        shutdown_timeout = None if insert is None else insert + 5
         try:
             await self.__bg_tasks.gather(timeout=shutdown_timeout)
         except asyncio.TimeoutError as e:
@@ -192,7 +203,8 @@ class _BatchBaseAsync:
                 "Background batch tasks did not terminate after forced shutdown."
             ) from e
 
-        # copy the results to the public results
+        # copy the results to the public results — even on failure, so the user can
+        # still inspect batch.results / batch.failed_objects after catching
         self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
         self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
         self.__results_for_wrapper_backup.failed_references = (
@@ -202,6 +214,19 @@ class _BatchBaseAsync:
             self.__results_for_wrapper.imported_shards
         )
 
+        if self.__bg_exception is not None:
+            # surface background-task failures instead of returning partial results
+            # as if the batch had succeeded
+            raise self.__bg_exception
+        n_objs, n_refs = len(self.__batch_objects), len(self.__batch_references)
+        if n_objs + n_refs > 0 and not self.__all_tasks_alive():
+            # the tasks are gone with data still queued: the batch did NOT complete, so
+            # do not return as if it had — whether a task died (a BaseException escaping
+            # loop_wrapper/recv_wrapper) or the server ended the stream early
+            raise self.__bg_task_death_cause() or WeaviateBatchStreamError(
+                f"batch stream ended with {n_objs} objects and {n_refs} references unsent"
+            )
+
     async def _shutdown(self) -> None:
         self.__is_stopped.set()
 
@@ -210,7 +235,13 @@ class _BatchBaseAsync:
             await asyncio.wait_for(self.__reqs.put(req), timeout=1)
             return True
         except asyncio.TimeoutError:
-            if self.__bg_exception is not None or self.__shutdown_loop.is_set():
+            # __all_tasks_alive: if the receiver is gone the queue will never drain again,
+            # so retrying forever (and recursing once per second) only defers the hang
+            if (
+                self.__bg_exception is not None
+                or self.__shutdown_loop.is_set()
+                or not self.__all_tasks_alive()
+            ):
                 return False
             return await self.__put(req)
 
@@ -531,6 +562,9 @@ class _BatchBaseAsync:
         """Flush the batch queue and wait for all requests to be finished."""
         # bg thread is sending objs+refs automatically, so simply wait for everything to be done
         while len(self.__batch_objects) > 0 or len(self.__batch_references) > 0:
+            # a dead task (not just __bg_exception, which a BaseException such as grpc.aio's
+            # CancelledError leaves unset) means nothing drains the queues: raise, don't hang
+            self.__check_bg_tasks_alive()
             await asyncio.sleep(0.01)
 
     async def _add_object(
@@ -628,4 +662,33 @@ class _BatchBaseAsync:
         if self.__all_tasks_alive():
             return
 
-        raise self.__bg_exception or Exception("Batch tasks died unexpectedly")
+        raise (
+            self.__bg_exception
+            or self.__bg_task_death_cause()
+            or WeaviateBatchStreamError("the batch stream has ended")
+        )
+
+    def __bg_task_death_cause(self) -> Optional[Exception]:
+        """Explain a background task that died without setting __bg_exception; None if none did.
+
+        loop_wrapper/recv_wrapper only catch Exception, so a BaseException — notably the
+        asyncio.CancelledError grpc.aio raises when a streaming call is cancelled — ends
+        the task with nothing recorded. Cancellation is re-wrapped rather than re-raised:
+        a bare CancelledError escaping a public call would look like the caller itself
+        was cancelled and would slip past the user's `except Exception`.
+        """
+        if self.__bg_tasks is not None:
+            for name, task in (
+                ("receive", self.__bg_tasks.recv),
+                ("loop", self.__bg_tasks.loop),
+            ):
+                if not task.done():
+                    continue
+                if task.cancelled():
+                    return WeaviateBatchStreamError(f"the background {name} task was cancelled")
+                exc = task.exception()
+                if isinstance(exc, Exception):
+                    return exc
+                if exc is not None:
+                    return WeaviateBatchStreamError(f"the background {name} task died with {exc!r}")
+        return None
