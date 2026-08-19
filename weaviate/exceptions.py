@@ -361,7 +361,7 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
             if code is StatusCode.UNIMPLEMENTED:
                 reason = f"""The server did not route the grpc-web path '{grpc_path_prefix}' at {address}. Either:
 - the server is too old: grpc-web is served from Weaviate {GRPC_WEB_MIN_SERVER_VERSION} onwards, and this server reports {weaviate_version or "an unknown version"}, or
-- `grpc_path_prefix` is wrong: Weaviate serves grpc-web at '{GRPC_WEB_SERVER_PATH_PREFIX}'.
+- the grpc-web base path is wrong: Weaviate serves grpc-web at '{GRPC_WEB_SERVER_PATH_PREFIX}'. The connect helpers set it themselves; only hand-built ConnectionParams choose it (grpc_path_prefix).
 """
             else:
                 reason = f"""This error could be due to one of several reasons:
@@ -374,7 +374,7 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
 Weaviate {weaviate_version} makes use of a high-speed gRPC API as well as a REST API.
 Unfortunately, the gRPC health check against Weaviate could not be completed.
 
-This client is configured for grpc-web (grpc_path_prefix='{grpc_path_prefix}'), which carries gRPC over the REST endpoint {address}; there is no separate gRPC port.
+This client speaks grpc-web (base path '{grpc_path_prefix}'), which carries gRPC over the REST endpoint {address}; there is no separate gRPC port.
 
 {reason}{observed}"""
             super().__init__(msg)

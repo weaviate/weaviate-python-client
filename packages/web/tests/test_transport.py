@@ -541,12 +541,12 @@ def _unavailable_details(monkeypatch, path_prefix, platform):
 
 
 def test_unavailable_without_path_prefix_under_emscripten_hints_at_grpc_path_prefix(monkeypatch):
-    # use_async_with_local() under Pyodide builds a prefix-less channel aimed at the
-    # native gRPC port, which fetch cannot reach; the error must say what to do instead
+    # the connect helpers always set the prefix under Emscripten, so a prefix-less channel
+    # here means hand-built ConnectionParams; the error must say what to do instead
     details = _unavailable_details(monkeypatch, path_prefix="", platform="emscripten")
     assert "grpc_path_prefix='/v1/grpc-web'" in details
     assert "1.38.3" in details
-    assert "use_async_with_custom" in details
+    assert "connect helpers" in details
 
 
 def test_unavailable_with_path_prefix_has_no_prefix_hint(monkeypatch):

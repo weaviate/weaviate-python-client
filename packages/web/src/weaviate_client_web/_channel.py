@@ -339,10 +339,12 @@ def _no_path_prefix_hint() -> str:
     from weaviate.exceptions import GRPC_WEB_MIN_SERVER_VERSION, GRPC_WEB_SERVER_PATH_PREFIX
 
     return (
-        "(no grpc_path_prefix set — for Weaviate >= "
-        f"{GRPC_WEB_MIN_SERVER_VERSION} use use_async_with_custom(..., "
-        f"grpc_path_prefix='{GRPC_WEB_SERVER_PATH_PREFIX}') on the REST port, or point "
-        "grpc_host/grpc_port at a grpc-web transcoder)"
+        "(no grpc_path_prefix set — under WebAssembly the connect helpers route gRPC to "
+        f"the REST endpoint under '{GRPC_WEB_SERVER_PATH_PREFIX}' by themselves, so use "
+        "one of them; hand-built ConnectionParams must set "
+        f"grpc_path_prefix='{GRPC_WEB_SERVER_PATH_PREFIX}' for Weaviate >= "
+        f"{GRPC_WEB_MIN_SERVER_VERSION}, or point grpc_host/grpc_port at a grpc-web "
+        "transcoder)"
     )
 
 

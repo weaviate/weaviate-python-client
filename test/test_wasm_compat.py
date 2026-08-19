@@ -265,3 +265,148 @@ def test_deadlines_view_sanitises_every_timeout() -> None:
     assert deadlines.stream is None
     # the user's own config object is left untouched
     assert conn.timeout_config.init == float("inf")
+
+
+# --- grpc-web auto-routing under Emscripten -------------------------------------------
+#
+# Native gRPC is impossible under WASM (no sockets, no grpcio wheel), so the async connect
+# helpers pin gRPC to the REST endpoint under Weaviate's own grpc-web base path — the same
+# contract as the TypeScript @weaviate/web client's webify(). Nothing selects it.
+
+GRPC_WEB_PREFIX = "/v1/grpc-web"
+
+
+@pytest.fixture
+def emscripten(monkeypatch):
+    """Fake Emscripten, with the grpc-web shim marked active.
+
+    Under real Pyodide ``import weaviate`` installs the shim itself; here only the
+    routing decision is under test, not the environment check that guards it.
+    """
+    import weaviate.connect.base as base_mod
+
+    monkeypatch.setattr(sys, "platform", "emscripten")
+    monkeypatch.setattr(base_mod.grpc, "__weaviate_client_web_shim__", True, raising=False)
+
+
+def _params(client) -> ConnectionParams:
+    return client._connection._connection_params
+
+
+def _assert_grpc_rides_rest(client) -> None:
+    params = _params(client)
+    assert params.grpc.model_dump() == params.http.model_dump()
+    assert params._grpc_web_path_prefix == GRPC_WEB_PREFIX
+    assert params._grpc_target == f"{params.http.host}:{params.http.port}"
+
+
+def test_use_async_with_local_routes_grpc_to_rest_under_emscripten(emscripten) -> None:
+    import weaviate
+
+    _assert_grpc_rides_rest(weaviate.use_async_with_local(host="localhost", port=8290))
+    assert _params(weaviate.use_async_with_local()).model_dump() == {
+        "http": {"host": "localhost", "port": 8080, "secure": False},
+        "grpc": {"host": "localhost", "port": 8080, "secure": False},
+        "grpc_path_prefix": GRPC_WEB_PREFIX,
+    }
+
+
+def test_use_async_with_weaviate_cloud_routes_grpc_to_the_cluster_host(emscripten) -> None:
+    # WCD serves grpc-web on the cluster's own REST endpoint, not on grpc-<cluster>
+    import weaviate
+
+    client = weaviate.use_async_with_weaviate_cloud("abc.something.weaviate.cloud", None)
+    _assert_grpc_rides_rest(client)
+    assert _params(client).model_dump() == {
+        "http": {"host": "abc.something.weaviate.cloud", "port": 443, "secure": True},
+        "grpc": {"host": "abc.something.weaviate.cloud", "port": 443, "secure": True},
+        "grpc_path_prefix": GRPC_WEB_PREFIX,
+    }
+
+
+def test_use_async_with_custom_routes_grpc_to_rest_under_emscripten(emscripten) -> None:
+    import weaviate
+
+    _assert_grpc_rides_rest(
+        weaviate.use_async_with_custom(
+            http_host="wv.example.com",
+            http_port=443,
+            http_secure=True,
+            grpc_host="wv.example.com",
+            grpc_port=443,
+            grpc_secure=True,
+        )
+    )
+
+
+def test_matching_grpc_arguments_are_not_warned_about(emscripten, recwarn) -> None:
+    # the documented WASM shape: gRPC arguments equal to the HTTP ones. Nothing is
+    # discarded, so warning here would just train users to ignore the warning.
+    import weaviate
+
+    weaviate.use_async_with_custom(
+        http_host="localhost",
+        http_port=8290,
+        http_secure=False,
+        grpc_host="localhost",
+        grpc_port=8290,
+        grpc_secure=False,
+    )
+    weaviate.use_async_with_local(port=8290)
+    weaviate.use_async_with_weaviate_cloud("abc.something.weaviate.cloud", None)
+    assert [str(w.message) for w in recwarn] == []
+
+
+def test_overridden_grpc_arguments_are_warned_about(emscripten) -> None:
+    # Python cannot drop required parameters the way TypeScript drops them from a type,
+    # so a WASM caller must pass something. Overriding keeps the client usable, but it
+    # must never look like the endpoint they gave was honoured.
+    import weaviate
+
+    with pytest.warns(UserWarning, match="Con006") as record:
+        client = weaviate.use_async_with_custom(
+            http_host="localhost",
+            http_port=8080,
+            http_secure=False,
+            grpc_host="grpc.example.com",
+            grpc_port=50051,
+            grpc_secure=True,
+        )
+    msg = str(record[0].message)
+    assert "grpc.example.com:50051" in msg  # what was discarded ...
+    assert "localhost:8080" in msg  # ... and what is used instead
+    assert "WebAssembly" in msg  # ... and why
+    _assert_grpc_rides_rest(client)
+
+
+def test_an_explicit_local_grpc_port_is_warned_about_but_the_default_is_not(emscripten) -> None:
+    import weaviate
+
+    with pytest.warns(UserWarning, match="Con006"):
+        client = weaviate.use_async_with_local(port=8080, grpc_port=8081)
+    _assert_grpc_rides_rest(client)
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda w: w.connect_to_local(),
+        lambda w: w.connect_to_weaviate_cloud(
+            "abc.something.weaviate.cloud", w.classes.init.Auth.api_key("k")
+        ),
+        lambda w: w.connect_to_custom(
+            http_host="localhost",
+            http_port=8080,
+            http_secure=False,
+            grpc_host="localhost",
+            grpc_port=50051,
+            grpc_secure=False,
+        ),
+    ],
+)
+def test_sync_helpers_still_raise_async_only_under_emscripten(emscripten, call) -> None:
+    # grpc-web routing must not have made the unsupported sync client look viable
+    import weaviate
+
+    with pytest.raises(WeaviateStartUpError, match="async client"):
+        call(weaviate)

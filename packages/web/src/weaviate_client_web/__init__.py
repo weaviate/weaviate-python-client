@@ -12,16 +12,15 @@ the base client imports this package itself under Emscripten before anything els
 
     import weaviate
 
-    client = weaviate.use_async_with_custom(
-        http_host="localhost", http_port=8080, http_secure=False,
-        grpc_host="localhost", grpc_port=8080, grpc_secure=False,
-        grpc_path_prefix="/v1/grpc-web",
-    )
+    client = weaviate.use_async_with_local(port=8080)
     await client.connect()
 
-``use_async_with_local`` / ``use_async_with_weaviate_cloud`` have no ``grpc_path_prefix``
-and therefore only work with a grpc-web transcoder (Envoy, vanguard) at the root of
-``grpc_host:grpc_port``.
+There is nothing to select. Under Emscripten ``use_async_with_local``,
+``use_async_with_weaviate_cloud`` and ``use_async_with_custom`` all pin gRPC to the REST
+endpoint under ``/v1/grpc-web``, because native gRPC is impossible there — the same
+contract as the TypeScript ``@weaviate/web`` client. ``use_async_with_custom`` still
+requires ``grpc_host``/``grpc_port``/``grpc_secure``; give it the HTTP values, or it
+warns that it overrode them.
 
 An explicit ``import weaviate_client_web`` before ``import weaviate`` also works and
 remains the explicit form. The shim is installed automatically only under Emscripten, so

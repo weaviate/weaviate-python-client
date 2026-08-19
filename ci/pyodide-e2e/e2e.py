@@ -27,8 +27,9 @@ from weaviate.exceptions import WeaviateBatchStreamError, WeaviateQueryError
 
 COLL = "PyodideE2E"
 MT_COLL = "PyodideE2ETenants"
-# Weaviate core serves grpc-web natively on the REST port under this prefix
-# (default-on since 1.38.3), so no proxy sits between the client and the server.
+# Weaviate core serves grpc-web natively on the REST port under this prefix (default-on
+# since 1.38.3), so no proxy sits between the client and the server. Under Emscripten the
+# connect helpers route gRPC there themselves — nothing here selects it.
 GRPC_WEB_PREFIX = "/v1/grpc-web"
 
 
@@ -58,8 +59,12 @@ async def main() -> None:
         grpc_host=host,
         grpc_port=port,
         grpc_secure=False,
-        grpc_path_prefix=GRPC_WEB_PREFIX,
     )
+    params = client._connection._connection_params
+    assert params._grpc_web_path_prefix == GRPC_WEB_PREFIX, params
+    assert params._grpc_target == f"{host}:{port}", params
+    ok("connect helper routed gRPC onto the REST endpoint under /v1/grpc-web")
+
     # No skip_init_checks: connect() performs the gRPC health check over grpc-web.
     await client.connect()
     ok("connect (health check over grpc-web)")

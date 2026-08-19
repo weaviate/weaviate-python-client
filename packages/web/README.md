@@ -28,17 +28,33 @@ Under Pyodide there is no `grpcio` Emscripten wheel, and `import weaviate` hard-
 
 The `GrpcWebChannel` frames unary RPCs as grpc-web (a 5-byte header + protobuf payload)
 and POSTs them via `pyodide.http.pyfetch`. Call metadata (API key / OIDC bearer) is
-folded into `fetch` headers. Two deployments work:
+folded into `fetch` headers.
 
-1. **Core-native grpc-web (Weaviate ≥ 1.38.3).** Weaviate serves grpc-web on its REST
-   port under `/v1/grpc-web`, so gRPC and REST share one host, port and TLS setup and
-   no proxy is needed. Select it with `grpc_path_prefix="/v1/grpc-web"` and point
-   `grpc_host`/`grpc_port` at the REST endpoint.
-2. **A grpc-web transcoder** (e.g. Envoy or
-   [connectrpc/vanguard](https://github.com/connectrpc/vanguard-go)) listening at the
-   root of `grpc_host:grpc_port` in front of Weaviate's native gRPC port. This is what
-   `use_async_with_local()` / `use_async_with_weaviate_cloud()` need, because those
-   helpers have no `grpc_path_prefix` parameter.
+The target is not configurable: under Emscripten the connect helpers
+(`use_async_with_local`, `use_async_with_weaviate_cloud`, `use_async_with_custom`) pin
+gRPC to the **REST** endpoint — same host, port and TLS — under Weaviate's own
+`/v1/grpc-web` base path, so gRPC and REST share one origin and no proxy is needed. That
+is deliberate: native gRPC cannot work under WASM at all, so grpc-web on the REST
+listener is not a choice that could be wrong. The TypeScript `@weaviate/web` client makes
+the same call, dropping `grpcHost`/`grpcPort`/`grpcSecure` from its options entirely.
+
+A grpc-web transcoder on a separate endpoint (Envoy,
+[connectrpc/vanguard](https://github.com/connectrpc/vanguard-go)) is therefore not
+reachable through the helpers. If you need one — e.g. in front of a Weaviate older than
+1.38.3 — build the connection parameters yourself:
+
+```python
+from weaviate import WeaviateAsyncClient
+from weaviate.connect import ConnectionParams
+
+client = WeaviateAsyncClient(
+    ConnectionParams.from_params(
+        http_host="weaviate.example.com", http_port=443, http_secure=True,
+        grpc_host="transcoder.example.com", grpc_port=443, grpc_secure=True,
+        # add grpc_path_prefix="/base/path" if the transcoder is not at the root
+    )
+)
+```
 
 For REST (`is_ready`, collection config, `/batch/references`, …) the package patches
 `httpx.AsyncHTTPTransport` with its own `pyfetch`-based transport. It does so even on
@@ -57,24 +73,36 @@ is missing). Against Weaviate ≥ 1.38.3:
 ```python
 import weaviate  # bootstraps weaviate_client_web automatically under Emscripten
 
-client = weaviate.use_async_with_custom(
-    http_host="localhost",
-    http_port=8080,
-    http_secure=False,
-    grpc_host="localhost",   # same host as REST
-    grpc_port=8080,          # same port as REST: grpc-web rides on the REST listener
-    grpc_secure=False,
-    grpc_path_prefix="/v1/grpc-web",
-)
+client = weaviate.use_async_with_local(port=8080)
 await client.connect()       # runs the gRPC health check over grpc-web
 collection = client.collections.get("Article")
 await collection.query.near_text("hello", limit=3)
 ```
 
-`use_async_with_local()` and `use_async_with_weaviate_cloud()` have no
-`grpc_path_prefix`, so under Pyodide they only work when a grpc-web transcoder answers at
-the root of `grpc_host:grpc_port`. Pass `headers={...}` / `auth_credentials=...` to
-`use_async_with_custom` as usual for API keys, OIDC or WCD.
+Nothing selects grpc-web: `use_async_with_local()`, `use_async_with_weaviate_cloud()` and
+`use_async_with_custom()` all route gRPC onto the REST endpoint under `/v1/grpc-web` when
+they run under Emscripten, and behave exactly as before everywhere else.
+
+```python
+client = weaviate.use_async_with_weaviate_cloud(
+    cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
+    auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
+)
+```
+
+`use_async_with_custom()` still requires `grpc_host`/`grpc_port`/`grpc_secure` — Python
+cannot drop required parameters on one platform the way TypeScript drops them from a
+type. Pass the HTTP values; anything else is overridden with them and warned about
+(`Con006`), so a browser client never silently points somewhere it cannot reach.
+
+```python
+client = weaviate.use_async_with_custom(
+    http_host="localhost", http_port=8080, http_secure=False,
+    grpc_host="localhost", grpc_port=8080, grpc_secure=False,   # = the HTTP endpoint
+)
+```
+
+Pass `headers={...}` / `auth_credentials=...` as usual for API keys, OIDC or WCD.
 
 Importing the companion explicitly first also works and remains the explicit form:
 

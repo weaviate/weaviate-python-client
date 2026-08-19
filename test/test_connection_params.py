@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 from pydantic import ValidationError
 
@@ -134,22 +136,6 @@ def test_grpc_channel_rejects_prefix_for_sync_client() -> None:
         _grpc_web_params()._grpc_channel(proxies={}, grpc_msg_size=None, is_async=False)
 
 
-def test_connect_to_custom_rejects_grpc_web_prefix() -> None:
-    # The synchronous helper must reject grpc-web up front (before connecting).
-    import weaviate
-
-    with pytest.raises(WeaviateInvalidInputError, match="async-only"):
-        weaviate.connect_to_custom(
-            http_host="localhost",
-            http_port=8080,
-            http_secure=False,
-            grpc_host="localhost",
-            grpc_port=8080,
-            grpc_secure=False,
-            grpc_path_prefix="/grpc-web",
-        )
-
-
 def test_grpc_channel_omits_option_without_prefix(monkeypatch) -> None:
     captured: dict = {}
 
@@ -171,24 +157,6 @@ def test_grpc_channel_omits_option_without_prefix(monkeypatch) -> None:
 
     option_keys = [key for key, _ in captured["options"]]
     assert "grpc-web.path_prefix" not in option_keys
-
-
-def test_connect_to_custom_treats_root_prefix_as_native_grpc(monkeypatch) -> None:
-    # "/" normalizes to "" (native gRPC), so the async-only guard must not fire on it
-    import weaviate
-    import weaviate.connect.helpers as helpers
-
-    monkeypatch.setattr(helpers, "__connect", lambda client: client)  # module-level: not mangled
-    client = weaviate.connect_to_custom(
-        http_host="localhost",
-        http_port=8080,
-        http_secure=False,
-        grpc_host="localhost",
-        grpc_port=50051,
-        grpc_secure=False,
-        grpc_path_prefix="/",
-    )
-    assert client._connection._connection_params._grpc_web_path_prefix == ""
 
 
 def test_async_client_construction_rejects_prefix_without_shim(monkeypatch) -> None:
@@ -219,3 +187,132 @@ def test_sync_client_construction_rejects_grpc_web_prefix() -> None:
 
     with pytest.raises(WeaviateInvalidInputError, match="async"):
         WeaviateClient(_grpc_web_params())
+
+
+# --- the connect helpers' public surface ---------------------------------------------
+#
+# grpc-web is not something a caller selects: there is no grpc_path_prefix parameter on
+# any helper, and off Emscripten the params they build are exactly what they always were.
+
+
+def _params_of(client) -> ConnectionParams:
+    return client._connection._connection_params
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda w: w.use_async_with_local(grpc_path_prefix="/v1/grpc-web"),
+        lambda w: w.use_async_with_weaviate_cloud(
+            "abc.weaviate.cloud", None, grpc_path_prefix="/v1/grpc-web"
+        ),
+        lambda w: w.use_async_with_custom(
+            http_host="localhost",
+            http_port=8080,
+            http_secure=False,
+            grpc_host="localhost",
+            grpc_port=8080,
+            grpc_secure=False,
+            grpc_path_prefix="/v1/grpc-web",
+        ),
+        lambda w: w.connect_to_custom(
+            http_host="localhost",
+            http_port=8080,
+            http_secure=False,
+            grpc_host="localhost",
+            grpc_port=8080,
+            grpc_secure=False,
+            grpc_path_prefix="/v1/grpc-web",
+        ),
+        lambda w: w.connect_to_local(grpc_path_prefix="/v1/grpc-web"),
+    ],
+)
+def test_no_helper_takes_a_grpc_path_prefix(call) -> None:
+    # deliberate removal: grpc-web is chosen by the platform, never by the caller, so the
+    # parameter must not exist on any helper (the TypeScript web client has none either)
+    import weaviate
+
+    with pytest.raises(TypeError, match="grpc_path_prefix"):
+        call(weaviate)
+
+
+@pytest.mark.parametrize(
+    "call,expected",
+    [
+        (
+            lambda w: w.use_async_with_local(),
+            {
+                "http": {"host": "localhost", "port": 8080, "secure": False},
+                "grpc": {"host": "localhost", "port": 50051, "secure": False},
+                "grpc_path_prefix": None,
+            },
+        ),
+        (
+            lambda w: w.use_async_with_local(host="wv", port=9090, grpc_port=50052),
+            {
+                "http": {"host": "wv", "port": 9090, "secure": False},
+                "grpc": {"host": "wv", "port": 50052, "secure": False},
+                "grpc_path_prefix": None,
+            },
+        ),
+        (
+            lambda w: w.use_async_with_weaviate_cloud("abc.something.weaviate.cloud", None),
+            {
+                "http": {"host": "abc.something.weaviate.cloud", "port": 443, "secure": True},
+                "grpc": {"host": "grpc-abc.something.weaviate.cloud", "port": 443, "secure": True},
+                "grpc_path_prefix": None,
+            },
+        ),
+        (
+            lambda w: w.use_async_with_weaviate_cloud("abc.something.weaviate.network", None),
+            {
+                "http": {"host": "abc.something.weaviate.network", "port": 443, "secure": True},
+                "grpc": {
+                    "host": "abc.grpc.something.weaviate.network",
+                    "port": 443,
+                    "secure": True,
+                },
+                "grpc_path_prefix": None,
+            },
+        ),
+        (
+            lambda w: w.use_async_with_custom(
+                http_host="localhost",
+                http_port=8080,
+                http_secure=False,
+                grpc_host="localhost",
+                grpc_port=50051,
+                grpc_secure=False,
+            ),
+            {
+                "http": {"host": "localhost", "port": 8080, "secure": False},
+                "grpc": {"host": "localhost", "port": 50051, "secure": False},
+                "grpc_path_prefix": None,
+            },
+        ),
+        (
+            lambda w: w.use_async_with_custom(
+                http_host="rest.example.com",
+                http_port=443,
+                http_secure=True,
+                grpc_host="grpc.example.com",
+                grpc_port=443,
+                grpc_secure=True,
+            ),
+            {
+                "http": {"host": "rest.example.com", "port": 443, "secure": True},
+                "grpc": {"host": "grpc.example.com", "port": 443, "secure": True},
+                "grpc_path_prefix": None,
+            },
+        ),
+    ],
+)
+def test_helper_params_off_emscripten_are_unchanged(call, expected) -> None:
+    # THE no-regression pin. The http/grpc values below are origin/main's verbatim; only
+    # grpc_path_prefix is new, and off Emscripten it is always None (native gRPC).
+    import weaviate
+
+    assert sys.platform != "emscripten"
+    params = _params_of(call(weaviate))
+    assert params.model_dump() == expected
+    assert params._grpc_web_path_prefix == ""
