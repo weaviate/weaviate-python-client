@@ -548,7 +548,7 @@ class _ConnectionBase:
             # task there instead of a daemon thread plus an event-loop sidecar thread
             # (threads cannot start under WASM/Pyodide)
             self.__token_refresh_task = asyncio.get_running_loop().create_task(
-                self.__periodic_token_refresh_async(expires_in, _auth, shutdown)
+                self.__periodic_token_refresh_async(expires_in - 30, _auth, shutdown)
             )
             return
 
