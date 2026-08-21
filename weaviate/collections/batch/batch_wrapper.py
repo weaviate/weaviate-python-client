@@ -508,7 +508,13 @@ class _ContextManagerSync(Generic[T, P]):
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.__current_batch._shutdown()
-        self.__current_batch._wait()
+        try:
+            self.__current_batch._wait()
+        except Exception as e:
+            if exc_type is None:
+                raise
+            # the exception leaving the block wins; the background failure is only logged
+            logger.warning(f"batch stream failed while the block raised {exc_type.__name__}: {e}")
 
     def __enter__(self) -> P:
         self.__current_batch._start()
@@ -521,7 +527,13 @@ class _ContextManagerAsync(Generic[Q]):
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         await self.__current_batch._shutdown()
-        await self.__current_batch._wait()
+        try:
+            await self.__current_batch._wait()
+        except Exception as e:
+            if exc_type is None:
+                raise
+            # the exception leaving the block wins; the background failure is only logged
+            logger.warning(f"batch stream failed while the block raised {exc_type.__name__}: {e}")
 
     async def __aenter__(self) -> Q:
         await self.__current_batch._start()
