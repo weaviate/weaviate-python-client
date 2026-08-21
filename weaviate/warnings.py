@@ -326,6 +326,19 @@ class _Warnings:
         )
 
     @staticmethod
+    def grpc_endpoint_forced_to_grpc_web(requested: str, effective: str) -> None:
+        warnings.warn(
+            message=f"""Con006: The gRPC endpoint you gave ({requested}) was overridden with {effective}.
+
+            Under WebAssembly/Pyodide there is no socket and no grpcio wheel, so native gRPC cannot be used at all;
+            gRPC runs over grpc-web on the REST listener, which is the endpoint above. Pass gRPC arguments matching
+            the HTTP ones to silence this warning. A grpc-web transcoder on a separate endpoint is not reachable
+            through these helpers - build weaviate.connect.ConnectionParams yourself if you need one.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def unknown_permission_encountered(permission: Any) -> None:
         warnings.warn(
             message=f"""RBAC001: Unknown permission {permission} received, skipping value.""",

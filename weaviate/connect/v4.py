@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -145,6 +146,17 @@ class _ConnectionBase:
         self._connection_params = connection_params
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Union[AsyncChannel, SyncChannel, None] = None
+        if sys.platform == "emscripten" and isinstance(self, ConnectionSync):
+            # fail at construction, before the first REST call surfaces an opaque
+            # ConnectError; _client/_grpc_channel are already set, so __del__ stays quiet
+            raise WeaviateStartUpError(
+                "The synchronous client is not supported under WebAssembly/Pyodide. "
+                "Use an async client (weaviate.use_async_with_local / "
+                "use_async_with_weaviate_cloud / use_async_with_custom, or "
+                "WeaviateAsyncClient) instead."
+            )
+        # a grpc-web prefix this process cannot honour fails here, not deep inside connect()
+        connection_params._check_grpc_web_usable(is_async=not isinstance(self, ConnectionSync))
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
@@ -339,14 +351,26 @@ class _ConnectionBase:
     def __handle_ping_response(self, res: health_weaviate_pb2.WeaviateHealthCheckResponse) -> None:
         if res.status != health_weaviate_pb2.WeaviateHealthCheckResponse.SERVING:
             raise WeaviateGRPCUnavailableError(
-                f"v{self.server_version}", self._connection_params._grpc_address
+                f"v{self.server_version}",
+                self._connection_params._grpc_address,
+                grpc_path_prefix=self.__grpc_web_prefix(),
             )
         return None
 
     def __handle_ping_exception(self, e: Exception) -> None:
+        # pass the error along: its code()/details() are the only thing that says what
+        # actually went wrong, and the generic advice is wrong in grpc-web mode (no
+        # separate gRPC port, no firewall — REST just succeeded against this endpoint)
         raise WeaviateGRPCUnavailableError(
-            f"v{self.server_version}", self._connection_params._grpc_address
+            f"v{self.server_version}",
+            self._connection_params._grpc_address,
+            grpc_path_prefix=self.__grpc_web_prefix(),
+            error=e,
         ) from e
+
+    def __grpc_web_prefix(self) -> Optional[str]:
+        """The configured grpc-web base path, or None when this is native gRPC."""
+        return self._connection_params._grpc_web_path_prefix or None
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
@@ -789,8 +813,11 @@ class _ConnectionBase:
                     async with AsyncClient() as client:
                         res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
                     return resp(res)
-                except RequestError:
-                    pass  # ignore any errors related to requests, it is a best-effort warning
+                except (RequestError, OSError):
+                    # ignore any errors related to requests, it is a best-effort warning.
+                    # OSError covers fetch failures under Pyodide/WASM, where a page CSP
+                    # commonly blocks pypi.org — that must not fail connect().
+                    pass
 
             return _execute()
 
@@ -798,7 +825,7 @@ class _ConnectionBase:
             with Client() as client:
                 res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
             return resp(res)
-        except RequestError:
+        except (RequestError, OSError):
             pass  # ignore any errors related to requests, it is a best-effort warning
 
     def delete(
