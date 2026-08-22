@@ -1,8 +1,9 @@
 import asyncio
 import json
+import threading
 import time
 import warnings
-from typing import Union
+from typing import List, Union
 
 import grpc
 import pytest
@@ -82,6 +83,214 @@ def test_client_credentials(weaviate_auth_mock: HTTPServer, start_grpc_server: g
         client.collections.list_all()  # some call that includes authorization
 
     weaviate_auth_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_client_credentials_refresh_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """Test the refresh_session branch of the async token refresher.
+
+    Client-credentials tokens carry no refresh token, so the refresher must get a whole
+    new token from the saved credentials.
+    """
+    token_requests = 0
+
+    def handler(request: Request) -> Response:
+        nonlocal token_requests
+        token_requests += 1
+        return Response(
+            json.dumps({"access_token": ACCESS_TOKEN, "expires_in": 1}),
+            content_type="application/json",
+        )
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
+    ) as client:
+        await client.collections.list_all()
+        first = token_requests
+        await asyncio.sleep(3)  # refresh interval is max(expires_in - 30, 1) -> 1s
+        assert token_requests > first  # a fresh token was fetched with the credentials
+
+
+def _reject_refreshes(weaviate_auth_mock: HTTPServer) -> List[float]:
+    """Make the IdP reject every refresh (400 invalid_grant); returns the hit timestamps."""
+    hits: List[float] = []
+
+    def handler(request: Request) -> Response:
+        hits.append(time.monotonic())
+        return Response(
+            json.dumps({"error": "invalid_grant", "error_description": "refresh token expired"}),
+            status=400,
+            content_type="application/json",
+        )
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+    return hits
+
+
+@pytest.mark.asyncio
+async def test_token_refresh_survives_failures_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, recwarn
+) -> None:
+    """A failing refresh must not kill the refresher: warn, retry, stay alive.
+
+    A 400 invalid_grant makes authlib raise OAuthError, which is not an httpx.HTTPError.
+    """
+    hits = _reject_refreshes(weaviate_auth_mock)
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN,
+            refresh_token=REFRESH_TOKEN,
+            expires_in=1,  # force an immediate (and failing) refresh
+        ),
+    ) as client:
+        task = getattr(client._connection, "_ConnectionBase__token_refresh_task")  # noqa: B009
+        assert task is not None
+        await asyncio.sleep(3)
+        assert not task.done()  # the refresher survived the failures
+        await client.collections.list_all()  # ... and the client still works
+
+    assert len(hits) >= 2  # it kept retrying
+    # recwarn's "default" filter shows an identical warning once per location
+    assert len([w for w in recwarn if str(w.message).startswith("Con001")]) >= 1
+    assert task.done()  # close() cancelled and awaited it
+
+
+def test_token_refresh_survives_failures(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, recwarn
+) -> None:
+    """Sync twin of the test above.
+
+    The daemon thread used to die silently on anything but an httpx.HTTPError.
+    """
+    hits = _reject_refreshes(weaviate_auth_mock)
+
+    threads_before = set(threading.enumerate())
+    with weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1
+        ),
+    ) as client:
+        refreshers = [
+            t for t in set(threading.enumerate()) - threads_before if t.name == "TokenRefresh"
+        ]
+        assert len(refreshers) == 1
+        time.sleep(3)
+        assert refreshers[0].is_alive()  # survived the failures
+        client.collections.list_all()
+
+    assert len(hits) >= 2
+    # recwarn's "default" filter shows an identical warning once per location
+    assert len([w for w in recwarn if str(w.message).startswith("Con001")]) >= 1
+    refreshers[0].join(timeout=2)
+    assert not refreshers[0].is_alive()  # close() stops the daemon thread promptly
+
+
+@pytest.mark.asyncio
+async def test_async_auth_starts_no_threads(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """The async client must refresh tokens with an asyncio task, not threads.
+
+    Under WASM/Pyodide threads cannot start at all, so the TokenRefresh daemon thread
+    and the event-loop sidecar thread would make every async OIDC flow crash connect().
+    """
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {
+            "access_token": ACCESS_TOKEN,
+            "expires_in": 500,
+            "refresh_token": REFRESH_TOKEN,
+        }
+    )
+
+    # compare thread OBJECTS, not names: earlier sync tests leave stale TokenRefresh
+    # daemon threads alive, which would mask a regression in a name-set comparison
+    threads_before = set(threading.enumerate())
+    tasks_before = asyncio.all_tasks()
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=500
+        ),
+    ) as client:
+        await client.collections.list_all()
+        new_thread_names = {t.name for t in set(threading.enumerate()) - threads_before}
+        assert "TokenRefresh" not in new_thread_names
+        assert "eventLoop" not in new_thread_names
+        refresh_tasks = [
+            t for t in asyncio.all_tasks() - tasks_before if "token_refresh" in repr(t.get_coro())
+        ]
+        assert len(refresh_tasks) == 1  # the refresher runs as an asyncio task instead
+    # ... and close() must cancel it AND await it: done as soon as close() returns
+    assert refresh_tasks[0].done()
+
+
+def test_sync_reconnect_leaves_exactly_one_refresher_thread(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """close() must end the daemon thread promptly, and a later connect() must not revive it.
+
+    The thread used to re-read the connection's shutdown event on every loop, so after
+    close()+connect() it picked up the NEW (unset) event and kept refreshing next to the
+    new thread — two refreshers per client.
+    """
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+    def refreshers() -> List[threading.Thread]:
+        return [t for t in set(threading.enumerate()) - threads_before if t.name == "TokenRefresh"]
+
+    threads_before = set(threading.enumerate())
+    client = weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=500
+        ),
+    )
+    (first,) = refreshers()
+    client.close()
+    first.join(timeout=2)
+    assert not first.is_alive()  # not asleep until the next (470s away) wake-up
+
+    client.connect()
+    client.collections.list_all()
+    alive = [t for t in refreshers() if t.is_alive()]
+    assert len(alive) == 1 and alive[0] is not first
+    client.close()
+    alive[0].join(timeout=2)
+    assert not alive[0].is_alive()
 
 
 @pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
