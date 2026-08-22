@@ -532,76 +532,61 @@ class _ConnectionBase:
         if "refresh_token" not in self._client.token and _auth is None:
             return
 
-        # stop the refresher a previous connect() may have left behind
+        # stop the refresher from an earlier connect(), if any
         self._cancel_background_token_refresh()
 
-        expires_in: int = self._client.token.get(
-            "expires_in", 60
-        )  # use 1minute as token lifetime if not supplied
-        # captured by the refresher below, so that a later close()+connect() (which
-        # replaces the attribute) still stops THIS refresher and not the new one
+        # refresh 30s before the token expires (assume 1 minute if the token does not say);
+        # the loops below always wait at least 1s
+        refresh_in: int = self._client.token.get("expires_in", 60) - 30
+        # the refresher keeps its own event: after close() + connect() the old refresher
+        # must stop on this one instead of running on with the new one
         shutdown = Event()
         self._shutdown_background_event = shutdown
 
         if isinstance(self._client, AsyncOAuth2Client):
-            # the async client only ever connects from inside a running loop: refresh on a
-            # task there instead of a daemon thread plus an event-loop sidecar thread
+            # async client: refresh in an asyncio task on the current loop, not in a thread
             # (threads cannot start under WASM/Pyodide)
             self.__token_refresh_task = asyncio.get_running_loop().create_task(
-                self.__periodic_token_refresh_async(expires_in - 30, _auth, shutdown)
+                self.__periodic_token_refresh_async(refresh_in, _auth, shutdown)
             )
             return
 
-        def refresh_token() -> None:
-            assert isinstance(self._client, OAuth2Client)
-            self._client.token = self._client.refresh_token(
-                url=self._client.metadata["token_endpoint"]
-            )
-
-        def refresh_session() -> None:
-            assert _auth is not None
-            assert isinstance(self._client, OAuth2Client)
-            new_session = _auth.result(_auth.get_auth_session())
-            self._client.token = new_session.fetch_token()
-
-        def update_refresh_time() -> int:
-            assert isinstance(self._client, OAuth2Client)
-            return self._client.token.get("expires_in", 60) - 30
-
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
-            # Event.wait instead of time.sleep so close() ends the thread promptly
+            # wait on the event instead of sleeping, so close() can end the thread right away
             while not shutdown.wait(timeout=max(refresh_time, 1)):
                 try:
-                    if self._client is None:
+                    # use one client for the whole round: close()/connect() may replace
+                    # self._client while a refresh is running
+                    client = self._client
+                    if not isinstance(client, OAuth2Client):
                         continue
-                    elif (
-                        isinstance(self._client, OAuth2Client)
-                        and "refresh_token" in self._client.token
-                    ):
-                        refresh_token()
+                    if "refresh_token" in client.token:
+                        client.token = client.refresh_token(url=client.metadata["token_endpoint"])
                     else:
-                        # client credentials usually does not contain a refresh token => get a new token using the
-                        # saved credentials
-                        refresh_session()
-                    refresh_time = update_refresh_time()
+                        # client credentials usually does not contain a refresh token => get a
+                        # new token using the saved credentials
+                        assert _auth is not None
+                        new_session = _auth.result(_auth.get_auth_session())
+                        client.token = new_session.fetch_token()
+                    refresh_time = client.token.get("expires_in", 60) - 30
                 except Exception as exc:
-                    # retry again after one second; any failure (not only a transport
-                    # error) must keep the refresher alive
+                    # retry in one second; any error must keep the refresher alive, not only
+                    # network errors
                     refresh_time = 1
                     _Warnings.token_refresh_failed(exc)
 
         demon = Thread(
             target=periodic_refresh_token,
-            args=(expires_in, _auth),
+            args=(refresh_in, _auth),
             daemon=True,
             name="TokenRefresh",
         )
         demon.start()
 
     def _cancel_background_token_refresh(self) -> Optional["asyncio.Task[None]"]:
-        """Stop the token refresher: set the shutdown event (sync thread), cancel the async task.
+        """Stop the token refresher: set the shutdown event (sync thread) and cancel the async task.
 
-        Returns the cancelled task, if any, so close() can await its wind-down.
+        Returns the cancelled task, if any, so close() can wait for it to finish.
         """
         if self._shutdown_background_event is not None:
             self._shutdown_background_event.set()
@@ -613,7 +598,7 @@ class _ConnectionBase:
     async def __periodic_token_refresh_async(
         self, refresh_time: int, _auth: Optional[_Auth], shutdown: Event
     ) -> None:
-        """Thread-free twin of ``periodic_refresh_token`` for the async client; cancelled by close()."""
+        """Async version of ``periodic_refresh_token``, run as a task; close() cancels it."""
         while not shutdown.is_set():
             await asyncio.sleep(max(refresh_time, 1))
             try:
@@ -632,7 +617,7 @@ class _ConnectionBase:
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
-                # retry again after one second; any failure must keep the refresher alive
+                # retry in one second; any error must keep the refresher alive
                 refresh_time = 1
                 _Warnings.token_refresh_failed(exc)
 
@@ -748,7 +733,7 @@ class _ConnectionBase:
 
             async def execute() -> None:
                 if refresh_task is not None:
-                    # let the cancellation land before the client goes away
+                    # wait for the task to finish before the client is closed
                     await asyncio.gather(refresh_task, return_exceptions=True)
                 if self._client is not None:
                     assert isinstance(self._client, AsyncClient)
