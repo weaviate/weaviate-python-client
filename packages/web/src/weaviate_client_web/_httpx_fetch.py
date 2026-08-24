@@ -87,6 +87,10 @@ def _abort_signal_ms(timeout: Optional[float]) -> Optional[int]:
     """
     if timeout is None or not math.isfinite(timeout) or timeout <= 0:
         return None
+    if timeout >= _MAX_ABORT_SIGNAL_MS / 1000:
+        # compared before the multiplication below, which overflows to infinity for
+        # huge finite values
+        return _MAX_ABORT_SIGNAL_MS
     return min(math.ceil(timeout * 1000), _MAX_ABORT_SIGNAL_MS)
 
 

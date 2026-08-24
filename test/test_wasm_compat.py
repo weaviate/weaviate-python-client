@@ -94,6 +94,23 @@ def test_grpc_web_404_names_the_two_real_causes_and_drops_firewall_advice() -> N
     assert "/v1/grpc-web" in msg  # candidate 2: wrong prefix
 
 
+def test_grpc_web_genuine_unimplemented_is_not_diagnosed_as_a_wrong_path() -> None:
+    # a routed grpc-web endpoint can itself return UNIMPLEMENTED (e.g. the health
+    # service is missing); only the channel's synthetic HTTP 404/405 means "not routed"
+    conn = _connection(prefix="/grpc-web")
+    error = AioRpcError(
+        grpc.StatusCode.UNIMPLEMENTED, Metadata(), Metadata(), details="Method not implemented"
+    )
+    with pytest.raises(WeaviateGRPCUnavailableError) as excinfo:
+        _ping_exception(conn, error)
+    msg = str(excinfo.value)
+
+    assert "too old" not in msg
+    assert "1.38.3" not in msg
+    assert "UNIMPLEMENTED" in msg  # the real status is still reported
+    assert "skip_init_checks=True" in msg  # the generic grpc-web advice applies
+
+
 def test_grpc_web_non_404_error_still_omits_the_native_port_advice() -> None:
     conn = _connection(prefix="/grpc-web")
     error = AioRpcError(
@@ -243,6 +260,25 @@ def test_overridden_grpc_arguments_are_warned_about(emscripten) -> None:
     assert "grpc.example.com:50051" in msg  # what was discarded ...
     assert "localhost:8080" in msg  # ... and what is used instead
     assert "WebAssembly" in msg  # ... and why
+    _assert_grpc_rides_rest(client)
+
+
+def test_a_secure_only_grpc_mismatch_is_visible_in_the_warning(emscripten) -> None:
+    # host:port alone would print two identical endpoints; the scheme shows what differed
+    import weaviate
+
+    with pytest.warns(UserWarning, match="Con006") as record:
+        client = weaviate.use_async_with_custom(
+            http_host="localhost",
+            http_port=8080,
+            http_secure=False,
+            grpc_host="localhost",
+            grpc_port=8080,
+            grpc_secure=True,
+        )
+    msg = str(record[0].message)
+    assert "grpcs://localhost:8080" in msg  # what was discarded ...
+    assert "grpc://localhost:8080" in msg  # ... and what is used instead
     _assert_grpc_rides_rest(client)
 
 

@@ -304,6 +304,7 @@ def test_zero_timeout_means_no_deadline(fake_pyfetch, fake_abort_signal):
         (30.0, 30_000),
         (1e8, _MAX_ABORT_SIGNAL_MS),
         (1e10, _MAX_ABORT_SIGNAL_MS),
+        (1e308, _MAX_ABORT_SIGNAL_MS),  # finite, but *1000 overflows: capped, not an error
     ],
 )
 def test_abort_signal_ms_bounds(timeout, expected_ms):

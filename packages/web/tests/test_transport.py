@@ -478,6 +478,7 @@ def test_body_excerpt_empty_and_non_printable():
         (5_999_999_940, "99999999M"),  # the largest deadline that still fits in minutes
         (1e10, None),  # would need hours, which transcoders reject above 8H: no deadline
         (1e15, None),
+        (1e308, None),  # finite, but *1000 overflows to infinity: must not raise
     ],
 )
 def test_encode_timeout_stays_within_eight_digits(seconds, expected):

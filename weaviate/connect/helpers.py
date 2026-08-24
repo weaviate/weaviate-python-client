@@ -28,6 +28,11 @@ from weaviate.warnings import _Warnings
 _LOCAL_GRPC_PORT_DEFAULT = 50051
 
 
+def _grpc_endpoint_str(params: ProtocolParams) -> str:
+    """The endpoint as shown in Con006; the scheme makes a secure-only mismatch visible."""
+    return f"{'grpcs' if params.secure else 'grpc'}://{params.host}:{params.port}"
+
+
 def _webify(
     http: ProtocolParams, grpc: ProtocolParams, *, grpc_chosen_by_caller: bool
 ) -> ConnectionParams:
@@ -50,8 +55,8 @@ def _webify(
     web_grpc = ProtocolParams(host=http.host, port=http.port, secure=http.secure)
     if grpc_chosen_by_caller and web_grpc != grpc:
         _Warnings.grpc_endpoint_forced_to_grpc_web(
-            requested=f"{grpc.host}:{grpc.port}",
-            effective=f"{web_grpc.host}:{web_grpc.port}",
+            requested=_grpc_endpoint_str(grpc),
+            effective=_grpc_endpoint_str(web_grpc),
         )
     return ConnectionParams(http=http, grpc=web_grpc, grpc_path_prefix=GRPC_WEB_SERVER_PATH_PREFIX)
 

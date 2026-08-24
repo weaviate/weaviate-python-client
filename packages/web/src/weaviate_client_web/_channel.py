@@ -52,6 +52,10 @@ def _encode_timeout(seconds: Optional[float]) -> Optional[str]:
     """
     if seconds is None or not math.isfinite(seconds):
         return None
+    if seconds / 60 >= _GRPC_TIMEOUT_MAX:
+        # past the minute range there is no encodable deadline; checked before the
+        # multiplication below, which overflows to infinity for huge finite values
+        return None
     for amount, unit in ((seconds * 1000, "m"), (seconds, "S"), (seconds / 60, "M")):
         value = max(1, math.ceil(amount))
         if value < _GRPC_TIMEOUT_MAX:
@@ -382,6 +386,8 @@ def _non_grpc_web_error(
             what = f"the grpc-web body is truncated ({frame_error})"
         else:
             what = f"the body is not grpc-web framing ({frame_error})"
+    # the base client keys its "wrong path / server too old" diagnosis on this
+    # "HTTP <status>" text (weaviate.exceptions.WeaviateGRPCUnavailableError)
     parts = [f"HTTP {http_status} from {url or '<unknown url>'}: {what}."]
 
     if http_status == 404:

@@ -358,7 +358,12 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
             # gRPC port to open, and REST already worked against this endpoint, so no
             # firewall/wrong-port advice here
             address = f"{grpc_address[0]}:{grpc_address[1]}"
-            if code is StatusCode.UNIMPLEMENTED:
+            # the grpc-web channel reports an unrouted path as UNIMPLEMENTED with the
+            # HTTP status in the details (see weaviate_client_web._channel); a genuine
+            # UNIMPLEMENTED from a routed endpoint must not get the wrong-path diagnosis
+            if code is StatusCode.UNIMPLEMENTED and any(
+                marker in (details or "") for marker in ("HTTP 404", "HTTP 405")
+            ):
                 reason = f"""The server did not route the grpc-web path '{grpc_path_prefix}' at {address}. Either:
 - the server is too old: grpc-web is served from Weaviate {GRPC_WEB_MIN_SERVER_VERSION} onwards, and this server reports {weaviate_version or "an unknown version"}, or
 - the grpc-web base path is wrong: Weaviate serves grpc-web at '{GRPC_WEB_SERVER_PATH_PREFIX}'. The connect helpers set it themselves; only hand-built ConnectionParams choose it (grpc_path_prefix).
