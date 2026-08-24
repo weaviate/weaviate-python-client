@@ -351,8 +351,8 @@ class _BaseExecutor(Generic[ConnectionType]):
         builder = self._query()
         if return_metrics is not None:
             builder = builder.with_fields(" ".join([metric.to_gql() for metric in return_metrics]))
-        if filters is not None:
-            builder = builder.with_where(_FilterToREST.convert(filters))
+        if filters is not None and (where := _FilterToREST.convert(filters)) is not None:
+            builder = builder.with_where(where)
         if total_count:
             builder = builder.with_meta_count()
         if self._tenant is not None:
