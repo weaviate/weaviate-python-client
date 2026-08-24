@@ -22,12 +22,11 @@ MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC 
 
 
 def _grpc_web_shim_active() -> bool:
-    """Whether the 'weaviate-client-web' shim has replaced the grpc module.
+    """Whether the 'weaviate-client-web' package has replaced the grpc module.
 
-    The shim (used under WASM/Pyodide, where there is no grpcio wheel) routes unary RPCs
-    over grpc-web/fetch and cannot do bidirectional streaming. The marker attribute is
-    the documented contract between the two packages — keep all sniffs going through
-    this helper.
+    That replacement (used under WASM/Pyodide, where grpcio is not available) sends unary
+    RPCs over grpc-web/fetch and cannot do bidirectional streaming. The marker attribute
+    is the agreed contract between the two packages; check it only through this helper.
     """
     return getattr(grpc, "__weaviate_client_web_shim__", False) is True
 
@@ -59,9 +58,9 @@ T = TypeVar("T", bound="ConnectionParams")
 class ConnectionParams(BaseModel):
     http: ProtocolParams
     grpc: ProtocolParams
-    # Optional base-path prefix for a grpc-web endpoint served on the REST host:port
-    # (e.g. "/grpc-web"). None/"" means native gRPC. When set, sharing the REST
-    # host:port is permitted and the prefix is forwarded to the grpc-web transport.
+    # Optional base path of a grpc-web endpoint on the REST host:port (e.g. "/grpc-web").
+    # None/"" means native gRPC. When set, gRPC may share the REST host:port and the
+    # prefix is passed on to the grpc-web transport.
     grpc_path_prefix: Optional[str] = None
 
     @classmethod
@@ -125,8 +124,8 @@ class ConnectionParams(BaseModel):
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:
         same_endpoint = self.http.host == self.grpc.host and self.http.port == self.grpc.port
-        # grpc-web can be multiplexed onto the REST port under a base-path prefix, so a
-        # shared host:port is only a conflict for native gRPC (no prefix configured).
+        # with a grpc-web prefix gRPC may share the REST host:port; without one (native
+        # gRPC) the same host:port is a conflict
         if same_endpoint and self._grpc_web_path_prefix == "":
             raise ValueError("http.port and grpc.port must be different if using the same host")
         return self
@@ -141,19 +140,19 @@ class ConnectionParams(BaseModel):
 
     @property
     def _grpc_web_path_prefix(self) -> str:
-        """Return the normalized grpc-web base-path prefix; "" means native gRPC.
+        """The normalized grpc-web base path; "" means native gRPC.
 
-        A configured prefix is returned with a single leading slash and no trailing
-        slash (e.g. "grpc-web/" -> "/grpc-web"); empty/None -> "" (native gRPC).
+        A set prefix comes back with one leading slash and no trailing slash
+        (e.g. "grpc-web/" -> "/grpc-web"); empty/None -> "".
         """
         cleaned = (self.grpc_path_prefix or "").strip("/")
         return f"/{cleaned}" if cleaned else ""
 
     def _check_grpc_web_usable(self, is_async: bool) -> None:
-        """Fail fast on a grpc-web prefix this process cannot honour; a no-op for native gRPC.
+        """Fail early on a grpc-web prefix this client cannot use; does nothing for native gRPC.
 
         A native grpcio channel would silently ignore the ``grpc-web.path_prefix`` option
-        and route over native gRPC, so the shim (which consumes it) must be in place.
+        and use native gRPC, so the replacement grpc module must be in place.
         """
         if self._grpc_web_path_prefix == "":
             return
@@ -195,7 +194,7 @@ class ConnectionParams(BaseModel):
         if grpc_config is not None and grpc_config.channel_options is not None:
             options.extend(grpc_config.channel_options)
 
-        # nothing is added for native gRPC, so its channel options stay byte-for-byte unchanged
+        # only grpc-web adds an option; native gRPC channel options are unchanged
         if (prefix := self._grpc_web_path_prefix) != "":
             options.append(("grpc-web.path_prefix", prefix))
 

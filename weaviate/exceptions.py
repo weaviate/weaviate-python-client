@@ -331,7 +331,7 @@ def _grpc_status_of(
 
 # first Weaviate release that serves grpc-web on the REST port
 GRPC_WEB_MIN_SERVER_VERSION = "1.38.3"
-# the base path Weaviate itself serves grpc-web from
+# the base path Weaviate serves grpc-web on
 GRPC_WEB_SERVER_PATH_PREFIX = "/v1/grpc-web"
 
 
@@ -354,9 +354,9 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
             )
 
         if grpc_path_prefix:
-            # grpc-web multiplexes gRPC onto the REST host:port under a base path: there
-            # is no separate gRPC port to unblock, and the client has already talked to
-            # this exact endpoint over REST — so no firewall/wrong-port advice here.
+            # grpc-web shares the REST host:port under a base path: there is no separate
+            # gRPC port to open, and REST already worked against this endpoint, so no
+            # firewall/wrong-port advice here
             address = f"{grpc_address[0]}:{grpc_address[1]}"
             if code is StatusCode.UNIMPLEMENTED:
                 reason = f"""The server did not route the grpc-web path '{grpc_path_prefix}' at {address}. Either:

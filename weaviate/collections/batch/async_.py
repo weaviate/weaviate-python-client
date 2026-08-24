@@ -135,9 +135,8 @@ class _BatchBaseAsync:
 
     async def _start(self):
         if _grpc_web_shim_active():
-            # fail fast and loud: over grpc-web the BatchStream RPC raises inside the
-            # background tasks, where it would otherwise surface as a silent drop or a
-            # never-ending flush()
+            # fail early: over grpc-web the BatchStream RPC would fail inside the background
+            # tasks, which shows up as silently dropped objects or a flush() that never ends
             raise WeaviateBatchStreamError(
                 "batch.stream() requires bidirectional gRPC streaming, which is not "
                 "possible over grpc-web/fetch (WebAssembly/Pyodide). Use "

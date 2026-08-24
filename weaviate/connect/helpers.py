@@ -23,30 +23,28 @@ from weaviate.util import docstring_deprecated
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
-# The native-gRPC port a local Weaviate exposes by default. Doubles as the sentinel for
-# "the caller did not pick a gRPC port of their own" in use_async_with_local().
+# Default gRPC port of a local Weaviate. use_async_with_local() also uses it to tell
+# whether the caller picked a gRPC port of their own.
 _LOCAL_GRPC_PORT_DEFAULT = 50051
 
 
 def _webify(
     http: ProtocolParams, grpc: ProtocolParams, *, grpc_chosen_by_caller: bool
 ) -> ConnectionParams:
-    """Build connection params, routing gRPC over grpc-web under WebAssembly.
+    """Build connection params; under WebAssembly, route gRPC over grpc-web.
 
-    Under Emscripten there is no grpcio wheel and no socket, so native gRPC cannot work
-    at all; grpc-web on the REST listener is the only transport that can. gRPC is
-    therefore pinned to the HTTP endpoint under Weaviate's own grpc-web base path, which
-    is what the TypeScript ``@weaviate/web`` client does (its ``webify()``). Everywhere
-    else this is the identity: ``grpc`` is used exactly as given.
+    Under Emscripten there is no grpcio and no sockets, so native gRPC cannot work; the
+    only option is grpc-web on the REST endpoint. gRPC is therefore pointed at the HTTP
+    host/port under Weaviate's own grpc-web base path, the same thing the TypeScript
+    ``@weaviate/web`` client does in its ``webify()``. On every other platform ``grpc``
+    is used exactly as given.
 
     ``grpc_chosen_by_caller`` says whether ``grpc`` came from the caller rather than from
-    a convention of the helper's own; discarding a caller's endpoint warns, so nobody is
-    left believing an endpoint was honoured when it was not.
+    a default of the helper. If a caller's endpoint is replaced, a warning says so.
     """
     if sys.platform != "emscripten":
-        # grpc_path_prefix passed explicitly: it keeps the constructor arguments (and so
-        # pydantic's echo of them in a validation error) identical to what callers saw
-        # before grpc-web existed.
+        # grpc_path_prefix=None is passed explicitly so the constructor call (and pydantic's
+        # error output for it) looks exactly as it did before grpc-web existed
         return ConnectionParams(http=http, grpc=grpc, grpc_path_prefix=None)
 
     web_grpc = ProtocolParams(host=http.host, port=http.port, secure=http.secure)
@@ -420,7 +418,7 @@ def use_async_with_weaviate_cloud(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
-    Under WebAssembly/Pyodide gRPC runs over grpc-web on the cluster's own REST endpoint
+    Under WebAssembly/Pyodide gRPC goes over grpc-web on the cluster's own REST endpoint
     (443/TLS) rather than the separate ``grpc-`` host, because native gRPC cannot work
     there. Nothing to configure: the cluster serves grpc-web itself.
 
@@ -463,7 +461,7 @@ def use_async_with_weaviate_cloud(
         connection_params=_webify(
             http=ProtocolParams(host=cluster_url, port=443, secure=True),
             grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
-            # the grpc-<cluster> host is this helper's own convention, never caller input
+            # the grpc-<cluster> host is the helper's default, not caller input
             grpc_chosen_by_caller=False,
         ),
         auth_client_secret=__parse_auth_credentials(auth_credentials),
@@ -488,9 +486,9 @@ def use_async_with_local(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
-    Under WebAssembly/Pyodide gRPC runs over grpc-web on the REST listener, because native
+    Under WebAssembly/Pyodide gRPC goes over grpc-web on the REST endpoint, because native
     gRPC cannot work there. ``grpc_port`` is then replaced by ``port``; if you passed a
-    ``grpc_port`` of your own it is discarded and a ``UserWarning`` says so.
+    ``grpc_port`` of your own it is ignored and a ``UserWarning`` says so.
 
     Args:
         host: The host to use for the underlying REST and GraphQL API calls.
@@ -536,7 +534,7 @@ def use_async_with_local(
         connection_params=_webify(
             http=ProtocolParams(host=host, port=port, secure=False),
             grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
-            # the default port is this helper's convention; anything else was chosen
+            # the default port comes from the helper; anything else the caller chose
             grpc_chosen_by_caller=grpc_port != _LOCAL_GRPC_PORT_DEFAULT,
         ),
         additional_headers=headers,
@@ -645,10 +643,10 @@ def use_async_with_custom(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
-    Under WebAssembly/Pyodide gRPC runs over grpc-web on the REST listener, because native
+    Under WebAssembly/Pyodide gRPC goes over grpc-web on the REST endpoint, because native
     gRPC cannot work there (no sockets, no ``grpcio`` wheel). ``grpc_host``, ``grpc_port``
     and ``grpc_secure`` are then replaced by ``http_host``, ``http_port`` and
-    ``http_secure``; if what you passed differed, it is discarded and a ``UserWarning``
+    ``http_secure``; if what you passed differed, it is ignored and a ``UserWarning``
     names both endpoints. This mirrors the TypeScript ``@weaviate/web`` client, which
     removes those three options from its API altogether.
 
@@ -707,7 +705,7 @@ def use_async_with_custom(
         _webify(
             http=ProtocolParams(host=http_host, port=http_port, secure=http_secure),
             grpc=ProtocolParams(host=grpc_host, port=grpc_port, secure=grpc_secure),
-            # all three gRPC arguments are required here, so they are always caller input
+            # all three gRPC arguments are required here, so they are caller input
             grpc_chosen_by_caller=True,
         ),
         auth_client_secret=__parse_auth_credentials(auth_credentials),
