@@ -77,6 +77,10 @@ class _Filters:
         return _FilterNot(self)
 
 
+class _FilterNone(_Filters):
+    """A filter that is omitted when a request is serialized."""
+
+
 class _FilterAnd(_Filters):
     def __init__(self, filters: List[_Filters]):
         self.filters: List[_Filters] = filters
@@ -650,13 +654,14 @@ class Filter:
         return _FilterByProperty(prop=name, length=length, target=None)
 
     @staticmethod
-    def all_of(filters: List[_Filters]) -> _Filters:
-        """Combine all filters in the input list with an AND operator."""
-        if len(filters) == 1:
-            return filters[0]
-        elif len(filters) == 0:
-            raise WeaviateInvalidInputError("Filter.all_of must have at least one filter")
-        return _FilterAnd(filters)
+    def all_of(filters: Sequence[Optional[_Filters]]) -> _Filters:
+        """Combine all non-None filters in the input list with an AND operator."""
+        filtered = [filter_ for filter_ in filters if filter_ is not None]
+        if len(filtered) == 1:
+            return filtered[0]
+        elif len(filtered) == 0:
+            return _FilterNone()
+        return _FilterAnd(filtered)
 
     @staticmethod
     def any_of(filters: List[_Filters]) -> _Filters:
