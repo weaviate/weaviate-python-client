@@ -104,11 +104,13 @@ def test_collection_config_simple_from_json_with_dropped_vector_index() -> None:
     assert config.vector_config["dropped"].vector_index_config is None
 
 
-def _legacy_schema_without_vectorizer() -> Dict[str, Any]:
-    """Schema of a legacy (single-vector) collection whose vector index was dropped.
+def _schema_without_any_vector() -> Dict[str, Any]:
+    """Schema of a named-vector collection whose vectors were all dropped.
 
-    After the drop finalizes the server omits the top-level `vectorizer`, `vectorIndexType`
-    and `vectorIndexConfig`, and there is no `vectorConfig` block.
+    Once the drops finalize the server removes every `vectorConfig` entry, so the block is
+    omitted, and a named-vector collection never has a top-level `vectorizer`, `vectorIndexType`
+    or `vectorIndexConfig`. (A legacy single-vector collection cannot reach this shape: the server
+    rejects dropping its index, so it always keeps a top-level `vectorizer`.)
     """
     return {
         "class": "TestCollection",
@@ -133,18 +135,18 @@ def _legacy_schema_without_vectorizer() -> Dict[str, Any]:
     }
 
 
-def test_collection_config_from_json_legacy_dropped_vector_index() -> None:
-    """A legacy collection whose vector index was dropped has no top-level vectorizer."""
-    config = _collection_config_from_json(_legacy_schema_without_vectorizer())
+def test_collection_config_from_json_all_vectors_dropped() -> None:
+    """A collection whose vectors were all dropped has no top-level vectorizer."""
+    config = _collection_config_from_json(_schema_without_any_vector())
 
     assert config.vectorizer is None
     assert config.vector_index_type is None
     assert config.vector_config is None
 
 
-def test_collection_config_simple_from_json_legacy_dropped_vector_index() -> None:
-    """`collections.list_all()` must not choke on a legacy collection with a dropped index."""
-    config = _collection_config_simple_from_json(_legacy_schema_without_vectorizer())
+def test_collection_config_simple_from_json_all_vectors_dropped() -> None:
+    """`collections.list_all()` must not choke on a collection whose vectors were all dropped."""
+    config = _collection_config_simple_from_json(_schema_without_any_vector())
 
     assert config.vectorizer is None
     assert config.vector_config is None
