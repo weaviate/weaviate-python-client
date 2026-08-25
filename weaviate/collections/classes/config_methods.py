@@ -317,8 +317,9 @@ def __get_vector_config(
 def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]]:
     if "vectorConfig" in schema:
         return None
-    # A legacy (non-named-vector) collection whose vector index was dropped with
-    # `collection.config.delete_vector_index` comes back with no top-level `vectorizer`.
+    # A named-vector collection whose vectors were all dropped with
+    # `collection.config.delete_vector_index` comes back with neither a `vectorConfig` block nor a
+    # top-level `vectorizer`. Return None instead of raising KeyError on the missing key.
     if "vectorizer" not in schema:
         return None
 
