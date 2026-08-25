@@ -687,6 +687,20 @@ def test_hnsw_with_rq4c(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.rescore_limit == 20
     assert config.vector_index_config.quantizer.training_limit == 5000
 
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            quantizer=Reconfigure.VectorIndex.Quantizer.rq(rescore_limit=50, training_limit=10000),
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer.bits == 4
+    assert config.vector_index_config.quantizer.centering is True
+    assert config.vector_index_config.quantizer.rescore_limit == 50
+    assert config.vector_index_config.quantizer.training_limit == 10000
+
 
 @pytest.mark.parametrize(
     "vector_index_config",
