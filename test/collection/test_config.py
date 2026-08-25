@@ -1619,6 +1619,23 @@ def test_vector_config_hnsw_rq() -> None:
     assert vi_dict["rq"]["rescoreLimit"] == 123
 
 
+def test_vector_config_hnsw_rq4c() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128,
+        quantizer=Configure.VectorIndex.Quantizer.rq(
+            bits=4, centering=True, rescore_limit=123, training_limit=5012
+        ),
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["rq"]["bits"] == 4
+    assert vi_dict["rq"]["centering"] is True
+    assert vi_dict["rq"]["rescoreLimit"] == 123
+    assert vi_dict["rq"]["trainingLimit"] == 5012
+
+
 def test_vector_config_flat_pq() -> None:
     vector_index = Configure.VectorIndex.flat(
         distance_metric=VectorDistances.DOT,

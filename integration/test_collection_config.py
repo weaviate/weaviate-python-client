@@ -662,6 +662,32 @@ def test_hnsw_with_rq(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.rescore_limit == 20
 
 
+def test_hnsw_with_rq4c(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 39, 2):
+        pytest.skip("RQ centering is not supported in Weaviate versions lower than 1.39.2")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.rq(
+                bits=4, centering=True, rescore_limit=20, training_limit=5000
+            ),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer is not None
+    assert config.vector_index_config.quantizer.bits == 4
+    assert config.vector_index_config.quantizer.centering is True
+    assert config.vector_index_config.quantizer.rescore_limit == 20
+    assert config.vector_index_config.quantizer.training_limit == 5000
+
+
 @pytest.mark.parametrize(
     "vector_index_config",
     [
