@@ -2745,7 +2745,7 @@ def test_delete_vector_index(collection_factory: CollectionFactory) -> None:
     assert config.vector_config is not None
     assert config.vector_config["dropped"].vector_index_config is not None
 
-    assert collection.config.delete_vector_index("dropped") is True
+    assert collection.config.delete_vector_index("dropped") is None
 
     vector_config = _vector_config_without_index(collection, "dropped")
     # vectors that were not dropped keep their index
