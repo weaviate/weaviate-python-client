@@ -290,6 +290,13 @@ def __get_vector_config(
                 vector_index_config is None
                 and named_vector.get("vectorIndexType") != VectorIndexType.NONE.value
             ):
+                if "vectorIndexConfig" in named_vector:
+                    # the config is present; this client version does not know the index type
+                    raise SchemaValidationError(
+                        f"Named vector {name!r} has an unknown vectorIndexType "
+                        f"{named_vector.get('vectorIndexType')!r}; upgrade the client to a version "
+                        "that supports it"
+                    )
                 raise SchemaValidationError(
                     f"Named vector {name!r} has vectorIndexType "
                     f"{named_vector.get('vectorIndexType')!r} but no vectorIndexConfig in the "

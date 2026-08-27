@@ -92,16 +92,21 @@ def test_collection_config_from_json_missing_vector_index_config_raises() -> Non
         _collection_config_from_json(schema)
 
 
-def test_collection_config_simple_from_json_with_dropped_vector_index() -> None:
-    """`collections.list_all()` must not choke on a collection with a dropped vector index."""
+def test_collection_config_from_json_unknown_vector_index_type_raises() -> None:
+    """An index type the client does not know is reported as such, not as a missing config."""
+    # `vectorIndexConfig` is present and populated; only the type is unknown to this client.
     schema = _schema_with_vector_config(
-        {"dropped": {"vectorizer": {"none": {}}, "vectorIndexType": "none"}}
+        {
+            "future": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "spann",
+                "vectorIndexConfig": {"distance": "cosine", "searchListSize": 100},
+            }
+        }
     )
 
-    config = _collection_config_simple_from_json(schema)
-
-    assert config.vector_config is not None
-    assert config.vector_config["dropped"].vector_index_config is None
+    with pytest.raises(SchemaValidationError, match="unknown vectorIndexType"):
+        _collection_config_from_json(schema)
 
 
 def _schema_without_any_vector() -> Dict[str, Any]:

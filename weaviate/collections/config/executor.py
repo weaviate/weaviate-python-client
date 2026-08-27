@@ -670,7 +670,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def delete_vector_index(
         self,
         vector_name: str,
-    ) -> executor.Result[bool]:
+    ) -> executor.Result[None]:
         """Delete the index of a named vector of the collection in Weaviate.
 
             This is a destructive and irreversible operation. The vectors themselves are kept, but
@@ -683,9 +683,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             vector with a `vector_index_config` of `None` and drops it from `vector_config`
             altogether once the index has been removed from disk.
 
-            Only named vectors can be dropped and the server must be started with
-            `ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true`, since the endpoint
-            is experimental and disabled by default. Without it, Weaviate answers with a 500.
+            Only named vectors can be dropped. The endpoint is experimental and may be disabled
+            server-side, in which case Weaviate rejects the request.
 
         Args:
             vector_name: The name of the named vector whose index to delete.
@@ -693,15 +692,15 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status, e.g.
-                if the vector does not exist or if the endpoint is not enabled on the server.
+                if the vector does not exist or if the endpoint is disabled on the server.
             weaviate.exceptions.WeaviateInvalidInputError: If `vector_name` is not a string.
         """
         _validate_input([_ValidateArgument(expected=[str], name="vector_name", value=vector_name)])
 
         path = f"/schema/{_capitalize_first_letter(self._name)}/vectors/{vector_name}/index"
 
-        def resp(res: Response) -> bool:
-            return res.status_code == 200
+        def resp(res: Response) -> None:
+            return None
 
         return executor.execute(
             response_callback=resp,

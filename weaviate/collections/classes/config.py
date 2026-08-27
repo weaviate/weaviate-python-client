@@ -1548,7 +1548,8 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
 
     @staticmethod
     def __existing_vector_index_config(schema: Dict[str, Any], name: str) -> Dict[str, Any]:
-        if name not in schema["vectorConfig"]:
+        # `vectorConfig` is omitted entirely once every named vector has been dropped.
+        if "vectorConfig" not in schema or name not in schema["vectorConfig"]:
             raise WeaviateInvalidInputError(
                 f"Vector config with name {name} does not exist in the existing vector config"
             )

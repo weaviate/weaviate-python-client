@@ -514,25 +514,8 @@ def test_delete_vector_index(weaviate_mock: HTTPServer) -> None:
     ).respond_with_json(
         response_json={"error": [{"message": "vector index missing not found"}]}, status=422
     )
-
-    with weaviate.connect_to_local(
-        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
-    ) as client:
-        assert client.collections.use("test").config.delete_vector_index("vec")
-
-        # a non-OK answer (e.g. unknown vector name) surfaces as UnexpectedStatusCodeError
-        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
-            client.collections.use("test").config.delete_vector_index("missing")
-        assert e.value.status_code == 422
-
-        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
-            client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
-
-
-def test_delete_vector_index_endpoint_disabled(weaviate_mock: HTTPServer) -> None:
-    # servers without ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true answer 500
     weaviate_mock.expect_request(
-        "/v1/schema/Test/vectors/vec/index", method="DELETE"
+        "/v1/schema/Test/vectors/disabled/index", method="DELETE"
     ).respond_with_json(
         response_json={
             "error": [
@@ -547,11 +530,22 @@ def test_delete_vector_index_endpoint_disabled(weaviate_mock: HTTPServer) -> Non
     with weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     ) as client:
-        with pytest.raises(UnexpectedStatusCodeError) as e:
-            client.collections.use("Test").config.delete_vector_index("vec")
-        assert e.value.status_code == 500
-        # the error message must not claim the vector is missing, the endpoint is simply off
-        assert "experimental and disabled by default" in e.value.message
+        assert client.collections.use("test").config.delete_vector_index("vec") is None
+
+        # a non-OK answer (e.g. unknown vector name) surfaces as UnexpectedStatusCodeError
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            client.collections.use("test").config.delete_vector_index("missing")
+        assert e.value.status_code == 422
+
+        # a disabled experimental endpoint answers 500; the server message must reach the
+        # exception rather than being masked as a missing vector
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as disabled:
+            client.collections.use("test").config.delete_vector_index("disabled")
+        assert disabled.value.status_code == 500
+        assert "experimental and disabled by default" in disabled.value.message
+
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+            client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
 
 
 def test_grpc_client_version_header(
