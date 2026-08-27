@@ -275,3 +275,17 @@ def test_updating_vector_next_to_dropped_vector_index() -> None:
         "vectorizer": {"none": {}},
         "vectorIndexType": "none",
     }
+
+
+def test_updating_vector_when_none_left() -> None:
+    """Once every vector is dropped the server omits vectorConfig; update must not raise KeyError."""
+    update = _CollectionConfigUpdate(
+        vector_config=[
+            Reconfigure.Vectors.update(
+                name="gone", vector_index_config=Reconfigure.VectorIndex.hnsw(ef=128)
+            )
+        ]
+    )
+
+    with pytest.raises(WeaviateInvalidInputError, match="does not exist"):
+        update.merge_with_existing({"class": "Test", "properties": []})
