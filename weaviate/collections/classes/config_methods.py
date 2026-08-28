@@ -157,6 +157,8 @@ def __get_quantizer_config(
             cache=config["rq"].get("cache"),
             bits=config["rq"].get("bits"),
             rescore_limit=config["rq"].get("rescoreLimit"),
+            centering=config["rq"].get("centering"),
+            training_limit=config["rq"].get("trainingLimit"),
         )
     return quantizer
 
