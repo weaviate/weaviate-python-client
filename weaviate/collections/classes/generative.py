@@ -130,9 +130,10 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
                 target_variant=self.target_variant,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
+                stop_sequences=_to_text_array(self.stop_sequences),
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
-                # TODO - add top_k, top_p & stop_sequences here when added to server-side proto
+                # TODO - add top_k & top_p here when added to server-side proto
                 # Check the latest availble version of `grpc/proto/v1/generative.proto` (see GenerativeAWS) in the server repo
             ),
         )
