@@ -1563,7 +1563,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _BQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                     or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
@@ -1571,7 +1571,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _SQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
@@ -1579,7 +1579,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _RQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                 )
@@ -1981,6 +1981,8 @@ class _RQConfig(_ConfigBase):
     cache: Optional[bool]
     bits: Optional[int]
     rescore_limit: int
+    centering: Optional[bool]
+    training_limit: Optional[int]
 
 
 BQConfig = _BQConfig
@@ -2984,6 +2986,8 @@ class _VectorIndexQuantizerUpdate:
         rescore_limit: Optional[int] = None,
         enabled: bool = True,
         bits: Optional[int] = None,
+        centering: Optional[bool] = None,
+        training_limit: Optional[int] = None,
     ) -> _RQConfigUpdate:
         """Create a `_RQConfigUpdate` object to be used when updating the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -2992,7 +2996,13 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _RQConfigUpdate(enabled=enabled, rescoreLimit=rescore_limit, bits=bits)
+        return _RQConfigUpdate(
+            enabled=enabled,
+            rescoreLimit=rescore_limit,
+            bits=bits,
+            centering=centering,
+            trainingLimit=training_limit,
+        )
 
 
 class _VectorIndexUpdate:
