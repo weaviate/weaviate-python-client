@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 import pytest
 
-from weaviate.collections.classes.config import VectorIndexType
+from weaviate.collections.classes.config import VectorIndexType, _VectorIndexConfigNone
 from weaviate.exceptions import SchemaValidationError
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -72,8 +72,9 @@ def test_collection_config_from_json_with_dropped_vector_index() -> None:
     config = _collection_config_from_json(schema)
 
     assert config.vector_config is not None
-    assert config.vector_config["dropped"].vector_index_config is None
-    assert config.vector_config["kept"].vector_index_config is not None
+    assert isinstance(config.vector_config["dropped"].vector_index_config, _VectorIndexConfigNone)
+    assert config.vector_config["dropped"].vector_index_config.vector_index_type() == "none"
+    assert not isinstance(config.vector_config["kept"].vector_index_config, _VectorIndexConfigNone)
 
     # The dropped vector must round-trip back to the "none" index type the server reported.
     as_dict = config.to_dict()
