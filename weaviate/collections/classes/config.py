@@ -2100,6 +2100,21 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 
 @dataclass
+class _VectorIndexConfigNone(_ConfigBase):
+    """The index of this vector was dropped with `collection.config.delete_vector_index`.
+
+    The vector data is still stored, but there is no index left to configure or search.
+    """
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.NONE.value
+
+
+VectorIndexConfigNone = _VectorIndexConfigNone
+
+
+@dataclass
 class _GenerativeConfig(_ConfigBase):
     generative: Union[GenerativeSearches, str]
     model: Dict[str, Any]
@@ -2143,23 +2158,20 @@ class _NamedVectorizerConfig(_ConfigBase):
 @dataclass
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
-    # `None` means the index of this vector was dropped with `collection.config.delete_vector_index`.
-    # The vector data is still stored, but there is no index to configure or search.
     vector_index_config: Union[
         VectorIndexConfigHNSW,
         VectorIndexConfigFlat,
         VectorIndexConfigDynamic,
         VectorIndexConfigHFresh,
-        None,
+        VectorIndexConfigNone,
     ]
 
     def to_dict(self) -> Dict:
         ret_dict = super().to_dict()
-        ret_dict["vectorIndexType"] = (
-            VectorIndexType.NONE.value
-            if self.vector_index_config is None
-            else self.vector_index_config.vector_index_type()
-        )
+        ret_dict["vectorIndexType"] = self.vector_index_config.vector_index_type()
+        if isinstance(self.vector_index_config, _VectorIndexConfigNone):
+            # match the server: a dropped index is reported without any `vectorIndexConfig`
+            ret_dict.pop("vectorIndexConfig", None)
         return ret_dict
 
 

@@ -1,9 +1,11 @@
 import datetime
-from typing import Any, Dict, Literal
+import json
+from typing import Any, Dict, List, Literal
 
 import grpc
 import pytest
 from pytest_httpserver import HTTPServer
+from werkzeug import Request, Response
 
 import weaviate
 import weaviate.classes as wvc
@@ -546,6 +548,40 @@ def test_delete_vector_index(weaviate_mock: HTTPServer) -> None:
 
         with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
             client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
+
+
+def test_create_from_dict_skips_dropped_vectors(weaviate_mock: HTTPServer) -> None:
+    """Entries with vectorIndexType "none" cannot be re-created and are stripped before the POST."""
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        body = request.get_json()
+        bodies.append(body)
+        return Response(json.dumps({"class": body["class"]}), content_type="application/json")
+
+    weaviate_mock.expect_request("/v1/schema", method="POST").respond_with_handler(handler)
+
+    hnsw_entry = {"vectorizer": {"none": {}}, "vectorIndexType": "hnsw", "vectorIndexConfig": {}}
+    dropped_entry = {"vectorizer": {"none": {}}, "vectorIndexType": "none"}
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        with pytest.warns(UserWarning, match=r"Col001.*dropped"):
+            client.collections.create_from_dict(
+                {
+                    "class": "TestDropped",
+                    "vectorConfig": {"dropped": dropped_entry, "kept": hnsw_entry},
+                }
+            )
+        assert bodies[-1]["vectorConfig"] == {"kept": hnsw_entry}
+
+        # once every vector is stripped the empty block is omitted, not sent as {}
+        with pytest.warns(UserWarning, match=r"Col001.*only"):
+            client.collections.create_from_dict(
+                {"class": "TestAllDropped", "vectorConfig": {"only": dropped_entry}}
+            )
+        assert "vectorConfig" not in bodies[-1]
 
 
 def test_grpc_client_version_header(

@@ -44,6 +44,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigFlat,
     _VectorIndexConfigHFresh,
     _VectorIndexConfigHNSW,
+    _VectorIndexConfigNone,
     _VectorizerConfig,
 )
 from weaviate.exceptions import SchemaValidationError
@@ -283,25 +284,32 @@ def __get_vector_config(
                 vec_config = {}
             props = vec_config.pop("properties", None)
 
-            vector_index_config = __get_vector_index_config(named_vector)
-            # A vector whose index was dropped with `collection.config.delete_vector_index` is
-            # returned as `vectorIndexType: "none"` without any `vectorIndexConfig`.
-            if (
-                vector_index_config is None
-                and named_vector.get("vectorIndexType") != VectorIndexType.NONE.value
-            ):
-                if "vectorIndexConfig" in named_vector:
+            vector_index_config: Union[
+                _VectorIndexConfigHNSW,
+                _VectorIndexConfigFlat,
+                _VectorIndexConfigDynamic,
+                _VectorIndexConfigHFresh,
+                _VectorIndexConfigNone,
+                None,
+            ] = __get_vector_index_config(named_vector)
+            if vector_index_config is None:
+                # A vector whose index was dropped with `collection.config.delete_vector_index` is
+                # returned as `vectorIndexType: "none"` without any `vectorIndexConfig`.
+                if named_vector.get("vectorIndexType") == VectorIndexType.NONE.value:
+                    vector_index_config = _VectorIndexConfigNone()
+                elif "vectorIndexConfig" in named_vector:
                     # the config is present; this client version does not know the index type
                     raise SchemaValidationError(
                         f"Named vector {name!r} has an unknown vectorIndexType "
                         f"{named_vector.get('vectorIndexType')!r}; upgrade the client to a version "
                         "that supports it"
                     )
-                raise SchemaValidationError(
-                    f"Named vector {name!r} has vectorIndexType "
-                    f"{named_vector.get('vectorIndexType')!r} but no vectorIndexConfig in the "
-                    "schema returned by Weaviate"
-                )
+                else:
+                    raise SchemaValidationError(
+                        f"Named vector {name!r} has vectorIndexType "
+                        f"{named_vector.get('vectorIndexType')!r} but no vectorIndexConfig in the "
+                        "schema returned by Weaviate"
+                    )
             try:
                 vec: Union[str, Vectorizers] = Vectorizers(vectorizer_str)
             except ValueError:

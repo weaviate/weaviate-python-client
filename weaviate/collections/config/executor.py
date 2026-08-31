@@ -680,8 +680,8 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
             The drop is applied asynchronously. A successful call means that Weaviate accepted the
             request, not that the index is already gone. `collection.config.get()` first reports the
-            vector with a `vector_index_config` of `None` and drops it from `vector_config`
-            altogether once the index has been removed from disk.
+            vector with a `vector_index_config` of `VectorIndexConfigNone` and drops it from
+            `vector_config` altogether once the index has been removed from disk.
 
             Only named vectors can be dropped. The endpoint is experimental and may be disabled
             server-side, in which case Weaviate rejects the request.

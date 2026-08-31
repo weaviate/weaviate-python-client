@@ -23,6 +23,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
+    _VectorIndexConfigNone,
     _VectorIndexConfigHNSWUpdate,
     Configure,
     Reconfigure,
@@ -2706,16 +2707,15 @@ def _vector_config_without_index(
 
     The drop is applied asynchronously, a 200 from the endpoint only means that Weaviate accepted
     the request. It then becomes visible in two steps: the vector first stays in the schema with a
-    `vector_index_config` of `None`, and once the index is gone from disk the entry is removed from
-    the schema altogether. Both shapes must parse, so accept either.
+    `vector_index_config` of `_VectorIndexConfigNone`, and once the index is gone from disk the
+    entry is removed from the schema altogether. Both shapes must parse, so accept either.
     """
     start = time.time()
     while True:
         vector_config = collection.config.get().vector_config
         assert vector_config is not None
-        if (
-            vector_name not in vector_config
-            or vector_config[vector_name].vector_index_config is None
+        if vector_name not in vector_config or isinstance(
+            vector_config[vector_name].vector_index_config, _VectorIndexConfigNone
         ):
             return vector_config
         if time.time() - start > timeout:
@@ -2743,13 +2743,15 @@ def test_delete_vector_index(collection_factory: CollectionFactory) -> None:
 
     config = collection.config.get()
     assert config.vector_config is not None
-    assert config.vector_config["dropped"].vector_index_config is not None
+    assert not isinstance(
+        config.vector_config["dropped"].vector_index_config, _VectorIndexConfigNone
+    )
 
     assert collection.config.delete_vector_index("dropped") is None
 
     vector_config = _vector_config_without_index(collection, "dropped")
     # vectors that were not dropped keep their index
-    assert vector_config["kept"].vector_index_config is not None
+    assert not isinstance(vector_config["kept"].vector_index_config, _VectorIndexConfigNone)
 
     # searching the vector that still has an index keeps working
     assert len(collection.query.near_vector([3, 4], target_vector="kept").objects) == 1
