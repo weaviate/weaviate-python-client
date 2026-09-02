@@ -1264,6 +1264,50 @@ def test_config_with_generative(
     }
 
 
+def test_config_with_generative_digitalocean_all_fields() -> None:
+    generative_config = Configure.Generative.digitalocean(
+        base_url="https://inference.do-ai.run",
+        model="llama-4-maverick",
+        temperature=0.5,
+        top_p=0.9,
+        max_tokens=100,
+        frequency_penalty=0.1,
+        presence_penalty=0.2,
+        stop=["STOP"],
+    )
+
+    config = _CollectionConfigCreate(name="test", generative_config=generative_config)
+
+    assert config._to_dict() == {
+        **DEFAULTS,
+        "class": "Test",
+        "moduleConfig": {
+            "generative-digitalocean": {
+                "baseURL": "https://inference.do-ai.run",
+                "model": "llama-4-maverick",
+                "temperature": 0.5,
+                "topP": 0.9,
+                "maxTokens": 100,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "stop": ["STOP"],
+            }
+        },
+    }
+
+
+def test_config_with_generative_digitalocean_empty() -> None:
+    generative_config = Configure.Generative.digitalocean()
+
+    config = _CollectionConfigCreate(name="test", generative_config=generative_config)
+
+    assert config._to_dict() == {
+        **DEFAULTS,
+        "class": "Test",
+        "moduleConfig": {"generative-digitalocean": {}},
+    }
+
+
 TEST_CONFIG_WITH_RERANKER = [
     (
         Configure.Reranker.cohere(model="model", base_url="https://some.base.url/"),
