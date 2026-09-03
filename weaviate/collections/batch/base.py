@@ -41,6 +41,7 @@ from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import (
     EmptyResponseException,
     WeaviateBatchValidationError,
+    WeaviateInvalidInputError,
 )
 from weaviate.logger import logger
 from weaviate.proto.v1 import batch_pb2
@@ -256,6 +257,12 @@ class _FixedSizeBatching:
 @dataclass
 class _RateLimitedBatching:
     requests_per_minute: int
+
+    def __post_init__(self) -> None:
+        if self.requests_per_minute < 1:
+            raise WeaviateInvalidInputError(
+                f"requests_per_minute must be a positive integer, got {self.requests_per_minute}"
+            )
 
     def get_sleep_time(self, number_objects: int, elapsed_time: float, base_time: float) -> float:
         batch_interval = base_time * number_objects / self.requests_per_minute

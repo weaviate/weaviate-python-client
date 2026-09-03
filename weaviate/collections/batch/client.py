@@ -253,7 +253,7 @@ class _BatchClientWrapper(_BatchWrapper):
 
         Args:
             requests_per_minute: The number of objects to send to Weaviate per minute,
-                used to avoid exceeding the vectorizer's rate limit.
+                used to avoid exceeding the vectorizer's rate limit. Must be a positive integer.
             consistency_level: The consistency level to be used to send batches. If not provided, the default value is `None`.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)

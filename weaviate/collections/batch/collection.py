@@ -282,7 +282,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
         Args:
             requests_per_minute: The number of objects to send to Weaviate per minute,
-                used to avoid exceeding the vectorizer's rate limit.
+                used to avoid exceeding the vectorizer's rate limit. Must be a positive integer.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)
         return self.__create_batch_and_reset(_BatchCollection)
