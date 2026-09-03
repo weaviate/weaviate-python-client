@@ -288,7 +288,7 @@ def connect_to_custom(
     grpc_secure: bool,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
-    auth_credentials: Optional[AuthCredentials] = None,
+    auth_credentials: Union[str, AuthCredentials, None] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
     """Connect to a Weaviate instance with custom connection parameters.
@@ -373,7 +373,7 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
 
 def use_async_with_weaviate_cloud(
     cluster_url: str,
-    auth_credentials: Optional[AuthCredentials],
+    auth_credentials: Union[str, AuthCredentials],
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
@@ -585,7 +585,7 @@ def use_async_with_custom(
     grpc_secure: bool,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
-    auth_credentials: Optional[AuthCredentials] = None,
+    auth_credentials: Union[str, AuthCredentials, None] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateAsyncClient:
     """Create an async client object ready to connect to a Weaviate instance with custom connection parameters.

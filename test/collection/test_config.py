@@ -883,6 +883,24 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-nvidia": {}},
     ),
     (
+        Configure.Generative.nvidia(
+            base_url="https://integrate.api.nvidia.com",
+            model="model",
+            temperature=0.5,
+            max_tokens=100,
+            top_p=0.5,
+        ),
+        {
+            "generative-nvidia": {
+                "baseURL": "https://integrate.api.nvidia.com",
+                "model": "model",
+                "temperature": 0.5,
+                "maxTokens": 100,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.anyscale(),
         {"generative-anyscale": {}},
     ),
@@ -1023,6 +1041,42 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.google_vertex(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
+        Configure.Generative.google_vertex(
+            project_id="project",
+            api_endpoint="https://api.google.com",
+            region="europe-west4",
+            location="europe-west4",
+            max_output_tokens=100,
+            model_id="model",
+            endpoint_id="endpoint",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://api.google.com",
+                "region": "europe-west4",
+                "location": "europe-west4",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "endpointId": "endpoint",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.aws(
             model="cohere.command-light-text-v14",
             region="us-east-1",
@@ -1059,6 +1113,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_p=0.5,
             base_url="https://api.openai.com",
+            api_version="2024-06-01",
         ),
         {
             "generative-openai": {
@@ -1070,6 +1125,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
+                "apiVersion": "2024-06-01",
             }
         },
     ),
@@ -1081,6 +1137,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_k=10,
             top_p=0.5,
+            base_url="https://api.anthropic.com",
         ),
         {
             "generative-anthropic": {
@@ -1090,6 +1147,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
+                "baseURL": "https://api.anthropic.com",
             }
         },
     ),
@@ -1559,6 +1617,23 @@ def test_vector_config_hnsw_rq() -> None:
     assert vi_dict["efConstruction"] == 128
     assert vi_dict["rq"]["bits"] == 8
     assert vi_dict["rq"]["rescoreLimit"] == 123
+
+
+def test_vector_config_hnsw_rq4c() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128,
+        quantizer=Configure.VectorIndex.Quantizer.rq(
+            bits=4, centering=True, rescore_limit=123, training_limit=5012
+        ),
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["rq"]["bits"] == 4
+    assert vi_dict["rq"]["centering"] is True
+    assert vi_dict["rq"]["rescoreLimit"] == 123
+    assert vi_dict["rq"]["trainingLimit"] == 5012
 
 
 def test_vector_config_flat_pq() -> None:

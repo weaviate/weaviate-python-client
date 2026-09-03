@@ -130,9 +130,10 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
                 target_variant=self.target_variant,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
+                stop_sequences=_to_text_array(self.stop_sequences),
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
-                # TODO - add top_k, top_p & stop_sequences here when added to server-side proto
+                # TODO - add top_k & top_p here when added to server-side proto
                 # Check the latest availble version of `grpc/proto/v1/generative.proto` (see GenerativeAWS) in the server repo
             ),
         )
@@ -143,6 +144,7 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
     base_url: Optional[AnyHttpUrl]
+    frequency_penalty: Optional[float]
     k: Optional[int]
     max_tokens: Optional[int]
     model: Optional[str]
@@ -156,6 +158,7 @@ class _GenerativeCohere(_GenerativeConfigRuntime):
             return_metadata=opts.return_metadata,
             cohere=generative_pb2.GenerativeCohere(
                 base_url=_parse_anyhttpurl(self.base_url),
+                frequency_penalty=self.frequency_penalty,
                 k=self.k,
                 max_tokens=self.max_tokens,
                 model=self.model,
@@ -353,6 +356,7 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
     is_azure: bool
     max_tokens: Optional[int]
     model: Optional[str]
+    n: Optional[int]
     presence_penalty: Optional[float]
     resource_name: Optional[str]
     stop: Optional[List[str]]
@@ -371,6 +375,7 @@ class _GenerativeOpenAI(_GenerativeConfigRuntime):
                 frequency_penalty=self.frequency_penalty,
                 max_tokens=self.max_tokens,
                 model=self.model,
+                n=self.n,
                 presence_penalty=self.presence_penalty,
                 resource_name=self.resource_name,
                 stop=_to_text_array(self.stop),
@@ -423,6 +428,7 @@ class _GenerativeGoogle(_GenerativeConfigRuntime):
     presence_penalty: Optional[float]
     project_id: Optional[str]
     region: Optional[str]
+    location: Optional[str]
     stop_sequences: Optional[List[str]]
     temperature: Optional[float]
     top_k: Optional[int]
@@ -447,6 +453,7 @@ class _GenerativeGoogle(_GenerativeConfigRuntime):
                 presence_penalty=self.presence_penalty,
                 project_id=self.project_id,
                 region=self.region,
+                location=self.location,
                 stop_sequences=_to_text_array(self.stop_sequences),
                 temperature=self.temperature,
                 top_k=self.top_k,
@@ -711,6 +718,7 @@ class GenerativeConfig:
     def cohere(
         *,
         base_url: Optional[str] = None,
+        frequency_penalty: Optional[float] = None,
         k: Optional[int] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
@@ -726,6 +734,7 @@ class GenerativeConfig:
 
         Args:
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
             k: The top K property to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
@@ -738,6 +747,7 @@ class GenerativeConfig:
             base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
             if base_url is not None
             else None,
+            frequency_penalty=frequency_penalty,
             k=k,
             max_tokens=max_tokens,
             model=model,
@@ -945,6 +955,7 @@ class GenerativeConfig:
             presence_penalty=presence_penalty,
             project_id=project_id,
             region=region,
+            location=None,
             stop_sequences=stop_sequences,
             temperature=temperature,
             top_k=top_k,
@@ -966,6 +977,7 @@ class GenerativeConfig:
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
         stop_sequences: Optional[List[str]] = None,
+        location: Optional[str] = None,
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
 
@@ -980,11 +992,17 @@ class GenerativeConfig:
             model: The model ID to use. Defaults to `None`, which uses the server-defined default
             presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
             project_id: The project ID to use. Defaults to `None`, which uses the server-defined default
-            region: The region to use. Defaults to `None`, which uses the server-defined default
+            region: The region the Vertex AI endpoint is served from. For `gemini*` models this selects the API host
+                (`<region>-aiplatform.googleapis.com`); for the other models the host comes from `api_endpoint` instead.
+                Defaults to `None`, which uses the server-defined default
             stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            location: The Vertex AI location, i.e. the `locations/<location>` segment of the request URL. This is
+                distinct from `region`: `region` picks the host, `location` picks the path. For `gemini*` models the
+                special value `"global"` selects the region-less `aiplatform.googleapis.com` host, so `region` is then
+                unused. Defaults to `None`, which uses the server-defined default of `us-central1`
         """
         return _GenerativeGoogle(
             api_endpoint=TypeAdapter(AnyHttpUrl).validate_python(api_endpoint)
@@ -997,6 +1015,7 @@ class GenerativeConfig:
             presence_penalty=presence_penalty,
             project_id=project_id,
             region=region,
+            location=location,
             stop_sequences=stop_sequences,
             temperature=temperature,
             top_k=top_k,
@@ -1041,6 +1060,7 @@ class GenerativeConfig:
             presence_penalty=presence_penalty,
             project_id=None,
             region=None,
+            location=None,
             stop_sequences=stop_sequences,
             temperature=temperature,
             top_k=top_k,
@@ -1139,6 +1159,7 @@ class GenerativeConfig:
         frequency_penalty: Optional[float] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
+        n: Optional[int] = None,
         presence_penalty: Optional[float] = None,
         reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]] = None,
         resource_name: Optional[str] = None,
@@ -1159,6 +1180,7 @@ class GenerativeConfig:
             frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
+            n: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
             presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
             reasoning_effort: The reasoning effort to use. Defaults to `None`, which uses the server-defined default
             resource_name: The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
@@ -1176,6 +1198,7 @@ class GenerativeConfig:
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
             model=model,
+            n=n,
             presence_penalty=presence_penalty,
             resource_name=resource_name,
             stop=stop,
@@ -1195,6 +1218,7 @@ class GenerativeConfig:
         frequency_penalty: Optional[float] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
+        n: Optional[int] = None,
         presence_penalty: Optional[float] = None,
         resource_name: Optional[str] = None,
         stop: Optional[List[str]] = None,
@@ -1213,6 +1237,7 @@ class GenerativeConfig:
             frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model: The model to use. Defaults to `None`, which uses the server-defined default
+            n: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
             presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
             resource_name: The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
             stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
@@ -1228,6 +1253,7 @@ class GenerativeConfig:
             frequency_penalty=frequency_penalty,
             max_tokens=max_tokens,
             model=model,
+            n=n,
             presence_penalty=presence_penalty,
             resource_name=resource_name,
             stop=stop,
