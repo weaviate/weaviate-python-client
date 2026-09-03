@@ -9,7 +9,6 @@ This minor version includes:
     - Add support for diversity selection in ``hybrid`` queries via the ``diversity_selection`` parameter
     - Add support for the new ``multi2vec-twelvelabs`` vectorizer module
     - Add support for the new ``generative-deepseek`` module
-    - Add support for the new ``generative-digitalocean`` module
     - Add ``dimensions`` to the ``text2vec-aws`` vectorizer configuration
     - Add ``location`` to the ``text2vec-google`` vectorizer configuration
     - Add ``endpoint`` to the ``text2vec-openai`` and ``text2vec-morph`` vectorizer configurations
@@ -2049,4 +2048,5 @@ Version 3.0.0
     used anymore. This is due to the new :class:`~weaviate.batch.Batch` class implementation.
 - | New :class:`~weaviate.schema.Schema` field is ADDED, `"shardingConfig"`. It can bu used with Weaviate version >= 1.6.0.
 - | New method :meth:`~weaviate.schema.Schema.update_config` used to update mutable schema configuration (like `efConstruction`, ...).
+
 

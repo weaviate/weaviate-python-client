@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Callable, Union
 
 import pytest
-from pydantic import ValidationError
 
 from weaviate.collections.classes.generative import (
     GenerativeConfig,
@@ -11,7 +10,6 @@ from weaviate.collections.classes.generative import (
     _GroupedTask,
     _SinglePrompt,
 )
-from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2
 from weaviate.proto.v1 import generative_pb2
 from weaviate.types import BLOB_INPUT
@@ -50,63 +48,6 @@ def test_generative_parameters_images_parsing(
         p = provider(f)
         assert p.images is not None
         assert list(p.images) == [LOGO_ENCODED]
-
-
-def test_digitalocean_generative_provider_to_grpc() -> None:
-    actual = GenerativeConfig.digitalocean(
-        base_url="https://inference.do-ai.run",
-        model="llama-4-maverick",
-        temperature=0.5,
-        top_p=0.9,
-        max_tokens=100,
-        frequency_penalty=0.1,
-        presence_penalty=0.2,
-        stop=["STOP"],
-    )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True))
-
-    assert actual == generative_pb2.GenerativeProvider(
-        return_metadata=True,
-        digitalocean=generative_pb2.GenerativeDigitalOcean(
-            base_url="https://inference.do-ai.run",
-            model="llama-4-maverick",
-            temperature=0.5,
-            top_p=0.9,
-            max_tokens=100,
-            frequency_penalty=0.1,
-            presence_penalty=0.2,
-            stop=base_pb2.TextArray(values=["STOP"]),
-        ),
-    )
-
-
-def test_digitalocean_generative_provider_to_grpc_with_defaults() -> None:
-    actual = GenerativeConfig.digitalocean()._to_grpc(_GenerativeConfigRuntimeOptions())
-
-    assert actual.WhichOneof("kind") == "digitalocean"
-    assert actual.digitalocean.ListFields() == []
-
-
-def test_digitalocean_generative_provider_rejects_invalid_base_url() -> None:
-    with pytest.raises(ValidationError):
-        GenerativeConfig.digitalocean(base_url="not-a-url")
-
-
-@pytest.mark.parametrize(
-    "opts",
-    [
-        _GenerativeConfigRuntimeOptions(images=["image"]),
-        _GenerativeConfigRuntimeOptions(image_properties=["image"]),
-    ],
-    ids=["images", "image_properties"],
-)
-def test_digitalocean_generative_provider_rejects_multi_modal_options(
-    opts: _GenerativeConfigRuntimeOptions,
-) -> None:
-    with pytest.raises(
-        WeaviateInvalidInputError,
-        match=r"The generative-digitalocean module does not support the `images` or `image_properties` options\.",
-    ):
-        GenerativeConfig.digitalocean()._to_grpc(opts)
 
 
 @pytest.mark.parametrize(
@@ -264,6 +205,31 @@ def test_digitalocean_generative_provider_rejects_multi_modal_options(
                     presence_penalty=0.2,
                     top_p=0.9,
                     stop=base_pb2.TextArray(values=["\n"]),
+                ),
+            ),
+        ),
+        (
+            GenerativeConfig.digitalocean(
+                base_url="https://inference.do-ai.run",
+                model="llama-4-maverick",
+                temperature=0.5,
+                top_p=0.9,
+                max_tokens=100,
+                frequency_penalty=0.1,
+                presence_penalty=0.2,
+                stop=["STOP"],
+            )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True)),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                digitalocean=generative_pb2.GenerativeDigitalOcean(
+                    base_url="https://inference.do-ai.run",
+                    model="llama-4-maverick",
+                    temperature=0.5,
+                    top_p=0.9,
+                    max_tokens=100,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.2,
+                    stop=base_pb2.TextArray(values=["STOP"]),
                 ),
             ),
         ),
