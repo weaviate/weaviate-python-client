@@ -33,6 +33,10 @@ services:
       OBJECTS_TTL_DELETE_SCHEDULE: "@every 12h" # for objectTTL tests to work
       EXPORT_ENABLED: 'true'
       EXPORT_DEFAULT_PATH: "/var/lib/weaviate/exports"
+      # for config.delete_vector_index tests to work. The endpoint is experimental and off by
+      # default; remove this once it is promoted to a supported release. Ignored by servers that
+      # do not know the flag.
+      ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT: 'true'
 
   contextionary:
     environment:
