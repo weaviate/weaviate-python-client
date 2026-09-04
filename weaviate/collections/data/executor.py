@@ -18,7 +18,10 @@ from typing import (
     overload,
 )
 
-from httpx import Response
+try:
+    from httpx2 import Response
+except ImportError:
+    from httpx import Response
 
 from weaviate.collections.batch.base import _BatchDataWrapper
 from weaviate.collections.batch.collection import (

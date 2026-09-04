@@ -33,7 +33,10 @@ from grpc.aio import AioRpcError, StreamStreamCall
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 
 # from grpclib.client import Channel
-from httpx import (
+try:
+    from httpx2 import (
+except ImportError:
+    from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
     Client,

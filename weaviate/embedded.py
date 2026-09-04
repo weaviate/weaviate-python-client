@@ -15,7 +15,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-import httpx
+try:
+    import httpx2 as httpx
+except ImportError:
+    import httpx
 import validators
 
 from weaviate import exceptions

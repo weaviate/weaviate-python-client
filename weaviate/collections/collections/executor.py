@@ -11,7 +11,10 @@ from typing import (
     Union,
 )
 
-from httpx import Response
+try:
+    from httpx2 import Response
+except ImportError:
+    from httpx import Response
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (

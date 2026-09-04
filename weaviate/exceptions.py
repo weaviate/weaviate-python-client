@@ -3,7 +3,10 @@
 from json.decoder import JSONDecodeError
 from typing import Optional, Tuple, Union, cast
 
-import httpx
+try:
+    import httpx2 as httpx
+except ImportError:
+    import httpx
 from grpc import Call, StatusCode  # type: ignore
 from grpc.aio import AioRpcError  # type: ignore
 from packaging import version

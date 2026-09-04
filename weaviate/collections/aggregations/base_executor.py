@@ -3,7 +3,10 @@ import json
 import pathlib
 from typing import Generic, List, Optional, TypeVar, Union, cast
 
-from httpx import Response
+try:
+    from httpx2 import Response
+except ImportError:
+    from httpx import Response
 from typing_extensions import ParamSpec
 
 from weaviate.collections.classes.aggregate import (

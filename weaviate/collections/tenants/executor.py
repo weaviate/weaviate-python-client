@@ -2,7 +2,10 @@ import asyncio
 from math import ceil
 from typing import Any, Dict, Generic, List, Optional, Sequence, Union
 
-from httpx import Response
+try:
+    from httpx2 import Response
+except ImportError:
+    from httpx import Response
 
 from weaviate.collections.classes.tenants import (
     Tenant,

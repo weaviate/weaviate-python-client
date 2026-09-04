@@ -13,7 +13,10 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import quote
 
-import httpx
+try:
+    import httpx2 as httpx
+except ImportError:
+    import httpx
 import validators
 
 from weaviate.exceptions import (

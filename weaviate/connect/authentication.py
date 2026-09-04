@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Awaitable, Callable, Dict, List, Optional, Union
 
-import httpx
+try:
+    import httpx2 as httpx
+except ImportError:
+    import httpx
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,

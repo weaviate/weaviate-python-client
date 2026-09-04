@@ -1,7 +1,10 @@
 import uuid
 from typing import Generic, List, Optional, Union
 
-from httpx import Response
+try:
+    from httpx2 import Response
+except ImportError:
+    from httpx import Response
 
 from weaviate.cluster.models import (
     ClusterStatistics,
