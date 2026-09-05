@@ -125,7 +125,10 @@ class _BatchBaseSync:
         logger.info("Provisioned stream to the server for batch processing")
         now = time.time()
         while not self.__all_threads_alive():
-            # wait for the recv threads to be started
+            if self.__bg_exception is not None:
+                # a background thread already died (e.g. on a closed connection): raise its
+                # error now instead of polling for 60 s and blaming the network
+                raise self.__bg_exception
             time.sleep(0.01)
             if time.time() - now > 60:
                 raise WeaviateBatchStreamError(
@@ -151,6 +154,16 @@ class _BatchBaseSync:
         self.__results_for_wrapper_backup.imported_shards = (
             self.__results_for_wrapper.imported_shards
         )
+
+        if self.__bg_exception is not None:
+            # surface the background failure instead of returning partial results as a success
+            raise self.__bg_exception
+        n_objs, n_refs = len(self.__batch_objects), len(self.__batch_references)
+        if n_objs + n_refs > 0 and not self.__all_threads_alive():
+            # the threads are gone with data still queued: the batch did NOT complete
+            raise WeaviateBatchStreamError(
+                f"batch stream ended with {n_objs} objects and {n_refs} references unsent"
+            )
 
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished
@@ -644,4 +657,4 @@ class _BatchBaseSync:
         if self.__all_threads_alive():
             return
 
-        raise self.__bg_exception or Exception("Batch thread died unexpectedly")
+        raise self.__bg_exception or WeaviateBatchStreamError("the batch stream has ended")

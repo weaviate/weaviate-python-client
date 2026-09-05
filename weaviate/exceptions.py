@@ -418,5 +418,8 @@ class WeaviateProtobufIncompatibility(Exception):
         )
 
 
-class _BatchStreamShutdownError(Exception):
-    """Internal exception to signal that the batch stream was shutdown."""
+class _BatchStreamShutdownError(WeaviateBatchStreamError):
+    """Internal exception to signal that the batch stream was shutdown (gRPC ABORTED)."""
+
+    def __init__(self, message: str = "the server aborted the batch stream") -> None:
+        super().__init__(message)
