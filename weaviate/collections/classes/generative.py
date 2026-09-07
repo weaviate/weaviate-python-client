@@ -130,9 +130,10 @@ class _GenerativeAWS(_GenerativeConfigRuntime):
                 target_variant=self.target_variant,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
+                stop_sequences=_to_text_array(self.stop_sequences),
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
-                # TODO - add top_k, top_p & stop_sequences here when added to server-side proto
+                # TODO - add top_k & top_p here when added to server-side proto
                 # Check the latest availble version of `grpc/proto/v1/generative.proto` (see GenerativeAWS) in the server repo
             ),
         )
@@ -232,6 +233,36 @@ class _GenerativeDeepseek(_GenerativeConfigRuntime):
                 frequency_penalty=self.frequency_penalty,
                 presence_penalty=self.presence_penalty,
                 top_p=self.top_p,
+                stop=_to_text_array(self.stop),
+            ),
+        )
+
+
+class _GenerativeDigitalOcean(_GenerativeConfigRuntime):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.DIGITALOCEAN, frozen=True, exclude=True
+    )
+    base_url: Optional[AnyHttpUrl]
+    model: Optional[str]
+    temperature: Optional[float]
+    top_p: Optional[float]
+    max_tokens: Optional[int]
+    frequency_penalty: Optional[float]
+    presence_penalty: Optional[float]
+    stop: Optional[List[str]]
+
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> generative_pb2.GenerativeProvider:
+        self._validate_multi_modal(opts)
+        return generative_pb2.GenerativeProvider(
+            return_metadata=opts.return_metadata,
+            digitalocean=generative_pb2.GenerativeDigitalOcean(
+                base_url=_parse_anyhttpurl(self.base_url),
+                model=self.model,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                max_tokens=self.max_tokens,
+                frequency_penalty=self.frequency_penalty,
+                presence_penalty=self.presence_penalty,
                 stop=_to_text_array(self.stop),
             ),
         )
@@ -866,6 +897,43 @@ class GenerativeConfig:
             frequency_penalty=frequency_penalty,
             presence_penalty=presence_penalty,
             top_p=top_p,
+            stop=stop,
+        )
+
+    @staticmethod
+    def digitalocean(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        stop: Optional[List[str]] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeDigitalOcean` object for use when performing AI generation using the `generative-digitalocean` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeDigitalOcean(
+            base_url=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
+            model=model,
+            temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty,
             stop=stop,
         )
 

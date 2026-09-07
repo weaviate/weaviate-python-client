@@ -299,6 +299,8 @@ class _RQConfigCreate(_QuantizerConfigCreate):
     cache: Optional[bool]
     bits: Optional[int]
     rescoreLimit: Optional[int]
+    centering: Optional[bool]
+    trainingLimit: Optional[int]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -337,6 +339,8 @@ class _RQConfigUpdate(_QuantizerConfigUpdate):
     enabled: Optional[bool]
     rescoreLimit: Optional[int]
     bits: Optional[int]
+    centering: Optional[bool]
+    trainingLimit: Optional[int]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -486,6 +490,8 @@ class _VectorIndexQuantizer:
         cache: Optional[bool] = None,
         bits: Optional[int] = None,
         rescore_limit: Optional[int] = None,
+        centering: Optional[bool] = None,
+        training_limit: Optional[int] = None,
     ) -> _RQConfigCreate:
         """Create a `_RQConfigCreate` object to be used when defining the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -498,6 +504,8 @@ class _VectorIndexQuantizer:
             cache=cache,
             bits=bits,
             rescoreLimit=rescore_limit,
+            centering=centering,
+            trainingLimit=training_limit,
         )
 
     @staticmethod
