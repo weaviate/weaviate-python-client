@@ -215,6 +215,7 @@ class GenerativeSearches(str, BaseEnum):
         CONTEXTUALAI: Weaviate module backed by ContextualAI generative models.
         DATABRICKS: Weaviate module backed by Databricks generative models.
         DEEPSEEK: Weaviate module backed by DeepSeek generative models.
+        DIGITALOCEAN: Weaviate module backed by DigitalOcean generative models.
         FRIENDLIAI: Weaviate module backed by FriendliAI generative models.
         MISTRAL: Weaviate module backed by Mistral generative models.
         NVIDIA: Weaviate module backed by NVIDIA generative models.
@@ -230,6 +231,7 @@ class GenerativeSearches(str, BaseEnum):
     CONTEXTUALAI = "generative-contextualai"
     DATABRICKS = "generative-databricks"
     DEEPSEEK = "generative-deepseek"
+    DIGITALOCEAN = "generative-digitalocean"
     DUMMY = "generative-dummy"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
@@ -456,6 +458,20 @@ class _GenerativeDeepseek(_GenerativeProvider):
     presencePenalty: Optional[float]
     topP: Optional[float]
     baseURL: Optional[str]
+    stop: Optional[List[str]]
+
+
+class _GenerativeDigitalOcean(_GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.DIGITALOCEAN, frozen=True, exclude=True
+    )
+    baseURL: Optional[str]
+    model: Optional[str]
+    temperature: Optional[float]
+    topP: Optional[float]
+    maxTokens: Optional[int]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
     stop: Optional[List[str]]
 
 
@@ -805,6 +821,41 @@ class _Generative:
             presencePenalty=presence_penalty,
             topP=top_p,
             baseURL=base_url,
+            stop=stop,
+        )
+
+    @staticmethod
+    def digitalocean(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        stop: Optional[List[str]] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeDigitalOcean` object for use when performing AI generation using the `generative-digitalocean` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeDigitalOcean(
+            baseURL=base_url,
+            model=model,
+            temperature=temperature,
+            topP=top_p,
+            maxTokens=max_tokens,
+            frequencyPenalty=frequency_penalty,
+            presencePenalty=presence_penalty,
             stop=stop,
         )
 
@@ -1563,7 +1614,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _BQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                     or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
@@ -1571,7 +1622,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _SQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
@@ -1579,7 +1630,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _RQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                 )
@@ -1981,6 +2032,8 @@ class _RQConfig(_ConfigBase):
     cache: Optional[bool]
     bits: Optional[int]
     rescore_limit: int
+    centering: Optional[bool]
+    training_limit: Optional[int]
 
 
 BQConfig = _BQConfig
@@ -2990,6 +3043,8 @@ class _VectorIndexQuantizerUpdate:
         rescore_limit: Optional[int] = None,
         enabled: bool = True,
         bits: Optional[int] = None,
+        centering: Optional[bool] = None,
+        training_limit: Optional[int] = None,
     ) -> _RQConfigUpdate:
         """Create a `_RQConfigUpdate` object to be used when updating the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -2998,7 +3053,13 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _RQConfigUpdate(enabled=enabled, rescoreLimit=rescore_limit, bits=bits)
+        return _RQConfigUpdate(
+            enabled=enabled,
+            rescoreLimit=rescore_limit,
+            bits=bits,
+            centering=centering,
+            trainingLimit=training_limit,
+        )
 
 
 class _VectorIndexUpdate:
