@@ -592,7 +592,11 @@ class _ConnectionBase:
             self._shutdown_background_event.set()
         task, self.__token_refresh_task = self.__token_refresh_task, None
         if task is not None:
-            task.cancel()
+            try:
+                task.cancel()
+            except RuntimeError:
+                # the task's loop is closed; the task can never run again
+                pass
         return task
 
     async def __periodic_token_refresh_async(
@@ -732,8 +736,12 @@ class _ConnectionBase:
         if colour == "async":
 
             async def execute() -> None:
-                if refresh_task is not None:
-                    # wait for the task to finish before the client is closed
+                if (
+                    refresh_task is not None
+                    and refresh_task.get_loop() is asyncio.get_running_loop()
+                ):
+                    # wait for the task to finish before the client is closed; a task from
+                    # another loop cannot be awaited here and is done or orphaned with its loop
                     await asyncio.gather(refresh_task, return_exceptions=True)
                 if self._client is not None:
                     assert isinstance(self._client, AsyncClient)

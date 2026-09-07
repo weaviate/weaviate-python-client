@@ -251,6 +251,38 @@ async def test_async_auth_starts_no_threads(
     assert refresh_tasks[0].done()
 
 
+def test_async_close_from_a_different_event_loop(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """close() must work when it runs on a different loop than connect().
+
+    Sync-first apps wrap each async step in its own asyncio.run(), so the refresh task
+    belongs to a loop that is already closed by the time close() runs. close() must skip
+    waiting for that task instead of raising out of asyncio.
+    """
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+    client = weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=500
+        ),
+    )
+    asyncio.run(client.connect())  # the refresh task is created on this run's loop
+    task = getattr(client._connection, "_ConnectionBase__token_refresh_task")  # noqa: B009
+    assert task is not None and task.cancelled()  # asyncio.run cancelled it at teardown
+
+    asyncio.run(client.close())  # a second loop; the task's loop is gone
+    assert not client.is_connected()
+
+
 def test_sync_reconnect_leaves_exactly_one_refresher_thread(
     weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> None:
