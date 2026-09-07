@@ -1202,6 +1202,34 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.digitalocean(
+            base_url="https://inference.do-ai.run",
+            model="llama-4-maverick",
+            temperature=0.5,
+            top_p=0.9,
+            max_tokens=100,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            stop=["STOP"],
+        ),
+        {
+            "generative-digitalocean": {
+                "baseURL": "https://inference.do-ai.run",
+                "model": "llama-4-maverick",
+                "temperature": 0.5,
+                "topP": 0.9,
+                "maxTokens": 100,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "stop": ["STOP"],
+            }
+        },
+    ),
+    (
+        Configure.Generative.digitalocean(),
+        {"generative-digitalocean": {}},
+    ),
+    (
         Configure.Generative.xai(
             model="grok-2-latest",
             max_tokens=100,

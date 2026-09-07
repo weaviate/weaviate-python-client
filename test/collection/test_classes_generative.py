@@ -209,6 +209,31 @@ def test_generative_parameters_images_parsing(
             ),
         ),
         (
+            GenerativeConfig.digitalocean(
+                base_url="https://inference.do-ai.run",
+                model="llama-4-maverick",
+                temperature=0.5,
+                top_p=0.9,
+                max_tokens=100,
+                frequency_penalty=0.1,
+                presence_penalty=0.2,
+                stop=["STOP"],
+            )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True)),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                digitalocean=generative_pb2.GenerativeDigitalOcean(
+                    base_url="https://inference.do-ai.run",
+                    model="llama-4-maverick",
+                    temperature=0.5,
+                    top_p=0.9,
+                    max_tokens=100,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.2,
+                    stop=base_pb2.TextArray(values=["STOP"]),
+                ),
+            ),
+        ),
+        (
             GenerativeConfig.dummy()._to_grpc(
                 _GenerativeConfigRuntimeOptions(return_metadata=True)
             ),

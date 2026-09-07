@@ -205,6 +205,8 @@ class _BaseExecutor(Generic[ConnectionType]):
             return metadata.cohere
         if metadata.HasField("databricks"):
             return metadata.databricks
+        if metadata.HasField("digitalocean"):
+            return metadata.digitalocean
         if metadata.HasField("dummy"):
             return metadata.dummy
         if metadata.HasField("friendliai"):
