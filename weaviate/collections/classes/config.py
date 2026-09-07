@@ -2923,10 +2923,12 @@ class Configure:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
         Note:
-            `async_enabled` was removed from the Weaviate server schema in v1.38. Passing it
-            has no effect against any server `>=v1.38` (the server silently drops it and runs
-            async replication by default for any class with a replication factor > 1) and emits
-            a ``DeprecationWarning``. The argument will be removed in a future release.
+            `async_enabled` was removed from the Weaviate server schema in v1.38. Passing it has
+            no effect against any server `>=v1.38`: the server silently drops it, and whether
+            async replication runs is decided server-side (on by default for any class with a
+            replication factor > 1, unless the `ASYNC_REPLICATION_DISABLED` runtime override is
+            set). Passing it emits a ``DeprecationWarning``; the argument will be removed in a
+            future release.
 
         Args:
             factor: The replication factor.
@@ -3217,10 +3219,12 @@ class Reconfigure:
         Use this method when defining the `replication_config` argument in `collection.update()`.
 
         Note:
-            `async_enabled` was removed from the Weaviate server schema in v1.38. Passing it
-            has no effect against any server `>=v1.38` (the server silently drops it and runs
-            async replication by default for any class with a replication factor > 1) and emits
-            a ``DeprecationWarning``. The argument will be removed in a future release.
+            `async_enabled` was removed from the Weaviate server schema in v1.38. Passing it has
+            no effect against any server `>=v1.38`: the server silently drops it, and whether
+            async replication runs is decided server-side (on by default for any class with a
+            replication factor > 1, unless the `ASYNC_REPLICATION_DISABLED` runtime override is
+            set). Passing it emits a ``DeprecationWarning``; the argument will be removed in a
+            future release.
 
         Args:
             factor: The replication factor.
