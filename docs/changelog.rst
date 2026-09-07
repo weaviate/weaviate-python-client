@@ -1,6 +1,25 @@
 Changelog
 =========
 
+Version 4.23.1
+--------------
+This patch version includes:
+    - Add support for the new ``generative-digitalocean`` module
+    - Add support for the centered ``RQ4`` quantizer
+    - Add ``location`` to the ``generative-google`` collection and runtime configurations
+    - Add ``api_version`` to the ``generative-openai`` collection configuration for Azure deployments
+    - Add ``top_p`` to the ``generative-nvidia`` and ``base_url`` to the ``generative-anthropic`` collection configurations
+    - Add ``n`` to the ``generative-openai`` runtime configuration, for both the OpenAI and Azure factories
+    - Add ``frequency_penalty`` to the ``generative-cohere`` runtime configuration
+    - Minor bug fixes and improvements:
+        - Fix ``stop_sequences`` being dropped by the ``generative-aws`` runtime configuration instead of being sent to the server
+        - Fix ``KeyError: 'pq'`` when updating the quantizer on an HFresh vector index
+        - Fix reference filter builders mutating their target path, so a builder could not be reused
+        - Fix client-side batching flushing early when only one of its two object counts was unchanged
+        - Fix rate-limit spacing for partial batches
+        - Accept a plain string API key in all sync and async connection helpers
+        - Document ``vectorize_collection_name`` as having no effect on the ``multi2vec`` factories
+
 Version 4.23.0
 --------------
 This minor version includes:
