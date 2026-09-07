@@ -25,10 +25,12 @@ env:
   WEAVIATE_131: 1.31.22
   WEAVIATE_132: 1.32.27
   WEAVIATE_133: 1.33.18
-  WEAVIATE_134: 1.34.19
-  WEAVIATE_135: 1.35.18
-  WEAVIATE_136: 1.36.12
-  WEAVIATE_137: 1.37.5-e0fe0d5.amd64
+  WEAVIATE_134: 1.34.20
+  WEAVIATE_135: 1.35.23
+  WEAVIATE_136: 1.36.23
+  WEAVIATE_137: 1.37.14
+  WEAVIATE_138: 1.38.9
+  WEAVIATE_139: 1.39.0
 
 jobs:
   lint-and-format:
@@ -162,11 +164,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_136, grpc: "1.59.0"},
-          { py: "3.11", weaviate: $WEAVIATE_136, grpc: "1.66.0"},
-          { py: "3.12", weaviate: $WEAVIATE_136, grpc: "1.70.0"},
-          { py: "3.13", weaviate: $WEAVIATE_136, grpc: "1.72.1"},
-          { py: "3.14", weaviate: $WEAVIATE_136, grpc: "1.76.0"}
+          { py: "3.10", weaviate: $WEAVIATE_139, grpc: "1.59.0"},
+          { py: "3.11", weaviate: $WEAVIATE_139, grpc: "1.66.0"},
+          { py: "3.12", weaviate: $WEAVIATE_139, grpc: "1.70.0"},
+          { py: "3.13", weaviate: $WEAVIATE_139, grpc: "1.72.1"},
+          { py: "3.14", weaviate: $WEAVIATE_139, grpc: "1.76.0"}
         ]
         optional_dependencies: [false]
     steps:
@@ -218,11 +220,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_136},
-          { py: "3.11", weaviate: $WEAVIATE_136},
-          { py: "3.12", weaviate: $WEAVIATE_136},
-          { py: "3.13", weaviate: $WEAVIATE_136},
-          { py: "3.14", weaviate: $WEAVIATE_136}
+          { py: "3.10", weaviate: $WEAVIATE_139},
+          { py: "3.11", weaviate: $WEAVIATE_139},
+          { py: "3.12", weaviate: $WEAVIATE_139},
+          { py: "3.13", weaviate: $WEAVIATE_139},
+          { py: "3.14", weaviate: $WEAVIATE_139}
         ]
         optional_dependencies: [false]
     steps:
@@ -320,7 +322,9 @@ jobs:
           $WEAVIATE_134,
           $WEAVIATE_135,
           $WEAVIATE_136,
-          $WEAVIATE_137
+          $WEAVIATE_137,
+          $WEAVIATE_138,
+          $WEAVIATE_139
         ]
     steps:
       - name: Checkout

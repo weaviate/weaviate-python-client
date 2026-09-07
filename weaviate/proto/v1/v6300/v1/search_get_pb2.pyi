@@ -3,6 +3,7 @@ from weaviate.proto.v1.v6300.v1 import base_search_pb2 as _base_search_pb2
 from weaviate.proto.v1.v6300.v1 import generative_pb2 as _generative_pb2
 from weaviate.proto.v1.v6300.v1 import properties_pb2 as _properties_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
@@ -11,7 +12,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SearchRequest(_message.Message):
-    __slots__ = ("collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "uses_123_api", "uses_125_api", "uses_127_api")
+    __slots__ = ("collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "boost", "uses_123_api", "uses_125_api", "uses_127_api")
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
@@ -37,6 +38,7 @@ class SearchRequest(_message.Message):
     NEAR_IMU_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     RERANK_FIELD_NUMBER: _ClassVar[int]
+    BOOST_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
     USES_125_API_FIELD_NUMBER: _ClassVar[int]
     USES_127_API_FIELD_NUMBER: _ClassVar[int]
@@ -65,10 +67,11 @@ class SearchRequest(_message.Message):
     near_imu: _base_search_pb2.NearIMUSearch
     generative: _generative_pb2.GenerativeSearch
     rerank: Rerank
+    boost: Boost
     uses_123_api: bool
     uses_125_api: bool
     uses_127_api: bool
-    def __init__(self, collection: _Optional[str] = ..., tenant: _Optional[str] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., properties: _Optional[_Union[PropertiesRequest, _Mapping]] = ..., metadata: _Optional[_Union[MetadataRequest, _Mapping]] = ..., group_by: _Optional[_Union[GroupBy, _Mapping]] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ..., filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., hybrid_search: _Optional[_Union[_base_search_pb2.Hybrid, _Mapping]] = ..., bm25_search: _Optional[_Union[_base_search_pb2.BM25, _Mapping]] = ..., near_vector: _Optional[_Union[_base_search_pb2.NearVector, _Mapping]] = ..., near_object: _Optional[_Union[_base_search_pb2.NearObject, _Mapping]] = ..., near_text: _Optional[_Union[_base_search_pb2.NearTextSearch, _Mapping]] = ..., near_image: _Optional[_Union[_base_search_pb2.NearImageSearch, _Mapping]] = ..., near_audio: _Optional[_Union[_base_search_pb2.NearAudioSearch, _Mapping]] = ..., near_video: _Optional[_Union[_base_search_pb2.NearVideoSearch, _Mapping]] = ..., near_depth: _Optional[_Union[_base_search_pb2.NearDepthSearch, _Mapping]] = ..., near_thermal: _Optional[_Union[_base_search_pb2.NearThermalSearch, _Mapping]] = ..., near_imu: _Optional[_Union[_base_search_pb2.NearIMUSearch, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeSearch, _Mapping]] = ..., rerank: _Optional[_Union[Rerank, _Mapping]] = ..., uses_123_api: bool = ..., uses_125_api: bool = ..., uses_127_api: bool = ...) -> None: ...
+    def __init__(self, collection: _Optional[str] = ..., tenant: _Optional[str] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., properties: _Optional[_Union[PropertiesRequest, _Mapping]] = ..., metadata: _Optional[_Union[MetadataRequest, _Mapping]] = ..., group_by: _Optional[_Union[GroupBy, _Mapping]] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ..., filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., hybrid_search: _Optional[_Union[_base_search_pb2.Hybrid, _Mapping]] = ..., bm25_search: _Optional[_Union[_base_search_pb2.BM25, _Mapping]] = ..., near_vector: _Optional[_Union[_base_search_pb2.NearVector, _Mapping]] = ..., near_object: _Optional[_Union[_base_search_pb2.NearObject, _Mapping]] = ..., near_text: _Optional[_Union[_base_search_pb2.NearTextSearch, _Mapping]] = ..., near_image: _Optional[_Union[_base_search_pb2.NearImageSearch, _Mapping]] = ..., near_audio: _Optional[_Union[_base_search_pb2.NearAudioSearch, _Mapping]] = ..., near_video: _Optional[_Union[_base_search_pb2.NearVideoSearch, _Mapping]] = ..., near_depth: _Optional[_Union[_base_search_pb2.NearDepthSearch, _Mapping]] = ..., near_thermal: _Optional[_Union[_base_search_pb2.NearThermalSearch, _Mapping]] = ..., near_imu: _Optional[_Union[_base_search_pb2.NearIMUSearch, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeSearch, _Mapping]] = ..., rerank: _Optional[_Union[Rerank, _Mapping]] = ..., boost: _Optional[_Union[Boost, _Mapping]] = ..., uses_123_api: bool = ..., uses_125_api: bool = ..., uses_127_api: bool = ...) -> None: ...
 
 class GroupBy(_message.Message):
     __slots__ = ("path", "number_of_groups", "objects_per_group")
@@ -313,3 +316,81 @@ class RefPropertiesResult(_message.Message):
     properties: _containers.RepeatedCompositeFieldContainer[PropertiesResult]
     prop_name: str
     def __init__(self, properties: _Optional[_Iterable[_Union[PropertiesResult, _Mapping]]] = ..., prop_name: _Optional[str] = ...) -> None: ...
+
+class Boost(_message.Message):
+    __slots__ = ("conditions", "weight", "depth")
+    class PropertyValueModifier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        PROPERTY_VALUE_MODIFIER_UNSPECIFIED: _ClassVar[Boost.PropertyValueModifier]
+        PROPERTY_VALUE_MODIFIER_LOG1P: _ClassVar[Boost.PropertyValueModifier]
+        PROPERTY_VALUE_MODIFIER_SQRT: _ClassVar[Boost.PropertyValueModifier]
+    PROPERTY_VALUE_MODIFIER_UNSPECIFIED: Boost.PropertyValueModifier
+    PROPERTY_VALUE_MODIFIER_LOG1P: Boost.PropertyValueModifier
+    PROPERTY_VALUE_MODIFIER_SQRT: Boost.PropertyValueModifier
+    class DecayCurve(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        DECAY_CURVE_UNSPECIFIED: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_GAUSS: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_LINEAR: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_EXPONENTIAL: _ClassVar[Boost.DecayCurve]
+    DECAY_CURVE_UNSPECIFIED: Boost.DecayCurve
+    DECAY_CURVE_GAUSS: Boost.DecayCurve
+    DECAY_CURVE_LINEAR: Boost.DecayCurve
+    DECAY_CURVE_EXPONENTIAL: Boost.DecayCurve
+    class PropertyValueFunction(_message.Message):
+        __slots__ = ("property", "modifier")
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        MODIFIER_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        modifier: Boost.PropertyValueModifier
+        def __init__(self, property: _Optional[str] = ..., modifier: _Optional[_Union[Boost.PropertyValueModifier, str]] = ...) -> None: ...
+    class TimeDecayFunction(_message.Message):
+        __slots__ = ("property", "origin", "scale", "offset", "curve", "decay_value")
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        ORIGIN_FIELD_NUMBER: _ClassVar[int]
+        SCALE_FIELD_NUMBER: _ClassVar[int]
+        OFFSET_FIELD_NUMBER: _ClassVar[int]
+        CURVE_FIELD_NUMBER: _ClassVar[int]
+        DECAY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        origin: str
+        scale: str
+        offset: str
+        curve: Boost.DecayCurve
+        decay_value: float
+        def __init__(self, property: _Optional[str] = ..., origin: _Optional[str] = ..., scale: _Optional[str] = ..., offset: _Optional[str] = ..., curve: _Optional[_Union[Boost.DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
+    class NumericDecayFunction(_message.Message):
+        __slots__ = ("property", "origin", "scale", "offset", "curve", "decay_value")
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        ORIGIN_FIELD_NUMBER: _ClassVar[int]
+        SCALE_FIELD_NUMBER: _ClassVar[int]
+        OFFSET_FIELD_NUMBER: _ClassVar[int]
+        CURVE_FIELD_NUMBER: _ClassVar[int]
+        DECAY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        origin: float
+        scale: float
+        offset: float
+        curve: Boost.DecayCurve
+        decay_value: float
+        def __init__(self, property: _Optional[str] = ..., origin: _Optional[float] = ..., scale: _Optional[float] = ..., offset: _Optional[float] = ..., curve: _Optional[_Union[Boost.DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
+    class Condition(_message.Message):
+        __slots__ = ("filter", "time_decay", "property_value", "numeric_decay", "weight")
+        FILTER_FIELD_NUMBER: _ClassVar[int]
+        TIME_DECAY_FIELD_NUMBER: _ClassVar[int]
+        PROPERTY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        NUMERIC_DECAY_FIELD_NUMBER: _ClassVar[int]
+        WEIGHT_FIELD_NUMBER: _ClassVar[int]
+        filter: _base_pb2.Filters
+        time_decay: Boost.TimeDecayFunction
+        property_value: Boost.PropertyValueFunction
+        numeric_decay: Boost.NumericDecayFunction
+        weight: float
+        def __init__(self, filter: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., time_decay: _Optional[_Union[Boost.TimeDecayFunction, _Mapping]] = ..., property_value: _Optional[_Union[Boost.PropertyValueFunction, _Mapping]] = ..., numeric_decay: _Optional[_Union[Boost.NumericDecayFunction, _Mapping]] = ..., weight: _Optional[float] = ...) -> None: ...
+    CONDITIONS_FIELD_NUMBER: _ClassVar[int]
+    WEIGHT_FIELD_NUMBER: _ClassVar[int]
+    DEPTH_FIELD_NUMBER: _ClassVar[int]
+    conditions: _containers.RepeatedCompositeFieldContainer[Boost.Condition]
+    weight: float
+    depth: int
+    def __init__(self, conditions: _Optional[_Iterable[_Union[Boost.Condition, _Mapping]]] = ..., weight: _Optional[float] = ..., depth: _Optional[int] = ...) -> None: ...

@@ -51,6 +51,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Multi2VecGoogleConfig,
     _Multi2VecJinaConfig,
     _Multi2VecNvidiaConfig,
+    _Multi2VecTwelvelabsConfig,
     _Multi2VecVoyageaiConfig,
     _Ref2VecCentroidConfig,
     _Text2ColbertJinaAIConfig,
@@ -664,6 +665,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
+        endpoint: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -678,6 +680,7 @@ class _Vectors:
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
+            endpoint: The API path to append to `base_url`, e.g. `/api/v3/embeddings`. Defaults to `None`, which uses the server-defined default.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
@@ -688,6 +691,7 @@ class _Vectors:
             vectorizer=_Text2VecMorphConfig(
                 baseURL=base_url,
                 model=model,
+                endpoint=endpoint,
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
@@ -739,6 +743,7 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
+        endpoint: Optional[str] = None,
         model: Optional[Union[OpenAIModel, str]] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
@@ -756,6 +761,7 @@ class _Vectors:
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+            endpoint: The API path to append to `base_url`, e.g. `/api/v3/embeddings`. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             model_version: The model version to use. Defaults to `None`, which uses the server-defined default.
             type_: The type of model to use. Defaults to `None`, which uses the server-defined default.
@@ -776,6 +782,7 @@ class _Vectors:
                 type_=type_,
                 vectorizeClassName=vectorize_collection_name,
                 dimensions=dimensions,
+                endpoint=endpoint,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -795,6 +802,7 @@ class _Vectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        dimensions: Optional[int] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-aws` module.
 
@@ -811,6 +819,7 @@ class _Vectors:
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
         return _VectorConfigCreate(
             name=name,
@@ -823,6 +832,7 @@ class _Vectors:
                 vectorizeClassName=vectorize_collection_name,
                 targetModel=None,
                 targetVariant=None,
+                dimensions=dimensions,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -837,6 +847,7 @@ class _Vectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        dimensions: Optional[int] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-aws` module.
 
@@ -851,6 +862,7 @@ class _Vectors:
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
         return _VectorConfigCreate(
             name=name,
@@ -863,6 +875,7 @@ class _Vectors:
                 vectorizeClassName=vectorize_collection_name,
                 targetModel=None,
                 targetVariant=None,
+                dimensions=dimensions,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -879,6 +892,7 @@ class _Vectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        dimensions: Optional[int] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-aws` module.
 
@@ -895,6 +909,7 @@ class _Vectors:
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
         return _VectorConfigCreate(
             name=name,
@@ -907,6 +922,7 @@ class _Vectors:
                 targetVariant=target_variant,
                 service="sagemaker",
                 vectorizeClassName=vectorize_collection_name,
+                dimensions=dimensions,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -1297,6 +1313,42 @@ class _Vectors:
         )
 
     @staticmethod
+    def multi2vec_twelvelabs(
+        *,
+        name: Optional[str] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        model: Optional[str] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _VectorConfigCreate:
+        """Create a vector using the `multi2vec-twelvelabs` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/twelvelabs/embeddings-multimodal)
+        for detailed usage.
+
+        Args:
+            name: The name of the vector.
+            quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            text_fields: The text fields to use in vectorization.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+        """
+        return _VectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecTwelvelabsConfig(
+                baseURL=base_url,
+                model=model,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+            ),
+            vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
+        )
+
+    @staticmethod
     def ref2vec_centroid(
         *,
         name: Optional[str] = None,
@@ -1477,6 +1529,7 @@ class _Vectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        location: Optional[str] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
@@ -1495,6 +1548,7 @@ class _Vectors:
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            location: The Google Vertex AI region to run the model in. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1510,6 +1564,7 @@ class _Vectors:
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
                 taskType=task_type,
+                location=location,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -1560,6 +1615,7 @@ class _Vectors:
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
                 taskType=task_type,
+                location=None,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -1607,6 +1663,7 @@ class _Vectors:
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
                 taskType=task_type,
+                location=None,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
@@ -1625,6 +1682,7 @@ class _Vectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        location: Optional[str] = None,
     ) -> _VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
@@ -1643,6 +1701,7 @@ class _Vectors:
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            location: The Google Vertex AI region to run the model in. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1658,6 +1717,7 @@ class _Vectors:
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
                 taskType=task_type,
+                location=location,
             ),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )

@@ -1,6 +1,59 @@
 Changelog
 =========
 
+Version 4.23.1
+--------------
+This patch version includes:
+    - Add support for the new ``generative-digitalocean`` module
+    - Add support for the centered ``RQ4`` quantizer
+    - Add ``location`` to the ``generative-google`` collection and runtime configurations
+    - Add ``api_version`` to the ``generative-openai`` collection configuration for Azure deployments
+    - Add ``top_p`` to the ``generative-nvidia`` and ``base_url`` to the ``generative-anthropic`` collection configurations
+    - Add ``n`` to the ``generative-openai`` runtime configuration, for both the OpenAI and Azure factories
+    - Add ``frequency_penalty`` to the ``generative-cohere`` runtime configuration
+    - Minor bug fixes and improvements:
+        - Fix ``stop_sequences`` being dropped by the ``generative-aws`` runtime configuration instead of being sent to the server
+        - Fix ``KeyError: 'pq'`` when updating the quantizer on an HFresh vector index
+        - Fix reference filter builders mutating their target path, so a builder could not be reused
+        - Fix client-side batching flushing early when only one of its two object counts was unchanged
+        - Fix rate-limit spacing for partial batches
+        - Accept a plain string API key in all sync and async connection helpers
+        - Document ``vectorize_collection_name`` as having no effect on the ``multi2vec`` factories
+
+Version 4.23.0
+--------------
+This minor version includes:
+    - Support for new 1.39 features:
+        - Add support for the cross-property ``And`` operator in keyword queries through ``BM25Operator.and_cross()``, where each query token must be matched by at least one of the searched properties instead of all tokens occurring within a single property
+    - Add support for diversity selection in ``hybrid`` queries via the ``diversity_selection`` parameter
+    - Add support for the new ``multi2vec-twelvelabs`` vectorizer module
+    - Add support for the new ``generative-deepseek`` module
+    - Add ``dimensions`` to the ``text2vec-aws`` vectorizer configuration
+    - Add ``location`` to the ``text2vec-google`` vectorizer configuration
+    - Add ``endpoint`` to the ``text2vec-openai`` and ``text2vec-morph`` vectorizer configurations
+    - Add ``incremental_base_backup_id`` to ``BackupListReturn``
+    - Add ``INTEGRATING`` to ``ReplicateOperationState``
+    - Minor bug fixes and improvements:
+        - Fix ``has_errors`` not being set on ``batch.stream`` returns when individual objects or references failed
+        - Fix ``tenants.activate()``, ``tenants.deactivate()`` and ``tenants.offload()`` not returning their result in the async client, so they could not be awaited properly
+        - Fix ``collections.exists()`` in the async client swallowing non-404 errors and returning ``False`` instead of raising
+        - Fix blocking of the event loop when the async client waits for Weaviate to become ready
+        - Include the gRPC status code in ``delete_many`` error messages
+        - Fix validation of ``Sequence[Union[...]]`` inputs, which previously passed if only one element matched
+        - Reject boolean values where an integer is expected in configuration and timeout validation
+
+Version 4.22.0
+--------------
+This minor version includes:
+    - Support for new 1.38 features:
+        - Add support for the new Boost API for fine-grained, query-time relevance tuning — a ``boost`` parameter is now available across the vector, keyword (``bm25``), and ``hybrid`` query and generative-query methods
+        - The ``Boost`` factory (exported from ``weaviate.classes.query`` alongside ``BoostReturn``) provides ``numeric_property``, ``filter``, ``numeric_decay``, ``time_decay``, and ``blend`` boosts, each with optional ``depth`` and ``weight`` controls
+
+Version 4.21.3
+--------------
+This patch version includes:
+    - Fixes a bug where client-side batching contexts did not respect user-supplied insert timeouts
+
 Version 4.21.2
 --------------
 This patch version includes:

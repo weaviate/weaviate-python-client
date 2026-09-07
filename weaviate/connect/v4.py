@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -1052,7 +1053,7 @@ class ConnectionSync(_ConnectionBase):
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
-            raise WeaviateDeleteManyError(str(error.details()))
+            raise WeaviateDeleteManyError(f"[{error.code().name}] {error.details()}")
 
     def grpc_tenants_get(
         self, request: tenants_pb2.TenantsGetRequest
@@ -1159,7 +1160,7 @@ class ConnectionAsync(_ConnectionBase):
                 ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
-                time.sleep(1)
+                await asyncio.sleep(1)
 
         try:
             (
@@ -1232,7 +1233,7 @@ class ConnectionAsync(_ConnectionBase):
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
-            raise WeaviateDeleteManyError(str(e))
+            raise WeaviateDeleteManyError(f"[{e.code().name}] {e.details()}")
 
     async def grpc_batch_stream(
         self,

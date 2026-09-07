@@ -484,6 +484,26 @@ def test_collection_exists(weaviate_mock: HTTPServer) -> None:
             assert e.value.status_code == 500
 
 
+@pytest.mark.asyncio
+async def test_async_collection_exists(weaviate_mock: HTTPServer) -> None:
+    non_existing = "NonExistingCollection"
+    erroring = "ErroringCollection"
+    weaviate_mock.expect_request(f"/v1/schema/{non_existing}").respond_with_json(
+        response_json={"error": [{"message": "collection not found"}]}, status=404
+    )
+    weaviate_mock.expect_request(f"/v1/schema/{erroring}").respond_with_json(
+        response_json={"error": [{"message": "this is an error"}]}, status=500
+    )
+
+    async with weaviate.use_async_with_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert not await client.collections.use(non_existing).exists()
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            await client.collections.use(erroring).exists()
+        assert e.value.status_code == 500
+
+
 def test_grpc_client_version_header(
     metadata_capture_collection: tuple[
         weaviate.collections.Collection, MockMetadataCaptureWeaviateService

@@ -48,6 +48,19 @@ from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
 )
 from integration.conftest import retry_on_http_error
+from weaviate.util import _ServerVersion
+
+
+def _expected_async_enabled(version: _ServerVersion, factor: int) -> bool:
+    """Whether the server reports async replication as enabled for a collection.
+
+    Up to 1.38.9 the server stores whatever `async_enabled` the collection was created with. From
+    1.38.9 it ignores that and derives the field as `factor > 1 and not globally disabled` instead,
+    so a collection with a single replica always reports `False`.
+    """
+    if version.is_at_least(1, 38, 9):
+        return factor > 1
+    return version.is_at_least(1, 26, 0)
 
 
 @pytest.fixture(scope="module")
@@ -353,10 +366,9 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         assert config.multi_tenancy_config.auto_tenant_creation is False
 
     assert config.replication_config.factor == 1
-    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
-        assert config.replication_config.async_enabled is True
-    else:
-        assert config.replication_config.async_enabled is False
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
 
     if collection._connection._weaviate_version.is_at_least(1, 24, 25):
         assert (
@@ -648,6 +660,46 @@ def test_hnsw_with_rq(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer is not None
     assert config.vector_index_config.quantizer.bits == 8
     assert config.vector_index_config.quantizer.rescore_limit == 20
+
+
+def test_hnsw_with_rq4c(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 39, 2):
+        pytest.skip("RQ centering is not supported in Weaviate versions lower than 1.39.2")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.rq(
+                bits=4, centering=True, rescore_limit=20, training_limit=5000
+            ),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer is not None
+    assert config.vector_index_config.quantizer.bits == 4
+    assert config.vector_index_config.quantizer.centering is True
+    assert config.vector_index_config.quantizer.rescore_limit == 20
+    assert config.vector_index_config.quantizer.training_limit == 5000
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            quantizer=Reconfigure.VectorIndex.Quantizer.rq(rescore_limit=50, training_limit=10000),
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer.bits == 4
+    assert config.vector_index_config.quantizer.centering is True
+    assert config.vector_index_config.quantizer.rescore_limit == 50
+    assert config.vector_index_config.quantizer.training_limit == 10000
 
 
 @pytest.mark.parametrize(
@@ -1605,7 +1657,9 @@ def test_replication_config_with_async_config(collection_factory: CollectionFact
     )
     config = collection.config.get()
     assert config.replication_config.factor == 1
-    assert config.replication_config.async_enabled is True
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
     assert config.replication_config.async_config is not None
     ac = config.replication_config.async_config
     assert ac.propagation_concurrency == 4
@@ -1672,7 +1726,9 @@ def test_replication_config_remove_async_config(collection_factory: CollectionFa
         ),
     )
     config = collection.config.get()
-    assert config.replication_config.async_enabled is True
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
     assert config.replication_config.async_config is None
     assert config.replication_config.factor == 1
 

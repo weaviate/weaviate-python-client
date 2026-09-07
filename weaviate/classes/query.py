@@ -5,6 +5,8 @@ from weaviate.collections.classes.grpc import (
     BM25OperatorFactory as BM25Operator,
 )
 from weaviate.collections.classes.grpc import (
+    Boost,
+    BoostReturn,
     Diversity,
     GroupBy,
     HybridFusion,
@@ -38,6 +40,8 @@ __all__ = [
     "QueryNested",
     "QueryReference",
     "NearVector",
+    "Boost",
+    "BoostReturn",
     "Rerank",
     "Sort",
     "TargetVectors",
