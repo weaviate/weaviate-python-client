@@ -463,9 +463,7 @@ def test_is_weaviate_too_old(version: str, too_old: bool):
         ("", None),
     ],
 )
-def test_datetime_from_weaviate_str(
-    input_str: str, expected: Optional[datetime]
-) -> None:
+def test_datetime_from_weaviate_str(input_str: str, expected: Optional[datetime]) -> None:
     assert _datetime_from_weaviate_str(input_str) == expected
 
 
