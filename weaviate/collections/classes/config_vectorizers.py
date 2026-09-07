@@ -1578,3 +1578,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizeClassName=vectorize_collection_name,
             inferenceUrl=inference_url,
         )
+
+
+VectorizerConfigCreate: TypeAlias = _VectorizerConfigCreate

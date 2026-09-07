@@ -12,6 +12,7 @@ from weaviate.collections.classes.config import (
     Property,
     Reconfigure,
     ReferenceProperty,
+    ReferencePropertyCreate,
     ReplicationConfigCreate,
     ReplicationDeletionStrategy,
     RerankerConfigCreate,
@@ -30,7 +31,13 @@ from weaviate.collections.classes.config_vector_index import (
     VectorFilterStrategy,
     VectorIndexConfigCreate,
 )
-from weaviate.collections.classes.config_vectorizers import Multi2VecField, Vectorizers
+from weaviate.collections.classes.config_named_vectors import NamedVectorConfigCreate
+from weaviate.collections.classes.config_vectorizers import (
+    Multi2VecField,
+    VectorizerConfigCreate,
+    Vectorizers,
+)
+from weaviate.collections.classes.config_vectors import VectorConfigCreate
 from weaviate.connect.integrations import Integrations
 
 __all__ = [
@@ -45,6 +52,7 @@ __all__ = [
     "InvertedIndexConfigCreate",
     "Multi2VecField",
     "MultiTenancyConfigCreate",
+    "NamedVectorConfigCreate",
     "MultiVectorAggregation",
     "ObjectTTLConfigCreate",
     "ReplicationConfigCreate",
@@ -54,6 +62,7 @@ __all__ = [
     "PQEncoderDistribution",
     "PQEncoderType",
     "ReferenceProperty",
+    "ReferencePropertyCreate",
     "Rerankers",
     "ShardingConfigCreate",
     "StopwordsCreate",
@@ -64,5 +73,7 @@ __all__ = [
     "Vectorizers",
     "VectorDistances",
     "VectorFilterStrategy",
+    "VectorConfigCreate",
     "VectorIndexConfigCreate",
+    "VectorizerConfigCreate",
 ]

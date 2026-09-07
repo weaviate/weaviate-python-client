@@ -3246,5 +3246,6 @@ GenerativeConfigCreate: TypeAlias = _GenerativeProvider
 InvertedIndexConfigCreate: TypeAlias = _InvertedIndexConfigCreate
 MultiTenancyConfigCreate: TypeAlias = _MultiTenancyConfigCreate
 ReplicationConfigCreate: TypeAlias = _ReplicationConfigCreate
+ReferencePropertyCreate: TypeAlias = _ReferencePropertyBase
 RerankerConfigCreate: TypeAlias = _RerankerProvider
 ShardingConfigCreate: TypeAlias = _ShardingConfigCreate

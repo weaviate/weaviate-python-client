@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import AnyHttpUrl, Field
+from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import (
@@ -1983,3 +1984,6 @@ class _VectorsUpdate:
             name=name or "default",
             vector_index_config=vector_index_config,
         )
+
+
+VectorConfigCreate: TypeAlias = _VectorConfigCreate
