@@ -265,10 +265,10 @@ class _Warnings:
     def async_enabled_field_removed_server_side() -> None:
         warnings.warn(
             message="""Dep030: The `async_enabled` argument in `Configure.replication` / `Reconfigure.replication` is deprecated.
-            The `asyncEnabled` field was removed from the Weaviate server schema in v1.38 and is silently ignored by newer servers,
-            where whether async replication runs is decided server-side: it is on by default for any class with a
-            replication factor > 1, unless the `ASYNC_REPLICATION_DISABLED` runtime override is set.
-            The argument has no effect against any server >= 1.38 and will be removed in a future release.""",
+            On Weaviate v1.38 and newer the `asyncEnabled` field no longer exists in the server schema: it is silently dropped,
+            and whether async replication runs is decided server-side, on by default for any class with a replication
+            factor > 1 unless the `ASYNC_REPLICATION_DISABLED` runtime override is set.
+            On older servers the argument still takes effect, but it is deprecated and will be removed in a future release.""",
             category=DeprecationWarning,
             stacklevel=1,
         )

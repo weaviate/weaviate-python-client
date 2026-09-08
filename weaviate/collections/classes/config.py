@@ -353,8 +353,6 @@ class _ReplicationConfigUpdate(_ConfigUpdateModel):
             schema["factor"] = self.factor
         if self.asyncEnabled is not None:
             schema["asyncEnabled"] = self.asyncEnabled
-            if not self.asyncEnabled:
-                schema.pop("asyncConfig", None)
         if self.deletionStrategy is not None:
             schema["deletionStrategy"] = str(self.deletionStrategy.value)
         if self.asyncConfig is not None:
@@ -2923,12 +2921,11 @@ class Configure:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
         Note:
-            `async_enabled` was removed from the Weaviate server schema in v1.38. Passing it has
-            no effect against any server `>=v1.38`: the server silently drops it, and whether
-            async replication runs is decided server-side (on by default for any class with a
-            replication factor > 1, unless the `ASYNC_REPLICATION_DISABLED` runtime override is
-            set). Passing it emits a ``DeprecationWarning``; the argument will be removed in a
-            future release.
+            `async_enabled` is deprecated. On servers `>=v1.38` the `asyncEnabled` field no longer
+            exists in the schema: it is silently dropped, and async replication is decided
+            server-side (on by default for any class with a replication factor > 1, unless the
+            `ASYNC_REPLICATION_DISABLED` runtime override is set). On older servers it still takes
+            effect. Passing it emits a ``DeprecationWarning``; it will be removed in a future release.
 
         Args:
             factor: The replication factor.
@@ -3219,12 +3216,11 @@ class Reconfigure:
         Use this method when defining the `replication_config` argument in `collection.update()`.
 
         Note:
-            `async_enabled` was removed from the Weaviate server schema in v1.38. Passing it has
-            no effect against any server `>=v1.38`: the server silently drops it, and whether
-            async replication runs is decided server-side (on by default for any class with a
-            replication factor > 1, unless the `ASYNC_REPLICATION_DISABLED` runtime override is
-            set). Passing it emits a ``DeprecationWarning``; the argument will be removed in a
-            future release.
+            `async_enabled` is deprecated. On servers `>=v1.38` the `asyncEnabled` field no longer
+            exists in the schema: it is silently dropped, and async replication is decided
+            server-side (on by default for any class with a replication factor > 1, unless the
+            `ASYNC_REPLICATION_DISABLED` runtime override is set). On older servers it still takes
+            effect. Passing it emits a ``DeprecationWarning``; it will be removed in a future release.
 
         Args:
             factor: The replication factor.
