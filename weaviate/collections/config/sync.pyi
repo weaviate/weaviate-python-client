@@ -5,27 +5,30 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    GenerativeProvider,
     IndexName,
+    InvertedIndexConfigUpdate,
+    MultiTenancyConfigUpdate,
     Property,
     ReferenceProperty,
+    ReferencePropertyMultiTarget,
+    ReplicationConfigUpdate,
+    RerankerProvider,
     ShardStatus,
     ShardTypes,
-    _GenerativeProvider,
-    _InvertedIndexConfigUpdate,
-    _MultiTenancyConfigUpdate,
-    _NamedVectorConfigCreate,
-    _NamedVectorConfigUpdate,
-    _ReferencePropertyMultiTarget,
-    _ReplicationConfigUpdate,
-    _RerankerProvider,
-    _VectorConfigCreate,
-    _VectorConfigUpdate,
-    _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHFreshUpdate,
-    _VectorIndexConfigHNSWUpdate,
 )
-from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
-from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
+from weaviate.collections.classes.config_named_vectors import (
+    NamedVectorConfigCreate,
+    NamedVectorConfigUpdate,
+)
+from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigUpdate
+from weaviate.collections.classes.config_vector_index import (
+    VectorIndexConfigDynamicUpdate,
+    VectorIndexConfigFlatUpdate,
+    VectorIndexConfigHFreshUpdate,
+    VectorIndexConfigHNSWUpdate,
+)
+from weaviate.collections.classes.config_vectors import VectorConfigCreate, VectorConfigUpdate
 from weaviate.connect.v4 import ConnectionSync
 
 from .executor import _ConfigCollectionExecutor
@@ -42,29 +45,29 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         *,
         description: Optional[str] = None,
         property_descriptions: Optional[Dict[str, str]] = None,
-        inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
-        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
-        object_ttl_config: Optional[_ObjectTTLConfigUpdate] = None,
-        replication_config: Optional[_ReplicationConfigUpdate] = None,
+        inverted_index_config: Optional[InvertedIndexConfigUpdate] = None,
+        multi_tenancy_config: Optional[MultiTenancyConfigUpdate] = None,
+        object_ttl_config: Optional[ObjectTTLConfigUpdate] = None,
+        replication_config: Optional[ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
             Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigHFreshUpdate,
+                VectorIndexConfigHNSWUpdate,
+                VectorIndexConfigFlatUpdate,
+                VectorIndexConfigHFreshUpdate,
             ]
         ] = None,
         vectorizer_config: Optional[
             Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigDynamicUpdate,
-                _VectorIndexConfigHFreshUpdate,
-                List[_NamedVectorConfigUpdate],
+                VectorIndexConfigHNSWUpdate,
+                VectorIndexConfigFlatUpdate,
+                VectorIndexConfigDynamicUpdate,
+                VectorIndexConfigHFreshUpdate,
+                List[NamedVectorConfigUpdate],
             ]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
-        generative_config: Optional[_GenerativeProvider] = None,
-        reranker_config: Optional[_RerankerProvider] = None,
+        vector_config: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = None,
+        generative_config: Optional[GenerativeProvider] = None,
+        reranker_config: Optional[RerankerProvider] = None,
     ) -> None: ...
     def get_shards(self) -> List[ShardStatus]: ...
     def update_shards(
@@ -74,17 +77,17 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
     ) -> Dict[str, ShardTypes]: ...
     def add_property(self, prop: Property) -> None: ...
     def add_reference(
-        self, ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget]
+        self, ref: Union[ReferenceProperty, ReferencePropertyMultiTarget]
     ) -> None: ...
     @overload
     @deprecated(
         "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.MultiVectors`."
     )
     def add_vector(
-        self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
+        self, *, vector_config: Union[NamedVectorConfigCreate, List[NamedVectorConfigCreate]]
     ) -> None: ...
     @overload
     def add_vector(
-        self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
+        self, *, vector_config: Union[VectorConfigCreate, List[VectorConfigCreate]]
     ) -> None: ...
     def delete_property_index(self, property_name: str, index_name: IndexName) -> bool: ...

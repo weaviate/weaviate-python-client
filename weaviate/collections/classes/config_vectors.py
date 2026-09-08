@@ -1987,3 +1987,4 @@ class _VectorsUpdate:
 
 
 VectorConfigCreate: TypeAlias = _VectorConfigCreate
+VectorConfigUpdate: TypeAlias = _VectorConfigUpdate

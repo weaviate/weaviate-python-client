@@ -3242,10 +3242,14 @@ class Reconfigure:
         )
 
 
-GenerativeConfigCreate: TypeAlias = _GenerativeProvider
+GenerativeProvider: TypeAlias = _GenerativeProvider
 InvertedIndexConfigCreate: TypeAlias = _InvertedIndexConfigCreate
+InvertedIndexConfigUpdate: TypeAlias = _InvertedIndexConfigUpdate
 MultiTenancyConfigCreate: TypeAlias = _MultiTenancyConfigCreate
+MultiTenancyConfigUpdate: TypeAlias = _MultiTenancyConfigUpdate
+ReferencePropertyBase: TypeAlias = _ReferencePropertyBase
+ReferencePropertyMultiTarget: TypeAlias = _ReferencePropertyMultiTarget
 ReplicationConfigCreate: TypeAlias = _ReplicationConfigCreate
-ReferencePropertyCreate: TypeAlias = _ReferencePropertyBase
-RerankerConfigCreate: TypeAlias = _RerankerProvider
+ReplicationConfigUpdate: TypeAlias = _ReplicationConfigUpdate
+RerankerProvider: TypeAlias = _RerankerProvider
 ShardingConfigCreate: TypeAlias = _ShardingConfigCreate

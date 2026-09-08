@@ -681,3 +681,7 @@ class _VectorIndex:
 
 
 VectorIndexConfigCreate: TypeAlias = _VectorIndexConfigCreate
+VectorIndexConfigDynamicUpdate: TypeAlias = _VectorIndexConfigDynamicUpdate
+VectorIndexConfigFlatUpdate: TypeAlias = _VectorIndexConfigFlatUpdate
+VectorIndexConfigHFreshUpdate: TypeAlias = _VectorIndexConfigHFreshUpdate
+VectorIndexConfigHNSWUpdate: TypeAlias = _VectorIndexConfigHNSWUpdate
