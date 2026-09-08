@@ -22,6 +22,7 @@ from weaviate.collections.classes.config import (
     _VectorizerConfigCreate,
     _ReplicationConfigCreate,
     ReplicationDeletionStrategy,
+    VectorFilterStrategy,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_vectorizers import (
@@ -1662,6 +1663,16 @@ def test_vector_config_hnsw_rq4c() -> None:
     assert vi_dict["rq"]["centering"] is True
     assert vi_dict["rq"]["rescoreLimit"] == 123
     assert vi_dict["rq"]["trainingLimit"] == 5012
+
+
+def test_vector_config_hnsw_pathseer_filter_strategy() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        filter_strategy=VectorFilterStrategy.PATHSEER,
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["filterStrategy"] == "pathseer"
 
 
 def test_vector_config_flat_pq() -> None:

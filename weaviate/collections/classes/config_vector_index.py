@@ -22,10 +22,12 @@ class VectorFilterStrategy(str, Enum):
     Attributes:
         SWEEPING: Do normal ANN search and skip nodes.
         ACORN: Multi-hop search to find new candidates matching the filter.
+        PATHSEER: Adaptive search that decides per query between sweeping and multi-hop candidate discovery.
     """
 
     SWEEPING = "sweeping"
     ACORN = "acorn"
+    PATHSEER = "pathseer"
 
 
 class VectorIndexType(str, Enum):
