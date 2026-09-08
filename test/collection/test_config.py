@@ -3301,10 +3301,17 @@ def test_replication_config_update_merge_with_missing_async_config() -> None:
     "config_factory",
     [Configure.replication, Reconfigure.replication],
 )
-def test_replication_async_enabled_emits_deprecation_warning(config_factory: object) -> None:
-    """`async_enabled` was removed from the server schema in v1.38 and must warn when passed."""
+@pytest.mark.parametrize("async_enabled", [True, False])
+def test_replication_async_enabled_emits_deprecation_warning(
+    config_factory: object, async_enabled: bool
+) -> None:
+    """`async_enabled` was removed from the server schema in v1.38 and must warn when passed.
+
+    Both booleans are covered: `False` was the explicit opt-out, so a future truthiness
+    check must not silently stop warning for it.
+    """
     with pytest.warns(DeprecationWarning, match="Dep030"):
-        config_factory(async_enabled=True)  # type: ignore[operator]
+        config_factory(async_enabled=async_enabled)  # type: ignore[operator]
 
 
 @pytest.mark.parametrize(
