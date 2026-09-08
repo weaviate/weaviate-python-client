@@ -283,6 +283,16 @@ class _Warnings:
         )
 
     @staticmethod
+    def datetime_empty_string() -> None:
+        warnings.warn(
+            message="""Con006: Received an empty date string from Weaviate. This indicates a malformed or corrupt
+            date value, as an unset property is returned as null and never reaches this path.
+            None will be returned.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def batch_refresh_failed(err: str) -> None:
         warnings.warn(
             message=f"""Bat003: The dynamic batch-size could not be refreshed successfully: error {err}""",
