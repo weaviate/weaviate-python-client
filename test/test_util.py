@@ -467,6 +467,11 @@ def test_datetime_from_weaviate_str(input_str: str, expected: Optional[datetime]
     assert _datetime_from_weaviate_str(input_str) == expected
 
 
+def test_datetime_from_weaviate_str_empty_string_warns() -> None:
+    with pytest.warns(UserWarning, match="Con006"):
+        assert _datetime_from_weaviate_str("") is None
+
+
 @pytest.mark.parametrize(
     "current_version,latest_version,too_old",
     [
