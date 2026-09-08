@@ -1378,3 +1378,4 @@ class _NamedVectorsUpdate:
 
 
 NamedVectorConfigCreate: TypeAlias = _NamedVectorConfigCreate
+NamedVectorConfigUpdate: TypeAlias = _NamedVectorConfigUpdate

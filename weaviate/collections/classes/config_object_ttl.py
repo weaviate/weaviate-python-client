@@ -161,3 +161,4 @@ class _ObjectTTLUpdate:
 
 
 ObjectTTLConfigCreate: TypeAlias = _ObjectTTLConfigCreate
+ObjectTTLConfigUpdate: TypeAlias = _ObjectTTLConfigUpdate
