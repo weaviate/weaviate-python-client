@@ -702,6 +702,42 @@ def test_hnsw_with_rq4c(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.training_limit == 10000
 
 
+def test_hnsw_with_pathseer_filter_strategy(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 40, 0):
+        pytest.skip(
+            "pathseer filter strategy is not supported in Weaviate versions lower than 1.40.0"
+        )
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.PATHSEER,
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.PATHSEER
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.ACORN,
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.PATHSEER,
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.PATHSEER
+
+
 @pytest.mark.parametrize(
     "vector_index_config",
     [
