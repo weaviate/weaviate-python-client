@@ -122,8 +122,8 @@ def test_replication_async_config_replace_on_update() -> None:
     assert "hashtreeHeight" not in result["asyncConfig"]
 
 
-def test_replication_async_config_cleared_when_async_disabled() -> None:
-    """Test asyncConfig is removed from schema when asyncEnabled is set to False."""
+def test_replication_async_config_preserved_when_async_disabled() -> None:
+    """Test asyncConfig is preserved when asyncEnabled is set to False."""
     schema = {
         "factor": 1,
         "asyncEnabled": True,
@@ -132,7 +132,7 @@ def test_replication_async_config_cleared_when_async_disabled() -> None:
     update = Reconfigure.replication(async_enabled=False)
     result = update.merge_with_existing(schema)
     assert result["asyncEnabled"] is False
-    assert "asyncConfig" not in result
+    assert result["asyncConfig"] == {"maxWorkers": 8, "hashtreeHeight": 20}
 
 
 def test_replication_async_config_preserved_when_not_provided() -> None:

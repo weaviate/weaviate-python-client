@@ -761,7 +761,12 @@ def _datetime_to_string(value: TIME) -> str:
     return value.isoformat(sep="T", timespec="microseconds")
 
 
-def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+def _datetime_from_weaviate_str(string: str) -> Optional[datetime.datetime]:
+    # An unset date property arrives as null_value, never as "", so an empty string here
+    # can only be a malformed value from the server. Warn rather than drop it silently.
+    if not string:
+        _Warnings.datetime_empty_string()
+        return None
     if string[-1] != "Z":
         string = "".join(string.rsplit(":", 1))
 

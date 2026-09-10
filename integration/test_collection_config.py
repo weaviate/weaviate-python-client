@@ -702,6 +702,42 @@ def test_hnsw_with_rq4c(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.training_limit == 10000
 
 
+def test_hnsw_with_pathseer_filter_strategy(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 40, 0):
+        pytest.skip(
+            "pathseer filter strategy is not supported in Weaviate versions lower than 1.40.0"
+        )
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.PATHSEER,
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.PATHSEER
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.ACORN,
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.PATHSEER,
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.PATHSEER
+
+
 @pytest.mark.parametrize(
     "vector_index_config",
     [
@@ -1670,9 +1706,14 @@ def test_replication_config_with_async_config(collection_factory: CollectionFact
         assert ac.alive_nodes_checking_frequency is None
 
 
-def test_replication_config_remove_async_config_by_disabling_async_replication(
+def test_replication_config_async_config_preserved_when_disabling_async_replication(
     collection_factory: CollectionFactory,
 ) -> None:
+    """Disabling `async_enabled` must leave the collection's async replication tuning intact.
+
+    `config.update()` is a read-modify-write PUT of the whole collection, so dropping `asyncConfig`
+    from the merged payload would silently reset the tuning to server defaults.
+    """
     collection_dummy = collection_factory("dummy")
     if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
         pytest.skip("async replication config requires Weaviate >= 1.34.18")
@@ -1697,8 +1738,14 @@ def test_replication_config_remove_async_config_by_disabling_async_replication(
         ),
     )
     config = collection.config.get()
+    # False on both sides of the v1.38 compatibility shim: older servers store the
+    # `asyncEnabled` we just sent, newer ones derive it as `factor > 1 and not globally
+    # disabled` — and this collection has factor=1.
     assert config.replication_config.async_enabled is False
-    assert config.replication_config.async_config is None
+    ac = config.replication_config.async_config
+    assert ac is not None
+    assert ac.propagation_concurrency == 4
+    assert ac.hashtree_height == 20
 
 
 def test_replication_config_remove_async_config(collection_factory: CollectionFactory) -> None:

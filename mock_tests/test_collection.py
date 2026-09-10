@@ -293,6 +293,18 @@ def test_year_zero(year_zero_collection: weaviate.collections.Collection) -> Non
         assert str(recwarn[0].message).startswith("Con004")
 
 
+def test_empty_date(empty_date_collection: weaviate.collections.Collection) -> None:
+    with pytest.warns(UserWarning) as recwarn:
+        objs = empty_date_collection.query.fetch_objects().objects
+        assert objs[0].properties["date"] is None
+        assert objs[0].properties["dates"] == [
+            None,
+            datetime.datetime(2023, 1, 15, 14, 30, 45, 123456, tzinfo=datetime.timezone.utc),
+        ]
+
+        assert str(recwarn[0].message).startswith("Con006")
+
+
 @pytest.mark.parametrize("output", ["minimal", "verbose"])
 def test_node_with_timeout(
     httpserver: HTTPServer, start_grpc_server: grpc.Server, output: Literal["minimal", "verbose"]

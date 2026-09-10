@@ -262,6 +262,18 @@ class _Warnings:
         )
 
     @staticmethod
+    def async_enabled_field_removed_server_side() -> None:
+        warnings.warn(
+            message="""Dep030: The `async_enabled` argument in `Configure.replication` / `Reconfigure.replication` is deprecated.
+            On Weaviate v1.38 and newer the `asyncEnabled` field no longer exists in the server schema: it is silently dropped,
+            and whether async replication runs is decided server-side, on by default for any collection with a replication
+            factor > 1 unless the `ASYNC_REPLICATION_DISABLED` runtime override is set.
+            On older servers the argument still takes effect, but it is deprecated and will be removed in a future release.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are using the datetime object {date} without a timezone. The timezone will be set to UTC.
@@ -278,6 +290,16 @@ class _Warnings:
             message=f"""Con004: Received a date {date} with year 0. The year 0 does not exist in the Gregorian calendar
             and cannot be parsed by the datetime library. The year will be set to {datetime.min}.
             See https://en.wikipedia.org/wiki/Year_zero for more information.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def datetime_empty_string() -> None:
+        warnings.warn(
+            message="""Con006: Received an empty date string from Weaviate. This indicates a malformed or corrupt
+            date value, as an unset property is returned as null and never reaches this path.
+            None will be returned.""",
             category=UserWarning,
             stacklevel=1,
         )
