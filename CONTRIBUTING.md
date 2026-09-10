@@ -33,9 +33,7 @@ If any static analysis tools such as Pylance fail, try installing the package wi
 
 ### Project structure
 
-The client is organized around the v4 collections API. When adding or updating code, prefer the existing v4-style collection interfaces rather than the legacy v3 client patterns.
-
-Commonly changed areas include:
+The client is organized around the v4 collections API. Commonly changed areas include:
 
 - `weaviate/collections/` for the v4 collection APIs and typed request/response classes.
 - `weaviate/connect/` for connection and transport behavior.
