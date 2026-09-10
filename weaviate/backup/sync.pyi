@@ -24,6 +24,8 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
+        include_roles: Union[List[str], str, None] = None,
+        include_users: Union[List[str], str, None] = None,
     ) -> BackupReturn: ...
     def get_create_status(
         self,

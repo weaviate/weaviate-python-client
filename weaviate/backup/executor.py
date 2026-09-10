@@ -51,6 +51,8 @@ class _BackupExecutor(Generic[ConnectionType]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
+        include_roles: Union[List[str], str, None] = None,
+        include_users: Union[List[str], str, None] = None,
     ) -> executor.Result[BackupReturn]:
         """Create a backup of all/per collection Weaviate objects.
 
@@ -66,6 +68,8 @@ class _BackupExecutor(Generic[ConnectionType]):
             wait_for_completion: Whether to wait until the backup is done. By default False.
             config: The configuration of the backup creation. By default None.
             backup_location: The dynamic location of a backup. By default None.
+            include_roles: The role/list of roles to be included in the backup. If not specified all roles will be included. By default None.
+            include_users: The user/list of users to be included in the backup. If not specified all users will be included. By default None.
 
         Returns:
              A `_BackupReturn` object that contains the backup creation response.
@@ -80,11 +84,15 @@ class _BackupExecutor(Generic[ConnectionType]):
             backend,
             include_collections,
             exclude_collections,
+            include_roles,
+            include_users,
         ) = _get_and_validate_create_restore_arguments(
             backup_id=backup_id,
             backend=backend,  # can be removed when we remove the old backup class
             include_classes=include_collections,
             exclude_classes=exclude_collections,
+            include_roles=include_roles,
+            include_users=include_users,
             wait_for_completion=wait_for_completion,
         )
 
@@ -102,6 +110,8 @@ class _BackupExecutor(Generic[ConnectionType]):
             "id": backup_id,
             "include": include_collections,
             "exclude": exclude_collections,
+            "includeRoles": include_roles,
+            "includeUsers": include_users,
             "incremental_base_backup_id": (
                 incremental_base_backup_id.lower()
                 if incremental_base_backup_id is not None
@@ -282,6 +292,8 @@ class _BackupExecutor(Generic[ConnectionType]):
             backend,
             include_collections,
             exclude_collections,
+            include_roles,
+            include_users,
         ) = _get_and_validate_create_restore_arguments(
             backup_id=backup_id,
             backend=backend,
@@ -294,6 +306,8 @@ class _BackupExecutor(Generic[ConnectionType]):
             "include": include_collections,
             "exclude": exclude_collections,
             "overwriteAlias": overwrite_alias,
+            "includeRoles": include_roles,
+            "includeUsers": include_users,
         }
         configPayload = {}
         if config is not None:
@@ -524,8 +538,10 @@ def _get_and_validate_create_restore_arguments(
     backend: Union[str, BackupStorage],
     include_classes: Union[List[str], str, None],
     exclude_classes: Union[List[str], str, None],
-    wait_for_completion: bool,
-) -> Tuple[str, BackupStorage, List[str], List[str]]:
+    include_roles: Union[List[str], str, None] = None,
+    include_users: Union[List[str], str, None] = None,
+    wait_for_completion: bool = False,
+) -> Tuple[str, BackupStorage, List[str], List[str], List[str], List[str]]:
     """Validate and return the Backup.create/Backup.restore arguments.
 
     Args:
@@ -538,7 +554,7 @@ def _get_and_validate_create_restore_arguments(
         wait_for_completion: Whether to wait until the backup restore is done.
 
     Returns:
-        Validated and processed (backup_id, backend, include_classes, exclude_classes).
+        Validated and processed (backup_id, backend, include_classes, exclude_classes, include_roles, include_users).
 
     Raises:
         TypeError: If one of the arguments have a wrong type.
@@ -587,7 +603,36 @@ def _get_and_validate_create_restore_arguments(
     include_classes = [_capitalize_first_letter(cls) for cls in include_classes]
     exclude_classes = [_capitalize_first_letter(cls) for cls in exclude_classes]
 
-    return (backup_id.lower(), backend, include_classes, exclude_classes)
+    if include_roles is not None:
+        if isinstance(include_roles, str):
+            include_roles = [include_roles]
+        elif not isinstance(include_roles, list):
+            raise TypeError(
+                "'include_roles' must be of type str, list of str or None. "
+                f"Given type: {type(include_roles)}."
+            )
+    else:
+        include_roles = []
+
+    if include_users is not None:
+        if isinstance(include_users, str):
+            include_users = [include_users]
+        elif not isinstance(include_users, list):
+            raise TypeError(
+                "'include_users' must be of type str, list of str or None. "
+                f"Given type: {type(include_users)}."
+            )
+    else:
+        include_users = []
+
+    return (
+        backup_id.lower(),
+        backend,
+        include_classes,
+        exclude_classes,
+        include_roles,
+        include_users,
+    )
 
 
 def _get_and_validate_get_status(
