@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Awaitable, Callable, Dict, List, Optional, Union
 
-import httpx
+import httpx2
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
@@ -25,8 +25,8 @@ OIDC_CONFIG = Dict[str, Union[str, List[str]]]
 
 Result = Union[OAuth2Client, Awaitable[AsyncOAuth2Client]]
 MountsMaker = Union[
-    Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
-    Callable[[], Dict[str, httpx.HTTPTransport]],
+    Callable[[], Dict[str, httpx2.AsyncHTTPTransport]],
+    Callable[[], Dict[str, httpx2.HTTPTransport]],
 ]
 
 
@@ -111,7 +111,7 @@ class _Auth:
         if self._token_endpoint is not None:
             return executor.return_(self._token_endpoint, self.__colour)
 
-        def resp(res: httpx.Response) -> str:
+        def resp(res: httpx2.Response) -> str:
             data = _decode_json_response_dict(res, "Get token endpoint")
             assert data is not None
             token_endpoint = data["token_endpoint"]
@@ -121,19 +121,19 @@ class _Auth:
         if self.__colour == "async":
 
             async def _execute() -> str:
-                mounts: Dict[str, httpx.AsyncBaseTransport] = {}
+                mounts: Dict[str, httpx2.AsyncBaseTransport] = {}
                 for key, mount in self.__make_mounts().items():
-                    assert isinstance(mount, httpx.AsyncHTTPTransport)
+                    assert isinstance(mount, httpx2.AsyncHTTPTransport)
                     mounts[key] = mount
-                async with httpx.AsyncClient(mounts=mounts) as client:
+                async with httpx2.AsyncClient(mounts=mounts) as client:
                     return resp(await client.get(self._open_id_config_url))
 
             return _execute()
-        mounts: Dict[str, httpx.BaseTransport] = {}
+        mounts: Dict[str, httpx2.BaseTransport] = {}
         for key, mount in self.__make_mounts().items():
-            assert isinstance(mount, httpx.BaseTransport)
+            assert isinstance(mount, httpx2.BaseTransport)
             mounts[key] = mount
-        with httpx.Client(mounts=mounts) as client:
+        with httpx2.Client(mounts=mounts) as client:
             return resp(client.get(self._open_id_config_url))
 
     def get_auth_session(self) -> Result:
