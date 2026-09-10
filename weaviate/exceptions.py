@@ -3,10 +3,7 @@
 from json.decoder import JSONDecodeError
 from typing import Optional, Tuple, Union, cast
 
-try:
-    import httpx2 as httpx
-except ImportError:
-    import httpx
+import httpx2
 from grpc import Call, StatusCode  # type: ignore
 from grpc.aio import AioRpcError  # type: ignore
 from packaging import version
@@ -34,7 +31,7 @@ class WeaviateBaseError(Exception):
 
 
 class UnexpectedStatusCodeError(WeaviateBaseError):
-    def __init__(self, message: str, response: Union[httpx.Response, AioRpcError, Call]):
+    def __init__(self, message: str, response: Union[httpx2.Response, AioRpcError, Call]):
         """Is raised in case the status code returned from Weaviate is not handled in the client implementation and suggests an error.
 
         Custom code can act on the attributes:
@@ -45,13 +42,13 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             message: An error message specific to the context, in which the error occurred.
             response: The request response of which the status code was unexpected.
         """
-        if isinstance(response, httpx.Response):
+        if isinstance(response, httpx2.Response):
             self._status_code: int = response.status_code
             # Set error message
 
             try:
                 body = response.json()
-            except (httpx.DecodingError, JSONDecodeError):
+            except (httpx2.DecodingError, JSONDecodeError):
                 body = None
 
             msg = (
@@ -93,7 +90,7 @@ UnexpectedStatusCodeException = UnexpectedStatusCodeError
 
 
 class ResponseCannotBeDecodedError(WeaviateBaseError):
-    def __init__(self, location: str, response: httpx.Response):
+    def __init__(self, location: str, response: httpx2.Response):
         """Raised when a weaviate response cannot be decoded to json.
 
         Args:
@@ -401,7 +398,7 @@ class WeaviateRetryError(WeaviateBaseError):
 class InsufficientPermissionsError(UnexpectedStatusCodeError):
     """Is raised when a request to Weaviate fails due to insufficient permissions."""
 
-    def __init__(self, res: Union[httpx.Response, AioRpcError, Call]) -> None:
+    def __init__(self, res: Union[httpx2.Response, AioRpcError, Call]) -> None:
         super().__init__("forbidden", res)
 
 

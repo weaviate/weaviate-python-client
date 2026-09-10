@@ -2,10 +2,7 @@
 
 from typing import Any, Dict, Generic, List, Optional, Union, overload
 
-try:
-    from httpx2 import Response
-except ImportError:
-    from httpx import Response
+from httpx2 import Response
 
 from weaviate.collections.classes.config import (
     StopwordsConfig,

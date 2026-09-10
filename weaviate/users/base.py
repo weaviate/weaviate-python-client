@@ -1,10 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
 
-try:
-    from httpx2 import Response
-except ImportError:
-    from httpx import Response
+from httpx2 import Response
 from typing_extensions import deprecated
 
 from weaviate.connect import executor

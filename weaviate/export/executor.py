@@ -4,10 +4,7 @@ import asyncio
 import time
 from typing import Generic, List, Literal, Tuple, Union, overload
 
-try:
-    from httpx2 import Response
-except ImportError:
-    from httpx import Response
+from httpx2 import Response
 
 from weaviate.backup.backup import STORAGE_NAMES
 from weaviate.connect import executor

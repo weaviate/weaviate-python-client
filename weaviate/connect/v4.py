@@ -33,10 +33,7 @@ from grpc.aio import AioRpcError, StreamStreamCall
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 
 # from grpclib.client import Channel
-try:
-    from httpx2 import (
-except ImportError:
-    from httpx import (
+from httpx2 import (
     AsyncClient,
     AsyncHTTPTransport,
     Client,
@@ -627,14 +624,14 @@ class _ConnectionBase:
     ) -> Timeout:
         """Get the timeout for the request.
 
-        In this way, the client waits the `httpx` default of 5s when connecting to a socket (connect), writing chunks (write), and
+        In this way, the client waits the `httpx2` default of 5s when connecting to a socket (connect), writing chunks (write), and
         acquiring a connection from the pool (pool), but a custom amount as specified for reading the response (read).
 
         From the PoV of the user, a request is considered to be timed out if no response is received within the specified time.
         They specify the times depending on how they expect Weaviate to behave. For example, a query might take longer than an insert or vice versa
         but, in either case, the user only cares about how long it takes for a response to be received.
 
-        https://www.python-httpx.org/advanced/timeouts/
+        https://www.python-httpx2.org/advanced/timeouts/
         """
         timeout = None
         if method == "DELETE" or method == "PATCH" or method == "PUT":

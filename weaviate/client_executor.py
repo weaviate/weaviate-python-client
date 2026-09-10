@@ -12,10 +12,7 @@ from typing import (
     cast,
 )
 
-try:
-    from httpx2 import Response
-except ImportError:
-    from httpx import Response
+from httpx2 import Response
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from weaviate.integrations import _Integrations

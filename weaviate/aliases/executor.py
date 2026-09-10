@@ -1,9 +1,6 @@
 from typing import Dict, Generic, List, Optional, cast
 
-try:
-    from httpx2 import Response
-except ImportError:
-    from httpx import Response
+from httpx2 import Response
 
 from weaviate.aliases.alias import AliasReturn, _WeaviateAlias
 from weaviate.connect import executor
