@@ -40,8 +40,8 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.config_named_vectors import (
-    NamedVectorConfigCreate,
-    NamedVectorConfigUpdate,
+    _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
 )
 from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import (
@@ -171,7 +171,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 VectorIndexConfigFlatUpdate,
                 VectorIndexConfigDynamicUpdate,
                 VectorIndexConfigHFreshUpdate,
-                List[NamedVectorConfigUpdate],
+                List[_NamedVectorConfigUpdate],
             ]
         ] = None,
         vector_config: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = None,
@@ -547,7 +547,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.MultiVectors`."
     )
     def add_vector(
-        self, *, vector_config: Union[NamedVectorConfigCreate, List[NamedVectorConfigCreate]]
+        self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
     ) -> executor.Result[None]: ...
 
     @overload
@@ -559,9 +559,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         self,
         *,
         vector_config: Union[
-            NamedVectorConfigCreate,
+            _NamedVectorConfigCreate,
             VectorConfigCreate,
-            List[NamedVectorConfigCreate],
+            List[_NamedVectorConfigCreate],
             List[VectorConfigCreate],
         ],
     ) -> executor.Result[None]:
@@ -579,9 +579,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             [
                 _ValidateArgument(
                     expected=[
-                        NamedVectorConfigCreate,
+                        _NamedVectorConfigCreate,
                         VectorConfigCreate,
-                        List[NamedVectorConfigCreate],
+                        List[_NamedVectorConfigCreate],
                         List[VectorConfigCreate],
                     ],
                     name="vector_config",
@@ -591,13 +591,13 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         )
         if isinstance(vector_config, list):
             for c in vector_config:
-                if isinstance(c, NamedVectorConfigCreate):
+                if isinstance(c, _NamedVectorConfigCreate):
                     _Warnings.named_vector_syntax_in_config_add_vector(c.name)
                 if c.name is None:
                     raise WeaviateInvalidInputError(
                         "The configured vector must have a name when adding it to a collection."
                     )
-        if isinstance(vector_config, NamedVectorConfigCreate):
+        if isinstance(vector_config, _NamedVectorConfigCreate):
             _Warnings.named_vector_syntax_in_config_add_vector(vector_config.name)
             vector_config = [vector_config]
         if isinstance(vector_config, VectorConfigCreate):

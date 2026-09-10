@@ -18,8 +18,8 @@ from weaviate.collections.classes.config import (
     ShardTypes,
 )
 from weaviate.collections.classes.config_named_vectors import (
-    NamedVectorConfigCreate,
-    NamedVectorConfigUpdate,
+    _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
 )
 from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import (
@@ -62,7 +62,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
                 VectorIndexConfigFlatUpdate,
                 VectorIndexConfigDynamicUpdate,
                 VectorIndexConfigHFreshUpdate,
-                List[NamedVectorConfigUpdate],
+                List[_NamedVectorConfigUpdate],
             ]
         ] = None,
         vector_config: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = None,
@@ -84,7 +84,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         "Using `Configure.NamedVectors` in `vector_config` is deprecated. Instead, use `Configure.Vectors` or `Configure.MultiVectors`."
     )
     def add_vector(
-        self, *, vector_config: Union[NamedVectorConfigCreate, List[NamedVectorConfigCreate]]
+        self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
     ) -> None: ...
     @overload
     def add_vector(

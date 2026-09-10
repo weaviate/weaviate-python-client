@@ -34,8 +34,8 @@ from weaviate.collections.classes.config_base import (
     _QuantizerConfigUpdate,
 )
 from weaviate.collections.classes.config_named_vectors import (
-    NamedVectorConfigCreate,
-    NamedVectorConfigUpdate,
+    _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
     _NamedVectors,
     _NamedVectorsUpdate,
 )
@@ -69,11 +69,11 @@ from weaviate.collections.classes.config_vectorizers import (
     VectorDistances as VectorDistancesAlias,
 )
 from weaviate.collections.classes.config_vectorizers import (
-    VectorizerConfigCreate,
-    _Vectorizer,
+    Vectorizers as VectorizersAlias,
 )
 from weaviate.collections.classes.config_vectorizers import (
-    Vectorizers as VectorizersAlias,
+    _Vectorizer,
+    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_vectors import (
     VectorConfigCreate,
@@ -1565,7 +1565,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorIndexConfig: Optional[VectorIndexConfigUpdate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[Union[VectorIndexConfigUpdate, List[NamedVectorConfigUpdate]]] = (
+    vectorizerConfig: Optional[Union[VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]] = (
         Field(default=None, alias="vectorizer_config")
     )
     vectorConfig: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = Field(
@@ -2527,7 +2527,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Union[VectorizerConfigCreate, List[NamedVectorConfigCreate], None] = Field(
+    vectorizerConfig: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None] = Field(
         default=None, alias="vectorizer_config"
     )
     vectorConfig: Union[VectorConfigCreate, List[VectorConfigCreate], None] = Field(
@@ -2558,15 +2558,15 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     def validate_vector_names(
         cls,
         v: Union[
-            VectorizerConfigCreate,
-            NamedVectorConfigCreate,
-            List[NamedVectorConfigCreate],
+            _VectorizerConfigCreate,
+            _NamedVectorConfigCreate,
+            List[_NamedVectorConfigCreate],
         ],
         info: ValidationInfo,
     ) -> Union[
-        VectorizerConfigCreate,
-        NamedVectorConfigCreate,
-        List[NamedVectorConfigCreate],
+        _VectorizerConfigCreate,
+        _NamedVectorConfigCreate,
+        List[_NamedVectorConfigCreate],
     ]:
         if isinstance(v, list):
             names = [vc.name for vc in v]
@@ -2589,7 +2589,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         ):
             return VectorConfigCreate(
                 name="default",
-                vectorizer=VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+                vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             )
         return v
 
@@ -2615,7 +2615,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
             elif isinstance(val, RerankerProvider):
                 self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
-            elif isinstance(val, VectorizerConfigCreate):
+            elif isinstance(val, _VectorizerConfigCreate):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizers.NONE:
                     self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
@@ -2631,9 +2631,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             elif (
                 isinstance(val, list)
                 and len(val) > 0
-                and all(isinstance(item, NamedVectorConfigCreate) for item in val)
+                and all(isinstance(item, _NamedVectorConfigCreate) for item in val)
             ):
-                val = cast(List[NamedVectorConfigCreate], val)
+                val = cast(List[_NamedVectorConfigCreate], val)
                 ret_dict["vectorConfig"] = {
                     item.name: item._to_dict(
                         emit_default_vector_index_type=emit_default_vector_index_type
@@ -2689,7 +2689,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 (
                     prop._to_dict(
                         [self.vectorizerConfig.vectorizer]
-                        if isinstance(self.vectorizerConfig, VectorizerConfigCreate)
+                        if isinstance(self.vectorizerConfig, _VectorizerConfigCreate)
                         else (
                             None
                             if self.vectorizerConfig is None
@@ -3262,8 +3262,6 @@ _InvertedIndexConfigCreate: TypeAlias = InvertedIndexConfigCreate
 _InvertedIndexConfigUpdate: TypeAlias = InvertedIndexConfigUpdate
 _MultiTenancyConfigCreate: TypeAlias = MultiTenancyConfigCreate
 _MultiTenancyConfigUpdate: TypeAlias = MultiTenancyConfigUpdate
-_NamedVectorConfigCreate: TypeAlias = NamedVectorConfigCreate
-_NamedVectorConfigUpdate: TypeAlias = NamedVectorConfigUpdate
 _ObjectTTLConfigCreate: TypeAlias = ObjectTTLConfigCreate
 _ObjectTTLConfigUpdate: TypeAlias = ObjectTTLConfigUpdate
 _ReferencePropertyBase: TypeAlias = ReferencePropertyBase
@@ -3280,4 +3278,3 @@ _VectorIndexConfigFlatUpdate: TypeAlias = VectorIndexConfigFlatUpdate
 _VectorIndexConfigHFreshUpdate: TypeAlias = VectorIndexConfigHFreshUpdate
 _VectorIndexConfigHNSWUpdate: TypeAlias = VectorIndexConfigHNSWUpdate
 _VectorIndexConfigUpdate: TypeAlias = VectorIndexConfigUpdate
-_VectorizerConfigCreate: TypeAlias = VectorizerConfigCreate

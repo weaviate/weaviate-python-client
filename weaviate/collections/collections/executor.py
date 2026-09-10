@@ -32,10 +32,10 @@ from weaviate.collections.classes.config_methods import (
     _collection_configs_from_json,
     _collection_configs_simple_from_json,
 )
-from weaviate.collections.classes.config_named_vectors import NamedVectorConfigCreate
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigCreate
 from weaviate.collections.classes.config_vector_index import VectorIndexConfigCreate
-from weaviate.collections.classes.config_vectorizers import VectorizerConfigCreate
+from weaviate.collections.classes.config_vectorizers import _VectorizerConfigCreate
 from weaviate.collections.classes.config_vectors import VectorConfigCreate
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
@@ -162,7 +162,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         sharding_config: Optional[ShardingConfigCreate] = None,
         vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
-            Union[VectorizerConfigCreate, List[NamedVectorConfigCreate]]
+            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
         ] = None,
         vector_config: Optional[Union[VectorConfigCreate, List[VectorConfigCreate]]] = None,
         data_model_properties: Optional[Type[Properties]] = None,

@@ -36,7 +36,6 @@ from weaviate.collections.classes.config_vectorizers import (
     Multi2VecField,
     OpenAIModel,
     OpenAIType,
-    VectorizerConfigCreate,
     Vectorizers,
     VoyageModel,
     VoyageMultimodalModel,
@@ -76,6 +75,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecTransformersConfig,
     _Text2VecVoyageConfig,
     _Text2VecWeaviateConfig,
+    _VectorizerConfigCreate,
     _VectorizerCustomConfig,
 )
 
@@ -83,7 +83,7 @@ from weaviate.collections.classes.config_vectorizers import (
 class VectorConfigCreate(_ConfigCreateModel):
     name: Optional[str]
     properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
-    vectorizer: VectorizerConfigCreate
+    vectorizer: _VectorizerConfigCreate
     vectorIndexType: VectorIndexType = Field(default=VectorIndexType.HNSW, exclude=True)
     vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
@@ -215,7 +215,7 @@ class _MultiVectors:
         """
         return VectorConfigCreate(
             name=name,
-            vectorizer=VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+            vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             vector_index_config=_IndexWrappers.multi(
                 vector_index_config, quantizer, multi_vector_config, encoding
             ),
@@ -361,7 +361,7 @@ class _Vectors:
         """
         return VectorConfigCreate(
             name=name,
-            vectorizer=VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+            vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
 

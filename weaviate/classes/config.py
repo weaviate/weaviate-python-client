@@ -29,10 +29,6 @@ from weaviate.collections.classes.config import (
     Tokenization,
     VectorDistances,
 )
-from weaviate.collections.classes.config_named_vectors import (
-    NamedVectorConfigCreate,
-    NamedVectorConfigUpdate,
-)
 from weaviate.collections.classes.config_object_ttl import (
     ObjectTTLConfigCreate,
     ObjectTTLConfigUpdate,
@@ -54,7 +50,6 @@ from weaviate.collections.classes.config_vector_index import (
 )
 from weaviate.collections.classes.config_vectorizers import (
     Multi2VecField,
-    VectorizerConfigCreate,
     Vectorizers,
 )
 from weaviate.collections.classes.config_vectors import (
@@ -77,8 +72,6 @@ __all__ = [
     "MultiTenancyConfigCreate",
     "MultiTenancyConfigUpdate",
     "MultiVectorAggregation",
-    "NamedVectorConfigCreate",
-    "NamedVectorConfigUpdate",
     "ObjectTTLConfigCreate",
     "ObjectTTLConfigUpdate",
     "PQEncoderDistribution",
@@ -114,6 +107,5 @@ __all__ = [
     "VectorIndexConfigHNSWUpdate",
     "VectorIndexConfigSkipCreate",
     "VectorIndexConfigUpdate",
-    "VectorizerConfigCreate",
     "Vectorizers",
 ]
