@@ -353,8 +353,6 @@ class _ReplicationConfigUpdate(_ConfigUpdateModel):
             schema["factor"] = self.factor
         if self.asyncEnabled is not None:
             schema["asyncEnabled"] = self.asyncEnabled
-            if not self.asyncEnabled:
-                schema.pop("asyncConfig", None)
         if self.deletionStrategy is not None:
             schema["deletionStrategy"] = str(self.deletionStrategy.value)
         if self.asyncConfig is not None:
@@ -2922,14 +2920,21 @@ class Configure:
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
-        NOTE: `async_enabled` is only available with WeaviateDB `>=v1.26.0`
+        Note:
+            `async_enabled` is deprecated. On servers `>=v1.38` the `asyncEnabled` field no longer
+            exists in the schema: it is silently dropped, and async replication is decided
+            server-side (on by default for any collection with a replication factor > 1, unless the
+            `ASYNC_REPLICATION_DISABLED` runtime override is set). On older servers it still takes
+            effect. Passing it emits a ``DeprecationWarning``; it will be removed in a future release.
 
         Args:
             factor: The replication factor.
             async_enabled: Enabled async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
-            async_config: The configuration for async replication. This is only relevant if `async_enabled` is `True`.
+            async_config: The configuration for async replication.
         """
+        if async_enabled is not None:
+            _Warnings.async_enabled_field_removed_server_side()
         return _ReplicationConfigCreate(
             factor=factor,
             asyncEnabled=async_enabled,
@@ -3210,12 +3215,21 @@ class Reconfigure:
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
 
+        Note:
+            `async_enabled` is deprecated. On servers `>=v1.38` the `asyncEnabled` field no longer
+            exists in the schema: it is silently dropped, and async replication is decided
+            server-side (on by default for any collection with a replication factor > 1, unless the
+            `ASYNC_REPLICATION_DISABLED` runtime override is set). On older servers it still takes
+            effect. Passing it emits a ``DeprecationWarning``; it will be removed in a future release.
+
         Args:
             factor: The replication factor.
             async_enabled: Enable async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
-            async_config: The async replication configuration. This is only applicable if `async_enabled` is set to `True`.
+            async_config: The async replication configuration.
         """
+        if async_enabled is not None:
+            _Warnings.async_enabled_field_removed_server_side()
         return _ReplicationConfigUpdate(
             factor=factor,
             asyncEnabled=async_enabled,
