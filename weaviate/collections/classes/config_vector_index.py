@@ -71,7 +71,7 @@ class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
     aggregation: Optional[str]
 
 
-class _VectorIndexConfigCreate(_ConfigCreateModel):
+class VectorIndexConfigCreate(_ConfigCreateModel):
     distance: Optional[VectorDistances]
     multivector: Optional[_MultiVectorConfigCreate]
     quantizer: Optional[_QuantizerConfigCreate] = Field(exclude=True)
@@ -97,7 +97,7 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
         return ret_dict
 
 
-class _VectorIndexConfigUpdate(_ConfigUpdateModel):
+class VectorIndexConfigUpdate(_ConfigUpdateModel):
     quantizer: Optional[_QuantizerConfigUpdate] = Field(exclude=True)
 
     @staticmethod
@@ -105,7 +105,7 @@ class _VectorIndexConfigUpdate(_ConfigUpdateModel):
     def vector_index_type() -> VectorIndexType: ...
 
 
-class _VectorIndexConfigSkipCreate(_VectorIndexConfigCreate):
+class VectorIndexConfigSkipCreate(VectorIndexConfigCreate):
     skip: bool = True
 
     @staticmethod
@@ -113,7 +113,7 @@ class _VectorIndexConfigSkipCreate(_VectorIndexConfigCreate):
         return VectorIndexType.HNSW
 
 
-class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
+class VectorIndexConfigHNSWCreate(VectorIndexConfigCreate):
     cleanupIntervalSeconds: Optional[int]
     dynamicEfMin: Optional[int]
     dynamicEfMax: Optional[int]
@@ -130,7 +130,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
         return VectorIndexType.HNSW
 
 
-class _VectorIndexConfigHFreshCreate(_VectorIndexConfigCreate):
+class VectorIndexConfigHFreshCreate(VectorIndexConfigCreate):
     maxPostingSizeKB: Optional[int]
     replicas: Optional[int]
     searchProbe: Optional[int]
@@ -140,7 +140,7 @@ class _VectorIndexConfigHFreshCreate(_VectorIndexConfigCreate):
         return VectorIndexType.HFRESH
 
 
-class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
+class VectorIndexConfigFlatCreate(VectorIndexConfigCreate):
     vectorCacheMaxObjects: Optional[int]
 
     @staticmethod
@@ -148,7 +148,7 @@ class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
         return VectorIndexType.FLAT
 
 
-class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
+class VectorIndexConfigHNSWUpdate(VectorIndexConfigUpdate):
     dynamicEfMin: Optional[int]
     dynamicEfMax: Optional[int]
     dynamicEfFactor: Optional[int]
@@ -162,7 +162,7 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
         return VectorIndexType.HNSW
 
 
-class _VectorIndexConfigHFreshUpdate(_VectorIndexConfigUpdate):
+class VectorIndexConfigHFreshUpdate(VectorIndexConfigUpdate):
     maxPostingSizeKB: Optional[int]
     searchProbe: Optional[int]
 
@@ -171,7 +171,7 @@ class _VectorIndexConfigHFreshUpdate(_VectorIndexConfigUpdate):
         return VectorIndexType.HFRESH
 
 
-class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
+class VectorIndexConfigFlatUpdate(VectorIndexConfigUpdate):
     vectorCacheMaxObjects: Optional[int]
 
     @staticmethod
@@ -179,10 +179,10 @@ class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
         return VectorIndexType.FLAT
 
 
-class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
+class VectorIndexConfigDynamicCreate(VectorIndexConfigCreate):
     threshold: Optional[int]
-    hnsw: Optional[_VectorIndexConfigHNSWCreate]
-    flat: Optional[_VectorIndexConfigFlatCreate]
+    hnsw: Optional[VectorIndexConfigHNSWCreate]
+    flat: Optional[VectorIndexConfigFlatCreate]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -200,10 +200,10 @@ class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
         return ret_dict
 
 
-class _VectorIndexConfigDynamicUpdate(_VectorIndexConfigUpdate):
+class VectorIndexConfigDynamicUpdate(VectorIndexConfigUpdate):
     threshold: Optional[int]
-    hnsw: Optional[_VectorIndexConfigHNSWUpdate]
-    flat: Optional[_VectorIndexConfigFlatUpdate]
+    hnsw: Optional[VectorIndexConfigHNSWUpdate]
+    flat: Optional[VectorIndexConfigFlatUpdate]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -519,12 +519,12 @@ class _VectorIndex:
     Quantizer = _VectorIndexQuantizer
 
     @staticmethod
-    def none() -> _VectorIndexConfigSkipCreate:
-        """Create a `_VectorIndexConfigSkipCreate` object to be used when configuring Weaviate to not index your vectors.
+    def none() -> VectorIndexConfigSkipCreate:
+        """Create a `VectorIndexConfigSkipCreate` object to be used when configuring Weaviate to not index your vectors.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
         """
-        return _VectorIndexConfigSkipCreate(
+        return VectorIndexConfigSkipCreate(
             distance=None,
             quantizer=None,
             multivector=None,
@@ -550,7 +550,7 @@ class _VectorIndex:
         *,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector: _MultiVectorConfigCreate,
-    ) -> _VectorIndexConfigHNSWCreate: ...
+    ) -> VectorIndexConfigHNSWCreate: ...
 
     @overload
     @staticmethod
@@ -568,7 +568,7 @@ class _VectorIndex:
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector: Optional[_MultiVectorConfigCreate] = None,
-    ) -> _VectorIndexConfigHNSWCreate: ...
+    ) -> VectorIndexConfigHNSWCreate: ...
 
     @staticmethod
     def hnsw(
@@ -585,8 +585,8 @@ class _VectorIndex:
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector: Optional[_MultiVectorConfigCreate] = None,
-    ) -> _VectorIndexConfigHNSWCreate:
-        """Create a `_VectorIndexConfigHNSWCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
+    ) -> VectorIndexConfigHNSWCreate:
+        """Create a `VectorIndexConfigHNSWCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
@@ -595,7 +595,7 @@ class _VectorIndex:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         if multi_vector is not None:
             _Warnings.multi_vector_in_hnsw_config()
-        return _VectorIndexConfigHNSWCreate(
+        return VectorIndexConfigHNSWCreate(
             cleanupIntervalSeconds=cleanup_interval_seconds,
             distance=distance_metric,
             dynamicEfMin=dynamic_ef_min,
@@ -619,15 +619,15 @@ class _VectorIndex:
         search_probe: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector: Optional[_MultiVectorConfigCreate] = None,
-    ) -> _VectorIndexConfigHFreshCreate:
-        """Create a `_VectorIndexConfigHFreshCreate` object to be used when defining the HFresh vector index configuration of Weaviate.
+    ) -> VectorIndexConfigHFreshCreate:
+        """Create a `VectorIndexConfigHFreshCreate` object to be used when defining the HFresh vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hfresh) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigHFreshCreate(
+        return VectorIndexConfigHFreshCreate(
             distance=distance_metric,
             maxPostingSizeKB=max_posting_size_kb,
             replicas=replicas,
@@ -641,15 +641,15 @@ class _VectorIndex:
         distance_metric: Optional[VectorDistances] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-    ) -> _VectorIndexConfigFlatCreate:
-        """Create a `_VectorIndexConfigFlatCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
+    ) -> VectorIndexConfigFlatCreate:
+        """Create a `VectorIndexConfigFlatCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigFlatCreate(
+        return VectorIndexConfigFlatCreate(
             distance=distance_metric,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
@@ -660,17 +660,17 @@ class _VectorIndex:
     def dynamic(
         distance_metric: Optional[VectorDistances] = None,
         threshold: Optional[int] = None,
-        hnsw: Optional[_VectorIndexConfigHNSWCreate] = None,
-        flat: Optional[_VectorIndexConfigFlatCreate] = None,
-    ) -> _VectorIndexConfigDynamicCreate:
-        """Create a `_VectorIndexConfigDynamicCreate` object to be used when defining the DYNAMIC vector index configuration of Weaviate.
+        hnsw: Optional[VectorIndexConfigHNSWCreate] = None,
+        flat: Optional[VectorIndexConfigFlatCreate] = None,
+    ) -> VectorIndexConfigDynamicCreate:
+        """Create a `VectorIndexConfigDynamicCreate` object to be used when defining the DYNAMIC vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigDynamicCreate(
+        return VectorIndexConfigDynamicCreate(
             distance=distance_metric,
             threshold=threshold,
             hnsw=hnsw,
@@ -680,8 +680,15 @@ class _VectorIndex:
         )
 
 
-VectorIndexConfigCreate: TypeAlias = _VectorIndexConfigCreate
-VectorIndexConfigDynamicUpdate: TypeAlias = _VectorIndexConfigDynamicUpdate
-VectorIndexConfigFlatUpdate: TypeAlias = _VectorIndexConfigFlatUpdate
-VectorIndexConfigHFreshUpdate: TypeAlias = _VectorIndexConfigHFreshUpdate
-VectorIndexConfigHNSWUpdate: TypeAlias = _VectorIndexConfigHNSWUpdate
+# BC for direct imports
+_VectorIndexConfigCreate: TypeAlias = VectorIndexConfigCreate
+_VectorIndexConfigDynamicCreate: TypeAlias = VectorIndexConfigDynamicCreate
+_VectorIndexConfigDynamicUpdate: TypeAlias = VectorIndexConfigDynamicUpdate
+_VectorIndexConfigFlatCreate: TypeAlias = VectorIndexConfigFlatCreate
+_VectorIndexConfigFlatUpdate: TypeAlias = VectorIndexConfigFlatUpdate
+_VectorIndexConfigHFreshCreate: TypeAlias = VectorIndexConfigHFreshCreate
+_VectorIndexConfigHFreshUpdate: TypeAlias = VectorIndexConfigHFreshUpdate
+_VectorIndexConfigHNSWCreate: TypeAlias = VectorIndexConfigHNSWCreate
+_VectorIndexConfigHNSWUpdate: TypeAlias = VectorIndexConfigHNSWUpdate
+_VectorIndexConfigSkipCreate: TypeAlias = VectorIndexConfigSkipCreate
+_VectorIndexConfigUpdate: TypeAlias = VectorIndexConfigUpdate

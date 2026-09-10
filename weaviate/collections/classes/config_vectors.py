@@ -10,20 +10,20 @@ from weaviate.collections.classes.config_base import (
     _EnumLikeStr,
 )
 from weaviate.collections.classes.config_vector_index import (
+    VectorIndexConfigCreate,
+    VectorIndexConfigDynamicCreate,
+    VectorIndexConfigDynamicUpdate,
+    VectorIndexConfigFlatCreate,
+    VectorIndexConfigFlatUpdate,
+    VectorIndexConfigHFreshCreate,
+    VectorIndexConfigHFreshUpdate,
+    VectorIndexConfigHNSWCreate,
+    VectorIndexConfigHNSWUpdate,
+    VectorIndexConfigUpdate,
     VectorIndexType,
     _MultiVectorConfigCreate,
     _MultiVectorEncodingConfigCreate,
     _QuantizerConfigCreate,
-    _VectorIndexConfigCreate,
-    _VectorIndexConfigDynamicCreate,
-    _VectorIndexConfigDynamicUpdate,
-    _VectorIndexConfigFlatCreate,
-    _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHFreshCreate,
-    _VectorIndexConfigHFreshUpdate,
-    _VectorIndexConfigHNSWCreate,
-    _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vectorizers import (
     AWSModel,
@@ -36,6 +36,7 @@ from weaviate.collections.classes.config_vectorizers import (
     Multi2VecField,
     OpenAIModel,
     OpenAIType,
+    VectorizerConfigCreate,
     Vectorizers,
     VoyageModel,
     VoyageMultimodalModel,
@@ -75,17 +76,16 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecTransformersConfig,
     _Text2VecVoyageConfig,
     _Text2VecWeaviateConfig,
-    _VectorizerConfigCreate,
     _VectorizerCustomConfig,
 )
 
 
-class _VectorConfigCreate(_ConfigCreateModel):
+class VectorConfigCreate(_ConfigCreateModel):
     name: Optional[str]
     properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
-    vectorizer: _VectorizerConfigCreate
+    vectorizer: VectorizerConfigCreate
     vectorIndexType: VectorIndexType = Field(default=VectorIndexType.HNSW, exclude=True)
-    vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
+    vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
 
@@ -105,9 +105,9 @@ class _VectorConfigCreate(_ConfigCreateModel):
         return {"vectorizer": {self.vectorizer.vectorizer.value: vectorizer_options}}
 
 
-class _VectorConfigUpdate(_ConfigUpdateModel):
+class VectorConfigUpdate(_ConfigUpdateModel):
     name: str
-    vectorIndexConfig: _VectorIndexConfigUpdate = Field(..., alias="vector_index_config")
+    vectorIndexConfig: VectorIndexConfigUpdate = Field(..., alias="vector_index_config")
 
 
 class _IndexWrappers:
@@ -116,8 +116,8 @@ class _IndexWrappers:
         *,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multivector: Optional[_MultiVectorConfigCreate] = None,
-    ) -> _VectorIndexConfigHNSWCreate:
-        return _VectorIndexConfigHNSWCreate(
+    ) -> VectorIndexConfigHNSWCreate:
+        return VectorIndexConfigHNSWCreate(
             cleanupIntervalSeconds=None,
             distance=None,
             dynamicEfMin=None,
@@ -134,8 +134,8 @@ class _IndexWrappers:
         )
 
     @staticmethod
-    def __hfresh(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigHFreshCreate:
-        return _VectorIndexConfigHFreshCreate(
+    def __hfresh(*, quantizer: Optional[_QuantizerConfigCreate]) -> VectorIndexConfigHFreshCreate:
+        return VectorIndexConfigHFreshCreate(
             maxPostingSizeKB=None,
             replicas=None,
             searchProbe=None,
@@ -145,8 +145,8 @@ class _IndexWrappers:
         )
 
     @staticmethod
-    def __flat(*, quantizer: Optional[_QuantizerConfigCreate]) -> _VectorIndexConfigFlatCreate:
-        return _VectorIndexConfigFlatCreate(
+    def __flat(*, quantizer: Optional[_QuantizerConfigCreate]) -> VectorIndexConfigFlatCreate:
+        return VectorIndexConfigFlatCreate(
             distance=None,
             vectorCacheMaxObjects=None,
             quantizer=quantizer,
@@ -155,14 +155,14 @@ class _IndexWrappers:
 
     @staticmethod
     def single(
-        vector_index_config: Optional[_VectorIndexConfigCreate],
+        vector_index_config: Optional[VectorIndexConfigCreate],
         quantizer: Optional[_QuantizerConfigCreate],
-    ) -> Optional[_VectorIndexConfigCreate]:
+    ) -> Optional[VectorIndexConfigCreate]:
         if quantizer is not None:
             if vector_index_config is None:
                 vector_index_config = _IndexWrappers.__hnsw(quantizer=quantizer)
             else:
-                if isinstance(vector_index_config, _VectorIndexConfigDynamicCreate):
+                if isinstance(vector_index_config, VectorIndexConfigDynamicCreate):
                     if vector_index_config.hnsw is None:
                         vector_index_config.hnsw = _IndexWrappers.__hnsw(quantizer=quantizer)
                     else:
@@ -177,11 +177,11 @@ class _IndexWrappers:
 
     @staticmethod
     def multi(
-        vector_index_config: Optional[_VectorIndexConfigCreate],
+        vector_index_config: Optional[VectorIndexConfigCreate],
         quantizer: Optional[_QuantizerConfigCreate],
         multi_vector_config: Optional[_MultiVectorConfigCreate],
         encoding: Optional[_MultiVectorEncodingConfigCreate],
-    ) -> Optional[_VectorIndexConfigCreate]:
+    ) -> Optional[VectorIndexConfigCreate]:
         if multi_vector_config is None:
             multi_vector_config = _MultiVectorConfigCreate(aggregation=None, encoding=None)
         if encoding is not None:
@@ -193,7 +193,7 @@ class _IndexWrappers:
         return _IndexWrappers.single(vector_index_config, quantizer)
 
 
-# TODO: Consider refactoring to move the default values to the pydantic classes themselves (e.g. _VectorConfigCreate, _Text2VecCohereConfig, etc.)
+# TODO: Consider refactoring to move the default values to the pydantic classes themselves (e.g. VectorConfigCreate, _Text2VecCohereConfig, etc.)
 class _MultiVectors:
     @staticmethod
     def self_provided(
@@ -202,7 +202,7 @@ class _MultiVectors:
         encoding: Optional[_MultiVectorEncodingConfigCreate] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
     ):
         """Create a multi-vector using no vectorizer. You will need to provide the vectors yourself.
 
@@ -213,9 +213,9 @@ class _MultiVectors:
             multi_vector_config: The configuration for the multi-vector index. Use `wvc.config.Configure.VectorIndex.MultiVector` to create a multi-vector configuration. None by default
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
-            vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+            vectorizer=VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             vector_index_config=_IndexWrappers.multi(
                 vector_index_config, quantizer, multi_vector_config, encoding
             ),
@@ -231,9 +231,9 @@ class _MultiVectors:
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a multi-vector using the `text2colbert-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/colbert) for detailed usage.
@@ -250,7 +250,7 @@ class _MultiVectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vector_index_config=_IndexWrappers.multi(
@@ -272,8 +272,8 @@ class _MultiVectors:
         model: Optional[Union[JinaMultimodalModel, str]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2multivec-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
@@ -293,7 +293,7 @@ class _MultiVectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2MultiVecJinaConfig(
                 baseURL=base_url,
@@ -316,8 +316,8 @@ class _MultiVectors:
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[Union[WeaviateMultimodalModel, str]] = None,
         multi_vector_config: Optional[_MultiVectorConfigCreate] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2multivec-weaviate` module.
 
         Args:
@@ -330,7 +330,7 @@ class _MultiVectors:
             multi_vector_config: The configuration for the multi-vector index. Use `wvc.config.Configure.VectorIndex.MultiVector` to create a multi-vector configuration. None by default
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2MultiVecWeaviateConfig(
                 baseURL=base_url,
@@ -350,7 +350,7 @@ class _Vectors:
         *,
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
     ):
         """Create a vector using no vectorizer. You will need to provide the vectors yourself.
 
@@ -359,9 +359,9 @@ class _Vectors:
             quantizer: The quantizer to use for the vector index. If not provided, no quantization will be applied.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
-            vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+            vectorizer=VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
         )
 
@@ -373,8 +373,8 @@ class _Vectors:
         module_name: str,
         module_config: Optional[Dict[str, Any]] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using a custom module that is not currently supported by the SDK.
 
         Args:
@@ -385,7 +385,7 @@ class _Vectors:
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_VectorizerCustomConfig(
@@ -404,9 +404,9 @@ class _Vectors:
         dimensions: Optional[int] = None,
         truncate: Optional[CohereTruncation] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
@@ -426,7 +426,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecCohereConfig(
@@ -450,9 +450,9 @@ class _Vectors:
         dimensions: Optional[int] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         truncate: Optional[CohereTruncation] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec_cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
@@ -472,7 +472,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecCohereConfig(
                 baseURL=base_url,
@@ -494,9 +494,9 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec_contextionary` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
@@ -509,7 +509,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecContextionaryConfig(
@@ -524,10 +524,10 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         inference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec_model2vec` module.
 
         See the [documentation](https://docs.weaviate.io/weaviate/model-providers/model2vec)
@@ -541,7 +541,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecModel2VecConfig(
@@ -559,9 +559,9 @@ class _Vectors:
         endpoint: str,
         instruction: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-databricks` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
@@ -576,7 +576,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecDatabricksConfig(
@@ -595,9 +595,9 @@ class _Vectors:
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-mistral` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
@@ -612,7 +612,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecMistralConfig(
@@ -631,9 +631,9 @@ class _Vectors:
         base_url: Optional[AnyHttpUrl] = None,
         model: str,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-digitalocean` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/digitalocean/embeddings)
@@ -648,7 +648,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecDigitalOceanConfig(
@@ -668,9 +668,9 @@ class _Vectors:
         model: Optional[str] = None,
         endpoint: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-morph` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/morph/embeddings)
@@ -686,7 +686,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecMorphConfig(
@@ -706,9 +706,9 @@ class _Vectors:
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-ollama` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
@@ -726,7 +726,7 @@ class _Vectors:
 
 
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecOllamaConfig(
@@ -749,9 +749,9 @@ class _Vectors:
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
@@ -773,7 +773,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `type_` is not a valid value from the `OpenAIType` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecOpenAIConfig(
@@ -801,10 +801,10 @@ class _Vectors:
         region: str,
         service: Union[AWSService, str] = "bedrock",
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         dimensions: Optional[int] = None,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
@@ -822,7 +822,7 @@ class _Vectors:
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecAWSConfig(
@@ -846,10 +846,10 @@ class _Vectors:
         region: str,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         dimensions: Optional[int] = None,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
@@ -865,7 +865,7 @@ class _Vectors:
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecAWSConfig(
@@ -891,10 +891,10 @@ class _Vectors:
         target_variant: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         dimensions: Optional[int] = None,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
@@ -912,7 +912,7 @@ class _Vectors:
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecAWSConfig(
@@ -941,8 +941,8 @@ class _Vectors:
         model: Optional[str] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         region: Optional[str] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-aws` module.
 
         Note: `multi2vec_aws` is deprecated and will be removed after Q3 '26. Use a service-specific method instead, such as `multi2vec_aws_bedrock`.
@@ -963,7 +963,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecAWSConfig(
                 region=region,
@@ -985,8 +985,8 @@ class _Vectors:
         model: Optional[str] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         region: Optional[str] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
@@ -1005,7 +1005,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecAWSConfig(
                 region=region,
@@ -1023,8 +1023,8 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         image_fields: List[str],
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `img2vec-neural` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
@@ -1039,7 +1039,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `image_fields` is not a `list`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Img2VecNeuralConfig(imageFields=image_fields),
             vector_index_config=_IndexWrappers.single(vector_index_config, quantizer),
@@ -1053,8 +1053,8 @@ class _Vectors:
         inference_url: Optional[str] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-clip` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
@@ -1069,7 +1069,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
 
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecClipConfig(
                 imageFields=_map_multi2vec_fields(image_fields),
@@ -1093,8 +1093,8 @@ class _Vectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_interval_seconds: Optional[int] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-google` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
@@ -1114,7 +1114,7 @@ class _Vectors:
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecGoogleConfig(
                 projectId=project_id,
@@ -1142,8 +1142,8 @@ class _Vectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_interval_seconds: Optional[int] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-google` module with the Google Gemini API endpoint.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
@@ -1161,7 +1161,7 @@ class _Vectors:
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecGoogleConfig(
                 projectId=None,
@@ -1190,8 +1190,8 @@ class _Vectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-bind` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
@@ -1209,7 +1209,7 @@ class _Vectors:
             video_fields: The video fields to use in vectorization.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecBindConfig(
                 audioFields=_map_multi2vec_fields(audio_fields),
@@ -1235,8 +1235,8 @@ class _Vectors:
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         dimensions: Optional[int] = None,
         truncation: Optional[bool] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-voyageai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
@@ -1257,7 +1257,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `VoyageaiMultimodalModel` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecVoyageaiConfig(
                 baseURL=base_url,
@@ -1281,8 +1281,8 @@ class _Vectors:
         model: Optional[str] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         truncation: Optional[bool] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-nvidia` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
@@ -1301,7 +1301,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `NvidiaMultimodalModel` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecNvidiaConfig(
                 baseURL=base_url,
@@ -1322,8 +1322,8 @@ class _Vectors:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         model: Optional[str] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-twelvelabs` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/twelvelabs/embeddings-multimodal)
@@ -1338,7 +1338,7 @@ class _Vectors:
             text_fields: The text fields to use in vectorization.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecTwelvelabsConfig(
                 baseURL=base_url,
@@ -1356,8 +1356,8 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         method: Literal["mean"] = "mean",
         reference_properties: List[str],
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `ref2vec-centroid` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
@@ -1370,7 +1370,7 @@ class _Vectors:
             reference_properties: The reference properties to use in vectorization, REQUIRED.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Ref2VecCentroidConfig(
                 referenceProperties=reference_properties,
@@ -1390,9 +1390,9 @@ class _Vectors:
         model: Optional[str] = None,
         resource_name: str,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-openai` module running with Azure.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
@@ -1410,7 +1410,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecAzureOpenAIConfig(
@@ -1433,9 +1433,9 @@ class _Vectors:
         name: Optional[str] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-gpt4all` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
@@ -1448,7 +1448,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecGPT4AllConfig(
@@ -1470,9 +1470,9 @@ class _Vectors:
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-huggingface` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
@@ -1497,7 +1497,7 @@ class _Vectors:
                 It is important to note that some of these variables are mutually exclusive.
                 See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecHuggingFaceConfig(
@@ -1528,10 +1528,10 @@ class _Vectors:
         title_property: Optional[str] = None,
         task_type: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         location: Optional[str] = None,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1554,7 +1554,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecGoogleConfig(
@@ -1583,9 +1583,9 @@ class _Vectors:
         title_property: Optional[str] = None,
         task_type: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1605,7 +1605,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecGoogleConfig(
@@ -1631,9 +1631,9 @@ class _Vectors:
         title_property: Optional[str] = None,
         task_type: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1653,7 +1653,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecGoogleConfig(
@@ -1681,10 +1681,10 @@ class _Vectors:
         title_property: Optional[str] = None,
         task_type: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         location: Optional[str] = None,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-google` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1707,7 +1707,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecGoogleConfig(
@@ -1734,9 +1734,9 @@ class _Vectors:
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         query_inference_url: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-transformers` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
@@ -1754,7 +1754,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecTransformersConfig(
@@ -1777,9 +1777,9 @@ class _Vectors:
         dimensions: Optional[int] = None,
         model: Optional[Union[JinaModel, str]] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings) for detailed usage.
@@ -1794,7 +1794,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecJinaConfig(
@@ -1816,8 +1816,8 @@ class _Vectors:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         model: Optional[Union[JinaMultimodalModel, str]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _VectorConfigCreate:
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
+    ) -> VectorConfigCreate:
         """Create a vector using the `multi2vec-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
@@ -1836,7 +1836,7 @@ class _Vectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecJinaConfig(
                 baseURL=base_url,
@@ -1858,9 +1858,9 @@ class _Vectors:
         quantizer: Optional[_QuantizerConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
         truncate: Optional[bool] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-voyageai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
@@ -1879,7 +1879,7 @@ class _Vectors:
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecVoyageConfig(
@@ -1901,10 +1901,10 @@ class _Vectors:
         dimensions: Optional[int] = None,
         model: Optional[Union[WeaviateModel, str]] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
-        return _VectorConfigCreate(
+    ) -> VectorConfigCreate:
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecWeaviateConfig(
@@ -1925,9 +1925,9 @@ class _Vectors:
         model: Optional[str] = None,
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorConfigCreate:
+    ) -> VectorConfigCreate:
         """Create a vector using the `text2vec-nvidia` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
@@ -1946,7 +1946,7 @@ class _Vectors:
 
             truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
         """
-        return _VectorConfigCreate(
+        return VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecNvidiaConfig(
@@ -1965,12 +1965,12 @@ class _VectorsUpdate:
         *,
         name: Optional[str] = None,
         vector_index_config: Union[
-            _VectorIndexConfigHNSWUpdate,
-            _VectorIndexConfigHFreshUpdate,
-            _VectorIndexConfigFlatUpdate,
-            _VectorIndexConfigDynamicUpdate,
+            VectorIndexConfigHNSWUpdate,
+            VectorIndexConfigHFreshUpdate,
+            VectorIndexConfigFlatUpdate,
+            VectorIndexConfigDynamicUpdate,
         ],
-    ) -> _VectorConfigUpdate:
+    ) -> VectorConfigUpdate:
         """Update the vector index configuration of a vector.
 
         This is the only update operation allowed currently. If you wish to change the vectorization configuration itself, you will have to
@@ -1980,11 +1980,12 @@ class _VectorsUpdate:
             name: The name of the vector.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Reconfigure.VectorIndex` to create a vector index configuration. `None` by default
         """
-        return _VectorConfigUpdate(
+        return VectorConfigUpdate(
             name=name or "default",
             vector_index_config=vector_index_config,
         )
 
 
-VectorConfigCreate: TypeAlias = _VectorConfigCreate
-VectorConfigUpdate: TypeAlias = _VectorConfigUpdate
+# BC for direct imports
+_VectorConfigCreate: TypeAlias = VectorConfigCreate
+_VectorConfigUpdate: TypeAlias = VectorConfigUpdate

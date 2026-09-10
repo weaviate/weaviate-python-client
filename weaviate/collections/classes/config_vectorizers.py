@@ -170,11 +170,11 @@ class VectorDistances(str, Enum):
     MANHATTAN = "manhattan"
 
 
-class _VectorizerConfigCreate(_ConfigCreateModel):
+class VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(default=..., exclude=True)
 
 
-class _Text2ColbertJinaAIConfig(_VectorizerConfigCreate):
+class _Text2ColbertJinaAIConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2COLBERT_JINAAI, frozen=True, exclude=True
     )
@@ -183,14 +183,14 @@ class _Text2ColbertJinaAIConfig(_VectorizerConfigCreate):
     dimensions: Optional[int]
 
 
-class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
+class _Text2VecContextionaryConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
     )
     vectorizeClassName: bool
 
 
-class _Text2VecModel2VecConfig(_VectorizerConfigCreate):
+class _Text2VecModel2VecConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_MODEL2VEC, frozen=True, exclude=True
     )
@@ -198,7 +198,7 @@ class _Text2VecModel2VecConfig(_VectorizerConfigCreate):
     inferenceUrl: Optional[str]
 
 
-class _VectorizerCustomConfig(_VectorizerConfigCreate):
+class _VectorizerCustomConfig(VectorizerConfigCreate):
     module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -207,7 +207,7 @@ class _VectorizerCustomConfig(_VectorizerConfigCreate):
         return self.module_config
 
 
-class _Text2VecAWSConfig(_VectorizerConfigCreate):
+class _Text2VecAWSConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_AWS, frozen=True, exclude=True
     )
@@ -227,7 +227,7 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
         return r
 
 
-class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
+class _Text2VecAzureOpenAIConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True
     )
@@ -246,7 +246,7 @@ class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
+class _Text2VecHuggingFaceConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
     )
@@ -275,7 +275,7 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-class _Text2VecMistralConfig(_VectorizerConfigCreate):
+class _Text2VecMistralConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_MISTRAL, frozen=True, exclude=True
     )
@@ -290,7 +290,7 @@ class _Text2VecMistralConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-class _Text2VecDigitalOceanConfig(_VectorizerConfigCreate):
+class _Text2VecDigitalOceanConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_DIGITALOCEAN, frozen=True, exclude=True
     )
@@ -305,7 +305,7 @@ class _Text2VecDigitalOceanConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-class _Text2VecMorphConfig(_VectorizerConfigCreate):
+class _Text2VecMorphConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_MORPH, frozen=True, exclude=True
     )
@@ -321,7 +321,7 @@ class _Text2VecMorphConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-class _Text2VecDatabricksConfig(_VectorizerConfigCreate):
+class _Text2VecDatabricksConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_DATABRICKS, frozen=True, exclude=True
     )
@@ -333,7 +333,7 @@ class _Text2VecDatabricksConfig(_VectorizerConfigCreate):
 OpenAIType = Literal["text", "code"]
 
 
-class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
+class _Text2VecOpenAIConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True
     )
@@ -355,7 +355,7 @@ class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-class _Text2VecCohereConfig(_VectorizerConfigCreate):
+class _Text2VecCohereConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_COHERE, frozen=True, exclude=True
     )
@@ -372,7 +372,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-class _Text2VecGoogleConfig(_VectorizerConfigCreate):
+class _Text2VecGoogleConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True
     )
@@ -386,7 +386,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     location: Optional[str]
 
 
-class _Text2VecTransformersConfig(_VectorizerConfigCreate):
+class _Text2VecTransformersConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
     )
@@ -398,14 +398,14 @@ class _Text2VecTransformersConfig(_VectorizerConfigCreate):
     dimensions: Optional[int] = None
 
 
-class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
+class _Text2VecGPT4AllConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_GPT4ALL, frozen=True, exclude=True
     )
     vectorizeClassName: bool
 
 
-class _Text2VecJinaConfig(_VectorizerConfigCreate):
+class _Text2VecJinaConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_JINAAI, frozen=True, exclude=True
     )
@@ -415,7 +415,7 @@ class _Text2VecJinaConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-class _Text2VecVoyageConfig(_VectorizerConfigCreate):
+class _Text2VecVoyageConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
     )
@@ -426,7 +426,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
+class _Text2VecNvidiaConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_NVIDIA, frozen=True, exclude=True
     )
@@ -436,7 +436,7 @@ class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
+class _Text2VecWeaviateConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_WEAVIATE, frozen=True, exclude=True
     )
@@ -446,7 +446,7 @@ class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
     dimensions: Optional[int]
 
 
-class _Text2VecOllamaConfig(_VectorizerConfigCreate):
+class _Text2VecOllamaConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_OLLAMA, frozen=True, exclude=True
     )
@@ -455,7 +455,7 @@ class _Text2VecOllamaConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-class _Img2VecNeuralConfig(_VectorizerConfigCreate):
+class _Img2VecNeuralConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.IMG2VEC_NEURAL, frozen=True, exclude=True
     )
@@ -469,7 +469,7 @@ class Multi2VecField(BaseModel):
     weight: Optional[float] = Field(default=None, exclude=True)
 
 
-class _Multi2VecBase(_VectorizerConfigCreate):
+class _Multi2VecBase(VectorizerConfigCreate):
     imageFields: Optional[List[Multi2VecField]]
     textFields: Optional[List[Multi2VecField]]
 
@@ -564,7 +564,7 @@ class _Multi2VecClipConfig(_Multi2VecBase):
     inferenceUrl: Optional[str]
 
 
-class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
+class _Multi2VecGoogleConfig(_Multi2VecBase, VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
     )
@@ -635,7 +635,7 @@ class _Multi2VecTwelvelabsConfig(_Multi2VecBase):
         return ret_dict
 
 
-class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
+class _Ref2VecCentroidConfig(VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.REF2VEC_CENTROID, frozen=True, exclude=True
     )
@@ -659,14 +659,14 @@ class _Vectorizer:
     """
 
     @staticmethod
-    def none() -> _VectorizerConfigCreate:
-        """Create a `_VectorizerConfigCreate` object with the vectorizer set to `Vectorizer.NONE`."""
-        return _VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
+    def none() -> VectorizerConfigCreate:
+        """Create a `VectorizerConfigCreate` object with the vectorizer set to `Vectorizer.NONE`."""
+        return VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
 
     @staticmethod
     def img2vec_neural(
         image_fields: List[str],
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Img2VecNeuralConfigCreate` object for use when vectorizing using the `img2vec-neural` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
@@ -688,7 +688,7 @@ class _Vectorizer:
         interference_url: Optional[str] = None,
         inference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
@@ -731,7 +731,7 @@ class _Vectorizer:
         thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Multi2VecBindConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
@@ -764,7 +764,7 @@ class _Vectorizer:
     def ref2vec_centroid(
         reference_properties: List[str],
         method: Literal["mean"] = "mean",
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Ref2VecCentroidConfigCreate` object for use when vectorizing using the `ref2vec-centroid` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/ref2vec-centroid)
@@ -790,7 +790,7 @@ class _Vectorizer:
         service: Union[AWSService, str] = "bedrock",
         vectorize_collection_name: bool = True,
         dimensions: Optional[int] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
@@ -823,7 +823,7 @@ class _Vectorizer:
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecAzureOpenAIConfigCreate` object for use when vectorizing using the `text2vec-azure-openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
@@ -851,7 +851,7 @@ class _Vectorizer:
     @staticmethod
     def text2vec_contextionary(
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecContextionaryConfigCreate` object for use when vectorizing using the `text2vec-contextionary` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
@@ -868,7 +868,7 @@ class _Vectorizer:
     @staticmethod
     def custom(
         module_name: str, module_config: Optional[Dict[str, Any]] = None
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_VectorizerCustomConfig` object for use when vectorizing using a custom specification.
 
         Args:
@@ -885,7 +885,7 @@ class _Vectorizer:
         truncate: Optional[CohereTruncation] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecCohereConfigCreate` object for use when vectorizing using the `text2vec-cohere` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
@@ -917,7 +917,7 @@ class _Vectorizer:
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Multi2VecCohereConfig` object for use when vectorizing using the `multi2vec-cohere` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
@@ -953,7 +953,7 @@ class _Vectorizer:
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Multi2VecVoyageaiConfig` object for use when vectorizing using the `multi2vec-voyageai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
@@ -991,7 +991,7 @@ class _Vectorizer:
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Multi2VecNvidiaConfig` object for use when vectorizing using the `multi2vec-nvidia` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
@@ -1023,7 +1023,7 @@ class _Vectorizer:
         endpoint: str,
         instruction: Optional[str] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecDatabricksConfig` object for use when vectorizing using the `text2vec-databricks` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
@@ -1046,7 +1046,7 @@ class _Vectorizer:
     @staticmethod
     def text2vec_gpt4all(
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecGPT4AllConfigCreate` object for use when vectorizing using the `text2vec-gpt4all` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
@@ -1070,7 +1070,7 @@ class _Vectorizer:
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecHuggingFaceConfigCreate` object for use when vectorizing using the `text2vec-huggingface` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
@@ -1108,7 +1108,7 @@ class _Vectorizer:
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecMistralConfig` object for use when vectorizing using the `text2vec-mistral` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
@@ -1129,7 +1129,7 @@ class _Vectorizer:
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecOllamaConfig` object for use when vectorizing using the `text2vec-ollama` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
@@ -1156,7 +1156,7 @@ class _Vectorizer:
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
         endpoint: Optional[str] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecOpenAIConfigCreate` object for use when vectorizing using the `text2vec-openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
@@ -1200,7 +1200,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-palm` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1233,7 +1233,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1266,7 +1266,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         title_property: Optional[str] = None,
         vectorize_collection_name: bool = True,
         location: Optional[str] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1316,7 +1316,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model_id: Optional[str] = None,
         video_interval_seconds: Optional[int] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Multi2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
@@ -1360,7 +1360,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model_id: Optional[str] = None,
         video_interval_seconds: Optional[int] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Multi2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
@@ -1399,7 +1399,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
         query_inference_url: Optional[str] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecTransformersConfigCreate` object for use when vectorizing using the `text2vec-transformers` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
@@ -1431,7 +1431,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         vectorize_collection_name: bool = True,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecJinaConfigCreate` object for use when vectorizing using the `text2vec-jinaai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings)
@@ -1461,7 +1461,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         dimensions: Optional[int] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Multi2VecJinaConfig` object for use when vectorizing using the `multi2vec-jinaai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
@@ -1493,7 +1493,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecVoyageConfigCreate` object for use when vectorizing using the `text2vec-voyageai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
@@ -1522,7 +1522,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         base_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
         dimensions: Optional[int] = None,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """TODO: add docstrings when the documentation is available."""
         return _Text2VecWeaviateConfig(
             model=model,
@@ -1538,7 +1538,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecNvidiaConfigCreate` object for use when vectorizing using the `text2vec-nvidia` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
@@ -1564,7 +1564,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         *,
         inference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
+    ) -> VectorizerConfigCreate:
         """Create a `_Text2VecModel2VecConfigCreate` object for use when vectorizing using the `text2vec-model2vec` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/model2vec/embeddings)
@@ -1580,4 +1580,5 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         )
 
 
-VectorizerConfigCreate: TypeAlias = _VectorizerConfigCreate
+# BC for direct imports
+_VectorizerConfigCreate: TypeAlias = VectorizerConfigCreate
