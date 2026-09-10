@@ -1675,7 +1675,7 @@ def test_replication_config_async_config_preserved_when_disabling_async_replicat
 ) -> None:
     """Disabling `async_enabled` must leave the collection's async replication tuning intact.
 
-    `config.update()` is a read-modify-write PUT of the whole class, so dropping `asyncConfig`
+    `config.update()` is a read-modify-write PUT of the whole collection, so dropping `asyncConfig`
     from the merged payload would silently reset the tuning to server defaults.
     """
     collection_dummy = collection_factory("dummy")

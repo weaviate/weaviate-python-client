@@ -2923,7 +2923,7 @@ class Configure:
         Note:
             `async_enabled` is deprecated. On servers `>=v1.38` the `asyncEnabled` field no longer
             exists in the schema: it is silently dropped, and async replication is decided
-            server-side (on by default for any class with a replication factor > 1, unless the
+            server-side (on by default for any collection with a replication factor > 1, unless the
             `ASYNC_REPLICATION_DISABLED` runtime override is set). On older servers it still takes
             effect. Passing it emits a ``DeprecationWarning``; it will be removed in a future release.
 
@@ -3218,7 +3218,7 @@ class Reconfigure:
         Note:
             `async_enabled` is deprecated. On servers `>=v1.38` the `asyncEnabled` field no longer
             exists in the schema: it is silently dropped, and async replication is decided
-            server-side (on by default for any class with a replication factor > 1, unless the
+            server-side (on by default for any collection with a replication factor > 1, unless the
             `ASYNC_REPLICATION_DISABLED` runtime override is set). On older servers it still takes
             effect. Passing it emits a ``DeprecationWarning``; it will be removed in a future release.
 
