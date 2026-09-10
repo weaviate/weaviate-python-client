@@ -20,35 +20,39 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    GenerativeProvider,
     IndexName,
+    InvertedIndexConfigUpdate,
+    MultiTenancyConfigUpdate,
     Property,
     PropertyType,
     ReferenceProperty,
+    ReferencePropertyMultiTarget,
+    ReplicationConfigUpdate,
+    RerankerProvider,
     ShardStatus,
     ShardTypes,
     _CollectionConfigUpdate,
-    _GenerativeProvider,
-    _InvertedIndexConfigUpdate,
-    _MultiTenancyConfigUpdate,
-    _NamedVectorConfigCreate,
-    _NamedVectorConfigUpdate,
-    _ReferencePropertyMultiTarget,
-    _ReplicationConfigUpdate,
-    _RerankerProvider,
     _ShardStatus,
-    _VectorConfigCreate,
-    _VectorConfigUpdate,
-    _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHFreshUpdate,
-    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
-from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
+from weaviate.collections.classes.config_named_vectors import (
+    _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
+)
+from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import (
-    _VectorIndexConfigDynamicUpdate,
+    VectorIndexConfigDynamicUpdate,
+    VectorIndexConfigFlatUpdate,
+    VectorIndexConfigHFreshUpdate,
+    VectorIndexConfigHNSWUpdate,
+)
+from weaviate.collections.classes.config_vectors import (
+    VectorConfigCreate,
+    VectorConfigUpdate,
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
@@ -150,29 +154,29 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         description: Optional[str] = None,
         property_descriptions: Optional[Dict[str, str]] = None,
-        inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
-        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
-        object_ttl_config: Optional[_ObjectTTLConfigUpdate] = None,
-        replication_config: Optional[_ReplicationConfigUpdate] = None,
+        inverted_index_config: Optional[InvertedIndexConfigUpdate] = None,
+        multi_tenancy_config: Optional[MultiTenancyConfigUpdate] = None,
+        object_ttl_config: Optional[ObjectTTLConfigUpdate] = None,
+        replication_config: Optional[ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
             Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigHFreshUpdate,
+                VectorIndexConfigHNSWUpdate,
+                VectorIndexConfigFlatUpdate,
+                VectorIndexConfigHFreshUpdate,
             ]
         ] = None,
         vectorizer_config: Optional[
             Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigDynamicUpdate,
-                _VectorIndexConfigHFreshUpdate,
+                VectorIndexConfigHNSWUpdate,
+                VectorIndexConfigFlatUpdate,
+                VectorIndexConfigDynamicUpdate,
+                VectorIndexConfigHFreshUpdate,
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
-        generative_config: Optional[_GenerativeProvider] = None,
-        reranker_config: Optional[_RerankerProvider] = None,
+        vector_config: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = None,
+        generative_config: Optional[GenerativeProvider] = None,
+        reranker_config: Optional[RerankerProvider] = None,
     ) -> executor.Result[None]:
         """Update the configuration for this collection in Weaviate.
 
@@ -208,10 +212,10 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         if vectorizer_config is not None and not isinstance(
             vectorizer_config,
             (
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigDynamicUpdate,
-                _VectorIndexConfigHFreshUpdate,
+                VectorIndexConfigHNSWUpdate,
+                VectorIndexConfigFlatUpdate,
+                VectorIndexConfigDynamicUpdate,
+                VectorIndexConfigHFreshUpdate,
             ),
         ):
             _Warnings.vectorizer_config_in_config_update()
@@ -499,7 +503,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
     def add_reference(
         self,
-        ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget],
+        ref: Union[ReferenceProperty, ReferencePropertyMultiTarget],
     ) -> executor.Result[None]:
         """Add a reference to the collection in Weaviate.
 
@@ -514,7 +518,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         _validate_input(
             [
                 _ValidateArgument(
-                    expected=[ReferenceProperty, _ReferencePropertyMultiTarget],
+                    expected=[ReferenceProperty, ReferencePropertyMultiTarget],
                     name="ref",
                     value=ref,
                 )
@@ -548,7 +552,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
     @overload
     def add_vector(
-        self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
+        self, *, vector_config: Union[VectorConfigCreate, List[VectorConfigCreate]]
     ) -> executor.Result[None]: ...
 
     def add_vector(
@@ -556,9 +560,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         vector_config: Union[
             _NamedVectorConfigCreate,
-            _VectorConfigCreate,
+            VectorConfigCreate,
             List[_NamedVectorConfigCreate],
-            List[_VectorConfigCreate],
+            List[VectorConfigCreate],
         ],
     ) -> executor.Result[None]:
         """Add a vector to the collection in Weaviate.
@@ -576,9 +580,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 _ValidateArgument(
                     expected=[
                         _NamedVectorConfigCreate,
-                        _VectorConfigCreate,
+                        VectorConfigCreate,
                         List[_NamedVectorConfigCreate],
-                        List[_VectorConfigCreate],
+                        List[VectorConfigCreate],
                     ],
                     name="vector_config",
                     value=vector_config,
@@ -596,7 +600,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         if isinstance(vector_config, _NamedVectorConfigCreate):
             _Warnings.named_vector_syntax_in_config_add_vector(vector_config.name)
             vector_config = [vector_config]
-        if isinstance(vector_config, _VectorConfigCreate):
+        if isinstance(vector_config, VectorConfigCreate):
             vector_config = [vector_config]
 
         def resp(schema: Dict[str, Any]) -> executor.Result[None]:

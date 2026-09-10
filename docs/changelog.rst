@@ -1,6 +1,19 @@
 Changelog
 =========
 
+Version 4.24.0
+--------------
+This minor version includes:
+    - Public names for the collection configuration types, so a helper that passes one around no longer has to import a private class:
+        - Every non-deprecated type accepted by ``collections.create()`` and ``collections.config.update()`` now has a public name exported from ``weaviate.classes.config``, among them ``VectorConfigCreate``, ``VectorConfigUpdate``, ``InvertedIndexConfigCreate``, ``ReplicationConfigUpdate``, ``ObjectTTLConfigCreate``, ``GenerativeProvider`` and ``RerankerProvider``
+        - The types behind the deprecated ``vectorizer_config`` argument and the ``Configure.NamedVectors`` factories are deliberately left private, so that the signatures keep pointing at ``vector_config`` and ``Configure.Vectors``
+        - Both halves of the vector index families are exported: ``VectorIndexConfigCreate`` with ``VectorIndexConfigHNSWCreate``, ``VectorIndexConfigFlatCreate``, ``VectorIndexConfigDynamicCreate``, ``VectorIndexConfigHFreshCreate`` and ``VectorIndexConfigSkipCreate``, and ``VectorIndexConfigUpdate`` with the matching ``Update`` variants
+        - The public name is now the class itself rather than an alias to it, so error messages, ``repr`` output, IDE hovers and the API reference show the public name
+        - Query and generative-query methods annotate ``boost`` with the public ``BoostReturn`` instead of ``_Boost``
+    - Backwards compatibility:
+        - Every ``_``-prefixed spelling is still importable from the module that defines it, and is the same object as its public counterpart, so ``isinstance`` checks and existing imports of it are unaffected
+        - A private spelling that was only ever reachable through a module that happened to import it — the executor modules, and a few of the ``config_*`` modules — is no longer reachable there. Import configuration types from ``weaviate.classes.config``, or from ``weaviate.collections.classes.config``
+
 Version 4.23.1
 --------------
 This patch version includes:
