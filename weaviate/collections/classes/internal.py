@@ -162,6 +162,7 @@ GenerativeMetadata = Union[
     generative_pb2.GenerativeAWSMetadata,
     generative_pb2.GenerativeCohereMetadata,
     generative_pb2.GenerativeDatabricksMetadata,
+    generative_pb2.GenerativeDigitalOceanMetadata,
     generative_pb2.GenerativeDummyMetadata,
     generative_pb2.GenerativeFriendliAIMetadata,
     generative_pb2.GenerativeGoogleMetadata,

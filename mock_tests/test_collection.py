@@ -293,6 +293,18 @@ def test_year_zero(year_zero_collection: weaviate.collections.Collection) -> Non
         assert str(recwarn[0].message).startswith("Con004")
 
 
+def test_empty_date(empty_date_collection: weaviate.collections.Collection) -> None:
+    with pytest.warns(UserWarning) as recwarn:
+        objs = empty_date_collection.query.fetch_objects().objects
+        assert objs[0].properties["date"] is None
+        assert objs[0].properties["dates"] == [
+            None,
+            datetime.datetime(2023, 1, 15, 14, 30, 45, 123456, tzinfo=datetime.timezone.utc),
+        ]
+
+        assert str(recwarn[0].message).startswith("Con006")
+
+
 @pytest.mark.parametrize("output", ["minimal", "verbose"])
 def test_node_with_timeout(
     httpserver: HTTPServer, start_grpc_server: grpc.Server, output: Literal["minimal", "verbose"]
@@ -482,6 +494,26 @@ def test_collection_exists(weaviate_mock: HTTPServer) -> None:
         with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
             client.collections.exists(erroring)
             assert e.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_async_collection_exists(weaviate_mock: HTTPServer) -> None:
+    non_existing = "NonExistingCollection"
+    erroring = "ErroringCollection"
+    weaviate_mock.expect_request(f"/v1/schema/{non_existing}").respond_with_json(
+        response_json={"error": [{"message": "collection not found"}]}, status=404
+    )
+    weaviate_mock.expect_request(f"/v1/schema/{erroring}").respond_with_json(
+        response_json={"error": [{"message": "this is an error"}]}, status=500
+    )
+
+    async with weaviate.use_async_with_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert not await client.collections.use(non_existing).exists()
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            await client.collections.use(erroring).exists()
+        assert e.value.status_code == 500
 
 
 def test_grpc_client_version_header(
