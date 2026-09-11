@@ -177,11 +177,21 @@ class BatchReference(BaseModel):
 
 @dataclass
 class ErrorObject:
-    """This class contains the error information for a single object in a batch operation."""
+    """This class contains the error information for a single object in a batch operation.
+
+    Attributes:
+        message: The reason the object failed.
+        object_: The object that failed.
+        original_uuid: The UUID of the object as it was submitted, always set and always a string.
+    """
 
     message: str
     object_: BatchObject
     original_uuid: Optional[UUID] = None
+
+    def __post_init__(self) -> None:
+        if self.original_uuid is None:
+            self.original_uuid = str(self.object_.uuid)
 
 
 @dataclass
