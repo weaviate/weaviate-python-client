@@ -2331,6 +2331,7 @@ class _ShardStatus:
     name: str
     status: ShardTypes
     vector_queue_size: int
+    per_node_status: Optional[Dict[str, str]]
 
 
 ShardStatus = _ShardStatus
