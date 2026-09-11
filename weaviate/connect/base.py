@@ -9,6 +9,7 @@ from grpc.aio import Channel as AsyncChannel  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import GrpcConfig, Proxies
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import NUMBER
 from weaviate.util import is_weaviate_domain
 
@@ -18,6 +19,16 @@ from weaviate.util import is_weaviate_domain
 JSONPayload = Union[Mapping[str, Any], Sequence[Any]]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
+
+
+def _grpc_web_shim_active() -> bool:
+    """Whether the 'weaviate-client-web' package has replaced the grpc module.
+
+    That replacement (used under WASM/Pyodide, where grpcio is not available) sends unary
+    RPCs over grpc-web/fetch and cannot do bidirectional streaming. The marker attribute
+    is the agreed contract between the two packages; check it only through this helper.
+    """
+    return getattr(grpc, "__weaviate_client_web_shim__", False) is True
 
 
 class ProtocolParams(BaseModel):
@@ -47,9 +58,19 @@ T = TypeVar("T", bound="ConnectionParams")
 class ConnectionParams(BaseModel):
     http: ProtocolParams
     grpc: ProtocolParams
+    # Optional base path of a grpc-web endpoint on the REST host:port (e.g. "/grpc-web").
+    # None/"" means native gRPC. When set, gRPC may share the REST host:port and the
+    # prefix is passed on to the grpc-web transport.
+    grpc_path_prefix: Optional[str] = None
 
     @classmethod
-    def from_url(cls, url: str, grpc_port: int, grpc_secure: bool = False) -> "ConnectionParams":
+    def from_url(
+        cls,
+        url: str,
+        grpc_port: int,
+        grpc_secure: bool = False,
+        grpc_path_prefix: Optional[str] = None,
+    ) -> "ConnectionParams":
         parsed_url = urlparse(url)
         if parsed_url.scheme not in ["http", "https"]:
             raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
@@ -69,6 +90,7 @@ class ConnectionParams(BaseModel):
                 port=grpc_port,
                 secure=grpc_secure or parsed_url.scheme == "https",
             ),
+            grpc_path_prefix=grpc_path_prefix,
         )
 
     @classmethod
@@ -80,6 +102,7 @@ class ConnectionParams(BaseModel):
         grpc_host: str,
         grpc_port: int,
         grpc_secure: bool,
+        grpc_path_prefix: Optional[str] = None,
     ) -> "ConnectionParams":
         return cls(
             http=ProtocolParams(
@@ -92,6 +115,7 @@ class ConnectionParams(BaseModel):
                 port=grpc_port,
                 secure=grpc_secure,
             ),
+            grpc_path_prefix=grpc_path_prefix,
         )
 
     def is_gcp_on_wcd(self) -> bool:
@@ -99,7 +123,10 @@ class ConnectionParams(BaseModel):
 
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:
-        if self.http.host == self.grpc.host and self.http.port == self.grpc.port:
+        same_endpoint = self.http.host == self.grpc.host and self.http.port == self.grpc.port
+        # with a grpc-web prefix gRPC may share the REST host:port; without one (native
+        # gRPC) the same host:port is a conflict
+        if same_endpoint and self._grpc_web_path_prefix == "":
             raise ValueError("http.port and grpc.port must be different if using the same host")
         return self
 
@@ -110,6 +137,39 @@ class ConnectionParams(BaseModel):
     @property
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
+
+    @property
+    def _grpc_web_path_prefix(self) -> str:
+        """The normalized grpc-web base path; "" means native gRPC.
+
+        A set prefix comes back with one leading slash and no trailing slash
+        (e.g. "grpc-web/" -> "/grpc-web"); empty/None -> "".
+        """
+        cleaned = (self.grpc_path_prefix or "").strip("/")
+        return f"/{cleaned}" if cleaned else ""
+
+    def _check_grpc_web_usable(self, is_async: bool) -> None:
+        """Fail early on a grpc-web prefix this client cannot use; does nothing for native gRPC.
+
+        A native grpcio channel would silently ignore the ``grpc-web.path_prefix`` option
+        and use native gRPC, so the replacement grpc module must be in place.
+        """
+        if self._grpc_web_path_prefix == "":
+            return
+        if not is_async:
+            raise WeaviateInvalidInputError(
+                "grpc_path_prefix (grpc-web) is only supported for async clients; "
+                "use use_async_with_custom(...) / WeaviateAsyncClient"
+            )
+        if not _grpc_web_shim_active():
+            raise WeaviateInvalidInputError(
+                "grpc_path_prefix enables grpc-web, which requires the "
+                "'weaviate-client-web' package (it installs a grpc shim before "
+                "'import weaviate'); it is not active in this environment. Under Pyodide a "
+                "plain `import weaviate` activates it; on CPython call "
+                "weaviate_client_web.install(force=True) and set_sender(make_httpx_sender()) "
+                "before importing weaviate (intended for integration testing)."
+            )
 
     def _grpc_channel(
         self,
@@ -133,6 +193,10 @@ class ConnectionParams(BaseModel):
 
         if grpc_config is not None and grpc_config.channel_options is not None:
             options.extend(grpc_config.channel_options)
+
+        # only grpc-web adds an option; native gRPC channel options are unchanged
+        if (prefix := self._grpc_web_path_prefix) != "":
+            options.append(("grpc-web.path_prefix", prefix))
 
         if is_async:
             mod = grpc.aio
