@@ -3,8 +3,10 @@ from typing import Awaitable
 import pytest
 
 from weaviate.collections.query import _QueryCollectionAsync
+from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.util import _ServerVersion
 
 # TODO: re-enable tests once string syntax is re-enabled in the API
 
@@ -86,6 +88,35 @@ from weaviate.exceptions import WeaviateInvalidInputError
 async def _test_query(query: Awaitable) -> None:
     with pytest.raises(WeaviateInvalidInputError):
         await query()
+
+
+def _grpc_query(validate_arguments: bool = True) -> _QueryGRPC:
+    return _QueryGRPC(
+        weaviate_version=_ServerVersion.from_string("1.38.13"),
+        name="Dummy",
+        tenant=None,
+        consistency_level=None,
+        validate_arguments=validate_arguments,
+        uses_125_api=True,
+        uses_127_api=True,
+    )
+
+
+def test_query_limit_zero_is_rejected() -> None:
+    with pytest.raises(WeaviateInvalidInputError, match="limit must be greater than zero"):
+        _grpc_query().get(limit=0)
+
+
+@pytest.mark.parametrize("limit", [None, 1])
+def test_query_limit_boundary_is_accepted(limit: int | None) -> None:
+    request = _grpc_query().get(limit=limit)
+    assert request.limit == (limit or 0)
+
+
+def test_query_limit_zero_keeps_legacy_behavior_without_validation() -> None:
+    zero = _grpc_query(validate_arguments=False).get(limit=0)
+    omitted = _grpc_query(validate_arguments=False).get()
+    assert zero.SerializeToString() == omitted.SerializeToString()
 
 
 @pytest.mark.asyncio

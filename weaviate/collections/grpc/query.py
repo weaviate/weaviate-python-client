@@ -45,6 +45,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_search_pb2, search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _ServerVersion
@@ -470,6 +471,8 @@ class _QueryGRPC(_BaseGRPC):
                     ),
                 ]
             )
+            if limit == 0:
+                raise WeaviateInvalidInputError("Query limit must be greater than zero")
             if isinstance(return_properties, Sequence):
                 for prop in return_properties:
                     _validate_input(
