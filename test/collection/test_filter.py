@@ -12,7 +12,7 @@ from weaviate.collections.classes.filters import (
     _FilterValue,
     _Operator,
 )
-from weaviate.collections.filters import _FilterToGRPC
+from weaviate.collections.filters import _FilterToGRPC, _FilterToREST
 from weaviate.proto.v1 import base_pb2
 
 
@@ -103,12 +103,44 @@ def test_filter_lists_one_entry() -> None:
     assert or_list == f1
 
 
-def test_filter_lists_empty() -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
-        wvc.query.Filter.all_of([])
+@pytest.mark.parametrize("filters", [[], [None], [None, None]])
+def test_filter_lists_empty(filters: list[None]) -> None:
+    and_list = wvc.query.Filter.all_of(filters)
+
+    assert _FilterToGRPC.convert(and_list) is None
+    assert _FilterToREST.convert(and_list) is None
 
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
         wvc.query.Filter.any_of([])
+
+
+def test_filter_lists_ignore_none() -> None:
+    filter_ = wvc.query.Filter.by_property("test").equal("test")
+
+    assert wvc.query.Filter.all_of([None, filter_, None]) is filter_
+
+
+@pytest.mark.parametrize("operator", ["and", "or"])
+def test_empty_filter_composition_is_ignored(operator: str) -> None:
+    empty = wvc.query.Filter.all_of([])
+    filter_ = wvc.query.Filter.by_property("test").equal("test")
+    expected_grpc = _FilterToGRPC.convert(filter_)
+    expected_rest = _FilterToREST.convert(filter_)
+
+    combinations = [empty & filter_, filter_ & empty]
+    if operator == "or":
+        combinations = [empty | filter_, filter_ | empty]
+
+    for combination in combinations:
+        assert _FilterToGRPC.convert(combination) == expected_grpc
+        assert _FilterToREST.convert(combination) == expected_rest
+
+
+def test_inverted_empty_filter_is_ignored() -> None:
+    inverted = ~wvc.query.Filter.all_of([])
+
+    assert _FilterToGRPC.convert(inverted) is None
+    assert _FilterToREST.convert(inverted) is None
 
 
 def test_filter_bitwise_and_assignment() -> None:
