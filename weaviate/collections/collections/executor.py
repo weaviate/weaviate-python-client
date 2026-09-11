@@ -17,26 +17,26 @@ from pydantic import ValidationError
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    GenerativeProvider,
+    InvertedIndexConfigCreate,
+    MultiTenancyConfigCreate,
     Property,
+    ReferencePropertyBase,
+    ReplicationConfigCreate,
+    RerankerProvider,
+    ShardingConfigCreate,
     _CollectionConfigCreate,
-    _GenerativeProvider,
-    _InvertedIndexConfigCreate,
-    _MultiTenancyConfigCreate,
-    _NamedVectorConfigCreate,
-    _ObjectTTLConfigCreate,
-    _ReferencePropertyBase,
-    _ReplicationConfigCreate,
-    _RerankerProvider,
-    _ShardingConfigCreate,
-    _VectorConfigCreate,
-    _VectorIndexConfigCreate,
-    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_configs_from_json,
     _collection_configs_simple_from_json,
 )
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
+from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigCreate
+from weaviate.collections.classes.config_vector_index import VectorIndexConfigCreate
+from weaviate.collections.classes.config_vectorizers import _VectorizerConfigCreate
+from weaviate.collections.classes.config_vectors import VectorConfigCreate
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
     Properties,
@@ -44,13 +44,14 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import Collection, CollectionAsync
+from weaviate.collections.config.executor import _any_property_has_text_analyzer
 from weaviate.connect import executor
 from weaviate.connect.v4 import (
     ConnectionAsync,
     ConnectionType,
     _ExpectedStatusCodes,
 )
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
@@ -150,20 +151,20 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         name: str,
         *,
         description: Optional[str] = None,
-        generative_config: Optional[_GenerativeProvider] = None,
-        inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
-        multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        object_ttl_config: Optional[_ObjectTTLConfigCreate] = None,
+        generative_config: Optional[GenerativeProvider] = None,
+        inverted_index_config: Optional[InvertedIndexConfigCreate] = None,
+        multi_tenancy_config: Optional[MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[ObjectTTLConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
-        replication_config: Optional[_ReplicationConfigCreate] = None,
-        reranker_config: Optional[_RerankerProvider] = None,
-        sharding_config: Optional[_ShardingConfigCreate] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        references: Optional[List[ReferencePropertyBase]] = None,
+        replication_config: Optional[ReplicationConfigCreate] = None,
+        reranker_config: Optional[RerankerProvider] = None,
+        sharding_config: Optional[ShardingConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
             Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
+        vector_config: Optional[Union[VectorConfigCreate, List[VectorConfigCreate]]] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
@@ -213,6 +214,23 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             _Warnings.vectorizer_config_in_config_create()
         if vector_index_config is not None:
             _Warnings.vector_index_config_in_config_create()
+        if properties is not None and _any_property_has_text_analyzer(properties):
+            if not self._connection._weaviate_version.is_at_least(1, 37, 0):
+                raise WeaviateUnsupportedFeatureError(
+                    "Property text_analyzer (asciiFold / stopword_preset)",
+                    str(self._connection._weaviate_version),
+                    "1.37.0",
+                )
+        if (
+            inverted_index_config is not None
+            and inverted_index_config.stopwordPresets is not None
+            and not self._connection._weaviate_version.is_at_least(1, 37, 0)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "InvertedIndexConfig stopword_presets",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         try:
             config = _CollectionConfigCreate(
                 description=description,
@@ -235,8 +253,16 @@ class _CollectionsExecutor(Generic[ConnectionType]):
                 f"Invalid collection config create parameters: {e}"
             ) from e
 
+        # Servers >= 1.37.5 apply DEFAULT_VECTOR_INDEX_TYPE to named-vector
+        # configs that omit `vectorIndexType`; older servers reject the empty
+        # field, so for them we keep emitting the client-side HNSW default.
+        emit_default_vector_index_type = not self._connection._weaviate_version.is_at_least(
+            1, 37, 5
+        )
         return self.__create(
-            config=config._to_dict(),
+            config=config._to_dict(
+                emit_default_vector_index_type=emit_default_vector_index_type,
+            ),
             data_model_properties=data_model_properties,
             data_model_references=data_model_references,
             skip_argument_validation=skip_argument_validation,

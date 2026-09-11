@@ -764,7 +764,7 @@ def test_incremental_backup(client: weaviate.WeaviateClient, request: SubRequest
         backend=BACKEND,
         include_collections=["Article"],
         wait_for_completion=True,
-        incremental_backup_base_id=base_backup_id,
+        incremental_base_backup_id=base_backup_id,
     )
 
     # remove existing class

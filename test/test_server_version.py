@@ -60,6 +60,25 @@ def test_server_version_is_at_least(is_valid: bool) -> None:
     assert is_valid
 
 
+@pytest.mark.parametrize(
+    "version,expected",
+    [
+        ("1.36.9", False),
+        ("1.37.14", False),
+        ("1.37.15", True),
+        ("1.38.7", False),
+        ("1.38.8", True),
+        ("1.39.0", True),
+        ("1.40.0", True),
+    ],
+)
+def test_server_version_is_at_least_any(version: str, expected: bool) -> None:
+    assert (
+        _ServerVersion.from_string(version).is_at_least_any((1, 37, 15), (1, 38, 8), (1, 39, 0))
+        is expected
+    )
+
+
 def test_server_version_magic_methods() -> None:
     # Test __eq__
     assert _ServerVersion(1, 2, 3) == _ServerVersion(1, 2, 3)

@@ -2,12 +2,12 @@ import warnings
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from deprecation import deprecated as docstring_deprecated
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
+from weaviate.util import docstring_deprecated
 
 from ...warnings import _Warnings
 
@@ -110,6 +110,7 @@ class Vectorizers(str, Enum):
         MULTI2VEC_BIND: Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         MULTI2VEC_VOYAGEAI: Weaviate module backed by a Voyage AI multimodal embedding models.
         MULTI2VEC_NVIDIA: Weaviate module backed by NVIDIA multimodal embedding models.
+        MULTI2VEC_TWELVELABS: Weaviate module backed by TwelveLabs multimodal embedding models.
         REF2VEC_CENTROID: Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
     """
 
@@ -119,6 +120,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_COHERE = "text2vec-cohere"
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
     TEXT2VEC_DATABRICKS = "text2vec-databricks"
+    TEXT2VEC_DIGITALOCEAN = "text2vec-digitalocean"
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
@@ -143,6 +145,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
     MULTI2VEC_NVIDIA = "multi2vec-nvidia"
+    MULTI2VEC_TWELVELABS = "multi2vec-twelvelabs"
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
@@ -214,6 +217,7 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     service: str
     targetModel: Optional[str]
     targetVariant: Optional[str]
+    dimensions: Optional[int]
     vectorizeClassName: bool
 
     @field_validator("region")
@@ -286,6 +290,21 @@ class _Text2VecMistralConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
+class _Text2VecDigitalOceanConfig(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2VEC_DIGITALOCEAN, frozen=True, exclude=True
+    )
+    model: str
+    vectorizeClassName: bool
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
 class _Text2VecMorphConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_MORPH, frozen=True, exclude=True
@@ -293,6 +312,7 @@ class _Text2VecMorphConfig(_VectorizerConfigCreate):
     model: Optional[str]
     vectorizeClassName: bool
     baseURL: Optional[AnyHttpUrl]
+    endpoint: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -319,6 +339,7 @@ class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
     )
     baseURL: Optional[AnyHttpUrl]
     dimensions: Optional[int]
+    endpoint: Optional[str]
     model: Optional[str]
     modelVersion: Optional[str]
     type_: Optional[OpenAIType]
@@ -362,6 +383,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
     titleProperty: Optional[str]
     taskType: Optional[str]
+    location: Optional[str]
 
 
 class _Text2VecTransformersConfig(_VectorizerConfigCreate):
@@ -546,9 +568,11 @@ class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
     )
+    audioFields: Optional[List[Multi2VecField]]
     videoFields: Optional[List[Multi2VecField]]
-    projectId: str
+    projectId: Optional[str]
     location: Optional[str]
+    apiEndpoint: Optional[str] = None
     modelId: Optional[str]
     dimensions: Optional[int]
     videoIntervalSeconds: Optional[int]
@@ -589,6 +613,20 @@ class _Multi2VecNvidiaConfig(_Multi2VecBase):
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncation: Optional[bool]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Multi2VecTwelvelabsConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_TWELVELABS, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -660,7 +698,7 @@ class _Vectorizer:
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
             inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `image_fields` or `text_fields` are not `None` or a `list`.
@@ -707,7 +745,7 @@ class _Vectorizer:
             text_fields: The text fields to use in vectorization.
             thermal_fields: The thermal fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If any of the `*_fields` are not `None` or a `list`.
@@ -751,6 +789,7 @@ class _Vectorizer:
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
         vectorize_collection_name: bool = True,
+        dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
 
@@ -763,6 +802,7 @@ class _Vectorizer:
             endpoint: The model to use, REQUIRED for service "sagemaker".
             service: The AWS service to use, options are "bedrock" and "sagemaker".
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
         """
         return _Text2VecAWSConfig(
             model=model,
@@ -772,6 +812,7 @@ class _Vectorizer:
             endpoint=endpoint,
             targetModel=None,
             targetVariant=None,
+            dimensions=dimensions,
         )
 
     @staticmethod
@@ -885,7 +926,7 @@ class _Vectorizer:
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
@@ -1114,6 +1155,7 @@ class _Vectorizer:
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
+        endpoint: Optional[str] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOpenAIConfigCreate` object for use when vectorizing using the `text2vec-openai` model.
 
@@ -1127,6 +1169,7 @@ class _Vectorizer:
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+            endpoint: The API path to append to `base_url`, e.g. `/api/v3/embeddings`. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `type_` is not a valid value from the `OpenAIType` type.
@@ -1138,6 +1181,7 @@ class _Vectorizer:
             type_=type_,
             vectorizeClassName=vectorize_collection_name,
             dimensions=dimensions,
+            endpoint=endpoint,
         )
 
     @staticmethod
@@ -1181,6 +1225,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
             taskType=None,
+            location=None,
         )
 
     @staticmethod
@@ -1210,6 +1255,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
             taskType=None,
+            location=None,
         )
 
     @staticmethod
@@ -1219,6 +1265,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
         vectorize_collection_name: bool = True,
+        location: Optional[str] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
@@ -1232,6 +1279,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
             dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
+            location: The Google Vertex AI region to run the model in. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1244,6 +1292,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,
             taskType=None,
+            location=location,
         )
 
     @staticmethod
@@ -1282,7 +1331,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1291,6 +1340,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Multi2VecGoogleConfig(
             projectId=project_id,
             location=location,
+            audioFields=None,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             videoFields=_map_multi2vec_fields(video_fields),
@@ -1324,7 +1374,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             video_fields: The video fields to use in vectorization.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1332,6 +1382,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _Multi2VecGoogleConfig(
             projectId=project_id,
             location=location,
+            audioFields=None,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             videoFields=_map_multi2vec_fields(video_fields),
@@ -1418,7 +1469,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.

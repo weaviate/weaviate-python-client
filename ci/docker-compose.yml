@@ -31,6 +31,8 @@ services:
       DISABLE_LAZY_LOAD_SHARDS: 'true'
       GRPC_MAX_MESSAGE_SIZE: 100000000  # 100mb
       OBJECTS_TTL_DELETE_SCHEDULE: "@every 12h" # for objectTTL tests to work
+      EXPORT_ENABLED: 'true'
+      EXPORT_DEFAULT_PATH: "/var/lib/weaviate/exports"
 
   contextionary:
     environment:

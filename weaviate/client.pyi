@@ -20,7 +20,9 @@ from .backup import _Backup, _BackupAsync
 from .cluster import _Cluster, _ClusterAsync
 from .collections.batch.client import _BatchClientWrapper, _BatchClientWrapperAsync
 from .debug import _Debug, _DebugAsync
+from .export import _Export, _ExportAsync
 from .rbac import _Roles, _RolesAsync
+from .tokenization import _Tokenization, _TokenizationAsync
 from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
@@ -29,12 +31,14 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
     _connection: ConnectionAsync
     alias: _AliasAsync
     backup: _BackupAsync
+    export: _ExportAsync
     batch: _BatchClientWrapperAsync
     collections: _CollectionsAsync
     cluster: _ClusterAsync
     debug: _DebugAsync
     groups: _GroupsAsync
     roles: _RolesAsync
+    tokenization: _TokenizationAsync
     users: _UsersAsync
 
     async def close(self) -> None: ...
@@ -52,12 +56,14 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
     _connection: ConnectionSync
     alias: _Alias
     backup: _Backup
+    export: _Export
     batch: _BatchClientWrapper
     collections: _Collections
     cluster: _Cluster
     debug: _Debug
     groups: _Groups
     roles: _Roles
+    tokenization: _Tokenization
     users: _Users
 
     def close(self) -> None: ...

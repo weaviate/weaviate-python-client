@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Sequence, Union
@@ -159,7 +160,8 @@ class _FilterBase:
             return self._property
 
         # get last element in chain
-        target = self._target
+        target = deepcopy(self._target)
+        target_root = target
         while target.target is not None:
             assert isinstance(target.target, _MultiTargetRef) or isinstance(
                 target.target, _SingleTargetRef
@@ -167,7 +169,7 @@ class _FilterBase:
             target = target.target
 
         target.target = self._property
-        return self._target
+        return target_root
 
 
 class _FilterByProperty(_FilterBase):
@@ -320,6 +322,8 @@ class _FilterByTime(_FilterBase):
         Args:
             dates: List of dates to filter on.
         """
+        if len(dates) == 0:
+            raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
         return _FilterValue(
             target=self._target_path(),
             value=dates,
@@ -332,6 +336,8 @@ class _FilterByTime(_FilterBase):
         Args:
             dates: List of dates to filter on.
         """
+        if len(dates) == 0:
+            raise WeaviateInvalidInputError("Filter contains_none must have at least one value")
         return _FilterValue(
             target=self._target_path(),
             value=dates,

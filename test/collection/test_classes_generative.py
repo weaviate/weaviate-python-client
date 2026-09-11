@@ -98,14 +98,13 @@ def test_generative_parameters_images_parsing(
             ),
         ),
         (
-            GenerativeConfig.aws(
+            GenerativeConfig.aws_sagemaker(
                 endpoint="http://localhost:8080",
-                model="text-to-image",
                 region="us-west-2",
-                service="sagemaker",
                 target_model="arn:aws:sagemaker:us-west-2:123456789012:model/text-to-image",
                 target_variant="variant-1",
                 temperature=0.5,
+                stop_sequences=["\n"],
             )._to_grpc(
                 _GenerativeConfigRuntimeOptions(
                     return_metadata=True, images=[LOGO_ENCODED], image_properties=["image"]
@@ -115,12 +114,12 @@ def test_generative_parameters_images_parsing(
                 return_metadata=True,
                 aws=generative_pb2.GenerativeAWS(
                     endpoint="http://localhost:8080",
-                    model="text-to-image",
                     region="us-west-2",
                     service="sagemaker",
                     target_model="arn:aws:sagemaker:us-west-2:123456789012:model/text-to-image",
                     target_variant="variant-1",
                     temperature=0.5,
+                    stop_sequences=base_pb2.TextArray(values=["\n"]),
                     images=base_pb2.TextArray(values=[LOGO_ENCODED]),
                     image_properties=base_pb2.TextArray(values=["image"]),
                 ),
@@ -129,6 +128,7 @@ def test_generative_parameters_images_parsing(
         (
             GenerativeConfig.cohere(
                 base_url="http://localhost:8080",
+                frequency_penalty=0.4,
                 k=5,
                 max_tokens=100,
                 model="text-to-image",
@@ -141,6 +141,7 @@ def test_generative_parameters_images_parsing(
                 return_metadata=True,
                 cohere=generative_pb2.GenerativeCohere(
                     base_url="http://localhost:8080",
+                    frequency_penalty=0.4,
                     k=5,
                     max_tokens=100,
                     model="text-to-image",
@@ -179,6 +180,56 @@ def test_generative_parameters_images_parsing(
                     temperature=0.5,
                     top_log_probs=5,
                     top_p=0.9,
+                ),
+            ),
+        ),
+        (
+            GenerativeConfig.deepseek(
+                base_url="http://localhost:8080",
+                model="deepseek-chat",
+                temperature=0.5,
+                max_tokens=100,
+                frequency_penalty=0.1,
+                presence_penalty=0.2,
+                top_p=0.9,
+                stop=["\n"],
+            )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True)),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                deepseek=generative_pb2.GenerativeDeepseek(
+                    base_url="http://localhost:8080",
+                    model="deepseek-chat",
+                    temperature=0.5,
+                    max_tokens=100,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.2,
+                    top_p=0.9,
+                    stop=base_pb2.TextArray(values=["\n"]),
+                ),
+            ),
+        ),
+        (
+            GenerativeConfig.digitalocean(
+                base_url="https://inference.do-ai.run",
+                model="llama-4-maverick",
+                temperature=0.5,
+                top_p=0.9,
+                max_tokens=100,
+                frequency_penalty=0.1,
+                presence_penalty=0.2,
+                stop=["STOP"],
+            )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True)),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                digitalocean=generative_pb2.GenerativeDigitalOcean(
+                    base_url="https://inference.do-ai.run",
+                    model="llama-4-maverick",
+                    temperature=0.5,
+                    top_p=0.9,
+                    max_tokens=100,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.2,
+                    stop=base_pb2.TextArray(values=["STOP"]),
                 ),
             ),
         ),
@@ -241,6 +292,47 @@ def test_generative_parameters_images_parsing(
                     presence_penalty=0.5,
                     project_id="my-project",
                     region="us-west1",
+                    stop_sequences=base_pb2.TextArray(values=["\n"]),
+                    temperature=0.5,
+                    top_k=50,
+                    top_p=0.9,
+                    images=base_pb2.TextArray(values=[LOGO_ENCODED]),
+                    image_properties=base_pb2.TextArray(values=["image"]),
+                ),
+            ),
+        ),
+        (
+            GenerativeConfig.google_vertex(
+                api_endpoint="http://localhost:8080",
+                project_id="my-project",
+                endpoint_id="12345678901234567890123456789012",
+                region="us-west1",
+                frequency_penalty=0.5,
+                max_tokens=100,
+                model="text-to-image",
+                presence_penalty=0.5,
+                temperature=0.5,
+                top_k=50,
+                top_p=0.9,
+                stop_sequences=["\n"],
+                location="us-central1",
+            )._to_grpc(
+                _GenerativeConfigRuntimeOptions(
+                    return_metadata=True, images=[LOGO_ENCODED], image_properties=["image"]
+                )
+            ),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                google=generative_pb2.GenerativeGoogle(
+                    api_endpoint="localhost:8080",
+                    endpoint_id="12345678901234567890123456789012",
+                    frequency_penalty=0.5,
+                    max_tokens=100,
+                    model="text-to-image",
+                    presence_penalty=0.5,
+                    project_id="my-project",
+                    region="us-west1",
+                    location="us-central1",
                     stop_sequences=base_pb2.TextArray(values=["\n"]),
                     temperature=0.5,
                     top_k=50,

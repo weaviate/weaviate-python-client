@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Optional, Type, Union
 
-from deprecation import deprecated as docstring_deprecated
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.batch.async_ import _BatchBaseAsync
@@ -30,6 +29,7 @@ from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
 from weaviate.types import UUID, VECTORS
+from weaviate.util import docstring_deprecated
 
 if TYPE_CHECKING:
     from weaviate.collections.collections.sync import _Collections
@@ -252,7 +252,8 @@ class _BatchClientWrapper(_BatchWrapper):
         When you exit the context manager, the final batch will be sent automatically.
 
         Args:
-            requests_per_minute: The number of requests that the vectorizer can process per minute.
+            requests_per_minute: The number of objects to send to Weaviate per minute,
+                used to avoid exceeding the vectorizer's rate limit. Must be a positive integer.
             consistency_level: The consistency level to be used to send batches. If not provided, the default value is `None`.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)

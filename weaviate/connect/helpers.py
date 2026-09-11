@@ -3,7 +3,6 @@
 from typing import Dict, Optional, Tuple, Union
 from urllib.parse import urlparse
 
-from deprecation import deprecated as docstring_deprecated
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.auth import (
@@ -18,6 +17,7 @@ from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import WEAVIATE_VERSION, EmbeddedOptions
+from weaviate.util import docstring_deprecated
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
@@ -288,7 +288,7 @@ def connect_to_custom(
     grpc_secure: bool,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
-    auth_credentials: Optional[AuthCredentials] = None,
+    auth_credentials: Union[str, AuthCredentials, None] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
     """Connect to a Weaviate instance with custom connection parameters.
@@ -373,7 +373,7 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
 
 def use_async_with_weaviate_cloud(
     cluster_url: str,
-    auth_credentials: Optional[AuthCredentials],
+    auth_credentials: Union[str, AuthCredentials],
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
@@ -585,7 +585,7 @@ def use_async_with_custom(
     grpc_secure: bool,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
-    auth_credentials: Optional[AuthCredentials] = None,
+    auth_credentials: Union[str, AuthCredentials, None] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateAsyncClient:
     """Create an async client object ready to connect to a Weaviate instance with custom connection parameters.

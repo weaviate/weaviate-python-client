@@ -9,7 +9,7 @@ import weaviate
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import Configure, DataType, Property, ReferenceProperty
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.filters import Filter, _Filters, _FilterValue
+from weaviate.collections.classes.filters import Filter, FilterReturn, _FilterValue
 from weaviate.collections.classes.grpc import MetadataQuery, QueryReference, Sort
 from weaviate.collections.classes.internal import ReferenceToMulti
 from weaviate.types import UUID
@@ -34,7 +34,7 @@ UUID4 = uuid.uuid4()
 )
 def test_filters_text(
     collection_factory: CollectionFactory,
-    weaviate_filter: _Filters,
+    weaviate_filter: FilterReturn,
     results: List[int],
 ) -> None:
     collection = collection_factory(
@@ -160,7 +160,7 @@ def test_filter_with_wrong_types(
 )
 def test_filters_nested(
     collection_factory: CollectionFactory,
-    weaviate_filter: _Filters,
+    weaviate_filter: FilterReturn,
     results: List[int],
 ) -> None:
     collection = collection_factory(
@@ -401,7 +401,7 @@ def test_filters_contains(
     ],
 )
 def test_ref_filters(
-    collection_factory: CollectionFactory, weaviate_filter: _Filters, results: List[int]
+    collection_factory: CollectionFactory, weaviate_filter: FilterReturn, results: List[int]
 ) -> None:
     to_collection = collection_factory(
         name="Target",

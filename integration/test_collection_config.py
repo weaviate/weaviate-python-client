@@ -42,8 +42,25 @@ from weaviate.collections.classes.config import (
     IndexName,
 )
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
+from weaviate.exceptions import (
+    UnexpectedStatusCodeError,
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+)
 from integration.conftest import retry_on_http_error
+from weaviate.util import _ServerVersion
+
+
+def _expected_async_enabled(version: _ServerVersion, factor: int) -> bool:
+    """Whether the server reports async replication as enabled for a collection.
+
+    Up to 1.38.9 the server stores whatever `async_enabled` the collection was created with. From
+    1.38.9 it ignores that and derives the field as `factor > 1 and not globally disabled` instead,
+    so a collection with a single replica always reports `False`.
+    """
+    if version.is_at_least(1, 38, 9):
+        return factor > 1
+    return version.is_at_least(1, 26, 0)
 
 
 @pytest.fixture(scope="module")
@@ -349,10 +366,9 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         assert config.multi_tenancy_config.auto_tenant_creation is False
 
     assert config.replication_config.factor == 1
-    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
-        assert config.replication_config.async_enabled is True
-    else:
-        assert config.replication_config.async_enabled is False
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
 
     if collection._connection._weaviate_version.is_at_least(1, 24, 25):
         assert (
@@ -644,6 +660,82 @@ def test_hnsw_with_rq(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer is not None
     assert config.vector_index_config.quantizer.bits == 8
     assert config.vector_index_config.quantizer.rescore_limit == 20
+
+
+def test_hnsw_with_rq4c(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 39, 2):
+        pytest.skip("RQ centering is not supported in Weaviate versions lower than 1.39.2")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.rq(
+                bits=4, centering=True, rescore_limit=20, training_limit=5000
+            ),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer is not None
+    assert config.vector_index_config.quantizer.bits == 4
+    assert config.vector_index_config.quantizer.centering is True
+    assert config.vector_index_config.quantizer.rescore_limit == 20
+    assert config.vector_index_config.quantizer.training_limit == 5000
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            quantizer=Reconfigure.VectorIndex.Quantizer.rq(rescore_limit=50, training_limit=10000),
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer.bits == 4
+    assert config.vector_index_config.quantizer.centering is True
+    assert config.vector_index_config.quantizer.rescore_limit == 50
+    assert config.vector_index_config.quantizer.training_limit == 10000
+
+
+def test_hnsw_with_pathseer_filter_strategy(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 40, 0):
+        pytest.skip(
+            "pathseer filter strategy is not supported in Weaviate versions lower than 1.40.0"
+        )
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.PATHSEER,
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.PATHSEER
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.ACORN,
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.PATHSEER,
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.PATHSEER
 
 
 @pytest.mark.parametrize(
@@ -1021,9 +1113,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             Property(name="booleans", data_type=DataType.BOOL_ARRAY),
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
-            Property(
-                name="field_index_searchable", data_type=DataType.TEXT, index_searchable=False
-            ),
+            Property(name="field_searchable_off", data_type=DataType.TEXT, index_searchable=False),
             Property(
                 name="field_index_range_filters_false",
                 data_type=DataType.INT,
@@ -1050,7 +1140,9 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
                         tokenization=Tokenization.FIELD,
                     ),
                     Property(
-                        name="nested_searchable", data_type=DataType.TEXT, index_searchable=False
+                        name="nested_searchable_off",
+                        data_type=DataType.TEXT,
+                        index_searchable=False,
                     ),
                     Property(
                         name="nested_filterable", data_type=DataType.TEXT, index_filterable=False
@@ -1574,6 +1666,193 @@ def test_replication_config(
     assert config.replication_config.deletion_strategy == deletion_strategy
 
 
+def test_replication_config_without_async_config(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        replication_config=Configure.replication(factor=1, async_enabled=False),
+    )
+    config = collection.config.get()
+    assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is False
+    assert config.replication_config.async_config is None
+
+
+def test_replication_config_with_async_config(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
+    collection = collection_factory(
+        replication_config=Configure.replication(
+            factor=1,
+            async_enabled=True,
+            async_config=Configure.Replication.async_config(
+                propagation_concurrency=4,
+                hashtree_height=20,
+            ),
+        ),
+    )
+    config = collection.config.get()
+    assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
+    assert config.replication_config.async_config is not None
+    ac = config.replication_config.async_config
+    assert ac.propagation_concurrency == 4
+    assert ac.hashtree_height == 20
+    if collection._connection._weaviate_version.is_at_least(1, 37, 3):
+        # Server removed max_workers / alive_nodes_checking_frequency from the schema in 1.37.3
+        assert ac.max_workers is None
+        assert ac.alive_nodes_checking_frequency is None
+
+
+def test_replication_config_async_config_preserved_when_disabling_async_replication(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Disabling `async_enabled` must leave the collection's async replication tuning intact.
+
+    `config.update()` is a read-modify-write PUT of the whole collection, so dropping `asyncConfig`
+    from the merged payload would silently reset the tuning to server defaults.
+    """
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
+    collection = collection_factory(
+        replication_config=Configure.replication(
+            factor=1,
+            async_enabled=True,
+            async_config=Configure.Replication.async_config(
+                propagation_concurrency=4,
+                hashtree_height=20,
+            ),
+        ),
+    )
+    config = collection.config.get()
+    assert config.replication_config.async_config is not None
+    assert config.replication_config.async_config.propagation_concurrency == 4
+
+    collection.config.update(
+        replication_config=Reconfigure.replication(
+            async_enabled=False,
+        ),
+    )
+    config = collection.config.get()
+    # False on both sides of the v1.38 compatibility shim: older servers store the
+    # `asyncEnabled` we just sent, newer ones derive it as `factor > 1 and not globally
+    # disabled` — and this collection has factor=1.
+    assert config.replication_config.async_enabled is False
+    ac = config.replication_config.async_config
+    assert ac is not None
+    assert ac.propagation_concurrency == 4
+    assert ac.hashtree_height == 20
+
+
+def test_replication_config_remove_async_config(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
+    collection = collection_factory(
+        replication_config=Configure.replication(
+            factor=1,
+            async_enabled=True,
+            async_config=Configure.Replication.async_config(
+                propagation_concurrency=4,
+                hashtree_height=20,
+            ),
+        ),
+    )
+    config = collection.config.get()
+    assert config.replication_config.async_config is not None
+    assert config.replication_config.async_config.propagation_concurrency == 4
+
+    collection.config.update(
+        replication_config=Reconfigure.replication(
+            factor=1, async_enabled=True, async_config=Reconfigure.Replication.async_config()
+        ),
+    )
+    config = collection.config.get()
+    assert config.replication_config.async_enabled is _expected_async_enabled(
+        collection._connection._weaviate_version, factor=1
+    )
+    assert config.replication_config.async_config is None
+    assert config.replication_config.factor == 1
+
+
+def test_replication_config_unset_single_async_field(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("async replication config requires Weaviate >= 1.36.0")
+
+    collection = collection_factory(
+        replication_config=Configure.replication(
+            factor=1,
+            async_enabled=True,
+            async_config=Configure.Replication.async_config(
+                propagation_concurrency=4,
+                hashtree_height=20,
+            ),
+        ),
+    )
+    config = collection.config.get()
+    ac = config.replication_config.async_config
+    assert ac is not None
+    assert ac.propagation_concurrency == 4
+    assert ac.hashtree_height == 20
+
+    # Update with only propagation_concurrency — hashtree_height reverts to server default
+    collection.config.update(
+        replication_config=Reconfigure.replication(
+            async_config=Reconfigure.Replication.async_config(
+                propagation_concurrency=4,
+            ),
+        ),
+    )
+    config = collection.config.get()
+    ac = config.replication_config.async_config
+    assert ac is not None
+    assert ac.propagation_concurrency == 4
+    assert ac.hashtree_height != 20
+
+
+def test_replication_config_add_async_config_to_existing_collection(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Test updating a collection that was created without async_config to add one.
+
+    This covers the case where the existing schema has no asyncConfig key
+    and merge_with_existing must handle the missing field gracefully.
+    """
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
+    # Create without async_config
+    collection = collection_factory(
+        replication_config=Configure.replication(factor=1, async_enabled=True),
+    )
+    config = collection.config.get()
+    assert config.replication_config.async_config is None
+
+    # Update to add async_config
+    collection.config.update(
+        replication_config=Reconfigure.replication(
+            async_config=Reconfigure.Replication.async_config(
+                propagation_concurrency=4,
+                hashtree_height=20,
+            ),
+        ),
+    )
+    config = collection.config.get()
+    assert config.replication_config.async_config is not None
+    ac = config.replication_config.async_config
+    assert ac.propagation_concurrency == 4
+    assert ac.hashtree_height == 20
+
+
 def test_update_property_descriptions(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -1953,6 +2232,31 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
     assert conf.object_ttl_config is None
 
 
+def test_object_ttl_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
+    collection = collection_factory(
+        object_ttl=Configure.ObjectTTL.delete_by_creation_time(
+            time_to_live=datetime.timedelta(seconds=60),
+            filter_expired_objects=True,
+        ),
+    )
+    config = collection.config.get()
+    assert config.object_ttl_config is not None
+
+    name = f"TestObjectTTLRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
 @pytest.mark.parametrize("index_name", ["filterable", "searchable", "rangeFilters"])
 def test_delete_property_index(
     index_name: IndexName, collection_factory: CollectionFactory
@@ -2007,3 +2311,473 @@ def test_delete_property_index(
         assert config.properties[0].index_range_filters is False
         assert config.properties[0].index_searchable is _index_searchable
         assert config.properties[0].index_filterable is _index_filterable
+
+
+def test_property_text_analyzer_ascii_fold_version_gate(
+    collection_factory: CollectionFactory,
+) -> None:
+    """On Weaviate < 1.37 the client must raise before sending the request."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_at_least(1, 37, 0):
+        pytest.skip("Version gate only applies to Weaviate < 1.37.0")
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        collection_factory(
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=[
+                Property(
+                    name="title",
+                    data_type=DataType.TEXT,
+                    tokenization=Tokenization.WORD,
+                    text_analyzer=Configure.text_analyzer(ascii_fold=True),
+                ),
+            ],
+        )
+
+
+def test_collection_stopword_presets(collection_factory: CollectionFactory) -> None:
+    """User-defined stopword presets apply to properties that reference them.
+
+    Properties can reference user-defined presets via text_analyzer.stopword_preset,
+    and built-in presets can coexist with user-defined ones.
+    """
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            # User-defined French preset.
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+            # Built-in English preset, set per property.
+            Property(
+                name="title_en",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset=StopwordsPreset.EN),
+            ),
+            # No stopword override → uses the collection-level default.
+            Property(
+                name="plain",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+    title_fr = next(p for p in config.properties if p.name == "title_fr")
+    title_en = next(p for p in config.properties if p.name == "title_en")
+    plain = next(p for p in config.properties if p.name == "plain")
+    assert title_fr.text_analyzer is not None
+    assert title_fr.text_analyzer.stopword_preset == "fr"
+    assert title_en.text_analyzer is not None
+    assert title_en.text_analyzer.stopword_preset == "en"
+    assert plain.text_analyzer is None
+
+
+def test_collection_stopword_presets_update(collection_factory: CollectionFactory) -> None:
+    """Updating a stopword preset is reflected in the config."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le"]},
+        ),
+        properties=[
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le"]}
+
+    collection.config.update(
+        inverted_index_config=Reconfigure.inverted_index(
+            stopword_presets={"fr": ["la"]},
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["la"]}
+
+
+def test_collection_stopword_presets_remove_in_use_is_rejected(
+    collection_factory: CollectionFactory,
+) -> None:
+    """The server rejects removing a stopword preset still referenced by a property."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="title_fr",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.config.update(
+            inverted_index_config=Reconfigure.inverted_index(stopword_presets={}),
+        )
+
+    # The original preset must still be present after the rejected update.
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_inverted_index_stopword_presets_version_gate(
+    collection_factory: CollectionFactory,
+) -> None:
+    """On Weaviate < 1.37 the client must raise before sending the request."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_at_least(1, 37, 0):
+        pytest.skip("Version gate only applies to Weaviate < 1.37.0")
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        collection_factory(
+            vectorizer_config=Configure.Vectorizer.none(),
+            inverted_index_config=Configure.inverted_index(
+                stopword_presets={"fr": ["le", "la"]},
+            ),
+        )
+
+
+def test_collection_stopword_presets_remove_unused_is_allowed(
+    collection_factory: CollectionFactory,
+) -> None:
+    """Removing a preset that no property references must succeed."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={
+                "fr": ["le", "la", "les"],
+                "es": ["el", "la", "los"],
+            },
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    # Drop only 'es' (unused). 'fr' is still referenced by title.
+    collection.config.update(
+        inverted_index_config=Reconfigure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+    )
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_collection_stopword_presets_remove_referenced_by_nested_property_is_rejected(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A removed preset still referenced by a nested property must be rejected by the server."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="doc",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(
+                        name="body",
+                        data_type=DataType.TEXT,
+                        tokenization=Tokenization.WORD,
+                        text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.config.update(
+            inverted_index_config=Reconfigure.inverted_index(stopword_presets={}),
+        )
+
+    # The original preset must still be present after the rejected update.
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+
+
+def test_collection_user_defined_stopword_preset_overrides_builtin(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A user-defined preset named 'en' is accepted and reflected in the config."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"en": ["hello"]},
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="en"),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"en": ["hello"]}
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.stopword_preset == "en"
+
+
+def test_property_text_analyzer_combined_ascii_fold_and_stopword_preset(
+    collection_factory: CollectionFactory,
+) -> None:
+    """A single property may combine ascii_fold and stopword_preset."""
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(
+                    ascii_fold=True,
+                    stopword_preset=StopwordsPreset.EN,
+                ),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.stopword_preset == "en"
+
+
+def test_property_text_analyzer_ascii_fold_immutable(
+    collection_factory: CollectionFactory,
+) -> None:
+    """The asciiFold setting is immutable on an existing property.
+
+    Adding a new property via add_property is the only way to introduce a different
+    analyzer; the original property's analyzer cannot be mutated.
+    """
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(ascii_fold=True, ascii_fold_ignore=["é"]),
+            ),
+        ],
+    )
+
+    # The config exposes the original ignore list and there's no client API
+    # surface to mutate text_analyzer on an existing property — it can only be
+    # set at create time.
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+
+    # Adding a *new* property with a different analyzer is allowed.
+    collection.config.add_property(
+        Property(
+            name="title2",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(ascii_fold=True, ascii_fold_ignore=["ñ"]),
+        ),
+    )
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    title2 = next(p for p in config.properties if p.name == "title2")
+    # Original property's analyzer is unchanged.
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    # New property has its own analyzer.
+    assert title2.text_analyzer is not None
+    assert title2.text_analyzer.ascii_fold_ignore == ["ñ"]
+
+
+def test_stopwords_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopwords_additions=["a"],
+            stopwords_preset=StopwordsPreset.EN,
+            stopwords_removals=["the"],
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(
+                    ascii_fold=True, ascii_fold_ignore=["é"], stopword_preset="fr"
+                ),
+            ),
+        ],
+    )
+    config = collection.config.get()
+    assert config.inverted_index_config.stopwords.preset == StopwordsPreset.EN
+    assert config.inverted_index_config.stopwords.removals == ["the"]
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    assert title.text_analyzer.stopword_preset == "fr"
+
+    name = f"TestStopwordsRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+def test_stopword_presets_roundtrip_from_dict(
+    collection_factory: CollectionFactory,
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("stopword_presets requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(
+            stopword_presets={"fr": ["le", "la", "les"]},
+        ),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.inverted_index_config.stopword_presets == {"fr": ["le", "la", "les"]}
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.stopword_preset == "fr"
+
+    name = f"TestPresetRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+def test_text_analyzer_roundtrip_from_dict(
+    collection_factory: CollectionFactory,
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 37, 0):
+        pytest.skip("text_analyzer requires Weaviate >= 1.37.0")
+
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="title",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.WORD,
+                text_analyzer=Configure.text_analyzer(
+                    ascii_fold=True,
+                    ascii_fold_ignore=["é"],
+                    stopword_preset=StopwordsPreset.EN,
+                ),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    title = next(p for p in config.properties if p.name == "title")
+    assert title.text_analyzer is not None
+    assert title.text_analyzer.ascii_fold is True
+    assert title.text_analyzer.ascii_fold_ignore == ["é"]
+    assert title.text_analyzer.stopword_preset == "en"
+
+    name = f"TestAnalyzerRoundtrip{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)

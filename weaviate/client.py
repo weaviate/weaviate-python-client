@@ -20,8 +20,10 @@ from .connect.base import (
 from .connect.v4 import ConnectionAsync, ConnectionSync
 from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
+from .export import _Export, _ExportAsync
 from .groups import _Groups, _GroupsAsync
 from .rbac import _Roles, _RolesAsync
+from .tokenization import _Tokenization, _TokenizationAsync
 from .types import NUMBER
 from .users import _Users, _UsersAsync
 
@@ -76,12 +78,14 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         )
         self.alias = _AliasAsync(self._connection)
         self.backup = _BackupAsync(self._connection)
+        self.export = _ExportAsync(self._connection)
         self.batch = _BatchClientWrapperAsync(self._connection)
         self.cluster = _ClusterAsync(self._connection)
         self.collections = _CollectionsAsync(self._connection)
         self.debug = _DebugAsync(self._connection)
         self.groups = _GroupsAsync(self._connection)
         self.roles = _RolesAsync(self._connection)
+        self.tokenization = _TokenizationAsync(self._connection)
         self.users = _UsersAsync(self._connection)
 
     async def __aenter__(self) -> "WeaviateAsyncClient":
@@ -152,11 +156,13 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
             consistency_level=None,
         )
         self.backup = _Backup(self._connection)
+        self.export = _Export(self._connection)
         self.cluster = _Cluster(self._connection)
         self.collections = collections
         self.debug = _Debug(self._connection)
         self.groups = _Groups(self._connection)
         self.roles = _Roles(self._connection)
+        self.tokenization = _Tokenization(self._connection)
         self.users = _Users(self._connection)
 
     def __enter__(self) -> "WeaviateClient":
