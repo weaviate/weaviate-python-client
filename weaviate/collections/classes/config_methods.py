@@ -295,7 +295,7 @@ def __get_vector_config(
                 None,
             ] = __get_vector_index_config(named_vector)
             if vector_index_config is None:
-                # A vector whose index was dropped with `collection.config.delete_vector_index` is
+                # A vector whose index was dropped with `collection.config.delete_vector_index()` is
                 # returned as `vectorIndexType: "none"` without any `vectorIndexConfig`.
                 if named_vector.get("vectorIndexType") == VectorIndexType.NONE.value:
                     vector_index_config = _VectorIndexConfigNone()
@@ -335,7 +335,7 @@ def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]
     if "vectorConfig" in schema:
         return None
     # A named-vector collection whose vectors were all dropped with
-    # `collection.config.delete_vector_index` comes back with neither a `vectorConfig` block nor a
+    # `collection.config.delete_vector_index()` comes back with neither a `vectorConfig` block nor a
     # top-level `vectorizer`. Return None instead of raising KeyError on the missing key.
     if "vectorizer" not in schema:
         return None

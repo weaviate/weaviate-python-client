@@ -38,7 +38,7 @@ class VectorIndexType(str, Enum):
         FLAT: Flat index.
         DYNAMIC: Dynamic index.
         HFRESH: HFRESH index.
-        NONE: The index of this vector has been dropped, see ``collection.config.delete_vector_index``.
+        NONE: The index of this vector has been dropped, see ``collection.config.delete_vector_index()``.
             The vector data is still stored, but it cannot be searched. This value is reported by the
             server only, it cannot be used to configure a vector.
     """

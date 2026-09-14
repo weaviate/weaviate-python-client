@@ -236,7 +236,7 @@ def test_switching_quantizer_still_rejected_when_pq_enabled() -> None:
 def test_updating_dropped_vector_index(use_deprecated_syntax: bool) -> None:
     """A vector whose index was dropped has no index config to merge into."""
     schema = multi_vector_schema()
-    # shape reported by Weaviate for a vector dropped via `config.delete_vector_index`
+    # shape reported by Weaviate for a vector dropped via `config.delete_vector_index()`
     schema["vectorConfig"]["boi"] = {"vectorizer": {"none": {}}, "vectorIndexType": "none"}
 
     hnsw = Reconfigure.VectorIndex.hnsw(ef=128)

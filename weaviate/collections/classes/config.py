@@ -1604,7 +1604,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         existing = schema["vectorConfig"][name]
         if "vectorIndexConfig" not in existing:
-            # the index was dropped with `collection.config.delete_vector_index`, Weaviate reports
+            # the index was dropped with `collection.config.delete_vector_index()`, Weaviate reports
             # such a vector as `vectorIndexType: "none"` without any index config to merge into
             raise WeaviateInvalidInputError(
                 f"Vector config with name {name} has no vector index, it was deleted with "
@@ -2152,7 +2152,7 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 @dataclass
 class _VectorIndexConfigNone(_ConfigBase):
-    """The index of this vector was dropped with `collection.config.delete_vector_index`.
+    """The index of this vector was dropped with `collection.config.delete_vector_index()`.
 
     The vector data is still stored, but there is no index left to configure or search.
     """

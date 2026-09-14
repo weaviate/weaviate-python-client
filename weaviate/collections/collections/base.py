@@ -97,7 +97,7 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         This method is helpful for those making the v3 -> v4 migration and for those interfacing with any experimental
         Weaviate features that are not yet fully supported by the Weaviate Python client.
 
-        Vector entries whose index was dropped with `collection.config.delete_vector_index` are
+        Vector entries whose index was dropped with `collection.config.delete_vector_index()` are
         skipped with a warning: there is no API to re-create a vector without an index, so the new
         collection simply does not contain them.
 
@@ -119,7 +119,7 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
     ]:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
 
-        Vector entries whose index was dropped with `collection.config.delete_vector_index` are
+        Vector entries whose index was dropped with `collection.config.delete_vector_index()` are
         skipped with a warning: there is no API to re-create a vector without an index, so the new
         collection simply does not contain them.
 
