@@ -105,28 +105,8 @@ jobs:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
 
-  grpc-web-tests:
-    name: Run gRPC-Web Package Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: ${{ matrix.version }}
-          cache: 'pip' # caching pip dependencies
-      - run: |
-          pip install -r requirements-test.txt -r requirements-devel.txt
-          pip install -e . -e packages/web
-      - name: Run grpc-web package tests
-        run: pytest packages/web/tests
-
   pyodide-e2e:
-    name: Run Pyodide (WASM) e2e Tests
+    name: Run Pyodide (WASM) Unit + e2e Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # No Python matrix: the pinned Pyodide bundle fixes the interpreter (see
@@ -154,6 +134,12 @@ jobs:
           pip install build
           python -m build --wheel --outdir dist .
           python -m build --wheel --outdir dist packages/web
+      - name: Run the unit suite inside Pyodide under Node
+        # The grpc-web package imports pyodide at module scope, so its unit tests only
+        # run here. Needs no running Weaviate.
+        run: |
+          npm install --prefix ci/pyodide-e2e
+          node ci/pyodide-e2e/units.mjs dist
       - name: start weaviate
         run: |
           source ./ci/compose.sh
@@ -418,7 +404,7 @@ jobs:
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package, proto-test, grpc-web-tests, pyodide-e2e]
+    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package, proto-test, pyodide-e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

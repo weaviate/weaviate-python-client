@@ -1,6 +1,8 @@
+"""grpc-web framing tests. Run inside Pyodide via ``ci/pyodide-e2e/units.mjs``."""
+
 import struct
 
-import pytest
+from harness import raises
 
 from weaviate_client_web._framing import (
     FrameError,
@@ -42,7 +44,7 @@ def test_split_response_multiple_messages():
 
 def test_split_response_message_after_trailer_raises():
     body = _frame(b"a") + _frame(b"grpc-status:0\r\n", 0x80) + _frame(b"late")
-    with pytest.raises(FrameError, match="after the trailer"):
+    with raises(FrameError, contains="after the trailer"):
         split_response(body)
 
 
@@ -88,25 +90,25 @@ def test_parse_trailers_accepts_lf_only_lines():
 
 def test_parse_trailers_keeps_status_when_a_key_is_not_ascii():
     # one odd key from a proxy must not throw away the whole block
-    parsed = parse_trailers("x-caf\u00e9:1\r\ngrpc-status:0\r\n".encode("utf-8"))
+    parsed = parse_trailers("x-café:1\r\ngrpc-status:0\r\n".encode("utf-8"))
     assert parsed["grpc-status"] == "0"
-    assert parsed["x-caf\u00e9"] == "1"
+    assert parsed["x-café"] == "1"
 
 
 def test_truncated_frame_raises():
     framed = encode_message(b"hello")[:-2]
-    with pytest.raises(TruncatedFrameError):
+    with raises(TruncatedFrameError):
         list(iter_frames(framed))
-    with pytest.raises(TruncatedFrameError):
+    with raises(TruncatedFrameError):
         list(iter_frames(b"\x00\x00\x00"))  # shorter than one frame header
 
 
-@pytest.mark.parametrize("first_byte", [b"{", b"<", b"\x02", b"\x40", b"\xff"])
-def test_unknown_frame_flag_raises(first_byte):
+def test_unknown_frame_flag_raises():
     # a JSON / HTML body, or a flag bit this transport does not know
-    body = first_byte + b"\x00\x00\x00\x01x"
-    with pytest.raises(UnknownFrameFlagError, match="unknown grpc-web frame flag"):
-        list(iter_frames(body))
+    for first_byte in (b"{", b"<", b"\x02", b"\x40", b"\xff"):
+        body = first_byte + b"\x00\x00\x00\x01x"
+        with raises(UnknownFrameFlagError, contains="unknown grpc-web frame flag"):
+            list(iter_frames(body))
 
 
 def test_frame_errors_are_value_errors():
@@ -116,5 +118,5 @@ def test_frame_errors_are_value_errors():
 
 def test_compressed_message_frame_rejected():
     body = _frame(b"x", 0x01)
-    with pytest.raises(FrameError, match="compressed"):
+    with raises(FrameError, contains="compressed"):
         split_response(body)

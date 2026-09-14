@@ -23,12 +23,12 @@ from ._framing import TruncatedFrameError, UnknownFrameFlagError, encode_message
 from ._sender import Sender, pyfetch_sender
 from ._shim import AioChannel, AioRpcError, StatusCode, status_from_int
 
-# Module-level default sender; overridable for tests / non-browser runtimes.
+# Module-level default sender; overridable for tests.
 _default_sender: Sender = pyfetch_sender
 
 
 def set_sender(sender: Sender) -> None:
-    """Override the default async sender used by new channels (tests/integration)."""
+    """Override the default async sender used by new channels (tests)."""
     global _default_sender
     _default_sender = sender
 

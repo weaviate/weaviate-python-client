@@ -1,7 +1,8 @@
-import pathlib
-import sys
+"""Keep pytest away from this directory.
 
-# Make the package importable without an editable install.
-_SRC = pathlib.Path(__file__).resolve().parents[1] / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
+The package under test imports ``pyodide`` at module scope, so the test modules here
+are only importable under Emscripten/Pyodide. They are run by
+``ci/pyodide-e2e/units.mjs`` (via ``runner.py``), not by pytest.
+"""
+
+collect_ignore_glob = ["*.py"]

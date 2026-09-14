@@ -165,10 +165,11 @@ class ConnectionParams(BaseModel):
             raise WeaviateInvalidInputError(
                 "grpc_path_prefix enables grpc-web, which requires the "
                 "'weaviate-client-web' package (it installs a grpc shim before "
-                "'import weaviate'); it is not active in this environment. Under Pyodide a "
-                "plain `import weaviate` activates it; on CPython call "
-                "weaviate_client_web.install(force=True) and set_sender(make_httpx_sender()) "
-                "before importing weaviate (intended for integration testing)."
+                "'import weaviate'); it is not active in this environment. grpc-web is "
+                "only available under WebAssembly/Pyodide, where a plain `import "
+                "weaviate` activates it (install the companion with "
+                "micropip.install('weaviate-client[grpc-web]')); on CPython use native "
+                "gRPC instead."
             )
 
     def _grpc_channel(

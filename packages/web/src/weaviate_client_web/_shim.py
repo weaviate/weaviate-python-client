@@ -217,14 +217,14 @@ def is_installed() -> bool:
     return getattr(sys.modules.get("grpc"), _SHIM_MARKER, False) is True
 
 
-def install(force: bool = False) -> bool:
+def install() -> bool:
     """Install the shim into ``sys.modules`` as ``grpc`` and submodules.
 
-    On normal platforms this is a no-op unless ``force=True`` — we must never clobber a
-    real, working ``grpcio``. Under Emscripten the bootstrap calls this automatically.
-    Returns ``True`` if the shim is in place afterwards.
+    On normal platforms this is a no-op — a real, working ``grpcio`` must be left in
+    place. Under Emscripten the bootstrap calls this automatically. Returns ``True``
+    if the shim is in place afterwards.
     """
-    if not force and sys.platform != "emscripten":
+    if sys.platform != "emscripten":
         return False
     if is_installed():
         return True
