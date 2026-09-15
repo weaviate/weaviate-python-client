@@ -19,8 +19,9 @@ if sys.platform == "emscripten":
                 "weaviate requires the weaviate-client-web package under "
                 "WebAssembly/Pyodide: there is no grpcio wheel for Emscripten, and "
                 "weaviate-client-web provides the grpc-web (fetch) transport in its "
-                "place. Install it (e.g. micropip.install('weaviate-client-web')) and "
-                "import weaviate again."
+                "place. Install it via the extra (e.g. "
+                "micropip.install('weaviate-client[grpc-web]')) and import weaviate "
+                "again."
             ) from exc
 
 import os

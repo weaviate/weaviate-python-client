@@ -2,10 +2,16 @@
 
 A *sender* is ``async def sender(url, headers, body, timeout) -> (status, headers, body)``.
 The default uses ``pyodide.http.pyfetch`` (browser fetch); a sender can be injected for
-testing or for non-browser runtimes via :func:`weaviate_client_web.set_sender`.
+testing via :func:`weaviate_client_web.set_sender`.
+
+Like the rest of this package, this module imports ``pyodide`` at module scope and is
+therefore only importable under Emscripten/Pyodide (or with a ``pyodide`` stand-in
+pre-installed in ``sys.modules``).
 """
 
 from typing import Awaitable, Callable, Dict, Optional, Tuple
+
+from pyodide.http import pyfetch  # type: ignore[import-not-found]
 
 Sender = Callable[
     [str, Dict[str, str], bytes, Optional[float]],
@@ -18,12 +24,9 @@ async def pyfetch_sender(
 ) -> Tuple[int, Dict[str, str], bytes]:
     """Default browser sender.
 
-    Imports ``pyodide.http`` lazily so this module stays importable on CPython (where
-    ``pyodide`` does not exist). ``pyfetch`` has no timeout parameter of its own; the
-    call deadline is enforced by ``GrpcWebChannel._unary`` via ``asyncio.wait_for``.
+    ``pyfetch`` has no timeout parameter of its own; the call deadline is enforced by
+    ``GrpcWebChannel._unary`` via ``asyncio.wait_for``.
     """
-    from pyodide.http import pyfetch  # type: ignore[import-not-found]
-
     response = await pyfetch(url, method="POST", headers=headers, body=body)
     data = await response.bytes()
     try:
@@ -31,30 +34,3 @@ async def pyfetch_sender(
     except Exception:  # pragma: no cover - header shape varies across Pyodide versions
         resp_headers = {}
     return int(response.status), resp_headers, data
-
-
-def make_httpx_sender(client: Optional[object] = None) -> Sender:
-    """Build a sender backed by ``httpx.AsyncClient`` for CPython tests/integration.
-
-    Targets a grpc-web transcoder (Envoy / connectrpc vanguard).
-    """
-    import httpx
-
-    async def _send(
-        url: str, headers: Dict[str, str], body: bytes, timeout: Optional[float]
-    ) -> Tuple[int, Dict[str, str], bytes]:
-        owns_client = client is None
-        active = client or httpx.AsyncClient()
-        assert isinstance(active, httpx.AsyncClient)
-        try:
-            response = await active.post(url, headers=headers, content=body, timeout=timeout)
-            return (
-                response.status_code,
-                {k.lower(): v for k, v in response.headers.items()},
-                response.content,
-            )
-        finally:
-            if owns_client:
-                await active.aclose()
-
-    return _send

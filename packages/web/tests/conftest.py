@@ -1,7 +1,14 @@
-import pathlib
+"""Restrict this suite to Pyodide.
+
+The package under test imports ``pyodide`` at module scope, so the test modules here
+are only importable under Emscripten/Pyodide. There, pytest runs them via
+``ci/pyodide-e2e/units.mjs`` (async tests execute on Pyodide's event loop through JSPI
+stack switching). On CPython, keep pytest from collecting them:
+
+    node --experimental-wasm-jspi ci/pyodide-e2e/units.mjs dist
+"""
+
 import sys
 
-# Make the package importable without an editable install.
-_SRC = pathlib.Path(__file__).resolve().parents[1] / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
+if sys.platform != "emscripten":
+    collect_ignore_glob = ["*.py"]

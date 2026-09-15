@@ -23,14 +23,22 @@ requires ``grpc_host``/``grpc_port``/``grpc_secure``; give it the HTTP values, o
 warns that it overrode them.
 
 An explicit ``import weaviate_client_web`` before ``import weaviate`` also works and
-remains the explicit form. The shim is installed automatically only under Emscripten, so
-importing this package on a normal CPython install never clobbers a real, working
-``grpcio``. Async clients only — the synchronous client is not supported in the browser.
+remains the explicit form. This package is defined for its environment: it imports
+``pyodide`` at module scope, so it is only importable under Emscripten/Pyodide — on
+CPython the base client never imports it, and the ``weaviate-client[grpc-web]`` extra
+does not install it there (platform marker). Async clients only — the synchronous client
+is not supported in the browser.
 """
 
 import os
 import sys
 
+from ._channel import GrpcWebChannel, set_sender
+from ._httpx_fetch import (
+    install_fetch_transport,
+    is_fetch_transport_installed,
+    uninstall_fetch_transport,
+)
 from ._shim import StatusCode, install, is_installed
 
 __all__ = [
@@ -40,7 +48,6 @@ __all__ = [
     "uninstall_fetch_transport",
     "is_fetch_transport_installed",
     "set_sender",
-    "make_httpx_sender",
     "GrpcWebChannel",
     "StatusCode",
 ]
@@ -54,21 +61,8 @@ def _bootstrap() -> None:
         os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
         install()
         # The REST path needs fetch too: httpx/httpcore open raw sockets, which do
-        # not exist under WASM. Imported lazily so CPython imports stay light.
-        from ._httpx_fetch import install_fetch_transport
-
+        # not exist under WASM.
         install_fetch_transport()
 
 
 _bootstrap()
-
-# Imported after the bootstrap. These modules pull their grpc base classes directly from
-# ``._shim`` (not via ``sys.modules['grpc']``), so importing them is safe regardless of
-# whether the shim was installed.
-from ._channel import GrpcWebChannel, set_sender  # noqa: E402
-from ._httpx_fetch import (  # noqa: E402
-    install_fetch_transport,
-    is_fetch_transport_installed,
-    uninstall_fetch_transport,
-)
-from ._sender import make_httpx_sender  # noqa: E402

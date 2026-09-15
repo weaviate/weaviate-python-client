@@ -21,6 +21,10 @@ Known divergences from native httpx (acceptable for the weaviate client's usage)
 - the browser's fetch follows redirects internally, so httpx never sees a 3xx;
 - multi-value response headers (e.g. Set-Cookie) are folded into one value;
 - responses are fully buffered (no streaming).
+
+Like the rest of this package, this module imports ``pyodide`` at module scope and is
+therefore only importable under Emscripten/Pyodide (or with a ``pyodide`` stand-in
+pre-installed in ``sys.modules``).
 """
 
 import math
@@ -28,13 +32,14 @@ import sys
 from typing import Callable, Dict, Optional
 
 import httpx
+from pyodide.http import pyfetch  # type: ignore[import-not-found]
 
 _installed = False
 _original_handle_async_request: Optional[Callable] = None
 
 # Hop-by-hop / connection-managed headers that the browser's fetch controls itself.
-# Browsers silently drop forbidden headers, but Node's undici (used by the CPython/Node
-# test path) rejects some of them outright, so strip them before handing off.
+# Browsers silently drop forbidden headers, but Node's undici (behind pyfetch in the
+# Node-based test harness) rejects some of them outright, so strip them before handing off.
 _FETCH_MANAGED_HEADERS = {
     "host",
     "connection",
@@ -122,8 +127,6 @@ def _validate_header(name: str, value: str) -> None:
 async def _fetch_handle_async_request(
     self: httpx.AsyncHTTPTransport, request: httpx.Request
 ) -> httpx.Response:
-    from pyodide.http import pyfetch  # type: ignore[import-not-found]
-
     headers: Dict[str, str] = {}
     for k, v in request.headers.items():
         if k.lower() in _FETCH_MANAGED_HEADERS:
@@ -177,21 +180,17 @@ async def _fetch_handle_async_request(
 _fetch_handle_async_request.__weaviate_fetch_shim__ = True  # type: ignore[attr-defined]
 
 
-def install_fetch_transport(force: bool = False) -> None:
+def install_fetch_transport() -> None:
     """Patch ``httpx.AsyncHTTPTransport`` to send requests through ``fetch``.
 
-    Installs only under Emscripten unless ``force=True`` (CPython testing, where a
-    ``pyodide`` stub must be importable). Idempotent.
+    Installs only under Emscripten (elsewhere httpx's own socket transports work and
+    must be left in place). Idempotent.
     """
     global _installed, _original_handle_async_request
     if _installed:
         return
-    if not force and sys.platform != "emscripten":
+    if sys.platform != "emscripten":
         return
-    # Fail fast: the handler imports pyfetch per request, so a missing pyodide module
-    # would otherwise surface as a confusing ModuleNotFoundError on the first request.
-    from pyodide.http import pyfetch  # type: ignore[import-not-found]  # noqa: F401
-
     _original_handle_async_request = httpx.AsyncHTTPTransport.handle_async_request
     httpx.AsyncHTTPTransport.handle_async_request = _fetch_handle_async_request  # type: ignore[method-assign]
     _installed = True

@@ -1,3 +1,5 @@
+"""grpc-web framing tests. Run by pytest inside Pyodide via ``ci/pyodide-e2e/units.mjs``."""
+
 import struct
 
 import pytest
@@ -88,9 +90,9 @@ def test_parse_trailers_accepts_lf_only_lines():
 
 def test_parse_trailers_keeps_status_when_a_key_is_not_ascii():
     # one odd key from a proxy must not throw away the whole block
-    parsed = parse_trailers("x-caf\u00e9:1\r\ngrpc-status:0\r\n".encode("utf-8"))
+    parsed = parse_trailers("x-café:1\r\ngrpc-status:0\r\n".encode("utf-8"))
     assert parsed["grpc-status"] == "0"
-    assert parsed["x-caf\u00e9"] == "1"
+    assert parsed["x-café"] == "1"
 
 
 def test_truncated_frame_raises():

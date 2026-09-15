@@ -12,6 +12,26 @@ Requires Weaviate ≥ 1.38.3 (the first release to serve grpc-web natively) or a
 transcoder in front of an older server. Pyodide ≥ 0.27 recommended; verified on
 Pyodide 314.0.4 (CPython 3.14).
 
+## Installation
+
+Install through the base client's `grpc-web` extra:
+
+```python
+import micropip
+await micropip.install("weaviate-client[grpc-web]")
+```
+
+The extra carries a `sys_platform == "emscripten"` marker, so the same requirement is a
+no-op on CPython — one requirements list works everywhere. Installing the companion
+directly (`micropip.install("weaviate-client-web")`) works too: it pins
+`weaviate-client` to its own exact version, so a mismatched pair can never resolve.
+Both forms require the first `weaviate-client` release that ships the extra and the
+Emscripten marker; against older releases the resolver fails on `grpcio`.
+
+This package is defined for its environment: it imports `pyodide` at module scope and is
+therefore only importable under Emscripten/Pyodide. On CPython the base client never
+imports it (and the extra never installs it).
+
 ## How it works
 
 Under Pyodide there is no `grpcio` Emscripten wheel, and `import weaviate` hard-imports
@@ -81,7 +101,7 @@ await collection.query.near_text("hello", limit=3)
 
 Nothing selects grpc-web: `use_async_with_local()`, `use_async_with_weaviate_cloud()` and
 `use_async_with_custom()` all route gRPC onto the REST endpoint under `/v1/grpc-web` when
-they run under Emscripten, and behave exactly as before everywhere else.
+they run under Emscripten, and use native gRPC everywhere else.
 
 ```python
 client = weaviate.use_async_with_weaviate_cloud(
@@ -107,7 +127,7 @@ Pass `headers={...}` / `auth_credentials=...` as usual for API keys, OIDC or WCD
 Importing the companion explicitly first also works and remains the explicit form:
 
 ```python
-import weaviate_client_web   # installs the grpc shim under Emscripten (no-op elsewhere)
+import weaviate_client_web   # installs the grpc shim (only importable under Emscripten)
 import weaviate
 ```
 
@@ -161,11 +181,22 @@ deployments that go through a grpc-web transcoder or a proxy must configure CORS
 - note that a CORS-blocked request is indistinguishable from a network failure in the
   browser (`TypeError: Failed to fetch`), and is retried as UNAVAILABLE.
 
-## Testing on CPython
+## Testing
 
-`weaviate_client_web.install(force=True)` installs the shim on a normal CPython
-interpreter (run it in a fresh process, before importing `weaviate`). Inject a sender
-with `weaviate_client_web.set_sender(...)` (e.g. `make_httpx_sender()`) to exercise the
-transport against an Envoy/vanguard transcoder without a browser.
-`install_fetch_transport(force=True)` likewise patches httpx on CPython, given an
-importable `pyodide.http` stand-in.
+Because the package imports `pyodide` at module scope, its unit tests run inside
+Pyodide. From the repository root:
+
+```sh
+python -m build --wheel --outdir dist .
+python -m build --wheel --outdir dist packages/web
+npm install --prefix ci/pyodide-e2e
+node --experimental-wasm-jspi ci/pyodide-e2e/units.mjs dist   # pytest unit suite, no Weaviate needed
+node ci/pyodide-e2e/run.mjs dist                              # e2e suite, needs a running Weaviate (see ci/)
+```
+
+`units.mjs` runs pytest over `packages/web/tests/` inside Pyodide — async tests execute
+on Pyodide's event loop via JSPI stack switching, hence the Node flag — plus a
+fresh-interpreter bootstrap scenario; everything is driven through fake senders and a
+fake `pyfetch`. `run.mjs` runs the e2e suite against a live Weaviate. On CPython the
+`conftest.py` keeps pytest from collecting these modules (they cannot import there);
+the base client's import-hook branches are covered by `test/test_wasm_compat.py`.
