@@ -473,4 +473,15 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         self,
         config: CollectionConfig,
     ) -> executor.Result[Union[Collection, CollectionAsync]]:
+        # A config with neither named vectors nor a legacy vectorizer can only come from exporting
+        # a collection whose vectors were all dropped and cleaned up (the server always fills a
+        # vectorizer on legacy collections). Its dict omits `vectorConfig` entirely, so the marker
+        # check in __create cannot catch it and the server would apply its default legacy index.
+        if config.vector_config is None and config.vectorizer is None:
+            raise WeaviateInvalidInputError(
+                f"Collection config {config.name!r} has no vector config left; its vectors were "
+                "dropped with collection.config.delete_vector_index() and removed by the drop's "
+                "cleanup. Creating it would make the server apply its default legacy vector index "
+                "instead. Give the config at least one vector before creating the collection."
+            )
         return self._create_from_dict(config=config.to_dict())

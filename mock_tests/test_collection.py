@@ -18,6 +18,7 @@ from mock_tests.conftest import (
     MockRetriesWeaviateService,
 )
 from weaviate.backup.backup import BackupStorage
+from weaviate.collections.classes.config_methods import _collection_config_from_json
 from weaviate.collections.classes.config import (
     BM25Config,
     CollectionConfig,
@@ -595,6 +596,35 @@ def test_create_from_dict_skips_dropped_vectors(weaviate_mock: HTTPServer) -> No
             client.collections.create_from_dict(
                 {"class": "TestAllDropped", "vectorConfig": {"only": dropped_entry}}
             )
+        assert len(bodies) == requests_before
+
+        # once the drops finished, the export carries no vectorConfig and no "none" markers at
+        # all; create_from_config must still reject it rather than post a legacy-style schema
+        cleaned_up_export = _collection_config_from_json(
+            {
+                "class": "TestAllDroppedCleanedUp",
+                "properties": [],
+                "invertedIndexConfig": {
+                    "bm25": {"b": 0.75, "k1": 1.2},
+                    "cleanupIntervalSeconds": 60,
+                    "stopwords": {"preset": "en", "additions": None, "removals": None},
+                },
+                "multiTenancyConfig": {"enabled": False},
+                "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
+                "shardingConfig": {
+                    "virtualPerPhysical": 128,
+                    "desiredCount": 1,
+                    "actualCount": 1,
+                    "desiredVirtualCount": 128,
+                    "actualVirtualCount": 128,
+                    "key": "_id",
+                    "strategy": "hash",
+                    "function": "murmur3",
+                },
+            }
+        )
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError, match="legacy"):
+            client.collections.create_from_config(cleaned_up_export)
         assert len(bodies) == requests_before
 
 

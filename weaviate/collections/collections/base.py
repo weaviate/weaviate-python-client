@@ -110,6 +110,8 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If every vector entry in the config was
+                dropped, see above.
         """
         raise NotImplementedError()
 
@@ -135,5 +137,8 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If every vector of the collection was
+                dropped, including a config exported after the drops already finished (it carries
+                neither named vectors nor a legacy vectorizer), see above.
         """
         raise NotImplementedError()
