@@ -82,13 +82,24 @@ def parse_trailers(raw: bytes) -> Dict[str, str]:
 
 
 def split_response(body: bytes) -> Tuple[List[bytes], Dict[str, str]]:
-    """Split a grpc-web response body into message payloads and trailers."""
+    """Split a grpc-web response body into message payloads and trailers.
+
+    Exactly one uncompressed trailer frame is accepted: a second trailer could
+    overwrite the first one's ``grpc-status`` (turning an error into a fabricated OK),
+    so it must be rejected, not merged.
+    """
     messages: List[bytes] = []
     trailers: Dict[str, str] = {}
     seen_trailer = False
     for flag, payload in iter_frames(body):
         if flag & _FLAG_TRAILER:
-            trailers.update(parse_trailers(payload))
+            if flag & _FLAG_COMPRESSED:
+                raise FrameError(
+                    "compressed grpc-web trailer frames are not supported by this transport"
+                )
+            if seen_trailer:
+                raise FrameError("second trailer frame in a grpc-web response")
+            trailers = parse_trailers(payload)
             seen_trailer = True
         elif flag & _FLAG_COMPRESSED:
             raise FrameError(

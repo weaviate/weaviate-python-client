@@ -274,19 +274,20 @@ async def test_missing_js_module_degrades_to_no_signal(fake_pyfetch, missing_js)
     assert "signal" not in fake_pyfetch.calls[0]
 
 
-async def test_zero_timeout_means_no_deadline(fake_pyfetch, fake_abort_signal):
-    # an explicit read=0 must not fall through to the 5s connect timeout, nor become an
-    # immediate AbortSignal.timeout(0)
+async def test_zero_timeout_is_an_immediate_deadline(fake_pyfetch, fake_abort_signal):
+    # native httpx times a read=0 request out at once; the WASM transport must not
+    # silently turn the same configuration into an indefinite wait (and it must not
+    # fall through to the 5s connect timeout either)
     await _handle(_request_with_timeout({"connect": 5.0, "read": 0, "write": None, "pool": None}))
-    assert fake_abort_signal.timeouts == []
-    assert "signal" not in fake_pyfetch.calls[0]
+    assert fake_abort_signal.timeouts == [0]
+    assert fake_pyfetch.calls[0]["signal"] == "signal-0"
 
 
 @pytest.mark.parametrize(
     "timeout,expected_ms",
     [
         (None, None),
-        (0, None),
+        (0, 0),  # immediate deadline, matching native httpx read=0
         (-1, None),
         (float("inf"), None),
         (float("nan"), None),

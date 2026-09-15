@@ -87,10 +87,13 @@ def _pick_timeout(request: httpx.Request) -> Optional[float]:
 def _abort_signal_ms(timeout: Optional[float]) -> Optional[int]:
     """Milliseconds for ``AbortSignal.timeout``; ``None`` means no client-side deadline.
 
-    Zero, negative and non-finite timeouts all mean "no deadline". Rounded up so a
-    sub-millisecond timeout never becomes an immediate abort.
+    Absent, negative and non-finite timeouts mean "no deadline". Zero is an immediate
+    deadline — native httpx times a ``read=0`` request out at once, and this package's
+    own grpc-timeout encoding treats zero the same way, so the fetch path must not
+    silently turn the same configuration into an indefinite wait. Positive values are
+    rounded up so a sub-millisecond timeout never becomes immediate.
     """
-    if timeout is None or not math.isfinite(timeout) or timeout <= 0:
+    if timeout is None or not math.isfinite(timeout) or timeout < 0:
         return None
     if timeout >= _MAX_ABORT_SIGNAL_MS / 1000:
         # compared before the multiplication below, which overflows to infinity for

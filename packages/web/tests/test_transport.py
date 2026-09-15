@@ -206,6 +206,8 @@ async def test_405_names_the_wrong_prefix():
     err = await _details_of(
         405, b'{"code":405,"message":"method POST is not allowed, but [GET] are"}'
     )
+    # UNIMPLEMENTED is what the base client's wrong-path diagnosis keys on for 404/405
+    assert err.code() is StatusCode.UNIMPLEMENTED
     assert err.details().startswith("HTTP 405 ")
     assert "path prefix" in err.details()
     assert "/v1/grpc-web" in err.details()
@@ -624,3 +626,27 @@ async def test_set_sender_overrides_default():
     finally:
         # restore the real default so other tests are unaffected
         set_sender(pyfetch_sender)
+
+
+async def test_metadata_cannot_replace_protocol_headers():
+    # additional_headers reaches RPCs as call metadata; a caller setting Content-Type
+    # (reasonable for the REST side) must not break the grpc-web framing contract
+    sender = FakeSender(body=_ok_response(b"x"))
+    channel = _channel(sender)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    await mc(
+        b"q",
+        metadata=[
+            ("content-type", "application/json"),
+            ("accept", "application/json"),
+            ("x-grpc-web", "0"),
+            ("x-user-agent", "custom"),
+            ("x-custom", "kept"),
+        ],
+    )
+    headers = sender.calls[0][1]
+    assert headers["content-type"] == "application/grpc-web+proto"
+    assert headers["accept"] == "application/grpc-web+proto"
+    assert headers["x-grpc-web"] == "1"
+    assert headers["x-user-agent"] == "weaviate-client-web"
+    assert headers["x-custom"] == "kept"

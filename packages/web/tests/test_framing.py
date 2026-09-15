@@ -120,3 +120,17 @@ def test_compressed_message_frame_rejected():
     body = _frame(b"x", 0x01)
     with pytest.raises(FrameError, match="compressed"):
         split_response(body)
+
+
+def test_second_trailer_frame_rejected():
+    # a later trailer must not overwrite the first one's grpc-status — an error could
+    # be laundered into a fabricated OK; the spec allows exactly one trailer frame
+    body = _frame(b"a") + _frame(b"grpc-status:7\r\n", 0x80) + _frame(b"grpc-status:0\r\n", 0x80)
+    with pytest.raises(FrameError, match="second trailer frame"):
+        split_response(body)
+
+
+def test_compressed_trailer_frame_rejected():
+    body = _frame(b"grpc-status:0\r\n", 0x81)
+    with pytest.raises(FrameError, match="compressed"):
+        split_response(body)

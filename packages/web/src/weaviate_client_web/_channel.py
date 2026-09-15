@@ -195,13 +195,18 @@ class GrpcWebChannel(AioChannel):
         metadata: Any,
         timeout: Optional[float],
     ) -> Any:
-        headers: Dict[str, str] = {
-            "content-type": "application/grpc-web+proto",
-            "accept": "application/grpc-web+proto",
-            "x-grpc-web": "1",
-            "x-user-agent": "weaviate-client-web",
-        }
+        headers: Dict[str, str] = {}
         _fold_metadata(headers, metadata)
+        # Set after folding: additional_headers reaches RPCs as call metadata, and a
+        # caller's Content-Type/accept must never replace the grpc-web protocol fields.
+        headers.update(
+            {
+                "content-type": "application/grpc-web+proto",
+                "accept": "application/grpc-web+proto",
+                "x-grpc-web": "1",
+                "x-user-agent": "weaviate-client-web",
+            }
+        )
         grpc_timeout = _encode_timeout(timeout)
         if grpc_timeout is None:
             timeout = None  # None / non-finite: no deadline, server- or client-side
@@ -428,13 +433,17 @@ def _non_grpc_web_error(
 def _status_from_http(http_status: int) -> StatusCode:
     """Map an HTTP status to a gRPC status when no grpc-status is present.
 
-    Mirrors the grpc-web spec's HTTP-to-gRPC code mapping.
+    Mirrors the grpc-web spec's HTTP-to-gRPC code mapping, plus 405 -> UNIMPLEMENTED,
+    which the spec leaves unmapped: method-not-allowed means an HTTP route answered
+    instead of the grpc-web endpoint — the same wrong-path condition as a 404, and the
+    base client's diagnosis (weaviate.exceptions) keys on UNIMPLEMENTED for both.
     """
     return {
         400: StatusCode.INTERNAL,
         401: StatusCode.UNAUTHENTICATED,
         403: StatusCode.PERMISSION_DENIED,
         404: StatusCode.UNIMPLEMENTED,
+        405: StatusCode.UNIMPLEMENTED,
         429: StatusCode.UNAVAILABLE,
         502: StatusCode.UNAVAILABLE,
         503: StatusCode.UNAVAILABLE,
