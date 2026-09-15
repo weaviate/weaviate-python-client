@@ -102,7 +102,10 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         simply does not contain them (they can be added again with `collection.config.add_vector()`).
         If every vector entry was dropped, the create is rejected with a
         `WeaviateInvalidInputError` instead, because the server would fall back to its default
-        legacy vector index.
+        legacy vector index. This protection needs the dropped entries to still be present in the
+        dictionary: a dictionary exported after the drops already finished carries no vector fields
+        at all, is indistinguishable from a minimal legacy config, and is sent unchanged — the
+        server then applies its default vector index. `create_from_config()` rejects that shape too.
 
         Args:
             config: The dictionary representation of the collection's configuration.
