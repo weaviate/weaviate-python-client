@@ -1,17 +1,22 @@
-// Runs the weaviate_client_web unit suite (packages/web/tests) inside Pyodide (WASM)
-// under Node, plus bootstrap scenarios that each need a fresh interpreter. No running
-// Weaviate is needed — everything is driven through fake senders / a fake pyfetch.
+// Runs the weaviate_client_web unit suite (packages/web/tests) with pytest inside
+// Pyodide (WASM) under Node, plus a bootstrap scenario in a fresh interpreter. No
+// running Weaviate is needed — everything is driven through fake senders / a fake
+// pyfetch.
 //
-// Usage: node units.mjs <wheels-dir>
+// Usage: node --experimental-wasm-jspi units.mjs <wheels-dir>
 //   <wheels-dir> must contain exactly the two locally-built pure wheels:
 //   weaviate_client-*.whl and weaviate_client_web-*.whl (same layout as run.mjs).
 //
+// The JSPI flag is required: pytest's runner is synchronous, so async tests execute
+// through run_until_complete, which needs stack switching (enableRunUntilComplete +
+// a callPromising() entrypoint). Without the flag the run fails loudly at startup —
+// it can never produce a false green.
+//
 // The package imports pyodide at module scope, so this harness is the only place its
-// unit tests can run; scenarios needing a clean import state (bootstrap and
-// install-hint semantics) get one loadPyodide() each. Deliberately untested: the
-// fall-through in weaviate/__init__.py when a real grpc module exists — no grpcio
-// wheel exists for Emscripten, so that branch is CPython-only defence and cannot be
-// exercised here.
+// unit tests can run. The base client's hook logic (missing companion, broken
+// companion, grpc-present fall-through) is covered by subprocess tests in
+// test/test_wasm_compat.py on CPython; the bootstrap scenario below covers the one
+// path that needs real Pyodide, micropip and the wheels.
 import { readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,40 +44,25 @@ if (
   process.exit(2);
 }
 
-// Fresh interpreter with micropip ready and the wheels dir mounted; `only` restricts
-// which of the two wheels get installed (the install-hint scenarios need the base
-// client without its companion).
-async function freshPyodide(only = prefixes) {
-  const pyodide = await loadPyodide({});
+// Fresh interpreter with micropip ready and the wheels dir mounted.
+async function freshPyodide() {
+  const pyodide = await loadPyodide({ enableRunUntilComplete: true });
   await pyodide.loadPackage("micropip");
   const micropip = pyodide.pyimport("micropip");
   pyodide.FS.mkdirTree("/wheels");
   pyodide.mountNodeFS("/wheels", wheelsDir);
   for (const wheel of wheels) {
-    if (only.some((p) => wheel.startsWith(p))) {
-      await micropip.install(`emfs:/wheels/${wheel}`);
-    }
+    await micropip.install(`emfs:/wheels/${wheel}`);
   }
   return pyodide;
 }
 
-async function scenario(name, pyodide, code) {
+// --- bootstrap scenario: needs a clean import state, so its own interpreter --------
+
+{
+  const pyodide = await freshPyodide();
   try {
-    pyodide.runPython(code);
-    console.log(`OK scenario: ${name}`);
-  } catch (err) {
-    console.error(`FAIL scenario: ${name}`);
-    console.error(err);
-    process.exit(1);
-  }
-}
-
-// --- fresh-interpreter bootstrap scenarios -----------------------------------------
-
-await scenario(
-  "bare 'import weaviate' bootstraps the companion",
-  await freshPyodide(),
-  `
+    pyodide.runPython(`
 import sys
 assert "weaviate_client_web" not in sys.modules
 import weaviate  # the ONLY weaviate-side import: must bootstrap the companion
@@ -86,69 +76,55 @@ assert getattr(grpc, "__weaviate_client_web_shim__", False) is True
 assert getattr(
     httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
 ) is True
-`,
-);
+`);
+    console.log("OK scenario: bare 'import weaviate' bootstraps the companion");
+  } catch (err) {
+    console.error("FAIL scenario: bare 'import weaviate' bootstraps the companion");
+    console.error(err);
+    process.exit(1);
+  }
+}
 
-await scenario(
-  "missing companion raises the install hint",
-  await freshPyodide(["weaviate_client-"]),
-  `
-try:
-    import weaviate
-except ImportError as e:
-    assert "weaviate-client-web" in str(e), str(e)
-    assert "weaviate-client[grpc-web]" in str(e), str(e)
-    assert "WebAssembly/Pyodide" in str(e), str(e)
-else:
-    raise AssertionError("expected ImportError without the companion")
-`,
-);
-
-await scenario(
-  "a broken companion surfaces its own error, not the install hint",
-  await freshPyodide(["weaviate_client-"]),
-  `
-# An INSTALLED companion whose import fails (here: a missing dependency of its own)
-# must raise that error — the "install weaviate-client[grpc-web]" hint would send the
-# user to reinstall a package that is already there.
-import pathlib, sys
-pkg = pathlib.Path("/broken/weaviate_client_web")
-pkg.mkdir(parents=True)
-(pkg / "__init__.py").write_text(
-    "raise ModuleNotFoundError(\\"No module named 'anyio'\\", name='anyio')\\n"
-)
-sys.path.insert(0, "/broken")
-try:
-    import weaviate
-except ImportError as e:
-    assert e.name == "anyio", (e.name, str(e))
-    assert "anyio" in str(e), str(e)
-    assert "grpc-web" not in str(e), str(e)
-else:
-    raise AssertionError("expected the companion's own ImportError to surface")
-`,
-);
-
-// --- the main unit suite -----------------------------------------------------------
+// --- the pytest suite --------------------------------------------------------------
 
 const testsDir = resolve(here, "../../packages/web/tests");
 const pyodide = await freshPyodide();
 console.log(
   `pyodide ${pyodide.version} / python ${pyodide.runPython("import sys; sys.version.split()[0]")}`,
 );
+const micropip = pyodide.pyimport("micropip");
+await micropip.install(["pytest==9.0.2", "pytest-asyncio==0.25.3"]);
 pyodide.FS.mkdirTree("/units");
 pyodide.mountNodeFS("/units", testsDir);
-try {
-  await pyodide.runPythonAsync(`
+
+// pytest.main is synchronous; entering through callPromising() lets the async tests
+// stack-switch (run_until_complete) instead of failing with "Cannot stack switch".
+const runPytest = pyodide.runPython(`
 import sys
-sys.path.insert(0, "/units")
-import runner
-await runner.main()
+sys.dont_write_bytecode = True  # /units is the host checkout: no __pycache__ in it
+
+import pytest
+
+def _run():
+    return int(pytest.main([
+        "-v",
+        "-p", "no:cacheprovider",  # no .pytest_cache in the host checkout either
+        "-o", "asyncio_mode=auto",
+        "-o", "asyncio_default_fixture_loop_scope=function",
+        "/units",
+    ]))
+
+_run
 `);
+let exitCode;
+try {
+  exitCode = await runPytest.callPromising();
 } catch (err) {
   console.error(err);
   process.exit(1);
 }
+// Any nonzero pytest exit code fails the run — including 5, "no tests collected".
+console.log(`pytest exit code: ${exitCode}`);
 // The interpreters loaded above keep live handles on the Node event loop, so the
 // process does not exit on its own.
-process.exit(0);
+process.exit(exitCode === 0 ? 0 : 1);

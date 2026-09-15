@@ -1,8 +1,8 @@
-"""grpc-web framing tests. Run inside Pyodide via ``ci/pyodide-e2e/units.mjs``."""
+"""grpc-web framing tests. Run by pytest inside Pyodide via ``ci/pyodide-e2e/units.mjs``."""
 
 import struct
 
-from harness import raises
+import pytest
 
 from weaviate_client_web._framing import (
     FrameError,
@@ -44,7 +44,7 @@ def test_split_response_multiple_messages():
 
 def test_split_response_message_after_trailer_raises():
     body = _frame(b"a") + _frame(b"grpc-status:0\r\n", 0x80) + _frame(b"late")
-    with raises(FrameError, contains="after the trailer"):
+    with pytest.raises(FrameError, match="after the trailer"):
         split_response(body)
 
 
@@ -97,18 +97,18 @@ def test_parse_trailers_keeps_status_when_a_key_is_not_ascii():
 
 def test_truncated_frame_raises():
     framed = encode_message(b"hello")[:-2]
-    with raises(TruncatedFrameError):
+    with pytest.raises(TruncatedFrameError):
         list(iter_frames(framed))
-    with raises(TruncatedFrameError):
+    with pytest.raises(TruncatedFrameError):
         list(iter_frames(b"\x00\x00\x00"))  # shorter than one frame header
 
 
-def test_unknown_frame_flag_raises():
+@pytest.mark.parametrize("first_byte", [b"{", b"<", b"\x02", b"\x40", b"\xff"])
+def test_unknown_frame_flag_raises(first_byte):
     # a JSON / HTML body, or a flag bit this transport does not know
-    for first_byte in (b"{", b"<", b"\x02", b"\x40", b"\xff"):
-        body = first_byte + b"\x00\x00\x00\x01x"
-        with raises(UnknownFrameFlagError, contains="unknown grpc-web frame flag"):
-            list(iter_frames(body))
+    body = first_byte + b"\x00\x00\x00\x01x"
+    with pytest.raises(UnknownFrameFlagError, match="unknown grpc-web frame flag"):
+        list(iter_frames(body))
 
 
 def test_frame_errors_are_value_errors():
@@ -118,5 +118,5 @@ def test_frame_errors_are_value_errors():
 
 def test_compressed_message_frame_rejected():
     body = _frame(b"x", 0x01)
-    with raises(FrameError, contains="compressed"):
+    with pytest.raises(FrameError, match="compressed"):
         split_response(body)

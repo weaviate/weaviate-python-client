@@ -1,14 +1,15 @@
 """grpc shim tests, against this interpreter's real installation.
 
-Run inside Pyodide via ``ci/pyodide-e2e/units.mjs``: importing ``weaviate_client_web``
-bootstrapped the shim, so ``sys.modules['grpc']`` here IS the shim. Bootstrap scenarios
-that need a clean import state (a bare ``import weaviate``, a missing or broken
-companion) live in ``units.mjs``, one fresh interpreter each.
+Run by pytest inside Pyodide via ``ci/pyodide-e2e/units.mjs``: importing
+``weaviate_client_web`` bootstrapped the shim, so ``sys.modules['grpc']`` here IS the
+shim. Bootstrap scenarios that need a clean import state live in ``units.mjs`` (one
+fresh interpreter) and, for the base client's hook logic, in
+``test/test_wasm_compat.py`` on CPython.
 """
 
 import struct
 
-from harness import raises
+import pytest
 
 import weaviate_client_web
 from weaviate_client_web import GrpcWebChannel, set_sender
@@ -24,8 +25,9 @@ def test_import_weaviate_under_shim():
     import grpc
 
     assert weaviate_client_web.is_installed()
+    assert weaviate_client_web.install() is True  # idempotent, reports the shim in place
     assert getattr(grpc, "__weaviate_client_web_shim__", False) is True
-    assert grpc.__version__ == FAKE_GRPC_VERSION
+    assert grpc.__version__ == "1.72.1"
     assert grpc._utilities.first_version_is_lower("1.0.0", "2.0.0") is False  # type: ignore[attr-defined]
     from grpc.aio._typing import ChannelArgumentType  # noqa: F401
 
@@ -43,9 +45,8 @@ def test_import_weaviate_under_shim():
 def test_sync_channel_factory_raises_async_only():
     import grpc
 
-    with raises(RuntimeError) as excinfo:
+    with pytest.raises(RuntimeError, match="async"):
         grpc.insecure_channel("localhost:50051")
-    assert "async" in str(excinfo.value).lower()
 
 
 async def test_real_proto_unary_round_trip_under_shim():

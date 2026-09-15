@@ -1,8 +1,14 @@
-"""Keep pytest away from this directory.
+"""Restrict this suite to Pyodide.
 
 The package under test imports ``pyodide`` at module scope, so the test modules here
-are only importable under Emscripten/Pyodide. They are run by
-``ci/pyodide-e2e/units.mjs`` (via ``runner.py``), not by pytest.
+are only importable under Emscripten/Pyodide. There, pytest runs them via
+``ci/pyodide-e2e/units.mjs`` (async tests execute on Pyodide's event loop through JSPI
+stack switching). On CPython, keep pytest from collecting them:
+
+    node --experimental-wasm-jspi ci/pyodide-e2e/units.mjs dist
 """
 
-collect_ignore_glob = ["*.py"]
+import sys
+
+if sys.platform != "emscripten":
+    collect_ignore_glob = ["*.py"]

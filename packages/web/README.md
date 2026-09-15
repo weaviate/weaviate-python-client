@@ -23,7 +23,10 @@ await micropip.install("weaviate-client[grpc-web]")
 
 The extra carries a `sys_platform == "emscripten"` marker, so the same requirement is a
 no-op on CPython — one requirements list works everywhere. Installing the companion
-directly (`micropip.install("weaviate-client-web")`) works too.
+directly (`micropip.install("weaviate-client-web")`) works too: it pins
+`weaviate-client` to its own exact version, so a mismatched pair can never resolve.
+Both forms require the first `weaviate-client` release that ships the extra and the
+Emscripten marker; against older releases the resolver fails on `grpcio`.
 
 This package is defined for its environment: it imports `pyodide` at module scope and is
 therefore only importable under Emscripten/Pyodide. On CPython the base client never
@@ -124,7 +127,7 @@ Pass `headers={...}` / `auth_credentials=...` as usual for API keys, OIDC or WCD
 Importing the companion explicitly first also works and remains the explicit form:
 
 ```python
-import weaviate_client_web   # installs the grpc shim under Emscripten (no-op elsewhere)
+import weaviate_client_web   # installs the grpc shim (only importable under Emscripten)
 import weaviate
 ```
 
@@ -187,11 +190,13 @@ Pyodide. From the repository root:
 python -m build --wheel --outdir dist .
 python -m build --wheel --outdir dist packages/web
 npm install --prefix ci/pyodide-e2e
-node ci/pyodide-e2e/units.mjs dist   # unit suite + bootstrap scenarios, no Weaviate needed
-node ci/pyodide-e2e/run.mjs dist     # e2e suite, needs a running Weaviate (see ci/)
+node --experimental-wasm-jspi ci/pyodide-e2e/units.mjs dist   # pytest unit suite, no Weaviate needed
+node ci/pyodide-e2e/run.mjs dist                              # e2e suite, needs a running Weaviate (see ci/)
 ```
 
-`units.mjs` runs the unit suite in `packages/web/tests/` (driven entirely through fake
-senders and a fake `pyfetch`) plus fresh-interpreter bootstrap scenarios; `run.mjs`
-runs the e2e suite against a live Weaviate. A `conftest.py` keeps pytest from
-collecting the test modules on CPython, where they cannot import.
+`units.mjs` runs pytest over `packages/web/tests/` inside Pyodide — async tests execute
+on Pyodide's event loop via JSPI stack switching, hence the Node flag — plus a
+fresh-interpreter bootstrap scenario; everything is driven through fake senders and a
+fake `pyfetch`. `run.mjs` runs the e2e suite against a live Weaviate. On CPython the
+`conftest.py` keeps pytest from collecting these modules (they cannot import there);
+the base client's import-hook branches are covered by `test/test_wasm_compat.py`.

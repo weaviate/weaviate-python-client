@@ -1,8 +1,9 @@
-"""grpc-web channel / multicallable tests. Run inside Pyodide via ``ci/pyodide-e2e/units.mjs``.
+"""grpc-web channel / multicallable tests.
 
-These exercise the transport classes directly through fake senders — no network, no
-running Weaviate. Tests are ``async def`` awaited on Pyodide's event loop by
-``runner.py`` (``asyncio.run()`` cannot be used inside Pyodide).
+Run by pytest inside Pyodide via ``ci/pyodide-e2e/units.mjs`` — async tests execute on
+Pyodide's event loop through JSPI stack switching (pytest-asyncio in auto mode). These
+exercise the transport classes directly through fake senders — no network, no running
+Weaviate.
 """
 
 import asyncio
@@ -10,7 +11,7 @@ import struct
 import sys
 from typing import Dict, List, Optional, Tuple
 
-from harness import patched, raises
+import pytest
 
 from weaviate_client_web import GrpcWebChannel, set_sender
 from weaviate_client_web._channel import _body_excerpt, _encode_timeout
@@ -97,7 +98,7 @@ async def test_error_trailer_raises_aiorpcerror():
     channel = _channel(FakeSender(body=body))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
 
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.code() is StatusCode.PERMISSION_DENIED
     assert excinfo.value.code().name == "PERMISSION_DENIED"
@@ -108,7 +109,7 @@ async def test_percent_encoded_grpc_message_decoded():
     body = _frame(b"grpc-status:5\r\ngrpc-message:not%20found\r\n", 0x80)
     channel = _channel(FakeSender(body=body))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.details() == "not found"
 
@@ -118,7 +119,7 @@ async def test_trailers_only_status_in_http_headers():
         FakeSender(status=200, headers={"grpc-status": "16", "grpc-message": "auth"}, body=b"")
     )
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.code() is StatusCode.UNAUTHENTICATED
 
@@ -155,7 +156,7 @@ async def _details_of(status, body, headers=None, path="/grpc.health.v1.Health/C
     """Run one request against a canned HTTP response and return the AioRpcError."""
     channel = _channel(FakeSender(status=status, headers=headers or {}, body=body))
     mc = channel.unary_unary(path, lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     return excinfo.value
 
@@ -185,10 +186,10 @@ async def test_nginx_502_maps_to_unavailable_so_the_client_retries():
     assert "502 Bad Gateway" in err.details()
 
 
-async def test_gateway_errors_are_unavailable():
-    for status in (503, 504):
-        err = await _details_of(status, b"<html><body>upstream down</body></html>")
-        assert err.code() is StatusCode.UNAVAILABLE, status
+@pytest.mark.parametrize("status", [503, 504])
+async def test_gateway_errors_are_unavailable(status):
+    err = await _details_of(status, b"<html><body>upstream down</body></html>")
+    assert err.code() is StatusCode.UNAVAILABLE
 
 
 async def test_nginx_404_html_is_reported_as_an_http_404():
@@ -337,7 +338,7 @@ async def test_binary_metadata_base64_encoded():
 def test_stream_stream_raises_clear_error():
     channel = _channel(FakeSender())
     mc = channel.stream_stream("/weaviate.v1.Weaviate/BatchStream", lambda x: x, lambda b: b)
-    with raises(RuntimeError, contains="not supported over grpc-web"):
+    with pytest.raises(RuntimeError, match="not supported over grpc-web"):
         mc(request_iterator=iter([]), timeout=5, metadata=None)
 
 
@@ -348,7 +349,7 @@ async def test_timeout_maps_to_deadline_exceeded():
 
     channel = GrpcWebChannel("h:1", secure=False, sender=slow_sender)
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q", timeout=0.01)
     assert excinfo.value.code() is StatusCode.DEADLINE_EXCEEDED
 
@@ -359,7 +360,7 @@ async def test_transport_exception_maps_to_unavailable():
 
     channel = GrpcWebChannel("h:1", secure=False, sender=boom)
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.code() is StatusCode.UNAVAILABLE
     assert "ConnectionError: connection refused" in str(excinfo.value.details())
@@ -372,7 +373,7 @@ async def test_transport_exception_with_empty_str_keeps_type():
 
     channel = GrpcWebChannel("h:1", secure=False, sender=boom)
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert "ConnectionError" in str(excinfo.value.details())
 
@@ -382,7 +383,7 @@ async def test_empty_ok_response_hints_at_cors_expose_headers():
     # whose grpc-status/grpc-message headers were stripped by CORS
     channel = _channel(FakeSender(status=200, headers={}, body=b""))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.code() is StatusCode.INTERNAL
     assert "Access-Control-Expose-Headers" in str(excinfo.value.details())
@@ -393,7 +394,7 @@ async def test_empty_ok_response_with_grpc_status_has_no_cors_hint():
     # not a CORS problem — the hint must not appear
     channel = _channel(FakeSender(status=200, headers={"grpc-status": "0"}, body=b""))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.code() is StatusCode.INTERNAL
     assert "Access-Control-Expose-Headers" not in str(excinfo.value.details())
@@ -404,7 +405,7 @@ async def test_message_frame_without_grpc_status_is_internal_not_success():
     # dropped the trailer frame) must be an error, never a fabricated success
     channel = _channel(FakeSender(status=200, headers={}, body=_frame(b"reply-bytes")))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.code() is StatusCode.INTERNAL
     assert "missing grpc-status" in str(excinfo.value.details())
@@ -425,7 +426,7 @@ def test_stream_stream_error_recommends_insert_many_only():
     # only one supported under WASM), so the error must not recommend them
     channel = _channel(FakeSender())
     mc = channel.stream_stream("/weaviate.v1.Weaviate/BatchStream", lambda x: x, lambda b: b)
-    with raises(RuntimeError) as excinfo:
+    with pytest.raises(RuntimeError) as excinfo:
         mc(request_iterator=iter([]), timeout=5, metadata=None)
     assert "insert_many" in str(excinfo.value)
     for sync_only in ("dynamic", "fixed_size", "rate_limit"):
@@ -436,7 +437,7 @@ async def test_malformed_frame_maps_to_internal():
     # A 3-byte body cannot contain even a 5-byte frame header -> framing ValueError.
     channel = _channel(FakeSender(body=b"\x00\x00\x00"))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.code() is StatusCode.INTERNAL
 
@@ -445,7 +446,7 @@ async def test_malformed_grpc_status_maps_to_internal():
     body = _frame(b"grpc-status:notanint\r\n", 0x80)
     channel = _channel(FakeSender(body=body))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    with raises(AioRpcError) as excinfo:
+    with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
     assert excinfo.value.code() is StatusCode.INTERNAL
 
@@ -465,8 +466,9 @@ def test_body_excerpt_empty_and_non_printable():
     assert _body_excerpt(b"ok\x00\x01") == "ok"
 
 
-def test_encode_timeout_stays_within_eight_digits():
-    cases = [
+@pytest.mark.parametrize(
+    "seconds,expected",
+    [
         (None, None),
         (float("inf"), None),
         (float("nan"), None),
@@ -481,13 +483,14 @@ def test_encode_timeout_stays_within_eight_digits():
         (1e10, None),  # would need hours, which transcoders reject above 8H: no deadline
         (1e15, None),
         (1e308, None),  # finite, but *1000 overflows to infinity: must not raise
-    ]
-    for seconds, expected in cases:
-        encoded = _encode_timeout(seconds)
-        assert encoded == expected, (seconds, encoded, expected)
-        if encoded is not None:
-            assert len(encoded) <= 9, encoded  # 8 digits + unit
-            assert not encoded.endswith("H"), encoded
+    ],
+)
+def test_encode_timeout_stays_within_eight_digits(seconds, expected):
+    encoded = _encode_timeout(seconds)
+    assert encoded == expected
+    if encoded is not None:
+        assert len(encoded) <= 9  # 8 digits + unit
+        assert not encoded.endswith("H")
 
 
 async def test_infinite_timeout_sends_no_deadline():
@@ -517,48 +520,52 @@ async def test_huge_timeout_uses_minutes_then_no_deadline():
     assert sender.calls[2][3] is None  # no client-side wait either
 
 
-async def test_crlf_in_metadata_rejected():
+@pytest.mark.parametrize("bad", ["val\r\nx-injected: evil", "val\nx", "v\0"])
+async def test_crlf_in_metadata_rejected(bad):
     sender = FakeSender(body=_ok_response(b"x"))
     channel = _channel(sender)
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    for bad in ("val\r\nx-injected: evil", "val\nx", "v\0"):
-        with raises(ValueError, contains="Illegal character"):
-            await mc(b"q", metadata=[("x-key", bad)])
-        with raises(ValueError, contains="Illegal character"):
-            await mc(b"q", metadata=[("x-key\r\n", "v")])
+    with pytest.raises(ValueError, match="Illegal character"):
+        await mc(b"q", metadata=[("x-key", bad)])
+    with pytest.raises(ValueError, match="Illegal character"):
+        await mc(b"q", metadata=[("x-key\r\n", "v")])
     assert sender.calls == []
 
 
-async def _unavailable_details(path_prefix, platform):
+async def _unavailable_details(monkeypatch, path_prefix, platform):
     async def boom(url, headers, body, timeout):
         raise ConnectionError("Failed to fetch")
 
-    with patched(sys, "platform", platform):
-        channel = GrpcWebChannel("h:50051", secure=False, sender=boom, path_prefix=path_prefix)
-        mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-        with raises(AioRpcError) as excinfo:
-            await mc(b"q")
+    monkeypatch.setattr(sys, "platform", platform)
+    channel = GrpcWebChannel("h:50051", secure=False, sender=boom, path_prefix=path_prefix)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        await mc(b"q")
     assert excinfo.value.code() is StatusCode.UNAVAILABLE
     return excinfo.value.details()
 
 
-async def test_unavailable_without_path_prefix_under_emscripten_hints_at_grpc_path_prefix():
+async def test_unavailable_without_path_prefix_under_emscripten_hints_at_grpc_path_prefix(
+    monkeypatch,
+):
     # the connect helpers always set the prefix under Emscripten, so a prefix-less channel
     # here means hand-built ConnectionParams; the error must say what to do instead
-    details = await _unavailable_details(path_prefix="", platform="emscripten")
+    details = await _unavailable_details(monkeypatch, path_prefix="", platform="emscripten")
     assert "grpc_path_prefix='/v1/grpc-web'" in details
     assert "1.38.3" in details
     assert "connect helpers" in details
 
 
-async def test_unavailable_with_path_prefix_has_no_prefix_hint():
-    details = await _unavailable_details(path_prefix="/v1/grpc-web", platform="emscripten")
+async def test_unavailable_with_path_prefix_has_no_prefix_hint(monkeypatch):
+    details = await _unavailable_details(
+        monkeypatch, path_prefix="/v1/grpc-web", platform="emscripten"
+    )
     assert "no grpc_path_prefix" not in details
 
 
-async def test_unavailable_without_path_prefix_off_emscripten_has_no_prefix_hint():
+async def test_unavailable_without_path_prefix_off_emscripten_has_no_prefix_hint(monkeypatch):
     # off Emscripten an empty prefix against a transcoder is the normal configuration
-    details = await _unavailable_details(path_prefix="", platform="linux")
+    details = await _unavailable_details(monkeypatch, path_prefix="", platform="linux")
     assert "no grpc_path_prefix" not in details
 
 
@@ -577,19 +584,21 @@ async def test_path_prefix_prepended_to_url():
     assert sender.calls[0][0] == "http://example.com:8090/grpc-web/weaviate.v1.Weaviate/Search"
 
 
-async def test_path_prefix_normalized_in_url():
-    cases = [
+@pytest.mark.parametrize(
+    "raw,expected_url",
+    [
         ("grpc-web", "http://h:1/grpc-web/svc/M"),
         ("/grpc-web/", "http://h:1/grpc-web/svc/M"),
         ("/a/b", "http://h:1/a/b/svc/M"),
         ("", "http://h:1/svc/M"),
-    ]
-    for raw, expected_url in cases:
-        sender = FakeSender(body=_ok_response(b"r"))
-        channel = GrpcWebChannel("h:1", secure=False, sender=sender, path_prefix=raw)
-        mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-        await mc(b"q")
-        assert sender.calls[0][0] == expected_url, raw
+    ],
+)
+async def test_path_prefix_normalized_in_url(raw, expected_url):
+    sender = FakeSender(body=_ok_response(b"r"))
+    channel = GrpcWebChannel("h:1", secure=False, sender=sender, path_prefix=raw)
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    await mc(b"q")
+    assert sender.calls[0][0] == expected_url
 
 
 def test_shim_factory_extracts_path_prefix_option():

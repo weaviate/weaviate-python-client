@@ -144,10 +144,12 @@ jobs:
           test "$base" = "$web"
       - name: Run the unit suite inside Pyodide under Node
         # The grpc-web package imports pyodide at module scope, so its unit tests only
-        # run here. Needs no running Weaviate.
+        # run here. Needs no running Weaviate. The JSPI flag lets pytest's synchronous
+        # runner await async tests via stack switching; without it the run fails
+        # loudly at startup (never a false green).
         run: |
           npm install --prefix ci/pyodide-e2e
-          node ci/pyodide-e2e/units.mjs dist
+          node --experimental-wasm-jspi ci/pyodide-e2e/units.mjs dist
       - name: start weaviate
         run: |
           source ./ci/compose.sh

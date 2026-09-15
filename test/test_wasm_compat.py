@@ -6,7 +6,10 @@ environment without needing a browser.
 """
 
 import asyncio
+import pathlib
+import subprocess
 import sys
+import textwrap
 
 import grpc
 import pytest
@@ -288,3 +291,105 @@ def test_an_explicit_local_grpc_port_is_warned_about_but_the_default_is_not(emsc
     with pytest.warns(UserWarning, match="Con006"):
         client = weaviate.use_async_with_local(port=8080, grpc_port=8081)
     _assert_grpc_rides_rest(client)
+
+
+# --- the single-import hook (weaviate/__init__.py) ------------------------------------
+#
+# The hook fires on sys.platform == "emscripten" and (via the companion's bootstrap)
+# replaces sys.modules['grpc'] process-wide, so each scenario runs in a fresh subprocess
+# with the platform faked before `import weaviate`. The success path — a bare import
+# that bootstraps the real companion — needs real Pyodide and runs in
+# ci/pyodide-e2e/units.mjs; the hook's other branches are plain CPython logic and are
+# pinned here.
+
+_REPO_ROOT = str(pathlib.Path(__file__).resolve().parents[1])
+
+# CPython derives the _sysconfigdata module name from sys.platform on first use, so a
+# faked platform breaks any later sysconfig lookup (pydantic imports zoneinfo, which
+# calls sysconfig.get_config_var). Prime the cache before faking.
+_PRIME_SYSCONFIG = """
+import sysconfig
+
+sysconfig.get_config_vars()
+"""
+
+
+def _run_hook_scenario(
+    body: str, *, prelude: str = "", path_entry: str = _REPO_ROOT, no_site: bool = False
+) -> subprocess.CompletedProcess:
+    # -I -S: skip site-packages entirely (plain -I still processes the venv's .pth
+    # files), so nothing pip-installed is importable — only stdlib plus `path_entry`.
+    interp = [sys.executable, "-I", "-S"] if no_site else [sys.executable]
+    script = f"import sys\nsys.path.insert(0, {path_entry!r})\n" + prelude + textwrap.dedent(body)
+    return subprocess.run([*interp, "-c", script], capture_output=True, text=True)
+
+
+def test_bare_import_without_companion_raises_clear_import_error() -> None:
+    # No site-packages, so neither weaviate_client_web nor grpcio is importable; the repo
+    # root goes on sys.path so the weaviate package itself is still found.
+    result = _run_hook_scenario(
+        """
+        sys.platform = "emscripten"
+        try:
+            import weaviate
+        except ImportError as e:
+            assert "weaviate-client-web" in str(e), str(e)
+            assert "weaviate-client[grpc-web]" in str(e), str(e)
+            assert "WebAssembly/Pyodide" in str(e), str(e)
+            print("OK")
+        else:
+            raise AssertionError("expected ImportError without the companion")
+        """,
+        no_site=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_bare_import_with_grpc_present_falls_through_silently() -> None:
+    # Companion blocked but a real grpc IS importable (grpcio in the dev env): the hook
+    # must fall through and leave the normal import path untouched.
+    result = _run_hook_scenario(
+        prelude=_PRIME_SYSCONFIG,
+        body="""
+        sys.platform = "emscripten"
+        sys.modules["weaviate_client_web"] = None  # makes its import raise ImportError
+
+        import weaviate
+        import grpc
+
+        assert not getattr(grpc, "__weaviate_client_web_shim__", False)
+        print("OK")
+        """,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_bare_import_with_broken_companion_surfaces_its_own_error(tmp_path) -> None:
+    # An INSTALLED companion whose import fails (here: a missing dependency of its own)
+    # must raise that error, not the install hint — the hint would send the user to
+    # reinstall a package that is already there.
+    fake_pkg = tmp_path / "weaviate_client_web"
+    fake_pkg.mkdir()
+    (fake_pkg / "__init__.py").write_text(
+        "raise ModuleNotFoundError(\"No module named 'anyio'\", name='anyio')\n"
+    )
+    result = _run_hook_scenario(
+        prelude=_PRIME_SYSCONFIG,
+        body="""
+        sys.platform = "emscripten"
+        try:
+            import weaviate
+        except ImportError as e:
+            assert e.name == "anyio", (e.name, str(e))
+            assert "anyio" in str(e), str(e)
+            assert "grpc-web" not in str(e), str(e)
+            print("OK")
+        else:
+            raise AssertionError("expected the companion's own ImportError to surface")
+        """,
+        path_entry=str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
