@@ -155,6 +155,10 @@ class _BaseGRPC:
                 raise WeaviateInvalidInputError(
                     "The number of target vectors must be equal to the number of vectors."
                 )
+            if set(targets.target_vectors) != vector.keys():
+                raise WeaviateInvalidInputError(
+                    "The vector dictionary keys must match the target vector names."
+                )
 
             vector_per_target: Dict[str, bytes] = {}
             for key, value in vector.items():
@@ -292,11 +296,7 @@ class _BaseGRPC:
             target_vectors.append(key)
 
         if isinstance(vector, dict):
-            if (
-                len(vector) == 0
-                or targets is None
-                or len(set(targets.target_vectors)) != len(vector)
-            ):
+            if len(vector) == 0 or targets is None or set(targets.target_vectors) != vector.keys():
                 raise invalid_nv_exception
             for key, value in vector.items():
                 if _is_1d_vector(value):
