@@ -93,7 +93,13 @@ console.log(
   `pyodide ${pyodide.version} / python ${pyodide.runPython("import sys; sys.version.split()[0]")}`,
 );
 const micropip = pyodide.pyimport("micropip");
-await micropip.install(["pytest==9.0.2", "pytest-asyncio==0.25.3"]);
+// A metadata-coherent pair: pytest-asyncio 0.25.3 declares pytest<9,>=8.2. Its
+// run_until_complete-based execution stack-switches correctly under JSPI, unlike the
+// asyncio.Runner-based pytest-asyncio 1.x, whose async tests fail here. (The Pyodide
+// distribution bundles pytest 9 next to pytest-asyncio 0.25.3, contradicting that
+// constraint — micropip tolerates it, but there is no reason to depend on its
+// leniency, so both are pinned from PyPI.)
+await micropip.install(["pytest==8.4.2", "pytest-asyncio==0.25.3"]);
 pyodide.FS.mkdirTree("/units");
 pyodide.mountNodeFS("/units", testsDir);
 
