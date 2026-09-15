@@ -1607,8 +1607,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             # the index was dropped with `collection.config.delete_vector_index()`, Weaviate reports
             # such a vector as `vectorIndexType: "none"` without any index config to merge into
             raise WeaviateInvalidInputError(
-                f"Vector config with name {name} has no vector index, it was deleted with "
-                "collection.config.delete_vector_index() and cannot be re-created"
+                f"Vector config with name {name} has no vector index, it was dropped with "
+                "collection.config.delete_vector_index() and cannot be updated. Once the drop "
+                "completes, a new vector with this name can be added with "
+                "collection.config.add_vector()"
             )
         return cast(Dict[str, Any], existing["vectorIndexConfig"])
 
@@ -2154,7 +2156,9 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 class _VectorIndexConfigNone(_ConfigBase):
     """The index of this vector was dropped with `collection.config.delete_vector_index()`.
 
-    The vector data is still stored, but there is no index left to configure or search.
+    The vector can no longer be searched. This marker is visible while the drop is still in
+    progress; its cleanup removes the vector's data from every object and then removes the entry
+    from `vector_config` altogether.
     """
 
     @staticmethod

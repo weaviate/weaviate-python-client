@@ -39,8 +39,9 @@ class VectorIndexType(str, Enum):
         DYNAMIC: Dynamic index.
         HFRESH: HFRESH index.
         NONE: The index of this vector has been dropped, see ``collection.config.delete_vector_index()``.
-            The vector data is still stored, but it cannot be searched. This value is reported by the
-            server only, it cannot be used to configure a vector.
+            The vector can no longer be searched, and the drop's cleanup removes its data from every
+            object in the collection. This value is reported by the server only, it cannot be used to
+            configure a vector.
     """
 
     HNSW = "hnsw"

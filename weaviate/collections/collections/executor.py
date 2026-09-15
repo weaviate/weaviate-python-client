@@ -145,10 +145,14 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     def __without_dropped_vectors(config: dict) -> dict:
         """Strip vector entries whose index was dropped (`vectorIndexType: "none"`).
 
-        The server rejects the `"none"` sentinel on create and there is no API to re-create a
-        vector without an index. Keeping the entry with a real index type instead would silently
-        re-create an index that was deliberately dropped, so the whole entry is skipped — matching
-        where the server's own cleanup ends up once a drop finalizes.
+        The server rejects the `"none"` sentinel on create and a dropped vector cannot be created
+        in that state. Keeping the entry with a real index type instead would silently create an
+        index that was deliberately dropped, so the whole entry is skipped — matching where the
+        server's own cleanup ends up once a drop finalizes.
+
+        A create whose `vectorConfig` would end up empty is rejected instead: the server treats a
+        create without named vectors as a legacy collection and applies its default vectorizer and
+        vector index, which would silently contradict the imported config.
         """
         vector_config = config.get("vectorConfig")
         if not isinstance(vector_config, dict):
@@ -160,14 +164,17 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         ]
         if not dropped:
             return config
+        remaining = {n: vc for n, vc in vector_config.items() if n not in dropped}
+        if not remaining:
+            raise WeaviateInvalidInputError(
+                f"Every vector config in this collection ({dropped}) has vectorIndexType 'none' "
+                "(its index was dropped with collection.config.delete_vector_index()). Creating "
+                "the collection without them would make the server apply its default legacy "
+                "vector index instead. Give at least one vector a real index config before "
+                "creating the collection."
+            )
         _Warnings.create_skips_vectors_without_index(dropped)
-        config = {
-            **config,
-            "vectorConfig": {n: vc for n, vc in vector_config.items() if n not in dropped},
-        }
-        if not config["vectorConfig"]:
-            del config["vectorConfig"]
-        return config
+        return {**config, "vectorConfig": remaining}
 
     def __delete(self, *, name: str) -> executor.Result[None]:
         return executor.execute(

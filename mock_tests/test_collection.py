@@ -588,12 +588,14 @@ def test_create_from_dict_skips_dropped_vectors(weaviate_mock: HTTPServer) -> No
             )
         assert bodies[-1]["vectorConfig"] == {"kept": hnsw_entry}
 
-        # once every vector is stripped the empty block is omitted, not sent as {}
-        with pytest.warns(UserWarning, match=r"Col001.*only"):
+        # a create whose vectorConfig would end up empty is rejected: the server would treat it
+        # as a legacy collection and apply its default vector index
+        requests_before = len(bodies)
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError, match="legacy"):
             client.collections.create_from_dict(
                 {"class": "TestAllDropped", "vectorConfig": {"only": dropped_entry}}
             )
-        assert "vectorConfig" not in bodies[-1]
+        assert len(bodies) == requests_before
 
 
 def test_grpc_client_version_header(

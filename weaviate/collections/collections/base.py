@@ -98,8 +98,11 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         Weaviate features that are not yet fully supported by the Weaviate Python client.
 
         Vector entries whose index was dropped with `collection.config.delete_vector_index()` are
-        skipped with a warning: there is no API to re-create a vector without an index, so the new
-        collection simply does not contain them.
+        skipped with a warning: a vector cannot be created in that state, so the new collection
+        simply does not contain them (they can be added again with `collection.config.add_vector()`).
+        If every vector entry was dropped, the create is rejected with a
+        `WeaviateInvalidInputError` instead, because the server would fall back to its default
+        legacy vector index.
 
         Args:
             config: The dictionary representation of the collection's configuration.
@@ -120,8 +123,11 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
 
         Vector entries whose index was dropped with `collection.config.delete_vector_index()` are
-        skipped with a warning: there is no API to re-create a vector without an index, so the new
-        collection simply does not contain them.
+        skipped with a warning: a vector cannot be created in that state, so the new collection
+        simply does not contain them (they can be added again with `collection.config.add_vector()`).
+        If every vector entry was dropped, the create is rejected with a
+        `WeaviateInvalidInputError` instead, because the server would fall back to its default
+        legacy vector index.
 
         Args:
             config: The collection's configuration.
