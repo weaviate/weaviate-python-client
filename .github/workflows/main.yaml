@@ -357,8 +357,10 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         run: pip install -r requirements-test.txt -r requirements-devel.txt
-      - name: Build a binary wheel
-        run: python -m build
+      - name: Build binary wheels (base client + grpc-web companion)
+        run: |
+          python -m build
+          python -m build --wheel --outdir dist packages/web
       - name: Create Wheel Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -429,9 +431,23 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         run: pip install -r requirements-devel.txt
-      - name: Build a binary wheel
-        run: python -m build
-      - name: Publish distribution 📦 to PyPI on new tags
+      - name: Build distributions (base client + grpc-web companion)
+        # The companion is wheel-only: its setup.py resolves the lockstep version from
+        # the repository's git tags, which an unpacked sdist would not have — and
+        # micropip consumes wheels only anyway.
+        run: |
+          python -m build
+          python -m build --wheel --outdir dist packages/web
+      - name: Assert both packages carry the same version
+        # weaviate-client-web pins weaviate-client==<its own version> at build time, so
+        # a base-only release would leave the [grpc-web] extra unresolvable. This gate
+        # runs on the artifacts that are actually uploaded.
+        run: |
+          base=$(basename dist/weaviate_client-*.whl); base=${base#weaviate_client-}; base=${base%%-*}
+          web=$(basename dist/weaviate_client_web-*.whl); web=${web#weaviate_client_web-}; web=${web%%-*}
+          echo "weaviate-client=$base weaviate-client-web=$web"
+          test "$base" = "$web"
+      - name: Publish distributions 📦 to PyPI on new tags
         if: startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
         with:
