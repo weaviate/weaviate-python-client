@@ -134,6 +134,14 @@ jobs:
           pip install build
           python -m build --wheel --outdir dist .
           python -m build --wheel --outdir dist packages/web
+      - name: Assert both wheels carry the same version
+        # weaviate-client-web is versioned in lockstep with weaviate-client: both derive
+        # from the same git tag via setuptools_scm.
+        run: |
+          base=$(basename dist/weaviate_client-*.whl); base=${base#weaviate_client-}; base=${base%%-*}
+          web=$(basename dist/weaviate_client_web-*.whl); web=${web#weaviate_client_web-}; web=${web%%-*}
+          echo "weaviate-client=$base weaviate-client-web=$web"
+          test "$base" = "$web"
       - name: Run the unit suite inside Pyodide under Node
         # The grpc-web package imports pyodide at module scope, so its unit tests only
         # run here. Needs no running Weaviate.
