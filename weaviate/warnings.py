@@ -305,6 +305,17 @@ class _Warnings:
         )
 
     @staticmethod
+    def create_skips_vectors_without_index(vectors: list) -> None:
+        warnings.warn(
+            message=f"""Col001: The vector config(s) {vectors} have no vector index (their index was dropped
+            with `collection.config.delete_vector_index()`) and their data cannot be restored. The collection
+            will be created without these vectors; inserts and queries targeting them will fail until the
+            vectors are added again with `collection.config.add_vector()`.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def batch_refresh_failed(err: str) -> None:
         warnings.warn(
             message=f"""Bat003: The dynamic batch-size could not be refreshed successfully: error {err}""",

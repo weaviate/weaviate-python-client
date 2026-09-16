@@ -34,7 +34,10 @@ from weaviate.collections.classes.config_methods import (
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigCreate
-from weaviate.collections.classes.config_vector_index import VectorIndexConfigCreate
+from weaviate.collections.classes.config_vector_index import (
+    VectorIndexConfigCreate,
+    VectorIndexType,
+)
 from weaviate.collections.classes.config_vectorizers import _VectorizerConfigCreate
 from weaviate.collections.classes.config_vectors import VectorConfigCreate
 from weaviate.collections.classes.internal import References
@@ -103,6 +106,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         Collection[Properties, References],
         Awaitable[CollectionAsync[Properties, References]],
     ]:
+        config = self.__without_dropped_vectors(config)
         result = self._connection.post(
             path="/schema",
             weaviate_object=config,
@@ -136,6 +140,41 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         )
         assert isinstance(collection, Collection)
         return collection
+
+    @staticmethod
+    def __without_dropped_vectors(config: dict) -> dict:
+        """Strip vector entries whose index was dropped (`vectorIndexType: "none"`).
+
+        The server rejects the `"none"` sentinel on create and a dropped vector cannot be created
+        in that state. Keeping the entry with a real index type instead would silently create an
+        index that was deliberately dropped, so the whole entry is skipped — matching where the
+        server's own cleanup ends up once a drop finalizes.
+
+        A create whose `vectorConfig` would end up empty is rejected instead: the server treats a
+        create without named vectors as a legacy collection and applies its default vectorizer and
+        vector index, which would silently contradict the imported config.
+        """
+        vector_config = config.get("vectorConfig")
+        if not isinstance(vector_config, dict):
+            return config
+        dropped = [
+            name
+            for name, vc in vector_config.items()
+            if isinstance(vc, dict) and vc.get("vectorIndexType") == VectorIndexType.NONE.value
+        ]
+        if not dropped:
+            return config
+        remaining = {n: vc for n, vc in vector_config.items() if n not in dropped}
+        if not remaining:
+            raise WeaviateInvalidInputError(
+                f"Every vector config in this collection ({dropped}) has vectorIndexType 'none' "
+                "(its index was dropped with collection.config.delete_vector_index()). Creating "
+                "the collection without them would make the server apply its default legacy "
+                "vector index instead. Give at least one vector a real index config before "
+                "creating the collection."
+            )
+        _Warnings.create_skips_vectors_without_index(dropped)
+        return {**config, "vectorConfig": remaining}
 
     def __delete(self, *, name: str) -> executor.Result[None]:
         return executor.execute(
@@ -434,4 +473,15 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         self,
         config: CollectionConfig,
     ) -> executor.Result[Union[Collection, CollectionAsync]]:
+        # A config with neither named vectors nor a legacy vectorizer can only come from exporting
+        # a collection whose vectors were all dropped and cleaned up (the server always fills a
+        # vectorizer on legacy collections). Its dict omits `vectorConfig` entirely, so the marker
+        # check in __create cannot catch it and the server would apply its default legacy index.
+        if config.vector_config is None and config.vectorizer is None:
+            raise WeaviateInvalidInputError(
+                f"Collection config {config.name!r} has no vector config left; its vectors were "
+                "dropped with collection.config.delete_vector_index() and removed by the drop's "
+                "cleanup. Creating it would make the server apply its default legacy vector index "
+                "instead. Give the config at least one vector before creating the collection."
+            )
         return self._create_from_dict(config=config.to_dict())

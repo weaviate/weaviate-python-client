@@ -38,12 +38,17 @@ class VectorIndexType(str, Enum):
         FLAT: Flat index.
         DYNAMIC: Dynamic index.
         HFRESH: HFRESH index.
+        NONE: The index of this vector has been dropped, see ``collection.config.delete_vector_index()``.
+            The vector can no longer be searched, and the drop's cleanup removes its data from every
+            object in the collection. This value is reported by the server only, it cannot be used to
+            configure a vector.
     """
 
     HNSW = "hnsw"
     FLAT = "flat"
     DYNAMIC = "dynamic"
     HFRESH = "hfresh"
+    NONE = "none"
 
 
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):

@@ -1,9 +1,11 @@
 import datetime
-from typing import Any, Dict, Literal
+import json
+from typing import Any, Dict, List, Literal
 
 import grpc
 import pytest
 from pytest_httpserver import HTTPServer
+from werkzeug import Request, Response
 
 import weaviate
 import weaviate.classes as wvc
@@ -16,6 +18,7 @@ from mock_tests.conftest import (
     MockRetriesWeaviateService,
 )
 from weaviate.backup.backup import BackupStorage
+from weaviate.collections.classes.config_methods import _collection_config_from_json
 from weaviate.collections.classes.config import (
     BM25Config,
     CollectionConfig,
@@ -514,6 +517,115 @@ async def test_async_collection_exists(weaviate_mock: HTTPServer) -> None:
         with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
             await client.collections.use(erroring).exists()
         assert e.value.status_code == 500
+
+
+def test_delete_vector_index(weaviate_mock: HTTPServer) -> None:
+    # the collection name is capitalized by the client before it hits the path
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/vec/index", method="DELETE"
+    ).respond_with_json(response_json={}, status=200)
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/missing/index", method="DELETE"
+    ).respond_with_json(
+        response_json={"error": [{"message": "vector index missing not found"}]}, status=422
+    )
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/disabled/index", method="DELETE"
+    ).respond_with_json(
+        response_json={
+            "error": [
+                {
+                    "message": "alter schema drop vector index endpoint is experimental and disabled by default"
+                }
+            ]
+        },
+        status=500,
+    )
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert client.collections.use("test").config.delete_vector_index("vec") is None
+
+        # a non-OK answer (e.g. unknown vector name) surfaces as UnexpectedStatusCodeError
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            client.collections.use("test").config.delete_vector_index("missing")
+        assert e.value.status_code == 422
+
+        # a disabled experimental endpoint answers 500; the server message must reach the
+        # exception rather than being masked as a missing vector
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as disabled:
+            client.collections.use("test").config.delete_vector_index("disabled")
+        assert disabled.value.status_code == 500
+        assert "experimental and disabled by default" in disabled.value.message
+
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+            client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
+
+
+def test_create_from_dict_skips_dropped_vectors(weaviate_mock: HTTPServer) -> None:
+    """Entries with vectorIndexType "none" cannot be re-created and are stripped before the POST."""
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        body = request.get_json()
+        bodies.append(body)
+        return Response(json.dumps({"class": body["class"]}), content_type="application/json")
+
+    weaviate_mock.expect_request("/v1/schema", method="POST").respond_with_handler(handler)
+
+    hnsw_entry = {"vectorizer": {"none": {}}, "vectorIndexType": "hnsw", "vectorIndexConfig": {}}
+    dropped_entry = {"vectorizer": {"none": {}}, "vectorIndexType": "none"}
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        with pytest.warns(UserWarning, match=r"Col001.*dropped"):
+            client.collections.create_from_dict(
+                {
+                    "class": "TestDropped",
+                    "vectorConfig": {"dropped": dropped_entry, "kept": hnsw_entry},
+                }
+            )
+        assert bodies[-1]["vectorConfig"] == {"kept": hnsw_entry}
+
+        # a create whose vectorConfig would end up empty is rejected: the server would treat it
+        # as a legacy collection and apply its default vector index
+        requests_before = len(bodies)
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError, match="legacy"):
+            client.collections.create_from_dict(
+                {"class": "TestAllDropped", "vectorConfig": {"only": dropped_entry}}
+            )
+        assert len(bodies) == requests_before
+
+        # once the drops finished, the export carries no vectorConfig and no "none" markers at
+        # all; create_from_config must still reject it rather than post a legacy-style schema
+        cleaned_up_export = _collection_config_from_json(
+            {
+                "class": "TestAllDroppedCleanedUp",
+                "properties": [],
+                "invertedIndexConfig": {
+                    "bm25": {"b": 0.75, "k1": 1.2},
+                    "cleanupIntervalSeconds": 60,
+                    "stopwords": {"preset": "en", "additions": None, "removals": None},
+                },
+                "multiTenancyConfig": {"enabled": False},
+                "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
+                "shardingConfig": {
+                    "virtualPerPhysical": 128,
+                    "desiredCount": 1,
+                    "actualCount": 1,
+                    "desiredVirtualCount": 128,
+                    "actualVirtualCount": 128,
+                    "key": "_id",
+                    "strategy": "hash",
+                    "function": "murmur3",
+                },
+            }
+        )
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError, match="legacy"):
+            client.collections.create_from_config(cleaned_up_export)
+        assert len(bodies) == requests_before
 
 
 def test_grpc_client_version_header(
