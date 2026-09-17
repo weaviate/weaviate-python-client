@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from dataclasses import fields as _dataclass_fields
 from typing import (
     Any,
     ClassVar,
@@ -14,7 +15,14 @@ from typing import (
     cast,
 )
 
-from pydantic import AnyHttpUrl, Field, TypeAdapter, ValidationInfo, field_validator
+from pydantic import (
+    AnyHttpUrl,
+    Field,
+    TypeAdapter,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
@@ -32,27 +40,27 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.collections.classes.config_object_ttl import (
+    ObjectTTLConfigCreate,
+    ObjectTTLConfigUpdate,
     _ObjectTTL,
-    _ObjectTTLConfigCreate,
-    _ObjectTTLConfigUpdate,
     _ObjectTTLUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
     PQEncoderDistribution,
     PQEncoderType,
     VectorFilterStrategy,
+    VectorIndexConfigCreate,
+    VectorIndexConfigDynamicUpdate,
+    VectorIndexConfigFlatUpdate,
+    VectorIndexConfigHFreshUpdate,
+    VectorIndexConfigHNSWUpdate,
+    VectorIndexConfigUpdate,
     _BQConfigUpdate,
     _PQConfigUpdate,
     _PQEncoderConfigUpdate,
     _RQConfigUpdate,
     _SQConfigUpdate,
     _VectorIndex,
-    _VectorIndexConfigCreate,
-    _VectorIndexConfigDynamicUpdate,
-    _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHFreshUpdate,
-    _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
     VectorIndexType as VectorIndexTypeAlias,
@@ -68,9 +76,9 @@ from weaviate.collections.classes.config_vectorizers import (
     _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_vectors import (
+    VectorConfigCreate,
+    VectorConfigUpdate,
     _MultiVectors,
-    _VectorConfigCreate,
-    _VectorConfigUpdate,
     _Vectors,
     _VectorsUpdate,
 )
@@ -100,6 +108,15 @@ OpenAiReasoningEffort: TypeAlias = Literal[
     "low",
     "medium",
     "high",
+]
+
+MetaReasoningEffort: TypeAlias = Literal[
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
 ]
 
 IndexName: TypeAlias = Literal[
@@ -141,6 +158,7 @@ class DataType(str, BaseEnum):
         UUID_ARRAY: UUID array data type.
         GEO_COORDINATES: Geo coordinates data type.
         BLOB: Blob data type.
+        BLOB_HASH: Blob hash data type.
         PHONE_NUMBER: Phone number data type.
         OBJECT: Object data type.
         OBJECT_ARRAY: Object array data type.
@@ -160,6 +178,7 @@ class DataType(str, BaseEnum):
     UUID_ARRAY = "uuid[]"
     GEO_COORDINATES = "geoCoordinates"
     BLOB = "blob"
+    BLOB_HASH = "blobHash"
     PHONE_NUMBER = "phoneNumber"
     OBJECT = "object"
     OBJECT_ARRAY = "object[]"
@@ -204,7 +223,10 @@ class GenerativeSearches(str, BaseEnum):
         COHERE: Weaviate module backed by Cohere generative models.
         CONTEXTUALAI: Weaviate module backed by ContextualAI generative models.
         DATABRICKS: Weaviate module backed by Databricks generative models.
+        DEEPSEEK: Weaviate module backed by DeepSeek generative models.
+        DIGITALOCEAN: Weaviate module backed by DigitalOcean generative models.
         FRIENDLIAI: Weaviate module backed by FriendliAI generative models.
+        META: Weaviate module backed by Meta generative models.
         MISTRAL: Weaviate module backed by Mistral generative models.
         NVIDIA: Weaviate module backed by NVIDIA generative models.
         OLLAMA: Weaviate module backed by generative models deployed on Ollama infrastructure.
@@ -218,8 +240,11 @@ class GenerativeSearches(str, BaseEnum):
     COHERE = "generative-cohere"
     CONTEXTUALAI = "generative-contextualai"
     DATABRICKS = "generative-databricks"
+    DEEPSEEK = "generative-deepseek"
+    DIGITALOCEAN = "generative-digitalocean"
     DUMMY = "generative-dummy"
     FRIENDLIAI = "generative-friendliai"
+    META = "generative-meta"
     MISTRAL = "generative-mistral"
     NVIDIA = "generative-nvidia"
     OLLAMA = "generative-ollama"
@@ -278,7 +303,7 @@ class ReplicationDeletionStrategy(str, BaseEnum):
     TIME_BASED_RESOLUTION = "TimeBasedResolution"
 
 
-class _ShardingConfigCreate(_ConfigCreateModel):
+class ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
     desiredCount: Optional[int]
     desiredVirtualCount: Optional[int]
@@ -321,14 +346,14 @@ class _AsyncReplicationConfigUpdate(_ConfigUpdateModel):
     propagationBatchSize: Optional[int]
 
 
-class _ReplicationConfigCreate(_ConfigCreateModel):
+class ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
     asyncConfig: Optional[_AsyncReplicationConfigCreate]
     deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
-class _ReplicationConfigUpdate(_ConfigUpdateModel):
+class ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
     asyncConfig: Optional[_AsyncReplicationConfigUpdate]
@@ -339,8 +364,6 @@ class _ReplicationConfigUpdate(_ConfigUpdateModel):
             schema["factor"] = self.factor
         if self.asyncEnabled is not None:
             schema["asyncEnabled"] = self.asyncEnabled
-            if not self.asyncEnabled:
-                schema.pop("asyncConfig", None)
         if self.deletionStrategy is not None:
             schema["deletionStrategy"] = str(self.deletionStrategy.value)
         if self.asyncConfig is not None:
@@ -372,37 +395,39 @@ class _StopwordsUpdate(_ConfigUpdateModel):
     removals: Optional[List[str]]
 
 
-class _InvertedIndexConfigCreate(_ConfigCreateModel):
+class InvertedIndexConfigCreate(_ConfigCreateModel):
     bm25: Optional[_BM25ConfigCreate]
     cleanupIntervalSeconds: Optional[int]
     indexTimestamps: Optional[bool]
     indexPropertyLength: Optional[bool]
     indexNullState: Optional[bool]
     stopwords: _StopwordsCreate
+    stopwordPresets: Optional[Dict[str, List[str]]] = None
 
 
-class _InvertedIndexConfigUpdate(_ConfigUpdateModel):
+class InvertedIndexConfigUpdate(_ConfigUpdateModel):
     bm25: Optional[_BM25ConfigUpdate]
     cleanupIntervalSeconds: Optional[int]
     stopwords: Optional[_StopwordsUpdate]
+    stopwordPresets: Optional[Dict[str, List[str]]] = None
 
 
-class _MultiTenancyConfigCreate(_ConfigCreateModel):
+class MultiTenancyConfigCreate(_ConfigCreateModel):
     enabled: bool
     autoTenantCreation: Optional[bool]
     autoTenantActivation: Optional[bool]
 
 
-class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
+class MultiTenancyConfigUpdate(_ConfigUpdateModel):
     autoTenantCreation: Optional[bool]
     autoTenantActivation: Optional[bool]
 
 
-class _GenerativeProvider(_ConfigCreateModel):
+class GenerativeProvider(_ConfigCreateModel):
     generative: Union[GenerativeSearches, _EnumLikeStr]
 
 
-class _GenerativeAnyscale(_GenerativeProvider):
+class _GenerativeAnyscale(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
@@ -411,7 +436,7 @@ class _GenerativeAnyscale(_GenerativeProvider):
     model: Optional[str]
 
 
-class _GenerativeCustom(_GenerativeProvider):
+class _GenerativeCustom(GenerativeProvider):
     module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -420,7 +445,7 @@ class _GenerativeCustom(_GenerativeProvider):
         return self.module_config
 
 
-class _GenerativeDatabricks(_GenerativeProvider):
+class _GenerativeDatabricks(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.DATABRICKS, frozen=True, exclude=True
     )
@@ -431,7 +456,49 @@ class _GenerativeDatabricks(_GenerativeProvider):
     topP: Optional[float]
 
 
-class _GenerativeMistral(_GenerativeProvider):
+class _GenerativeDeepseek(GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.DEEPSEEK, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    temperature: Optional[float]
+    maxTokens: Optional[int]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
+    topP: Optional[float]
+    baseURL: Optional[str]
+    stop: Optional[List[str]]
+
+
+class _GenerativeDigitalOcean(GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.DIGITALOCEAN, frozen=True, exclude=True
+    )
+    baseURL: Optional[str]
+    model: Optional[str]
+    temperature: Optional[float]
+    topP: Optional[float]
+    maxTokens: Optional[int]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
+    stop: Optional[List[str]]
+
+
+class _GenerativeMeta(GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.META, frozen=True, exclude=True
+    )
+    baseURL: Optional[str]
+    model: Optional[str]
+    temperature: Optional[float]
+    topP: Optional[float]
+    maxTokens: Optional[int]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
+    reasoningEffort: Optional[str]
+
+
+class _GenerativeMistral(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
     )
@@ -441,7 +508,7 @@ class _GenerativeMistral(_GenerativeProvider):
     baseURL: Optional[str]
 
 
-class _GenerativeNvidia(_GenerativeProvider):
+class _GenerativeNvidia(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
     )
@@ -449,9 +516,10 @@ class _GenerativeNvidia(_GenerativeProvider):
     model: Optional[str]
     maxTokens: Optional[int]
     baseURL: Optional[str]
+    topP: Optional[float]
 
 
-class _GenerativeXai(_GenerativeProvider):
+class _GenerativeXai(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.XAI, frozen=True, exclude=True
     )
@@ -462,7 +530,7 @@ class _GenerativeXai(_GenerativeProvider):
     topP: Optional[float]
 
 
-class _GenerativeFriendliai(_GenerativeProvider):
+class _GenerativeFriendliai(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
     )
@@ -472,7 +540,7 @@ class _GenerativeFriendliai(_GenerativeProvider):
     baseURL: Optional[str]
 
 
-class _GenerativeOllama(_GenerativeProvider):
+class _GenerativeOllama(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
     )
@@ -480,7 +548,7 @@ class _GenerativeOllama(_GenerativeProvider):
     apiEndpoint: Optional[str]
 
 
-class _GenerativeOpenAIConfigBase(_GenerativeProvider):
+class _GenerativeOpenAIConfigBase(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
@@ -507,9 +575,10 @@ class _GenerativeOpenAIConfig(_GenerativeOpenAIConfigBase):
 class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
     resourceName: str
     deploymentId: str
+    apiVersion: Optional[str]
 
 
-class _GenerativeCohereConfig(_GenerativeProvider):
+class _GenerativeCohereConfig(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
@@ -527,7 +596,7 @@ class _GenerativeCohereConfig(_GenerativeProvider):
         return ret_dict
 
 
-class _GenerativeContextualAIConfig(_GenerativeProvider):
+class _GenerativeContextualAIConfig(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.CONTEXTUALAI, frozen=True, exclude=True
     )
@@ -540,13 +609,14 @@ class _GenerativeContextualAIConfig(_GenerativeProvider):
     knowledge: Optional[List[str]]
 
 
-class _GenerativeGoogleConfig(_GenerativeProvider):
+class _GenerativeGoogleConfig(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
     apiEndpoint: Optional[str]
     endpointId: Optional[str]
     region: Optional[str]
+    location: Optional[str]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
     projectId: str
@@ -559,7 +629,7 @@ class _GenerativeGoogleConfig(_GenerativeProvider):
     presencePenalty: Optional[float]
 
 
-class _GenerativeAWSConfig(_GenerativeProvider):
+class _GenerativeAWSConfig(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
@@ -576,7 +646,7 @@ class _GenerativeAWSConfig(_GenerativeProvider):
     maxTokens: Optional[int]
 
 
-class _GenerativeAnthropicConfig(_GenerativeProvider):
+class _GenerativeAnthropicConfig(GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
     )
@@ -586,16 +656,17 @@ class _GenerativeAnthropicConfig(_GenerativeProvider):
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
+    baseURL: Optional[str]
 
 
-class _RerankerProvider(_ConfigCreateModel):
+class RerankerProvider(_ConfigCreateModel):
     reranker: Union[Rerankers, _EnumLikeStr]
 
 
 RerankerCohereModel = Literal["rerank-english-v2.0", "rerank-multilingual-v2.0"]
 
 
-class _RerankerCohereConfig(_RerankerProvider):
+class _RerankerCohereConfig(RerankerProvider):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.COHERE, frozen=True, exclude=True
     )
@@ -609,7 +680,7 @@ class _RerankerCohereConfig(_RerankerProvider):
         return ret_dict
 
 
-class _RerankerCustomConfig(_RerankerProvider):
+class _RerankerCustomConfig(RerankerProvider):
     module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -618,7 +689,7 @@ class _RerankerCustomConfig(_RerankerProvider):
         return self.module_config
 
 
-class _RerankerTransformersConfig(_RerankerProvider):
+class _RerankerTransformersConfig(RerankerProvider):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.TRANSFORMERS, frozen=True, exclude=True
     )
@@ -633,7 +704,7 @@ RerankerJinaAIModel = Literal[
 ]
 
 
-class _RerankerJinaAIConfig(_RerankerProvider):
+class _RerankerJinaAIConfig(RerankerProvider):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.JINAAI, frozen=True, exclude=True
     )
@@ -643,14 +714,14 @@ class _RerankerJinaAIConfig(_RerankerProvider):
 RerankerVoyageAIModel = Literal["rerank-2", "rerank-2-lite", "rerank-lite-1", "rerank-1"]
 
 
-class _RerankerVoyageAIConfig(_RerankerProvider):
+class _RerankerVoyageAIConfig(RerankerProvider):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.VOYAGEAI, frozen=True, exclude=True
     )
     model: Optional[Union[RerankerVoyageAIModel, str]] = Field(default=None)
 
 
-class _RerankerNvidiaConfig(_RerankerProvider):
+class _RerankerNvidiaConfig(RerankerProvider):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.NVIDIA, frozen=True, exclude=True
     )
@@ -671,7 +742,7 @@ RerankerContextualAIModel = Literal[
 ]
 
 
-class _RerankerContextualAIConfig(_RerankerProvider):
+class _RerankerContextualAIConfig(RerankerProvider):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.CONTEXTUALAI, frozen=True, exclude=True
     )
@@ -692,7 +763,7 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         base_url: Optional[str] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeAnyscale` object for use when generating using the `generative-anyscale` module.
 
         Args:
@@ -706,7 +777,7 @@ class _Generative:
     def custom(
         module_name: str,
         module_config: Optional[Dict[str, Any]] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeCustom` object for use when generating using a custom specification.
 
         Args:
@@ -723,7 +794,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeDatabricks` object for use when performing AI generation using the `generative-databricks` module.
 
         Args:
@@ -742,13 +813,83 @@ class _Generative:
         )
 
     @staticmethod
+    def deepseek(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        top_p: Optional[float] = None,
+        stop: Optional[List[str]] = None,
+    ) -> GenerativeProvider:
+        """Create a `_GenerativeDeepseek` object for use when performing AI generation using the `generative-deepseek` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeDeepseek(
+            model=model,
+            temperature=temperature,
+            maxTokens=max_tokens,
+            frequencyPenalty=frequency_penalty,
+            presencePenalty=presence_penalty,
+            topP=top_p,
+            baseURL=base_url,
+            stop=stop,
+        )
+
+    @staticmethod
+    def digitalocean(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        stop: Optional[List[str]] = None,
+    ) -> GenerativeProvider:
+        """Create a `_GenerativeDigitalOcean` object for use when performing AI generation using the `generative-digitalocean` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeDigitalOcean(
+            baseURL=base_url,
+            model=model,
+            temperature=temperature,
+            topP=top_p,
+            maxTokens=max_tokens,
+            frequencyPenalty=frequency_penalty,
+            presencePenalty=presence_penalty,
+            stop=stop,
+        )
+
+    @staticmethod
     def friendliai(
         *,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
 
         Args:
@@ -762,12 +903,47 @@ class _Generative:
         )
 
     @staticmethod
+    def meta(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        reasoning_effort: Optional[Union[MetaReasoningEffort, str]] = None,
+    ) -> GenerativeProvider:
+        """Create a `_GenerativeMeta` object for use when performing AI generation using the `generative-meta` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            reasoning_effort: The reasoning effort to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeMeta(
+            baseURL=base_url,
+            model=model,
+            temperature=temperature,
+            topP=top_p,
+            maxTokens=max_tokens,
+            frequencyPenalty=frequency_penalty,
+            presencePenalty=presence_penalty,
+            reasoningEffort=reasoning_effort,
+        )
+
+    @staticmethod
     def mistral(
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         base_url: Optional[str] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeMistral` object for use when performing AI generation using the `generative-mistral` module.
 
         Args:
@@ -787,7 +963,8 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
-    ) -> _GenerativeProvider:
+        top_p: Optional[float] = None,
+    ) -> GenerativeProvider:
         """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
 
         Args:
@@ -795,9 +972,14 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeNvidia(
-            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+            model=model,
+            temperature=temperature,
+            maxTokens=max_tokens,
+            baseURL=base_url,
+            topP=top_p,
         )
 
     @staticmethod
@@ -808,7 +990,7 @@ class _Generative:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeXai` object for use when performing AI generation using the `generative-xai` module.
 
         Args:
@@ -827,7 +1009,7 @@ class _Generative:
         *,
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
 
         Args:
@@ -849,7 +1031,7 @@ class _Generative:
         *,
         verbosity: Optional[Union[OpenAiVerbosity, str]] = None,
         reasoning_effort: Optional[Union[OpenAiReasoningEffort, str]] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
@@ -888,7 +1070,8 @@ class _Generative:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
-    ) -> _GenerativeProvider:
+        api_version: Optional[str] = None,
+    ) -> GenerativeProvider:
         """Create a `_GenerativeAzureOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
@@ -903,8 +1086,10 @@ class _Generative:
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            api_version: The Azure OpenAI API version to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAzureOpenAIConfig(
+            apiVersion=api_version,
             baseURL=base_url,
             deploymentId=deployment_id,
             frequencyPenalty=frequency_penalty,
@@ -924,7 +1109,7 @@ class _Generative:
         stop_sequences: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeCohereConfig` object for use when performing AI generation using the `generative-cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-cohere)
@@ -957,7 +1142,7 @@ class _Generative:
         system_prompt: Optional[str] = None,
         avoid_commentary: Optional[bool] = None,
         knowledge: Optional[List[str]] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeContextualAIConfig` object for use when performing AI generation using the `generative-contextualai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/contextualai/generative)
@@ -1000,7 +1185,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativePaLMConfig` object for use when performing AI generation using the `generative-palm` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-palm)
@@ -1019,6 +1204,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1043,7 +1229,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
@@ -1061,6 +1247,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1084,7 +1271,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProvider:
+        location: Optional[str] = None,
+    ) -> GenerativeProvider:
         """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
@@ -1093,17 +1281,24 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Args:
             project_id: The Google Vertex project ID to use.
             api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            region: The region to use. Defaults to `None`, which uses the server-defined default
+            region: The region the Vertex AI endpoint is served from. For `gemini*` models this selects the API host
+                (`<region>-aiplatform.googleapis.com`); for the other models the host comes from `api_endpoint` instead.
+                Defaults to `None`, which uses the server-defined default
             max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
             endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            location: The Vertex AI location, i.e. the `locations/<location>` segment of the request URL. This is
+                distinct from `region`: `region` picks the host, `location` picks the path. For `gemini*` models the
+                special value `"global"` selects the region-less `aiplatform.googleapis.com` host, so `region` is then
+                unused. Defaults to `None`, which uses the server-defined default of `us-central1`
         """
         return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             region=region,
+            location=location,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
             projectId=project_id,
@@ -1123,7 +1318,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module with the Gemini API.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
@@ -1139,6 +1334,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         return _GenerativeGoogleConfig(
             apiEndpoint=None,
             region=None,
+            location=None,
             maxOutputTokens=max_output_tokens,
             modelId=model,
             projectId="",
@@ -1161,7 +1357,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
         max_tokens: Optional[int] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
@@ -1197,7 +1393,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
         stop_sequences: Optional[List[str]] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
@@ -1237,7 +1433,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
         stop_sequences: Optional[List[str]] = None,
-    ) -> _GenerativeProvider:
+    ) -> GenerativeProvider:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
@@ -1276,7 +1472,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProvider:
+        base_url: Optional[str] = None,
+    ) -> GenerativeProvider:
         """Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
 
         Args:
@@ -1286,6 +1483,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             top_k: The top K to use. Defaults to `None`, which uses the server-defined default
             top_p: The top P to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnthropicConfig(
             model=model,
@@ -1294,6 +1492,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             temperature=temperature,
             topK=top_k,
             topP=top_p,
+            baseURL=base_url,
         )
 
 
@@ -1305,7 +1504,7 @@ class _Reranker:
     """
 
     @staticmethod
-    def transformers() -> _RerankerProvider:
+    def transformers() -> RerankerProvider:
         """Create a `_RerankerTransformersConfig` object for use when reranking using the `reranker-transformers` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-transformers)
@@ -1316,7 +1515,7 @@ class _Reranker:
     @staticmethod
     def custom(
         module_name: str, module_config: Optional[Dict[str, Any]] = None
-    ) -> _RerankerProvider:
+    ) -> RerankerProvider:
         """Create a `_RerankerCustomConfig` object for use when reranking using a custom module.
 
         Args:
@@ -1331,7 +1530,7 @@ class _Reranker:
     def cohere(
         model: Optional[Union[RerankerCohereModel, str]] = None,
         base_url: Optional[str] = None,
-    ) -> _RerankerProvider:
+    ) -> RerankerProvider:
         """Create a `_RerankerCohereConfig` object for use when reranking using the `reranker-cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/reranker)
@@ -1351,7 +1550,7 @@ class _Reranker:
     @staticmethod
     def jinaai(
         model: Optional[Union[RerankerJinaAIModel, str]] = None,
-    ) -> _RerankerProvider:
+    ) -> RerankerProvider:
         """Create a `_RerankerJinaAIConfig` object for use when reranking using the `reranker-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/reranker)
@@ -1365,7 +1564,7 @@ class _Reranker:
     @staticmethod
     def voyageai(
         model: Optional[Union[RerankerVoyageAIModel, str]] = None,
-    ) -> _RerankerProvider:
+    ) -> RerankerProvider:
         """Create a `_RerankerVoyageAIConfig` object for use when reranking using the `reranker-voyageai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/reranker)
@@ -1380,7 +1579,7 @@ class _Reranker:
     def nvidia(
         model: Optional[str] = None,
         base_url: Optional[AnyHttpUrl] = None,
-    ) -> _RerankerProvider:
+    ) -> RerankerProvider:
         """Create a `_RerankerNvidiaConfig` object for use when reranking using the `reranker-nvidia` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/reranker)
@@ -1397,7 +1596,7 @@ class _Reranker:
         model: Optional[str] = None,
         instruction: Optional[str] = None,
         top_n: Optional[int] = None,
-    ) -> _RerankerProvider:
+    ) -> RerankerProvider:
         """Create a `_RerankerContextualAIConfig` object for use when reranking using the `reranker-contextualai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/contextualai/reranker)
@@ -1414,34 +1613,34 @@ class _Reranker:
 class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
     property_descriptions: Optional[Dict[str, str]] = Field(default=None)
-    invertedIndexConfig: Optional[_InvertedIndexConfigUpdate] = Field(
+    invertedIndexConfig: Optional[InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
     )
-    objectTTLConfig: Optional[_ObjectTTLConfigUpdate] = Field(
+    objectTTLConfig: Optional[ObjectTTLConfigUpdate] = Field(
         default=None, alias="object_ttl_config"
     )
-    replicationConfig: Optional[_ReplicationConfigUpdate] = Field(
+    replicationConfig: Optional[ReplicationConfigUpdate] = Field(
         default=None, alias="replication_config"
     )
-    vectorIndexConfig: Optional[_VectorIndexConfigUpdate] = Field(
+    vectorIndexConfig: Optional[VectorIndexConfigUpdate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]] = (
+    vectorizerConfig: Optional[Union[VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]] = (
         Field(default=None, alias="vectorizer_config")
     )
-    vectorConfig: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = Field(
+    vectorConfig: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = Field(
         default=None, alias="vector_config"
     )
-    multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
+    multiTenancyConfig: Optional[MultiTenancyConfigUpdate] = Field(
         default=None, alias="multi_tenancy_config"
     )
-    generativeConfig: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
-    rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
+    generativeConfig: Optional[GenerativeProvider] = Field(default=None, alias="generative_config")
+    rerankerConfig: Optional[RerankerProvider] = Field(default=None, alias="reranker_config")
 
     @field_validator("vectorConfig", mode="before")
     def mutual_exclusivity(
         cls,
-        v: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]],
+        v: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]],
         info: ValidationInfo,
     ):
         if v is None:
@@ -1455,6 +1654,25 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 "Cannot specify vectorIndexConfig when also specifying vectorConfig. Please use one or the other."
             )
         return v
+
+    @staticmethod
+    def __existing_vector_index_config(schema: Dict[str, Any], name: str) -> Dict[str, Any]:
+        # `vectorConfig` is omitted entirely once every named vector has been dropped.
+        if "vectorConfig" not in schema or name not in schema["vectorConfig"]:
+            raise WeaviateInvalidInputError(
+                f"Vector config with name {name} does not exist in the existing vector config"
+            )
+        existing = schema["vectorConfig"][name]
+        if "vectorIndexConfig" not in existing:
+            # the index was dropped with `collection.config.delete_vector_index()`, Weaviate reports
+            # such a vector as `vectorIndexType: "none"` without any index config to merge into
+            raise WeaviateInvalidInputError(
+                f"Vector config with name {name} has no vector index, it was dropped with "
+                "collection.config.delete_vector_index() and cannot be updated. Once the drop "
+                "completes, a new vector with this name can be added with "
+                "collection.config.add_vector()"
+            )
+        return cast(Dict[str, Any], existing["vectorIndexConfig"])
 
     def __check_quantizers(
         self,
@@ -1473,7 +1691,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _BQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                     or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
@@ -1481,7 +1699,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _SQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("rq", {"enabled": False})["enabled"]
                 )
@@ -1489,7 +1707,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             or (
                 isinstance(quantizer, _RQConfigUpdate)
                 and (
-                    vector_index_config["pq"]["enabled"]
+                    vector_index_config.get("pq", {"enabled": False})["enabled"]
                     or vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                 )
@@ -1559,7 +1777,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 self.rerankerConfig._to_dict(),
             )
         if self.vectorizerConfig is not None:
-            if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
+            if isinstance(self.vectorizerConfig, VectorIndexConfigUpdate):
                 self.__check_quantizers(
                     self.vectorizerConfig.quantizer, schema["vectorIndexConfig"]
                 )
@@ -1568,18 +1786,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 )
             else:
                 for vc in self.vectorizerConfig:
-                    if vc.name not in schema["vectorConfig"]:
-                        raise WeaviateInvalidInputError(
-                            f"Vector config with name {vc.name} does not exist in the existing vector config"
-                        )
-                    self.__check_quantizers(
-                        vc.vectorIndexConfig.quantizer,
-                        schema["vectorConfig"][vc.name]["vectorIndexConfig"],
-                    )
+                    existing = self.__existing_vector_index_config(schema, vc.name)
+                    self.__check_quantizers(vc.vectorIndexConfig.quantizer, existing)
                     schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
-                        vc.vectorIndexConfig.merge_with_existing(
-                            schema["vectorConfig"][vc.name]["vectorIndexConfig"]
-                        )
+                        vc.vectorIndexConfig.merge_with_existing(existing)
                     )
                     schema["vectorConfig"][vc.name]["vectorIndexType"] = (
                         vc.vectorIndexConfig.vector_index_type()
@@ -1587,22 +1797,14 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         if self.vectorConfig is not None:
             vcs = (
                 [self.vectorConfig]
-                if isinstance(self.vectorConfig, _VectorConfigUpdate)
+                if isinstance(self.vectorConfig, VectorConfigUpdate)
                 else self.vectorConfig
             )
             for vc in vcs:
-                if vc.name not in schema["vectorConfig"]:
-                    raise WeaviateInvalidInputError(
-                        f"Vector config with name {vc.name} does not exist in the existing vector config"
-                    )
-                self.__check_quantizers(
-                    vc.vectorIndexConfig.quantizer,
-                    schema["vectorConfig"][vc.name]["vectorIndexConfig"],
-                )
+                existing = self.__existing_vector_index_config(schema, vc.name)
+                self.__check_quantizers(vc.vectorIndexConfig.quantizer, existing)
                 schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
-                    vc.vectorIndexConfig.merge_with_existing(
-                        schema["vectorConfig"][vc.name]["vectorIndexConfig"]
-                    )
+                    vc.vectorIndexConfig.merge_with_existing(existing)
                 )
                 schema["vectorConfig"][vc.name]["vectorIndexType"] = (
                     vc.vectorIndexConfig.vector_index_type()
@@ -1636,6 +1838,26 @@ class _StopwordsConfig(_ConfigBase):
 
 
 StopwordsConfig = _StopwordsConfig
+StopwordsCreate = _StopwordsCreate
+
+# Invariant: the read-side dataclass (_StopwordsConfig) and the write-side
+# pydantic model (_StopwordsCreate) must carry the same set of field names so
+# that values round-tripped from ``collection.config.get()`` can flow back into
+# ``tokenization.text()`` without silent data loss. If a field is added to one
+# but not the other, importing this module fails loudly; the read→write
+# conversion in ``weaviate/tokenization/executor.py::_TokenizationExecutor.text``
+# depends on this parity.
+_read_fields = {f.name for f in _dataclass_fields(_StopwordsConfig)}
+_write_fields = set(_StopwordsCreate.model_fields.keys())
+if _read_fields != _write_fields:
+    raise RuntimeError(
+        "_StopwordsConfig / _StopwordsCreate field drift detected — "
+        f"read-only={_read_fields - _write_fields}, "
+        f"write-only={_write_fields - _read_fields}. "
+        "Update both classes together, or adapt the read→write conversion in "
+        "weaviate/tokenization/executor.py::_TokenizationExecutor.text."
+    )
+del _read_fields, _write_fields
 
 
 @dataclass
@@ -1646,6 +1868,7 @@ class _InvertedIndexConfig(_ConfigBase):
     index_property_length: bool
     index_timestamps: bool
     stopwords: StopwordsConfig
+    stopword_presets: Optional[Dict[str, List[str]]] = None
 
 
 InvertedIndexConfig = _InvertedIndexConfig
@@ -1671,6 +1894,16 @@ PropertyVectorizerConfig = _PropertyVectorizerConfig
 
 
 @dataclass
+class _TextAnalyzerConfig(_ConfigBase):
+    ascii_fold: bool
+    ascii_fold_ignore: Optional[List[str]]
+    stopword_preset: Optional[str]
+
+
+TextAnalyzerConfig = _TextAnalyzerConfig
+
+
+@dataclass
 class _NestedProperty(_ConfigBase):
     data_type: DataType
     description: Optional[str]
@@ -1678,6 +1911,7 @@ class _NestedProperty(_ConfigBase):
     index_searchable: bool
     name: str
     nested_properties: Optional[List["NestedProperty"]]
+    text_analyzer: Optional[_TextAnalyzerConfig]
     tokenization: Optional[Tokenization]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1711,6 +1945,7 @@ class _Property(_PropertyBase):
     index_range_filters: bool
     index_searchable: bool
     nested_properties: Optional[List[NestedProperty]]
+    text_analyzer: Optional[_TextAnalyzerConfig]
     tokenization: Optional[Tokenization]
     vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
@@ -1723,6 +1958,8 @@ class _Property(_PropertyBase):
         out["indexSearchable"] = self.index_searchable
         out["indexRangeFilters"] = self.index_range_filters
         out["tokenization"] = self.tokenization.value if self.tokenization else None
+        if self.text_analyzer is not None:
+            out["textAnalyzer"] = self.text_analyzer.to_dict()
         if self.nested_properties is not None and len(self.nested_properties) > 0:
             out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
         module_config: Dict[str, Any] = {}
@@ -1856,6 +2093,8 @@ class _RQConfig(_ConfigBase):
     cache: Optional[bool]
     bits: Optional[int]
     rescore_limit: int
+    centering: Optional[bool]
+    training_limit: Optional[int]
 
 
 BQConfig = _BQConfig
@@ -1974,6 +2213,23 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 
 @dataclass
+class _VectorIndexConfigNone(_ConfigBase):
+    """The index of this vector was dropped with `collection.config.delete_vector_index()`.
+
+    The vector can no longer be searched. This marker is visible while the drop is still in
+    progress; its cleanup removes the vector's data from every object and then removes the entry
+    from `vector_config` altogether.
+    """
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.NONE.value
+
+
+VectorIndexConfigNone = _VectorIndexConfigNone
+
+
+@dataclass
 class _GenerativeConfig(_ConfigBase):
     generative: Union[GenerativeSearches, str]
     model: Dict[str, Any]
@@ -2022,11 +2278,15 @@ class _NamedVectorConfig(_ConfigBase):
         VectorIndexConfigFlat,
         VectorIndexConfigDynamic,
         VectorIndexConfigHFresh,
+        VectorIndexConfigNone,
     ]
 
     def to_dict(self) -> Dict:
         ret_dict = super().to_dict()
         ret_dict["vectorIndexType"] = self.vector_index_config.vector_index_type()
+        if isinstance(self.vector_index_config, _VectorIndexConfigNone):
+            # match the server: a dropped index is reported without any `vectorIndexConfig`
+            ret_dict.pop("vectorIndexConfig", None)
         return ret_dict
 
 
@@ -2155,9 +2415,51 @@ class _ShardStatus:
     name: str
     status: ShardTypes
     vector_queue_size: int
+    per_node_status: Optional[Dict[str, str]]
 
 
 ShardStatus = _ShardStatus
+
+
+class _TextAnalyzerConfigCreate(_ConfigCreateModel):
+    """Text analysis options for a property.
+
+    Configures per-property text analysis for `text` and `text[]` properties that use an
+    inverted index (searchable or filterable). Supports ASCII folding (accent/diacritic
+    handling) and selecting a stopword preset that overrides the collection-level
+    `invertedIndexConfig.stopwords` setting for this property only.
+
+    Attributes:
+        ascii_fold: If True, accent/diacritic marks are folded to their base characters
+            during indexing and search (e.g. 'école' matches 'ecole'). If omitted, the
+            field is not sent to the server and the server default (False) applies.
+        ascii_fold_ignore: Optional list of characters that should be excluded from
+            ASCII folding (e.g. ['é'] keeps 'é' from being folded to 'e'). If omitted,
+            the field is not sent to the server.
+        stopword_preset: Stopword preset name. Overrides the collection-level
+            `invertedIndexConfig.stopwords` for this property. Only applies to
+            properties using `Tokenization.WORD`. Accepts a built-in preset
+            (`StopwordsPreset.EN` or `StopwordsPreset.NONE`) or the name of a
+            user-defined preset declared in
+            `Configure.inverted_index(stopword_presets=...)`.
+
+    All settings are immutable after the property is created.
+    """
+
+    asciiFold: Optional[bool] = Field(default=None, alias="ascii_fold")
+    asciiFoldIgnore: Optional[List[str]] = Field(default=None, alias="ascii_fold_ignore")
+    stopwordPreset: Optional[Union[StopwordsPreset, str]] = Field(
+        default=None, alias="stopword_preset"
+    )
+
+    @model_validator(mode="after")
+    def _validate_ascii_fold_ignore(self) -> "_TextAnalyzerConfigCreate":
+        if self.asciiFold is not True and self.asciiFoldIgnore is not None:
+            raise ValueError("asciiFoldIgnore cannot be set when asciiFold is not enabled")
+        return self
+
+
+TextAnalyzerConfigCreate = _TextAnalyzerConfigCreate
 
 
 class Property(_ConfigCreateModel):
@@ -2172,6 +2474,9 @@ class Property(_ConfigCreateModel):
         index_searchable: Whether the property should be searchable in the inverted index.
         nested_properties: nested properties for data type OBJECT and OBJECT_ARRAY`.
         skip_vectorization: Whether to skip vectorization of the property. Defaults to `False`.
+        text_analyzer: Text analysis options for the property. Configures ASCII folding
+            behavior for text and text[] properties using an inverted index. Immutable
+            after the property is created.
         tokenization: The tokenization method to use for the inverted index. Defaults to `None`.
         vectorize_property_name: Whether to vectorize the property name. Defaults to `True`.
     """
@@ -2186,6 +2491,7 @@ class Property(_ConfigCreateModel):
         default=None, alias="nested_properties"
     )
     skip_vectorization: bool = Field(default=False)
+    textAnalyzer: Optional[_TextAnalyzerConfigCreate] = Field(default=None, alias="text_analyzer")
     tokenization: Optional[Tokenization] = Field(default=None)
     vectorize_property_name: bool = Field(default=True)
 
@@ -2217,10 +2523,12 @@ class Property(_ConfigCreateModel):
                 if isinstance(self.nestedProperties, list)
                 else [self.nestedProperties._to_dict()]
             )
+        if self.textAnalyzer is not None:
+            ret_dict["textAnalyzer"] = self.textAnalyzer._to_dict()
         return ret_dict
 
 
-class _ReferencePropertyBase(_ConfigCreateModel):
+class ReferencePropertyBase(_ConfigCreateModel):
     name: str
 
     @field_validator("name")
@@ -2230,7 +2538,7 @@ class _ReferencePropertyBase(_ConfigCreateModel):
         return v
 
 
-class _ReferencePropertyMultiTarget(_ReferencePropertyBase):
+class ReferencePropertyMultiTarget(ReferencePropertyBase):
     """This class defines properties that are cross references to multiple target collections.
 
     Use this class when you want to create a cross-reference in the collection's config that is capable
@@ -2254,7 +2562,7 @@ class _ReferencePropertyMultiTarget(_ReferencePropertyBase):
         return ret_dict
 
 
-class ReferenceProperty(_ReferencePropertyBase):
+class ReferenceProperty(ReferencePropertyBase):
     """This class defines properties that are cross references to a single target collection.
 
     Use this class when you want to create a cross-reference in the collection's config that is capable
@@ -2269,7 +2577,7 @@ class ReferenceProperty(_ReferencePropertyBase):
     target_collection: str
     description: Optional[str] = Field(default=None)
 
-    MultiTarget: ClassVar[Type[_ReferencePropertyMultiTarget]] = _ReferencePropertyMultiTarget
+    MultiTarget: ClassVar[Type[ReferencePropertyMultiTarget]] = ReferencePropertyMultiTarget
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -2278,7 +2586,7 @@ class ReferenceProperty(_ReferencePropertyBase):
         return ret_dict
 
 
-PropertyType = Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]
+PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
 
 T = TypeVar("T", bound="_CollectionConfigCreate")
 
@@ -2286,34 +2594,34 @@ T = TypeVar("T", bound="_CollectionConfigCreate")
 class _CollectionConfigCreate(_ConfigCreateModel):
     name: str
     properties: Optional[Sequence[Property]] = Field(default=None)
-    references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
+    references: Optional[List[ReferencePropertyBase]] = Field(default=None)
     description: Optional[str] = Field(default=None)
-    invertedIndexConfig: Optional[_InvertedIndexConfigCreate] = Field(
+    invertedIndexConfig: Optional[InvertedIndexConfigCreate] = Field(
         default=None, alias="inverted_index_config"
     )
-    multiTenancyConfig: Optional[_MultiTenancyConfigCreate] = Field(
+    multiTenancyConfig: Optional[MultiTenancyConfigCreate] = Field(
         default=None, alias="multi_tenancy_config"
     )
-    objectTtlConfig: Optional[_ObjectTTLConfigCreate] = Field(
+    objectTtlConfig: Optional[ObjectTTLConfigCreate] = Field(
         default=None, alias="object_ttl_config"
     )
-    replicationConfig: Optional[_ReplicationConfigCreate] = Field(
+    replicationConfig: Optional[ReplicationConfigCreate] = Field(
         default=None, alias="replication_config"
     )
-    shardingConfig: Optional[_ShardingConfigCreate] = Field(default=None, alias="sharding_config")
-    vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
+    shardingConfig: Optional[ShardingConfigCreate] = Field(default=None, alias="sharding_config")
+    vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
     vectorizerConfig: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None] = Field(
         default=None, alias="vectorizer_config"
     )
-    vectorConfig: Union[_VectorConfigCreate, List[_VectorConfigCreate], None] = Field(
+    vectorConfig: Union[VectorConfigCreate, List[VectorConfigCreate], None] = Field(
         default=None,
         alias="vector_config",
         validate_default=True,
     )
-    generativeSearch: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
-    rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
+    generativeSearch: Optional[GenerativeProvider] = Field(default=None, alias="generative_config")
+    rerankerConfig: Optional[RerankerProvider] = Field(default=None, alias="reranker_config")
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
@@ -2356,15 +2664,15 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     @classmethod
     def inject_vector_config_none(
         cls,
-        v: Union[_VectorConfigCreate, List[_VectorConfigCreate], None],
+        v: Union[VectorConfigCreate, List[VectorConfigCreate], None],
         info: ValidationInfo,
-    ) -> Union[_VectorConfigCreate, List[_VectorConfigCreate], None]:
+    ) -> Union[VectorConfigCreate, List[VectorConfigCreate], None]:
         if (
             v is None
             and info.data.get("vectorizerConfig") is None
             and info.data.get("vectorIndexConfig") is None
         ):
-            return _VectorConfigCreate(
+            return VectorConfigCreate(
                 name="default",
                 vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             )
@@ -2379,7 +2687,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         else:
             return_dict["moduleConfig"][addition_key] = addition_val
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self, *, emit_default_vector_index_type: bool = True) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
 
         for cls_field in type(self).model_fields:
@@ -2388,43 +2696,58 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 continue
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
-            elif isinstance(val, _GenerativeProvider):
+            elif isinstance(val, GenerativeProvider):
                 self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
-            elif isinstance(val, _RerankerProvider):
+            elif isinstance(val, RerankerProvider):
                 self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
             elif isinstance(val, _VectorizerConfigCreate):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizers.NONE:
                     self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
-            elif isinstance(val, _VectorIndexConfigCreate):
+            elif isinstance(val, VectorIndexConfigCreate):
                 ret_dict["vectorIndexType"] = val.vector_index_type().value
                 ret_dict[cls_field] = val._to_dict()
-            elif isinstance(val, _VectorConfigCreate):
-                ret_dict["vectorConfig"] = {val.name or "default": val._to_dict()}
+            elif isinstance(val, VectorConfigCreate):
+                ret_dict["vectorConfig"] = {
+                    val.name or "default": val._to_dict(
+                        emit_default_vector_index_type=emit_default_vector_index_type
+                    )
+                }
             elif (
                 isinstance(val, list)
                 and len(val) > 0
                 and all(isinstance(item, _NamedVectorConfigCreate) for item in val)
             ):
                 val = cast(List[_NamedVectorConfigCreate], val)
-                ret_dict["vectorConfig"] = {item.name: item._to_dict() for item in val}
+                ret_dict["vectorConfig"] = {
+                    item.name: item._to_dict(
+                        emit_default_vector_index_type=emit_default_vector_index_type
+                    )
+                    for item in val
+                }
             elif (
                 isinstance(val, list)
                 and len(val) > 0
-                and all(isinstance(item, _VectorConfigCreate) for item in val)
+                and all(isinstance(item, VectorConfigCreate) for item in val)
             ):
-                val = cast(List[_VectorConfigCreate], val)
+                val = cast(List[VectorConfigCreate], val)
                 ret_dict["vectorConfig"] = {}
                 for item in val:
                     if item.name is None:
                         raise WeaviateInvalidInputError(
                             "Vector config name must be set when specifying multiple vectors"
                         )
-                    ret_dict["vectorConfig"][item.name] = item._to_dict()
+                    ret_dict["vectorConfig"][item.name] = item._to_dict(
+                        emit_default_vector_index_type=emit_default_vector_index_type
+                    )
             else:
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
-        if self.vectorIndexConfig is None and "vectorConfig" not in ret_dict:
+        if (
+            self.vectorIndexConfig is None
+            and "vectorConfig" not in ret_dict
+            and emit_default_vector_index_type
+        ):
             ret_dict["vectorIndexType"] = VectorIndexType.HNSW
 
         ret_dict["class"] = self.name
@@ -2437,8 +2760,8 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         self,
         props: Optional[
             Union[
-                Sequence[Union[Property, _ReferencePropertyBase]],
-                List[_ReferencePropertyBase],
+                Sequence[Union[Property, ReferencePropertyBase]],
+                List[ReferencePropertyBase],
             ]
         ],
         ret_dict: Dict[str, Any],
@@ -2489,7 +2812,17 @@ class _Replication:
         """Create a configuration object create for async replication settings when creating a collection.
 
         This is only available with WeaviateDB `>=v1.36.0`.
+
+        Note:
+            `max_workers` and `alive_nodes_checking_frequency` were removed from the
+            Weaviate server schema in v1.37.3. Passing them has no effect against any
+            server `>=v1.37.3` (the server silently drops them) and emits a
+            ``DeprecationWarning``. Both arguments will be removed in a future release.
         """
+        if max_workers is not None:
+            _Warnings.async_replication_field_removed_server_side("max_workers")
+        if alive_nodes_checking_frequency is not None:
+            _Warnings.async_replication_field_removed_server_side("alive_nodes_checking_frequency")
         return _AsyncReplicationConfigCreate(
             maxWorkers=max_workers,
             hashtreeHeight=hashtree_height,
@@ -2530,7 +2863,17 @@ class _ReplicationUpdate:
         """Create a configuration object for async replication settings when updating a collection.
 
         This is only available with WeaviateDB `>=v1.36.0`.
+
+        Note:
+            `max_workers` and `alive_nodes_checking_frequency` were removed from the
+            Weaviate server schema in v1.37.3. Passing them has no effect against any
+            server `>=v1.37.3` (the server silently drops them) and emits a
+            ``DeprecationWarning``. Both arguments will be removed in a future release.
         """
+        if max_workers is not None:
+            _Warnings.async_replication_field_removed_server_side("max_workers")
+        if alive_nodes_checking_frequency is not None:
+            _Warnings.async_replication_field_removed_server_side("alive_nodes_checking_frequency")
         return _AsyncReplicationConfigUpdate(
             maxWorkers=max_workers,
             hashtreeHeight=hashtree_height,
@@ -2567,6 +2910,30 @@ class Configure:
     Replication = _Replication
 
     @staticmethod
+    def text_analyzer(
+        ascii_fold: Optional[bool] = None,
+        ascii_fold_ignore: Optional[List[str]] = None,
+        stopword_preset: Optional[Union[StopwordsPreset, str]] = None,
+    ) -> _TextAnalyzerConfigCreate:
+        """Create a text analyzer config for a property.
+
+        Args:
+            ascii_fold: If True, accent/diacritic marks are folded to their base
+                characters during indexing and search (e.g. 'école' matches 'ecole').
+            ascii_fold_ignore: Optional list of characters that should be excluded
+                from ASCII folding (e.g. ``['é']`` keeps 'é' from being folded to
+                'e'). Requires ``ascii_fold=True``.
+            stopword_preset: Stopword preset name to override the collection-level
+                stopwords for this property. Accepts a ``StopwordsPreset`` or a
+                user-defined preset name.
+        """
+        return _TextAnalyzerConfigCreate(
+            ascii_fold=ascii_fold,
+            ascii_fold_ignore=ascii_fold_ignore,
+            stopword_preset=stopword_preset,
+        )
+
+    @staticmethod
     def inverted_index(
         bm25_b: Optional[float] = None,
         bm25_k1: Optional[float] = None,
@@ -2577,16 +2944,22 @@ class Configure:
         stopwords_preset: Optional[StopwordsPreset] = None,
         stopwords_additions: Optional[List[str]] = None,
         stopwords_removals: Optional[List[str]] = None,
-    ) -> _InvertedIndexConfigCreate:
+        stopword_presets: Optional[Dict[str, List[str]]] = None,
+    ) -> InvertedIndexConfigCreate:
         """Create an `InvertedIndexConfigCreate` object to be used when defining the configuration of the keyword searching algorithm of Weaviate.
 
         Args:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details!
+            stopword_presets: User-defined named stopword lists keyed by preset name. Each value
+                is a flat list of stopword strings. A preset can be referenced from a property's
+                `text_analyzer.stopword_preset` to override the collection-level stopwords for
+                that property only. Requires Weaviate >= 1.37.0.
+
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details on the other parameters.
         """  # noqa: D417 (missing argument descriptions in the docstring)
         if bm25_b is None and bm25_k1 is not None or bm25_k1 is None and bm25_b is not None:
             raise ValueError("bm25_b and bm25_k1 must be specified together")
 
-        return _InvertedIndexConfigCreate(
+        return InvertedIndexConfigCreate(
             bm25=(
                 _BM25ConfigCreate(b=bm25_b, k1=bm25_k1)
                 if bm25_b is not None and bm25_k1 is not None
@@ -2601,6 +2974,7 @@ class Configure:
                 additions=stopwords_additions,
                 removals=stopwords_removals,
             ),
+            stopwordPresets=stopword_presets,
         )
 
     @staticmethod
@@ -2608,7 +2982,7 @@ class Configure:
         enabled: bool = True,
         auto_tenant_creation: Optional[bool] = None,
         auto_tenant_activation: Optional[bool] = None,
-    ) -> _MultiTenancyConfigCreate:
+    ) -> MultiTenancyConfigCreate:
         """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
 
         Args:
@@ -2616,7 +2990,7 @@ class Configure:
             auto_tenant_creation: Automatically create nonexistent tenants during object creation. Defaults to `None`, which uses the server-defined default.
             auto_tenant_activation: Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
-        return _MultiTenancyConfigCreate(
+        return MultiTenancyConfigCreate(
             enabled=enabled,
             autoTenantCreation=auto_tenant_creation,
             autoTenantActivation=auto_tenant_activation,
@@ -2628,18 +3002,25 @@ class Configure:
         async_enabled: Optional[bool] = None,
         deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
         async_config: Optional[_AsyncReplicationConfigCreate] = None,
-    ) -> _ReplicationConfigCreate:
+    ) -> ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
-        NOTE: `async_enabled` is only available with WeaviateDB `>=v1.26.0`
+        Note:
+            `async_enabled` is deprecated. On servers `>=v1.38` the `asyncEnabled` field no longer
+            exists in the schema: it is silently dropped, and async replication is decided
+            server-side (on by default for any collection with a replication factor > 1, unless the
+            `ASYNC_REPLICATION_DISABLED` runtime override is set). On older servers it still takes
+            effect. Passing it emits a ``DeprecationWarning``; it will be removed in a future release.
 
         Args:
             factor: The replication factor.
             async_enabled: Enabled async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
-            async_config: The configuration for async replication. This is only relevant if `async_enabled` is `True`.
+            async_config: The configuration for async replication.
         """
-        return _ReplicationConfigCreate(
+        if async_enabled is not None:
+            _Warnings.async_enabled_field_removed_server_side()
+        return ReplicationConfigCreate(
             factor=factor,
             asyncEnabled=async_enabled,
             deletionStrategy=deletion_strategy,
@@ -2653,7 +3034,7 @@ class Configure:
         actual_count: Optional[int] = None,
         desired_virtual_count: Optional[int] = None,
         actual_virtual_count: Optional[int] = None,
-    ) -> _ShardingConfigCreate:
+    ) -> ShardingConfigCreate:
         """Create a `ShardingConfigCreate` object to be used when defining the sharding configuration of Weaviate.
 
         NOTE: You can only use one of Sharding or Replication, not both.
@@ -2673,7 +3054,7 @@ class Configure:
             _Warnings.sharding_actual_count_is_deprecated("actual_count")
         if actual_virtual_count is not None:
             _Warnings.sharding_actual_count_is_deprecated("actual_virtual_count")
-        return _ShardingConfigCreate(
+        return ShardingConfigCreate(
             virtualPerPhysical=virtual_per_physical,
             desiredCount=desired_count,
             desiredVirtualCount=desired_virtual_count,
@@ -2746,6 +3127,8 @@ class _VectorIndexQuantizerUpdate:
         rescore_limit: Optional[int] = None,
         enabled: bool = True,
         bits: Optional[int] = None,
+        centering: Optional[bool] = None,
+        training_limit: Optional[int] = None,
     ) -> _RQConfigUpdate:
         """Create a `_RQConfigUpdate` object to be used when updating the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -2754,7 +3137,13 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _RQConfigUpdate(enabled=enabled, rescoreLimit=rescore_limit, bits=bits)
+        return _RQConfigUpdate(
+            enabled=enabled,
+            rescoreLimit=rescore_limit,
+            bits=bits,
+            centering=centering,
+            trainingLimit=training_limit,
+        )
 
 
 class _VectorIndexUpdate:
@@ -2772,15 +3161,15 @@ class _VectorIndexUpdate:
         quantizer: Optional[
             Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate, _RQConfigUpdate]
         ] = None,
-    ) -> _VectorIndexConfigHNSWUpdate:
-        """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
+    ) -> VectorIndexConfigHNSWUpdate:
+        """Create an `VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
         Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigHNSWUpdate(
+        return VectorIndexConfigHNSWUpdate(
             dynamicEfMin=dynamic_ef_min,
             dynamicEfMax=dynamic_ef_max,
             dynamicEfFactor=dynamic_ef_factor,
@@ -2795,15 +3184,15 @@ class _VectorIndexUpdate:
     def flat(
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[Union[_BQConfigUpdate, _RQConfigUpdate]] = None,
-    ) -> _VectorIndexConfigFlatUpdate:
-        """Create an `_VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
+    ) -> VectorIndexConfigFlatUpdate:
+        """Create an `VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
 
         Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigFlatUpdate(
+        return VectorIndexConfigFlatUpdate(
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
         )
@@ -2812,18 +3201,18 @@ class _VectorIndexUpdate:
     def dynamic(
         *,
         threshold: Optional[int] = None,
-        hnsw: Optional[_VectorIndexConfigHNSWUpdate] = None,
-        flat: Optional[_VectorIndexConfigFlatUpdate] = None,
+        hnsw: Optional[VectorIndexConfigHNSWUpdate] = None,
+        flat: Optional[VectorIndexConfigFlatUpdate] = None,
         quantizer: Optional[_BQConfigUpdate] = None,
-    ) -> _VectorIndexConfigDynamicUpdate:
-        """Create an `_VectorIndexConfigDynamicUpdate` object to update the configuration of the Dynamic vector index.
+    ) -> VectorIndexConfigDynamicUpdate:
+        """Create an `VectorIndexConfigDynamicUpdate` object to update the configuration of the Dynamic vector index.
 
         Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigDynamicUpdate(
+        return VectorIndexConfigDynamicUpdate(
             threshold=threshold,
             hnsw=hnsw,
             flat=flat,
@@ -2835,15 +3224,15 @@ class _VectorIndexUpdate:
         max_posting_size_kb: Optional[int] = None,
         search_probe: Optional[int] = None,
         quantizer: Optional[_RQConfigUpdate] = None,
-    ) -> _VectorIndexConfigHFreshUpdate:
-        """Create an `_VectorIndexConfigHFreshUpdate` object to update the configuration of the HFresh vector index.
+    ) -> VectorIndexConfigHFreshUpdate:
+        """Create an `VectorIndexConfigHFreshUpdate` object to update the configuration of the HFresh vector index.
 
         Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigHFreshUpdate(
+        return VectorIndexConfigHFreshUpdate(
             maxPostingSizeKB=max_posting_size_kb,
             searchProbe=search_probe,
             quantizer=quantizer,
@@ -2875,15 +3264,21 @@ class Reconfigure:
         stopwords_additions: Optional[List[str]] = None,
         stopwords_preset: Optional[StopwordsPreset] = None,
         stopwords_removals: Optional[List[str]] = None,
-    ) -> _InvertedIndexConfigUpdate:
+        stopword_presets: Optional[Dict[str, List[str]]] = None,
+    ) -> InvertedIndexConfigUpdate:
         """Create an `InvertedIndexConfigUpdate` object.
 
         Use this method when defining the `inverted_index_config` argument in `collection.update()`.
 
         Args:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+            stopword_presets: User-defined named stopword lists keyed by preset name. Each value
+                is a flat list of stopword strings. Passing this replaces the entire user-defined
+                stopword preset map for the collection. Removing a preset still referenced by a
+                property is rejected by the server. Requires Weaviate >= 1.37.0.
+
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details on the other parameters.
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _InvertedIndexConfigUpdate(
+        return InvertedIndexConfigUpdate(
             bm25=_BM25ConfigUpdate(b=bm25_b, k1=bm25_k1),
             cleanupIntervalSeconds=cleanup_interval_seconds,
             stopwords=_StopwordsUpdate(
@@ -2891,6 +3286,7 @@ class Reconfigure:
                 additions=stopwords_additions,
                 removals=stopwords_removals,
             ),
+            stopwordPresets=stopword_presets,
         )
 
     @staticmethod
@@ -2899,18 +3295,27 @@ class Reconfigure:
         async_enabled: Optional[bool] = None,
         deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
         async_config: Optional[_AsyncReplicationConfigUpdate] = None,
-    ) -> _ReplicationConfigUpdate:
+    ) -> ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
+
+        Note:
+            `async_enabled` is deprecated. On servers `>=v1.38` the `asyncEnabled` field no longer
+            exists in the schema: it is silently dropped, and async replication is decided
+            server-side (on by default for any collection with a replication factor > 1, unless the
+            `ASYNC_REPLICATION_DISABLED` runtime override is set). On older servers it still takes
+            effect. Passing it emits a ``DeprecationWarning``; it will be removed in a future release.
 
         Args:
             factor: The replication factor.
             async_enabled: Enable async replication.
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
-            async_config: The async replication configuration. This is only applicable if `async_enabled` is set to `True`.
+            async_config: The async replication configuration.
         """
-        return _ReplicationConfigUpdate(
+        if async_enabled is not None:
+            _Warnings.async_enabled_field_removed_server_side()
+        return ReplicationConfigUpdate(
             factor=factor,
             asyncEnabled=async_enabled,
             deletionStrategy=deletion_strategy,
@@ -2921,7 +3326,7 @@ class Reconfigure:
     def multi_tenancy(
         auto_tenant_creation: Optional[bool] = None,
         auto_tenant_activation: Optional[bool] = None,
-    ) -> _MultiTenancyConfigUpdate:
+    ) -> MultiTenancyConfigUpdate:
         """Create a `MultiTenancyConfigUpdate` object.
 
         Use this method when defining the `multi_tenancy` argument in `collection.update()`.
@@ -2930,7 +3335,31 @@ class Reconfigure:
             auto_tenant_creation: When set, implicitly creates nonexistent tenants during object creation
             auto_tenant_activation: Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
-        return _MultiTenancyConfigUpdate(
+        return MultiTenancyConfigUpdate(
             autoTenantCreation=auto_tenant_creation,
             autoTenantActivation=auto_tenant_activation,
         )
+
+
+# BC for direct imports
+_GenerativeProvider: TypeAlias = GenerativeProvider
+_InvertedIndexConfigCreate: TypeAlias = InvertedIndexConfigCreate
+_InvertedIndexConfigUpdate: TypeAlias = InvertedIndexConfigUpdate
+_MultiTenancyConfigCreate: TypeAlias = MultiTenancyConfigCreate
+_MultiTenancyConfigUpdate: TypeAlias = MultiTenancyConfigUpdate
+_ObjectTTLConfigCreate: TypeAlias = ObjectTTLConfigCreate
+_ObjectTTLConfigUpdate: TypeAlias = ObjectTTLConfigUpdate
+_ReferencePropertyBase: TypeAlias = ReferencePropertyBase
+_ReferencePropertyMultiTarget: TypeAlias = ReferencePropertyMultiTarget
+_ReplicationConfigCreate: TypeAlias = ReplicationConfigCreate
+_ReplicationConfigUpdate: TypeAlias = ReplicationConfigUpdate
+_RerankerProvider: TypeAlias = RerankerProvider
+_ShardingConfigCreate: TypeAlias = ShardingConfigCreate
+_VectorConfigCreate: TypeAlias = VectorConfigCreate
+_VectorConfigUpdate: TypeAlias = VectorConfigUpdate
+_VectorIndexConfigCreate: TypeAlias = VectorIndexConfigCreate
+_VectorIndexConfigDynamicUpdate: TypeAlias = VectorIndexConfigDynamicUpdate
+_VectorIndexConfigFlatUpdate: TypeAlias = VectorIndexConfigFlatUpdate
+_VectorIndexConfigHFreshUpdate: TypeAlias = VectorIndexConfigHFreshUpdate
+_VectorIndexConfigHNSWUpdate: TypeAlias = VectorIndexConfigHNSWUpdate
+_VectorIndexConfigUpdate: TypeAlias = VectorIndexConfigUpdate

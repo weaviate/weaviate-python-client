@@ -4,21 +4,25 @@ import pytest
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
-    _AsyncReplicationConfig,
-    _ReplicationConfig,
-    _ReplicationConfigUpdate,
     Configure,
     DataType,
     Property,
     Reconfigure,
     ReferenceProperty,
+    StopwordsPreset,
+    Tokenization,
     Vectorizers,
+    _AsyncReplicationConfig,
     _CollectionConfigCreate,
     _GenerativeProvider,
+    _ReplicationConfig,
+    _ReplicationConfigUpdate,
     _RerankerProvider,
+    _TextAnalyzerConfigCreate,
     _VectorizerConfigCreate,
     _ReplicationConfigCreate,
     ReplicationDeletionStrategy,
+    VectorFilterStrategy,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_vectorizers import (
@@ -235,6 +239,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             model="cohere.embed-english-v3",
             region="us-east-1",
             service="bedrock",
+            dimensions=512,
         ),
         {
             "text2vec-aws": {
@@ -242,6 +247,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "cohere.embed-english-v3",
                 "region": "us-east-1",
                 "service": "bedrock",
+                "dimensions": 512,
             }
         },
     ),
@@ -310,6 +316,21 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "type": "text",
                 "baseURL": "https://api.openai.com/",
                 "dimensions": 100,
+                "isAzure": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_openai(
+            vectorize_collection_name=False,
+            model="ada",
+            endpoint="/api/v3/embeddings",
+        ),
+        {
+            "text2vec-openai": {
+                "vectorizeClassName": False,
+                "model": "ada",
+                "endpoint": "/api/v3/embeddings",
                 "isAzure": False,
             }
         },
@@ -863,6 +884,24 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-nvidia": {}},
     ),
     (
+        Configure.Generative.nvidia(
+            base_url="https://integrate.api.nvidia.com",
+            model="model",
+            temperature=0.5,
+            max_tokens=100,
+            top_p=0.5,
+        ),
+        {
+            "generative-nvidia": {
+                "baseURL": "https://integrate.api.nvidia.com",
+                "model": "model",
+                "temperature": 0.5,
+                "maxTokens": 100,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.anyscale(),
         {"generative-anyscale": {}},
     ),
@@ -1003,6 +1042,42 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.google_vertex(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
+        Configure.Generative.google_vertex(
+            project_id="project",
+            api_endpoint="https://api.google.com",
+            region="europe-west4",
+            location="europe-west4",
+            max_output_tokens=100,
+            model_id="model",
+            endpoint_id="endpoint",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://api.google.com",
+                "region": "europe-west4",
+                "location": "europe-west4",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "endpointId": "endpoint",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
         Configure.Generative.aws(
             model="cohere.command-light-text-v14",
             region="us-east-1",
@@ -1039,6 +1114,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_p=0.5,
             base_url="https://api.openai.com",
+            api_version="2024-06-01",
         ),
         {
             "generative-openai": {
@@ -1050,6 +1126,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topP": 0.5,
                 "baseURL": "https://api.openai.com/",
+                "apiVersion": "2024-06-01",
             }
         },
     ),
@@ -1061,6 +1138,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             temperature=0.5,
             top_k=10,
             top_p=0.5,
+            base_url="https://api.anthropic.com",
         ),
         {
             "generative-anthropic": {
@@ -1070,6 +1148,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
+                "baseURL": "https://api.anthropic.com",
             }
         },
     ),
@@ -1098,6 +1177,86 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "topP": 0.5,
             }
         },
+    ),
+    (
+        Configure.Generative.deepseek(
+            model="deepseek-chat",
+            max_tokens=100,
+            temperature=0.5,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            top_p=0.9,
+            base_url="https://api.deepseek.com",
+            stop=["\n"],
+        ),
+        {
+            "generative-deepseek": {
+                "model": "deepseek-chat",
+                "maxTokens": 100,
+                "temperature": 0.5,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "topP": 0.9,
+                "baseURL": "https://api.deepseek.com",
+                "stop": ["\n"],
+            }
+        },
+    ),
+    (
+        Configure.Generative.digitalocean(
+            base_url="https://inference.do-ai.run",
+            model="llama-4-maverick",
+            temperature=0.5,
+            top_p=0.9,
+            max_tokens=100,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            stop=["STOP"],
+        ),
+        {
+            "generative-digitalocean": {
+                "baseURL": "https://inference.do-ai.run",
+                "model": "llama-4-maverick",
+                "temperature": 0.5,
+                "topP": 0.9,
+                "maxTokens": 100,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "stop": ["STOP"],
+            }
+        },
+    ),
+    (
+        Configure.Generative.digitalocean(),
+        {"generative-digitalocean": {}},
+    ),
+    (
+        Configure.Generative.meta(
+            base_url="https://api.meta.ai",
+            model="muse-spark-1.2",
+            temperature=0.5,
+            top_p=0.9,
+            max_tokens=100,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            reasoning_effort="xhigh",
+        ),
+        {
+            "generative-meta": {
+                "baseURL": "https://api.meta.ai",
+                "model": "muse-spark-1.2",
+                "temperature": 0.5,
+                "topP": 0.9,
+                "maxTokens": 100,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "reasoningEffort": "xhigh",
+            }
+        },
+    ),
+    (
+        Configure.Generative.meta(),
+        {"generative-meta": {}},
     ),
     (
         Configure.Generative.xai(
@@ -1338,6 +1497,10 @@ def test_config_create_with_properties(
                 data_type=DataType.BLOB,
             ),
             Property(
+                name="blob_hash",
+                data_type=DataType.BLOB_HASH,
+            ),
+            Property(
                 name="phone_number",
                 data_type=DataType.PHONE_NUMBER,
             ),
@@ -1399,6 +1562,10 @@ def test_config_create_with_properties(
         {
             "dataType": ["blob"],
             "name": "blob",
+        },
+        {
+            "dataType": ["blobHash"],
+            "name": "blob_hash",
         },
         {
             "dataType": ["phoneNumber"],
@@ -1507,6 +1674,33 @@ def test_vector_config_hnsw_rq() -> None:
     assert vi_dict["efConstruction"] == 128
     assert vi_dict["rq"]["bits"] == 8
     assert vi_dict["rq"]["rescoreLimit"] == 123
+
+
+def test_vector_config_hnsw_rq4c() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128,
+        quantizer=Configure.VectorIndex.Quantizer.rq(
+            bits=4, centering=True, rescore_limit=123, training_limit=5012
+        ),
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["rq"]["bits"] == 4
+    assert vi_dict["rq"]["centering"] is True
+    assert vi_dict["rq"]["rescoreLimit"] == 123
+    assert vi_dict["rq"]["trainingLimit"] == 5012
+
+
+def test_vector_config_hnsw_pathseer_filter_strategy() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        filter_strategy=VectorFilterStrategy.PATHSEER,
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["filterStrategy"] == "pathseer"
 
 
 def test_vector_config_flat_pq() -> None:
@@ -1739,6 +1933,28 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "baseURL": "https://api.openai.com/",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_openai(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "endpoint": "/api/v3/embeddings",
                         "isAzure": False,
                     }
                 },
@@ -2188,6 +2404,28 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.multi2vec_twelvelabs(
+                name="test",
+                image_fields=["image"],
+                text_fields=["prop"],
+                model="marengo3.0",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-twelvelabs": {
+                        "imageFields": ["image"],
+                        "textFields": ["prop"],
+                        "model": "marengo3.0",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.multi2vec_jinaai(name="test", dimensions=256, text_fields=["prop"])],
         {
             "test": {
@@ -2349,6 +2587,28 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.Vectors.text2vec_openai(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-openai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "endpoint": "/api/v3/embeddings",
+                        "isAzure": False,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.Vectors.text2vec_mistral(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -2356,6 +2616,25 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                     "text2vec-mistral": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_digitalocean(
+                name="test", source_properties=["prop"], model="qwen2"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-digitalocean": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                        "model": "qwen2",
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -2378,6 +2657,27 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
     ),
     (
         [
+            Configure.Vectors.text2vec_morph(
+                name="test",
+                source_properties=["prop"],
+                endpoint="/api/v3/embeddings",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-morph": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
+                        "endpoint": "/api/v3/embeddings",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.Vectors.text2vec_google(
                 name="test",
                 project_id="project",
@@ -2390,6 +2690,31 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-palm": {
                         "projectId": "project",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "dimensions": 768,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.Vectors.text2vec_google_vertex(
+                name="test",
+                project_id="project",
+                source_properties=["prop"],
+                dimensions=768,
+                location="europe-west1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-palm": {
+                        "projectId": "project",
+                        "location": "europe-west1",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "dimensions": 768,
@@ -3011,6 +3336,36 @@ def test_replication_config_update_merge_with_missing_async_config() -> None:
     assert result["factor"] == 3
 
 
+@pytest.mark.parametrize(
+    "config_factory",
+    [Configure.replication, Reconfigure.replication],
+)
+@pytest.mark.parametrize("async_enabled", [True, False])
+def test_replication_async_enabled_emits_deprecation_warning(
+    config_factory: object, async_enabled: bool
+) -> None:
+    """`async_enabled` was removed from the server schema in v1.38 and must warn when passed.
+
+    Both booleans are covered: `False` was the explicit opt-out, so a future truthiness
+    check must not silently stop warning for it.
+    """
+    with pytest.warns(DeprecationWarning, match="Dep030"):
+        config_factory(async_enabled=async_enabled)  # type: ignore[operator]
+
+
+@pytest.mark.parametrize(
+    "config_factory",
+    [Configure.replication, Reconfigure.replication],
+)
+def test_replication_without_async_enabled_does_not_warn(config_factory: object) -> None:
+    """Omitting `async_enabled` must not emit the deprecation warning."""
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        config_factory(factor=3)  # type: ignore[operator]
+
+
 def test_nested_property_with_id_name_is_allowed() -> None:
     """A nested property named 'id' must not raise — only top-level 'id' is reserved."""
     prop = Property(
@@ -3021,3 +3376,156 @@ def test_nested_property_with_id_name_is_allowed() -> None:
         ],
     )
     assert prop.nestedProperties[0].name == "id"
+
+
+class Test_TextAnalyzerConfigCreate:
+    def test_property_without_text_analyzer_omits_key(self) -> None:
+        prop = Property(name="title", data_type=DataType.TEXT)
+        assert "textAnalyzer" not in prop._to_dict()
+
+    def test_property_with_ascii_fold_only(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            text_analyzer=Configure.text_analyzer(ascii_fold=True),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"asciiFold": True}
+
+    def test_property_with_ascii_fold_and_ignore(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(ascii_fold=True, ascii_fold_ignore=["é", "ñ"]),
+        )
+        out = prop._to_dict()
+        assert out["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["é", "ñ"],
+        }
+        assert out["tokenization"] == "word"
+
+    def test_text_analyzer_rejects_ignore_without_ascii_fold(self) -> None:
+        with pytest.raises(ValidationError):
+            _TextAnalyzerConfigCreate(ascii_fold_ignore=["é"])
+
+    def test_nested_property_with_text_analyzer(self) -> None:
+        prop = Property(
+            name="meta",
+            data_type=DataType.OBJECT,
+            nested_properties=[
+                Property(
+                    name="title",
+                    data_type=DataType.TEXT,
+                    text_analyzer=Configure.text_analyzer(ascii_fold=True, ascii_fold_ignore=["ñ"]),
+                ),
+            ],
+        )
+        out = prop._to_dict()
+        assert out["nestedProperties"][0]["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["ñ"],
+        }
+
+    def test_text_analyzer_rejects_wrong_types(self) -> None:
+        with pytest.raises(ValidationError):
+            _TextAnalyzerConfigCreate(ascii_fold="yes")  # type: ignore[arg-type]
+        with pytest.raises(ValidationError):
+            _TextAnalyzerConfigCreate(ascii_fold_ignore="é")
+
+    def test_text_analyzer_stopword_preset_builtin_enum(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(stopword_preset=StopwordsPreset.EN),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"stopwordPreset": "en"}
+
+    def test_text_analyzer_stopword_preset_user_defined_string(self) -> None:
+        prop = Property(
+            name="title_fr",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {"stopwordPreset": "fr"}
+
+    def test_text_analyzer_combined_ascii_fold_and_stopword_preset(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(
+                ascii_fold=True, ascii_fold_ignore=["é"], stopword_preset="fr"
+            ),
+        )
+        assert prop._to_dict()["textAnalyzer"] == {
+            "asciiFold": True,
+            "asciiFoldIgnore": ["é"],
+            "stopwordPreset": "fr",
+        }
+
+    def test_text_analyzer_stopword_preset_only_omits_other_keys(self) -> None:
+        prop = Property(
+            name="title",
+            data_type=DataType.TEXT,
+            tokenization=Tokenization.WORD,
+            text_analyzer=Configure.text_analyzer(stopword_preset="fr"),
+        )
+        out = prop._to_dict()
+        assert "asciiFold" not in out["textAnalyzer"]
+        assert "asciiFoldIgnore" not in out["textAnalyzer"]
+
+
+class TestInvertedIndexStopwordPresets:
+    def test_configure_inverted_index_with_stopword_presets(self) -> None:
+        ic = Configure.inverted_index(
+            stopword_presets={
+                "fr": ["le", "la", "les"],
+                "es": ["el", "la", "los"],
+            },
+        )
+        out = ic._to_dict()
+        assert out["stopwordPresets"] == {
+            "fr": ["le", "la", "les"],
+            "es": ["el", "la", "los"],
+        }
+
+    def test_configure_inverted_index_without_stopword_presets_omits_key(self) -> None:
+        ic = Configure.inverted_index()
+        assert "stopwordPresets" not in ic._to_dict()
+
+    def test_reconfigure_inverted_index_merges_stopword_presets(self) -> None:
+        rc = Reconfigure.inverted_index(stopword_presets={"fr": ["le", "la"]})
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "cleanupIntervalSeconds": 60,
+        }
+        merged = rc.merge_with_existing(existing)
+        assert merged["stopwordPresets"] == {"fr": ["le", "la"]}
+        # other fields untouched
+        assert merged["stopwords"]["preset"] == "en"
+        assert merged["bm25"]["b"] == 0.75
+
+    def test_reconfigure_inverted_index_replaces_existing_stopword_presets(self) -> None:
+        rc = Reconfigure.inverted_index(stopword_presets={"fr": ["le"]})
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "stopwordPresets": {"fr": ["le", "la", "les"], "es": ["el"]},
+        }
+        merged = rc.merge_with_existing(existing)
+        # The new value fully replaces the prior dict (this matches the server-side
+        # PUT semantics — see test_tokenize.py::test_remove_unused_preset_is_allowed).
+        assert merged["stopwordPresets"] == {"fr": ["le"]}
+
+    def test_reconfigure_inverted_index_without_stopword_presets_leaves_existing(self) -> None:
+        rc = Reconfigure.inverted_index(bm25_b=0.7, bm25_k1=1.1)
+        existing = {
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "stopwordPresets": {"fr": ["le", "la"]},
+        }
+        merged = rc.merge_with_existing(existing)
+        assert merged["stopwordPresets"] == {"fr": ["le", "la"]}

@@ -29,7 +29,7 @@ class _ConfigUpdateModel(BaseModel):
                 continue
             if isinstance(val, Enum):
                 schema[cls_field] = str(val.value)
-            elif isinstance(val, (int, float, bool, str, list)):
+            elif isinstance(val, (int, float, bool, str, list, dict)):
                 schema[cls_field] = val
             elif isinstance(val, _QuantizerConfigUpdate):
                 quantizers = ["pq", "bq", "sq"]

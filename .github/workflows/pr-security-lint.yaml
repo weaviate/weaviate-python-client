@@ -1,0 +1,35 @@
+name: PR Security Lint
+
+# SECURITY: This workflow uses pull_request_target intentionally so that the
+# workflow definition runs from the BASE branch (main), not the PR. The
+# composite action it invokes lives at a pinned 40-char SHA in
+# weaviate/weaviate — attackers cannot alter the lint logic via a PR or by
+# tampering with an upstream tag.
+#
+# Rules:
+#   1. Do NOT add `ref: ${{ github.event.pull_request.head.sha }}` or any
+#      reference to PR-controlled refs. The composite uses the GitHub API to
+#      fetch the diff text — no PR code is ever executed.
+#   2. Do NOT add secrets to this workflow. The pull_request_target context
+#      grants a token with write access to the base repo and access to all
+#      repo secrets if any are referenced. We reference none and request
+#      minimal permissions; keep it that way.
+#   3. Keep the composite action pinned to a full-length commit SHA. Tag or
+#      branch refs would let an upstream change alter the lint logic at
+#      execution time.
+on:
+  pull_request_target:
+
+permissions: {}
+
+jobs:
+  hidden-unicode:
+    name: hidden unicode characters
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read   # required by the composite's `gh pr diff` call
+    steps:
+      - uses: weaviate/weaviate/.github/actions/security-lint@3e52fc80a244f4644d4facc6a4e705ea6eda9039 # PR #11093
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          github-token: ${{ github.token }}

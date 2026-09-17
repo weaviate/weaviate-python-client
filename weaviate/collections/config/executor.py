@@ -6,6 +6,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Sequence,
     Tuple,
     Union,
     cast,
@@ -19,40 +20,45 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    GenerativeProvider,
     IndexName,
+    InvertedIndexConfigUpdate,
+    MultiTenancyConfigUpdate,
     Property,
     PropertyType,
     ReferenceProperty,
+    ReferencePropertyMultiTarget,
+    ReplicationConfigUpdate,
+    RerankerProvider,
     ShardStatus,
     ShardTypes,
     _CollectionConfigUpdate,
-    _GenerativeProvider,
-    _InvertedIndexConfigUpdate,
-    _MultiTenancyConfigUpdate,
-    _NamedVectorConfigCreate,
-    _NamedVectorConfigUpdate,
-    _ReferencePropertyMultiTarget,
-    _ReplicationConfigUpdate,
-    _RerankerProvider,
     _ShardStatus,
-    _VectorConfigCreate,
-    _VectorConfigUpdate,
-    _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigHFreshUpdate,
-    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
-from weaviate.collections.classes.config_object_ttl import _ObjectTTLConfigUpdate
+from weaviate.collections.classes.config_named_vectors import (
+    _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
+)
+from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigUpdate
 from weaviate.collections.classes.config_vector_index import (
-    _VectorIndexConfigDynamicUpdate,
+    VectorIndexConfigDynamicUpdate,
+    VectorIndexConfigFlatUpdate,
+    VectorIndexConfigHFreshUpdate,
+    VectorIndexConfigHNSWUpdate,
+)
+from weaviate.collections.classes.config_vectors import (
+    VectorConfigCreate,
+    VectorConfigUpdate,
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import (
     _capitalize_first_letter,
@@ -61,6 +67,20 @@ from weaviate.util import (
 )
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
+
+
+def _any_property_has_text_analyzer(properties: Sequence[Property]) -> bool:
+    return any(_property_has_text_analyzer(p) for p in properties)
+
+
+def _property_has_text_analyzer(prop: Property) -> bool:
+    if prop.textAnalyzer is not None:
+        return True
+    nested = prop.nestedProperties
+    if nested is None:
+        return False
+    nested_list = nested if isinstance(nested, list) else [nested]
+    return any(_property_has_text_analyzer(np) for np in nested_list)
 
 
 class _ConfigCollectionExecutor(Generic[ConnectionType]):
@@ -134,29 +154,29 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         description: Optional[str] = None,
         property_descriptions: Optional[Dict[str, str]] = None,
-        inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
-        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
-        object_ttl_config: Optional[_ObjectTTLConfigUpdate] = None,
-        replication_config: Optional[_ReplicationConfigUpdate] = None,
+        inverted_index_config: Optional[InvertedIndexConfigUpdate] = None,
+        multi_tenancy_config: Optional[MultiTenancyConfigUpdate] = None,
+        object_ttl_config: Optional[ObjectTTLConfigUpdate] = None,
+        replication_config: Optional[ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
             Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigHFreshUpdate,
+                VectorIndexConfigHNSWUpdate,
+                VectorIndexConfigFlatUpdate,
+                VectorIndexConfigHFreshUpdate,
             ]
         ] = None,
         vectorizer_config: Optional[
             Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigDynamicUpdate,
-                _VectorIndexConfigHFreshUpdate,
+                VectorIndexConfigHNSWUpdate,
+                VectorIndexConfigFlatUpdate,
+                VectorIndexConfigDynamicUpdate,
+                VectorIndexConfigHFreshUpdate,
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
-        generative_config: Optional[_GenerativeProvider] = None,
-        reranker_config: Optional[_RerankerProvider] = None,
+        vector_config: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = None,
+        generative_config: Optional[GenerativeProvider] = None,
+        reranker_config: Optional[RerankerProvider] = None,
     ) -> executor.Result[None]:
         """Update the configuration for this collection in Weaviate.
 
@@ -192,13 +212,23 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         if vectorizer_config is not None and not isinstance(
             vectorizer_config,
             (
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigDynamicUpdate,
-                _VectorIndexConfigHFreshUpdate,
+                VectorIndexConfigHNSWUpdate,
+                VectorIndexConfigFlatUpdate,
+                VectorIndexConfigDynamicUpdate,
+                VectorIndexConfigHFreshUpdate,
             ),
         ):
             _Warnings.vectorizer_config_in_config_update()
+        if (
+            inverted_index_config is not None
+            and inverted_index_config.stopwordPresets is not None
+            and not self._connection._weaviate_version.is_at_least(1, 37, 0)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "InvertedIndexConfig stopword_presets",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         try:
             config = _CollectionConfigUpdate(
                 description=description,
@@ -244,6 +274,15 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         return executor.result(resp(schema))
 
     def __add_property(self, additional_property: PropertyType) -> executor.Result[None]:
+        if isinstance(additional_property, Property) and _property_has_text_analyzer(
+            additional_property
+        ):
+            if not self._connection._weaviate_version.is_at_least(1, 37, 0):
+                raise WeaviateUnsupportedFeatureError(
+                    "Property text_analyzer (asciiFold)",
+                    str(self._connection._weaviate_version),
+                    "1.37.0",
+                )
         path = f"/schema/{self._name}/properties"
         obj = additional_property._to_dict()
 
@@ -330,8 +369,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             return [
                 _ShardStatus(
                     name=shard["name"],
-                    status=shard["status"],
+                    status=shard.get("status", ""),
                     vector_queue_size=shard["vectorQueueSize"],
+                    per_node_status=shard.get("per_node_status"),
                 )
                 for shard in shards
             ]
@@ -464,7 +504,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
     def add_reference(
         self,
-        ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget],
+        ref: Union[ReferenceProperty, ReferencePropertyMultiTarget],
     ) -> executor.Result[None]:
         """Add a reference to the collection in Weaviate.
 
@@ -479,7 +519,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         _validate_input(
             [
                 _ValidateArgument(
-                    expected=[ReferenceProperty, _ReferencePropertyMultiTarget],
+                    expected=[ReferenceProperty, ReferencePropertyMultiTarget],
                     name="ref",
                     value=ref,
                 )
@@ -513,7 +553,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
 
     @overload
     def add_vector(
-        self, *, vector_config: Union[_VectorConfigCreate, List[_VectorConfigCreate]]
+        self, *, vector_config: Union[VectorConfigCreate, List[VectorConfigCreate]]
     ) -> executor.Result[None]: ...
 
     def add_vector(
@@ -521,9 +561,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         *,
         vector_config: Union[
             _NamedVectorConfigCreate,
-            _VectorConfigCreate,
+            VectorConfigCreate,
             List[_NamedVectorConfigCreate],
-            List[_VectorConfigCreate],
+            List[VectorConfigCreate],
         ],
     ) -> executor.Result[None]:
         """Add a vector to the collection in Weaviate.
@@ -541,9 +581,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 _ValidateArgument(
                     expected=[
                         _NamedVectorConfigCreate,
-                        _VectorConfigCreate,
+                        VectorConfigCreate,
                         List[_NamedVectorConfigCreate],
-                        List[_VectorConfigCreate],
+                        List[VectorConfigCreate],
                     ],
                     name="vector_config",
                     value=vector_config,
@@ -561,7 +601,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         if isinstance(vector_config, _NamedVectorConfigCreate):
             _Warnings.named_vector_syntax_in_config_add_vector(vector_config.name)
             vector_config = [vector_config]
-        if isinstance(vector_config, _VectorConfigCreate):
+        if isinstance(vector_config, VectorConfigCreate):
             vector_config = [vector_config]
 
         def resp(schema: Dict[str, Any]) -> executor.Result[None]:
@@ -630,4 +670,52 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             path=path,
             error_msg="Property may not exist",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="property exists"),
+        )
+
+    def delete_vector_index(
+        self,
+        vector_name: str,
+    ) -> executor.Result[None]:
+        """Delete the index of a named vector of the collection in Weaviate.
+
+            This is a destructive and irreversible operation. Once the drop completes, the index is
+            deleted from disk and the vector's data is removed from every object in the collection.
+            Neither can be restored. A new, empty vector with the same name can be added again with
+            `collection.config.add_vector()` after the drop has completed, but not before. Searches
+            and writes targeting the vector are rejected once the index is gone.
+
+            The drop is applied asynchronously. A successful call means that Weaviate accepted the
+            request, not that the index is already gone. `collection.config.get()` first reports the
+            vector with a `vector_index_config` of `VectorIndexConfigNone` and drops it from
+            `vector_config` altogether once the drop has completed. Repeating the call while the
+            drop is still in progress succeeds and re-triggers the cleanup; once the vector is gone
+            from the schema, the same call is rejected with a 422 because the vector no longer
+            exists.
+
+            Only named vectors can be dropped. The endpoint is experimental and may be disabled
+            server-side, in which case Weaviate rejects the request.
+
+        Args:
+            vector_name: The name of the named vector whose index to delete.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status, e.g.
+                if the vector does not exist (including repeating the call after the drop completed)
+                or if the endpoint is disabled on the server.
+            weaviate.exceptions.WeaviateInvalidInputError: If `vector_name` is not a string.
+        """
+        _validate_input([_ValidateArgument(expected=[str], name="vector_name", value=vector_name)])
+
+        path = f"/schema/{_capitalize_first_letter(self._name)}/vectors/{vector_name}/index"
+
+        def resp(res: Response) -> None:
+            return None
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.delete,
+            path=path,
+            error_msg="Vector index may not have been deleted",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="delete vector index"),
         )

@@ -271,6 +271,7 @@ def test_non_existant_collection(collection_factory_get: CollectionFactoryGet) -
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(60)
 async def test_batch_one_hundred_thousand_objects_async_collection(
     batch_collection_async: BatchCollectionAsync,
 ) -> None:
@@ -298,6 +299,7 @@ async def test_batch_one_hundred_thousand_objects_async_collection(
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(60)
 async def test_ingest_one_hundred_thousand_data_objects_async(
     batch_collection_async: BatchCollectionAsync,
 ) -> None:
@@ -319,6 +321,7 @@ async def test_ingest_one_hundred_thousand_data_objects_async(
     assert len(results.errors) == 0, [obj.message for obj in results.errors.values()]
 
 
+@pytest.mark.timeout(60)
 def test_ingest_one_hundred_thousand_data_objects(
     batch_collection: BatchCollection,
 ) -> None:

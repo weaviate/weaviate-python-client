@@ -39,12 +39,15 @@ from weaviate.collections.classes.config import (
     _ShardingConfig,
     _SQConfig,
     _StopwordsConfig,
+    _TextAnalyzerConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHFresh,
     _VectorIndexConfigHNSW,
+    _VectorIndexConfigNone,
     _VectorizerConfig,
 )
+from weaviate.exceptions import SchemaValidationError
 
 
 def _is_primitive(d_type: str) -> bool:
@@ -156,6 +159,8 @@ def __get_quantizer_config(
             cache=config["rq"].get("cache"),
             bits=config["rq"].get("bits"),
             rescore_limit=config["rq"].get("rescoreLimit"),
+            centering=config["rq"].get("centering"),
+            training_limit=config["rq"].get("trainingLimit"),
         )
     return quantizer
 
@@ -281,8 +286,32 @@ def __get_vector_config(
                 vec_config = {}
             props = vec_config.pop("properties", None)
 
-            vector_index_config = __get_vector_index_config(named_vector)
-            assert vector_index_config is not None
+            vector_index_config: Union[
+                _VectorIndexConfigHNSW,
+                _VectorIndexConfigFlat,
+                _VectorIndexConfigDynamic,
+                _VectorIndexConfigHFresh,
+                _VectorIndexConfigNone,
+                None,
+            ] = __get_vector_index_config(named_vector)
+            if vector_index_config is None:
+                # A vector whose index was dropped with `collection.config.delete_vector_index()` is
+                # returned as `vectorIndexType: "none"` without any `vectorIndexConfig`.
+                if named_vector.get("vectorIndexType") == VectorIndexType.NONE.value:
+                    vector_index_config = _VectorIndexConfigNone()
+                elif "vectorIndexConfig" in named_vector:
+                    # the config is present; this client version does not know the index type
+                    raise SchemaValidationError(
+                        f"Named vector {name!r} has an unknown vectorIndexType "
+                        f"{named_vector.get('vectorIndexType')!r}; upgrade the client to a version "
+                        "that supports it"
+                    )
+                else:
+                    raise SchemaValidationError(
+                        f"Named vector {name!r} has vectorIndexType "
+                        f"{named_vector.get('vectorIndexType')!r} but no vectorIndexConfig in the "
+                        "schema returned by Weaviate"
+                    )
             try:
                 vec: Union[str, Vectorizers] = Vectorizers(vectorizer_str)
             except ValueError:
@@ -304,6 +333,11 @@ def __get_vector_config(
 
 def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]]:
     if "vectorConfig" in schema:
+        return None
+    # A named-vector collection whose vectors were all dropped with
+    # `collection.config.delete_vector_index()` comes back with neither a `vectorConfig` block nor a
+    # top-level `vectorizer`. Return None instead of raising KeyError on the missing key.
+    if "vectorizer" not in schema:
         return None
 
     vectorizer = str(schema["vectorizer"])
@@ -356,6 +390,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 additions=schema["invertedIndexConfig"]["stopwords"]["additions"],
                 removals=schema["invertedIndexConfig"]["stopwords"]["removals"],
             ),
+            stopword_presets=schema["invertedIndexConfig"].get("stopwordPresets"),
         ),
         multi_tenancy_config=_MultiTenancyConfig(
             enabled=schema.get("multiTenancyConfig", {}).get("enabled", False),
@@ -462,6 +497,21 @@ def _collection_configs_simple_from_json(
     return dict(sorted(configs.items()))
 
 
+def _text_analyzer_from_config(prop: Dict[str, Any]) -> Optional[_TextAnalyzerConfig]:
+    ta = prop.get("textAnalyzer")
+    if ta is None:
+        return None
+    # The server normalizes an empty TextAnalyzer to nil (see usecases/schema/validation.go),
+    # so the only meaningful signal is the presence of one of the configured fields.
+    if "asciiFold" not in ta and "stopwordPreset" not in ta:
+        return None
+    return _TextAnalyzerConfig(
+        ascii_fold=ta.get("asciiFold", False),
+        ascii_fold_ignore=ta.get("asciiFoldIgnore"),
+        stopword_preset=ta.get("stopwordPreset"),
+    )
+
+
 def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedProperty]:
     return [
         _NestedProperty(
@@ -475,6 +525,7 @@ def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedP
                 if prop.get("nestedProperties") is not None
                 else None
             ),
+            text_analyzer=_text_analyzer_from_config(prop),
             tokenization=(
                 Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
             ),
@@ -497,6 +548,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 if prop.get("nestedProperties") is not None
                 else None
             ),
+            text_analyzer=_text_analyzer_from_config(prop),
             tokenization=(
                 Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
             ),

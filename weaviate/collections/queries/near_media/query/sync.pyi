@@ -3,8 +3,10 @@ from typing import Generic, Literal, Optional, Type, Union, overload
 from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import (
     METADATA,
+    MMR,
     PROPERTIES,
     REFERENCES,
+    BoostReturn,
     GroupBy,
     NearMediaType,
     Rerank,
@@ -41,11 +43,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
     def near_media(
@@ -61,11 +65,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     def near_media(
@@ -81,11 +87,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
     def near_media(
@@ -101,11 +109,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> QueryReturn[TProperties, References]: ...
     @overload
     def near_media(
@@ -121,11 +131,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
     def near_media(
@@ -141,11 +153,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> QueryReturn[TProperties, TReferences]: ...
     @overload
     def near_media(
@@ -161,11 +175,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
     def near_media(
@@ -181,11 +197,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
     def near_media(
@@ -201,11 +219,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
     def near_media(
@@ -221,11 +241,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> GroupByReturn[TProperties, References]: ...
     @overload
     def near_media(
@@ -241,11 +263,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> GroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def near_media(
@@ -261,11 +285,13 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> GroupByReturn[TProperties, TReferences]: ...
     @overload
     def near_media(
@@ -281,9 +307,11 @@ class _NearMediaQuery(
         filters: Optional[FilterReturn] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...

@@ -122,8 +122,8 @@ def test_replication_async_config_replace_on_update() -> None:
     assert "hashtreeHeight" not in result["asyncConfig"]
 
 
-def test_replication_async_config_cleared_when_async_disabled() -> None:
-    """Test asyncConfig is removed from schema when asyncEnabled is set to False."""
+def test_replication_async_config_preserved_when_async_disabled() -> None:
+    """Test asyncConfig is preserved when asyncEnabled is set to False."""
     schema = {
         "factor": 1,
         "asyncEnabled": True,
@@ -132,7 +132,7 @@ def test_replication_async_config_cleared_when_async_disabled() -> None:
     update = Reconfigure.replication(async_enabled=False)
     result = update.merge_with_existing(schema)
     assert result["asyncEnabled"] is False
-    assert "asyncConfig" not in result
+    assert result["asyncConfig"] == {"maxWorkers": 8, "hashtreeHeight": 20}
 
 
 def test_replication_async_config_preserved_when_not_provided() -> None:
@@ -160,3 +160,132 @@ def test_replication_async_config_reset_all_fields() -> None:
     )
     result = update.merge_with_existing(schema)
     assert result["asyncConfig"] == {}
+
+
+def _hfresh_schema(rescore_limit: int = 20) -> dict:
+    """An HFresh schema, which mandates RQ and so carries no pq/bq/sq blocks."""
+    return {
+        "class": "HFreshRQ",
+        "vectorConfig": {
+            "boi": {
+                "vectorizer": {"text2vec-weaviate": {}},
+                "vectorIndexType": "hfresh",
+                "vectorIndexConfig": {
+                    "distance": "cosine",
+                    "maxPostingSizeKB": 1024,
+                    "searchProbe": 8,
+                    "rq": {"enabled": True, "bits": 1, "rescoreLimit": rescore_limit},
+                },
+            }
+        },
+    }
+
+
+def test_updating_rq_on_hfresh_without_pq_block() -> None:
+    """An HFresh schema has no pq block, so the quantizer check must not subscript it."""
+    schema = _hfresh_schema()
+    update = _CollectionConfigUpdate(
+        vector_config=Reconfigure.Vectors.update(
+            name="boi",
+            vector_index_config=Reconfigure.VectorIndex.hfresh(
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(rescore_limit=500)
+            ),
+        )
+    )
+
+    new_schema = update.merge_with_existing(schema)
+
+    assert new_schema["vectorConfig"]["boi"]["vectorIndexConfig"]["rq"]["rescoreLimit"] == 500
+    assert new_schema["vectorConfig"]["boi"]["vectorIndexConfig"]["rq"]["enabled"]
+
+
+def test_quantizer_check_tolerates_missing_pq_block() -> None:
+    """The rq branch of the quantizer check must tolerate a schema with no pq block."""
+    schema = _hfresh_schema()
+    update = _CollectionConfigUpdate(
+        vector_config=Reconfigure.Vectors.update(
+            name="boi",
+            vector_index_config=Reconfigure.VectorIndex.hfresh(
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq()
+            ),
+        )
+    )
+
+    # No KeyError: rq is the quantizer already in use, so the update is allowed through.
+    update.merge_with_existing(schema)
+
+
+def test_switching_quantizer_still_rejected_when_pq_enabled() -> None:
+    """The guard itself must be unchanged for schemas that do have a pq block."""
+    schema = multi_vector_schema("pq")
+    update = _CollectionConfigUpdate(
+        vectorizer_config=[
+            Reconfigure.NamedVectors.update(
+                name="boi",
+                vector_index_config=Reconfigure.VectorIndex.hnsw(
+                    quantizer=Reconfigure.VectorIndex.Quantizer.rq()
+                ),
+            )
+        ]
+    )
+    with pytest.raises(WeaviateInvalidInputError):
+        update.merge_with_existing(schema)
+
+
+@pytest.mark.parametrize("use_deprecated_syntax", [False, True])
+def test_updating_dropped_vector_index(use_deprecated_syntax: bool) -> None:
+    """A vector whose index was dropped has no index config to merge into."""
+    schema = multi_vector_schema()
+    # shape reported by Weaviate for a vector dropped via `config.delete_vector_index()`
+    schema["vectorConfig"]["boi"] = {"vectorizer": {"none": {}}, "vectorIndexType": "none"}
+
+    hnsw = Reconfigure.VectorIndex.hnsw(ef=128)
+    update = (
+        _CollectionConfigUpdate(
+            vectorizer_config=[
+                Reconfigure.NamedVectors.update(name="boi", vector_index_config=hnsw)
+            ]
+        )
+        if use_deprecated_syntax
+        else _CollectionConfigUpdate(
+            vector_config=[Reconfigure.Vectors.update(name="boi", vector_index_config=hnsw)]
+        )
+    )
+
+    with pytest.raises(WeaviateInvalidInputError, match="delete_vector_index"):
+        update.merge_with_existing(schema)
+
+
+def test_updating_vector_next_to_dropped_vector_index() -> None:
+    """Vectors that still have an index remain updatable next to a dropped one."""
+    schema = multi_vector_schema()
+    schema["vectorConfig"]["boi"] = {"vectorizer": {"none": {}}, "vectorIndexType": "none"}
+
+    update = _CollectionConfigUpdate(
+        vector_config=[
+            Reconfigure.Vectors.update(
+                name="yeh", vector_index_config=Reconfigure.VectorIndex.hnsw(ef=128)
+            )
+        ]
+    )
+    new_schema = update.merge_with_existing(schema)
+
+    assert new_schema["vectorConfig"]["yeh"]["vectorIndexConfig"]["ef"] == 128
+    assert new_schema["vectorConfig"]["boi"] == {
+        "vectorizer": {"none": {}},
+        "vectorIndexType": "none",
+    }
+
+
+def test_updating_vector_when_none_left() -> None:
+    """Once every vector is dropped the server omits vectorConfig; update must not raise KeyError."""
+    update = _CollectionConfigUpdate(
+        vector_config=[
+            Reconfigure.Vectors.update(
+                name="gone", vector_index_config=Reconfigure.VectorIndex.hnsw(ef=128)
+            )
+        ]
+    )
+
+    with pytest.raises(WeaviateInvalidInputError, match="does not exist"):
+        update.merge_with_existing({"class": "Test", "properties": []})

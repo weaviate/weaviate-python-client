@@ -5,6 +5,9 @@ from weaviate.collections.classes.grpc import (
     BM25OperatorFactory as BM25Operator,
 )
 from weaviate.collections.classes.grpc import (
+    Boost,
+    BoostReturn,
+    Diversity,
     GroupBy,
     HybridFusion,
     HybridVector,
@@ -21,6 +24,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.types import GeoCoordinate
 
 __all__ = [
+    "Diversity",
     "Filter",
     "FilterReturn",
     "GeoCoordinate",
@@ -36,6 +40,8 @@ __all__ = [
     "QueryNested",
     "QueryReference",
     "NearVector",
+    "Boost",
+    "BoostReturn",
     "Rerank",
     "Sort",
     "TargetVectors",

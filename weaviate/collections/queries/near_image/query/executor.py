@@ -5,8 +5,10 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import (
     METADATA,
+    MMR,
     PROPERTIES,
     REFERENCES,
+    BoostReturn,
     GroupBy,
     NearMediaType,
     Rerank,
@@ -52,11 +54,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
     @overload
@@ -72,11 +76,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -92,11 +98,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
     @overload
@@ -112,11 +120,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[TProperties, References]]: ...
 
     @overload
@@ -132,11 +142,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -152,11 +164,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QueryReturn[TProperties, TReferences]]: ...
 
     ### GroupBy ###
@@ -174,11 +188,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[Properties, References]]: ...
 
     @overload
@@ -194,11 +210,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -214,11 +232,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[Properties, TReferences]]: ...
 
     @overload
@@ -234,11 +254,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[TProperties, References]]: ...
 
     @overload
@@ -254,11 +276,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -274,11 +298,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[GroupByReturn[TProperties, TReferences]]: ...
 
     ### DEFAULT ###
@@ -295,11 +321,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[
         QuerySearchReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -316,11 +344,13 @@ class _NearImageQueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[BoostReturn] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        diversity_selection: Optional[MMR] = None,
     ) -> executor.Result[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
         """Search for objects by image in this collection using an image-capable vectorization module and vector-based similarity search.
 
@@ -339,11 +369,13 @@ class _NearImageQueryExecutor(
             filters: The filters to apply to the search.
             group_by: How the results should be grouped by a specific property.
             rerank: How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            boost: A `Boost` that re-scores the search candidates to promote or demote objects without removing them.
             target_vector: The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
             include_vector: Whether to include the vector in the results. If not specified, this is set to False.
             return_metadata: The metadata to return for each object, defaults to `None`.
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
+            diversity_selection: Apply diversity selection (e.g. MMR) to the results. Requires Weaviate >= 1.37.0.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -385,6 +417,8 @@ class _NearImageQueryExecutor(
             filters=filters,
             group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
+            diversity_selection=diversity_selection,
+            boost=boost,
             target_vector=target_vector,
             limit=limit,
             offset=offset,

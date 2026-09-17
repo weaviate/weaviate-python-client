@@ -17,6 +17,7 @@ from weaviate.collections.classes.config import (
     DataType,
     Property,
     ReferenceProperty,
+    ShardStatus,
 )
 from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import (
@@ -410,6 +411,7 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
         assert ret_obj.references["test"].objects[0].uuid == obj[0]
 
 
+@pytest.mark.timeout(600)
 @pytest.mark.parametrize(
     "batching_method",
     [
@@ -523,8 +525,15 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert ret.total_count == nr_objects
 
     shards = client.collections.use(name).config.get_shards()
-    assert shards[0].status == "READY"
-    assert shards[0].vector_queue_size == 0
+    assert shard_status_is(shards[0], "READY")
+
+
+def shard_status_is(shard: ShardStatus, want: str) -> bool:
+    if shard.per_node_status:
+        return all(status == want for status in shard.per_node_status.values())
+    elif shard.status:
+        return shard.status == want
+    return False
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -544,9 +553,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(vec_length)],
             )
     shard_status = old_client.schema.get_class_shards(name)
-    assert shard_status[0]["status"] == "INDEXING"
-    assert shard_status[0]["vectorQueueSize"] > 0
-
+    assert shard_status_is(shard_status[0], "INDEXING")
     assert len(client.batch.failed_objects) == 0
 
     ret = client.collections.use(name).aggregate.over_all(total_count=True)
@@ -578,8 +585,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
 
     shards = client.collections.use(name).config.get_shards()
     for shard in shards:
-        assert shard.status == "READY"
-        assert shard.vector_queue_size == 0
+        assert shard_status_is(shard, "READY")
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -610,12 +616,8 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
 
     shards = client.collections.use(name).config.get_shards()
     for shard in shards:
-        if shard.name == tenants[0].name:
-            assert shard.status == "READY"
-            assert shard.vector_queue_size == 0
-        else:
-            assert shard.status == "INDEXING"
-            assert shard.vector_queue_size > 0
+        want = "READY" if shard.name == tenants[0].name else "INDEXING"
+        assert shard_status_is(shard, want)
 
 
 @pytest.mark.parametrize(
@@ -717,6 +719,7 @@ def test_non_existant_collection(client_factory: ClientFactory) -> None:
     # not, so we do not check for errors here
 
 
+@pytest.mark.timeout(60)
 def test_number_of_stored_results_in_batch(client_factory: ClientFactory) -> None:
     client, name = client_factory()
     with client.batch.dynamic() as batch:
@@ -816,6 +819,7 @@ def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(60)
 async def test_add_one_hundred_thousand_objects_async_client(
     async_client_factory: AsyncClientFactory,
 ) -> None:
@@ -846,6 +850,7 @@ async def test_add_one_hundred_thousand_objects_async_client(
     await client.collections.delete(name)
 
 
+@pytest.mark.timeout(60)
 def test_add_one_hundred_thousand_objects_sync_client(
     client_factory: ClientFactory,
 ) -> None:

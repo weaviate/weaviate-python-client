@@ -17,26 +17,29 @@ from pydantic import ValidationError
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    GenerativeProvider,
+    InvertedIndexConfigCreate,
+    MultiTenancyConfigCreate,
     Property,
+    ReferencePropertyBase,
+    ReplicationConfigCreate,
+    RerankerProvider,
+    ShardingConfigCreate,
     _CollectionConfigCreate,
-    _GenerativeProvider,
-    _InvertedIndexConfigCreate,
-    _MultiTenancyConfigCreate,
-    _NamedVectorConfigCreate,
-    _ObjectTTLConfigCreate,
-    _ReferencePropertyBase,
-    _ReplicationConfigCreate,
-    _RerankerProvider,
-    _ShardingConfigCreate,
-    _VectorConfigCreate,
-    _VectorIndexConfigCreate,
-    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_configs_from_json,
     _collection_configs_simple_from_json,
 )
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
+from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigCreate
+from weaviate.collections.classes.config_vector_index import (
+    VectorIndexConfigCreate,
+    VectorIndexType,
+)
+from weaviate.collections.classes.config_vectorizers import _VectorizerConfigCreate
+from weaviate.collections.classes.config_vectors import VectorConfigCreate
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
     Properties,
@@ -44,13 +47,14 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import Collection, CollectionAsync
+from weaviate.collections.config.executor import _any_property_has_text_analyzer
 from weaviate.connect import executor
 from weaviate.connect.v4 import (
     ConnectionAsync,
     ConnectionType,
     _ExpectedStatusCodes,
 )
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
@@ -102,6 +106,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         Collection[Properties, References],
         Awaitable[CollectionAsync[Properties, References]],
     ]:
+        config = self.__without_dropped_vectors(config)
         result = self._connection.post(
             path="/schema",
             weaviate_object=config,
@@ -136,6 +141,41 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         assert isinstance(collection, Collection)
         return collection
 
+    @staticmethod
+    def __without_dropped_vectors(config: dict) -> dict:
+        """Strip vector entries whose index was dropped (`vectorIndexType: "none"`).
+
+        The server rejects the `"none"` sentinel on create and a dropped vector cannot be created
+        in that state. Keeping the entry with a real index type instead would silently create an
+        index that was deliberately dropped, so the whole entry is skipped — matching where the
+        server's own cleanup ends up once a drop finalizes.
+
+        A create whose `vectorConfig` would end up empty is rejected instead: the server treats a
+        create without named vectors as a legacy collection and applies its default vectorizer and
+        vector index, which would silently contradict the imported config.
+        """
+        vector_config = config.get("vectorConfig")
+        if not isinstance(vector_config, dict):
+            return config
+        dropped = [
+            name
+            for name, vc in vector_config.items()
+            if isinstance(vc, dict) and vc.get("vectorIndexType") == VectorIndexType.NONE.value
+        ]
+        if not dropped:
+            return config
+        remaining = {n: vc for n, vc in vector_config.items() if n not in dropped}
+        if not remaining:
+            raise WeaviateInvalidInputError(
+                f"Every vector config in this collection ({dropped}) has vectorIndexType 'none' "
+                "(its index was dropped with collection.config.delete_vector_index()). Creating "
+                "the collection without them would make the server apply its default legacy "
+                "vector index instead. Give at least one vector a real index config before "
+                "creating the collection."
+            )
+        _Warnings.create_skips_vectors_without_index(dropped)
+        return {**config, "vectorConfig": remaining}
+
     def __delete(self, *, name: str) -> executor.Result[None]:
         return executor.execute(
             response_callback=lambda res: None,
@@ -150,20 +190,20 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         name: str,
         *,
         description: Optional[str] = None,
-        generative_config: Optional[_GenerativeProvider] = None,
-        inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
-        multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        object_ttl_config: Optional[_ObjectTTLConfigCreate] = None,
+        generative_config: Optional[GenerativeProvider] = None,
+        inverted_index_config: Optional[InvertedIndexConfigCreate] = None,
+        multi_tenancy_config: Optional[MultiTenancyConfigCreate] = None,
+        object_ttl_config: Optional[ObjectTTLConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
-        references: Optional[List[_ReferencePropertyBase]] = None,
-        replication_config: Optional[_ReplicationConfigCreate] = None,
-        reranker_config: Optional[_RerankerProvider] = None,
-        sharding_config: Optional[_ShardingConfigCreate] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        references: Optional[List[ReferencePropertyBase]] = None,
+        replication_config: Optional[ReplicationConfigCreate] = None,
+        reranker_config: Optional[RerankerProvider] = None,
+        sharding_config: Optional[ShardingConfigCreate] = None,
+        vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
             Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
         ] = None,
-        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
+        vector_config: Optional[Union[VectorConfigCreate, List[VectorConfigCreate]]] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
@@ -213,6 +253,23 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             _Warnings.vectorizer_config_in_config_create()
         if vector_index_config is not None:
             _Warnings.vector_index_config_in_config_create()
+        if properties is not None and _any_property_has_text_analyzer(properties):
+            if not self._connection._weaviate_version.is_at_least(1, 37, 0):
+                raise WeaviateUnsupportedFeatureError(
+                    "Property text_analyzer (asciiFold / stopword_preset)",
+                    str(self._connection._weaviate_version),
+                    "1.37.0",
+                )
+        if (
+            inverted_index_config is not None
+            and inverted_index_config.stopwordPresets is not None
+            and not self._connection._weaviate_version.is_at_least(1, 37, 0)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "InvertedIndexConfig stopword_presets",
+                str(self._connection._weaviate_version),
+                "1.37.0",
+            )
         try:
             config = _CollectionConfigCreate(
                 description=description,
@@ -235,8 +292,16 @@ class _CollectionsExecutor(Generic[ConnectionType]):
                 f"Invalid collection config create parameters: {e}"
             ) from e
 
+        # Servers >= 1.37.5 apply DEFAULT_VECTOR_INDEX_TYPE to named-vector
+        # configs that omit `vectorIndexType`; older servers reject the empty
+        # field, so for them we keep emitting the client-side HNSW default.
+        emit_default_vector_index_type = not self._connection._weaviate_version.is_at_least(
+            1, 37, 5
+        )
         return self.__create(
-            config=config._to_dict(),
+            config=config._to_dict(
+                emit_default_vector_index_type=emit_default_vector_index_type,
+            ),
             data_model_properties=data_model_properties,
             data_model_references=data_model_references,
             skip_argument_validation=skip_argument_validation,
@@ -408,4 +473,15 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         self,
         config: CollectionConfig,
     ) -> executor.Result[Union[Collection, CollectionAsync]]:
+        # A config with neither named vectors nor a legacy vectorizer can only come from exporting
+        # a collection whose vectors were all dropped and cleaned up (the server always fills a
+        # vectorizer on legacy collections). Its dict omits `vectorConfig` entirely, so the marker
+        # check in __create cannot catch it and the server would apply its default legacy index.
+        if config.vector_config is None and config.vectorizer is None:
+            raise WeaviateInvalidInputError(
+                f"Collection config {config.name!r} has no vector config left; its vectors were "
+                "dropped with collection.config.delete_vector_index() and removed by the drop's "
+                "cleanup. Creating it would make the server apply its default legacy vector index "
+                "instead. Give the config at least one vector before creating the collection."
+            )
         return self._create_from_dict(config=config.to_dict())
