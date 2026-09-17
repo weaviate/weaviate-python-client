@@ -213,6 +213,8 @@ class _BaseExecutor(Generic[ConnectionType]):
             return metadata.friendliai
         if metadata.HasField("google"):
             return metadata.google
+        if metadata.HasField("meta"):
+            return metadata.meta
         if metadata.HasField("mistral"):
             return metadata.mistral
         if metadata.HasField("nvidia"):
