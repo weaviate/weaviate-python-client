@@ -1231,6 +1231,34 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-digitalocean": {}},
     ),
     (
+        Configure.Generative.meta(
+            base_url="https://api.meta.ai",
+            model="muse-spark-1.2",
+            temperature=0.5,
+            top_p=0.9,
+            max_tokens=100,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            reasoning_effort="xhigh",
+        ),
+        {
+            "generative-meta": {
+                "baseURL": "https://api.meta.ai",
+                "model": "muse-spark-1.2",
+                "temperature": 0.5,
+                "topP": 0.9,
+                "maxTokens": 100,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "reasoningEffort": "xhigh",
+            }
+        },
+    ),
+    (
+        Configure.Generative.meta(),
+        {"generative-meta": {}},
+    ),
+    (
         Configure.Generative.xai(
             model="grok-2-latest",
             max_tokens=100,
