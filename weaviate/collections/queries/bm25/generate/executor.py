@@ -392,7 +392,7 @@ class _BM25GenerateExecutor(
             grouped_task: The prompt to use for RaG on the entire result set.
             grouped_properties: The properties to use in the RaG on the entire result set.
             query_properties: The properties to search in. If not specified, all properties are searched.
-            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            limit: The maximum number of results to return. If not specified or set to `0`, the server's default limit is used.
             offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
             auto_limit: The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             filters: The filters to apply to the search.
