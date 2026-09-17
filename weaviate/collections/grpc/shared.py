@@ -124,6 +124,16 @@ class _BaseGRPC:
             target_vector = target_vectors_tmp
         return self.__target_vector_to_grpc(target_vector)
 
+    @staticmethod
+    def __check_vector_keys(
+        vector: Dict[str, Any], targets: base_search_pb2.Targets, argument_name: str
+    ) -> None:
+        target_names = set(targets.target_vectors)
+        if target_names != vector.keys():
+            raise WeaviateInvalidInputError(
+                f"The {argument_name} keys {sorted(vector.keys())} must match the target vectors {sorted(target_names)}"
+            )
+
     def __target_vector_to_grpc(
         self, target_vector: Optional[TargetVectorJoinType]
     ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
@@ -155,6 +165,7 @@ class _BaseGRPC:
                 raise WeaviateInvalidInputError(
                     "The number of target vectors must be equal to the number of vectors."
                 )
+            self.__check_vector_keys(vector, targets, argument_name)
 
             vector_per_target: Dict[str, bytes] = {}
             for key, value in vector.items():
@@ -292,12 +303,9 @@ class _BaseGRPC:
             target_vectors.append(key)
 
         if isinstance(vector, dict):
-            if (
-                len(vector) == 0
-                or targets is None
-                or len(set(targets.target_vectors)) != len(vector)
-            ):
+            if len(vector) == 0 or targets is None:
                 raise invalid_nv_exception
+            self.__check_vector_keys(vector, targets, argument_name)
             for key, value in vector.items():
                 if _is_1d_vector(value):
                     add_1d_vector(value, key)
