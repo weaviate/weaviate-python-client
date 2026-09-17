@@ -110,6 +110,15 @@ OpenAiReasoningEffort: TypeAlias = Literal[
     "high",
 ]
 
+MetaReasoningEffort: TypeAlias = Literal[
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+]
+
 IndexName: TypeAlias = Literal[
     "searchable",
     "filterable",
@@ -217,6 +226,7 @@ class GenerativeSearches(str, BaseEnum):
         DEEPSEEK: Weaviate module backed by DeepSeek generative models.
         DIGITALOCEAN: Weaviate module backed by DigitalOcean generative models.
         FRIENDLIAI: Weaviate module backed by FriendliAI generative models.
+        META: Weaviate module backed by Meta generative models.
         MISTRAL: Weaviate module backed by Mistral generative models.
         NVIDIA: Weaviate module backed by NVIDIA generative models.
         OLLAMA: Weaviate module backed by generative models deployed on Ollama infrastructure.
@@ -234,6 +244,7 @@ class GenerativeSearches(str, BaseEnum):
     DIGITALOCEAN = "generative-digitalocean"
     DUMMY = "generative-dummy"
     FRIENDLIAI = "generative-friendliai"
+    META = "generative-meta"
     MISTRAL = "generative-mistral"
     NVIDIA = "generative-nvidia"
     OLLAMA = "generative-ollama"

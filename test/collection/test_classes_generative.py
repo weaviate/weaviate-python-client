@@ -12,6 +12,7 @@ from weaviate.collections.classes.generative import (
 )
 from weaviate.proto.v1 import base_pb2
 from weaviate.proto.v1 import generative_pb2
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import BLOB_INPUT
 
 LOGO = "test/collection/weaviate-logo.png"
@@ -205,6 +206,31 @@ def test_generative_parameters_images_parsing(
                     presence_penalty=0.2,
                     top_p=0.9,
                     stop=base_pb2.TextArray(values=["\n"]),
+                ),
+            ),
+        ),
+        (
+            GenerativeConfig.meta(
+                base_url="https://api.meta.ai",
+                model="muse-spark-1.2",
+                temperature=0.5,
+                top_p=0.9,
+                max_tokens=100,
+                frequency_penalty=0.1,
+                presence_penalty=0.2,
+                reasoning_effort="high",
+            )._to_grpc(_GenerativeConfigRuntimeOptions(return_metadata=True)),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                meta=generative_pb2.GenerativeMeta(
+                    base_url="https://api.meta.ai",
+                    model="muse-spark-1.2",
+                    temperature=0.5,
+                    top_p=0.9,
+                    max_tokens=100,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.2,
+                    reasoning_effort=generative_pb2.GenerativeMeta.ReasoningEffort.REASONING_EFFORT_HIGH,
                 ),
             ),
         ),
@@ -535,3 +561,30 @@ def test_generative_provider_to_grpc(
     actual: generative_pb2.GenerativeProvider, expected: generative_pb2.GenerativeProvider
 ) -> None:
     assert expected == actual
+
+
+@pytest.mark.parametrize(
+    "reasoning_effort,expected",
+    [
+        ("none", generative_pb2.GenerativeMeta.ReasoningEffort.REASONING_EFFORT_NONE),
+        ("minimal", generative_pb2.GenerativeMeta.ReasoningEffort.REASONING_EFFORT_MINIMAL),
+        ("low", generative_pb2.GenerativeMeta.ReasoningEffort.REASONING_EFFORT_LOW),
+        ("medium", generative_pb2.GenerativeMeta.ReasoningEffort.REASONING_EFFORT_MEDIUM),
+        ("high", generative_pb2.GenerativeMeta.ReasoningEffort.REASONING_EFFORT_HIGH),
+        ("xhigh", generative_pb2.GenerativeMeta.ReasoningEffort.REASONING_EFFORT_XHIGH),
+    ],
+)
+def test_generative_meta_reasoning_effort_mapping(
+    reasoning_effort: str, expected: generative_pb2.GenerativeMeta.ReasoningEffort
+) -> None:
+    provider = GenerativeConfig.meta(reasoning_effort=reasoning_effort)._to_grpc(
+        _GenerativeConfigRuntimeOptions(return_metadata=True)
+    )
+    assert provider.meta.reasoning_effort == expected
+
+
+def test_generative_meta_invalid_reasoning_effort() -> None:
+    with pytest.raises(WeaviateInvalidInputError, match="Invalid reasoning_effort value"):
+        GenerativeConfig.meta(reasoning_effort="ultra")._to_grpc(
+            _GenerativeConfigRuntimeOptions(return_metadata=True)
+        )
