@@ -21,8 +21,6 @@ def _builder(version: _ServerVersion = _DEFAULT_VERSION) -> _QueryGRPC:
         tenant=None,
         consistency_level=None,
         validate_arguments=True,
-        uses_125_api=True,
-        uses_127_api=True,
     )
 
 

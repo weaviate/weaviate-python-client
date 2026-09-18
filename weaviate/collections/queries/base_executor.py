@@ -86,16 +86,18 @@ class _BaseExecutor(Generic[ConnectionType]):
         self._references = references
         self._validate_arguments = validate_arguments
 
-        self.__uses_125_api = connection._weaviate_version.is_at_least(1, 25, 0)
-        self.__uses_127_api = connection._weaviate_version.is_at_least(1, 27, 0)
-        self._query = _QueryGRPC(
-            connection._weaviate_version,
+    @property
+    def _query(self) -> _QueryGRPC:
+        # The server version is only known once the connection is open, which can happen after
+        # this object is created, e.g. `client.collections.use(...)` before `await client.connect()`
+        # with the async client. Build the request factory per call so that it always reflects the
+        # version of the server that the connection is talking to.
+        return _QueryGRPC(
+            self._connection._weaviate_version,
             self._name,
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
-            uses_125_api=self.__uses_125_api,
-            uses_127_api=self.__uses_127_api,
         )
 
     def __retrieve_timestamp(
@@ -391,7 +393,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             vector=(self.__extract_vector_for_object(meta) if options.include_vector else {}),
             generated=(
                 self.__extract_generated_from_generative(gen)
-                if self.__uses_127_api
+                if self._connection._weaviate_version.is_at_least(1, 27, 0)
                 else self.__extract_generated_from_metadata(meta)
             ),
             generative=self.__extract_generative_single_from_generative(gen),
