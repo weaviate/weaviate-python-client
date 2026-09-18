@@ -150,6 +150,8 @@ async def test_ssb_ingest_reports_has_errors_async(
     assert len(result.errors) == 2
     assert len(result.uuids) == 2
     assert result.has_errors
+    for failed in result.errors.values():
+        assert failed.original_uuid == str(failed.object_.uuid)
 
 
 def test_ssb_stream_reports_has_errors(
@@ -160,3 +162,5 @@ def test_ssb_stream_reports_has_errors(
             batch.add_object({"name": f"Object {i}"})
     assert len(failed_object_stream.batch.failed_objects) == 2
     assert failed_object_stream.batch.results.objs.has_errors
+    for failed in failed_object_stream.batch.failed_objects:
+        assert failed.original_uuid == str(failed.object_.uuid)
