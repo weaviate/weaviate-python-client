@@ -499,6 +499,9 @@ def test_is_weaviate_client_too_old(current_version: str, latest_version: str, t
         ('\\\\"', '\\\\\\"'),
         ('\\\\"', '\\\\\\"'),
         ('\\\\\\"', '\\\\\\"'),
+        ("foo\nbar", "foo bar"),
+        ("foo\r\nbar", "foo bar"),
+        ("foo\rbar", "foo bar"),
     ],
 )
 def test_sanitize_str(in_str: str, out_str: str) -> None:
