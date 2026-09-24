@@ -1,8 +1,8 @@
-from typing import Optional
+from typing import Dict, List, Optional
 
 from weaviate.classes.config import ConsistencyLevel
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.debug.types import DebugRESTObject
+from weaviate.debug.types import DebugRESTObject, DistributedTask
 from weaviate.types import UUID
 
 from .executor import _DebugExecutor
@@ -17,3 +17,4 @@ class _Debug(_DebugExecutor[ConnectionSync]):
         node_name: Optional[str] = None,
         tenant: Optional[str] = None,
     ) -> Optional[DebugRESTObject]: ...
+    def list_tasks(self) -> Dict[str, List[DistributedTask]]: ...
