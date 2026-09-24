@@ -19,6 +19,10 @@ from weaviate.util import is_weaviate_domain
 JSONPayload = Union[Mapping[str, Any], Sequence[Any]]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
+# first Weaviate release that serves grpc-web on the REST port
+GRPC_WEB_MIN_SERVER_VERSION = "1.38.3"
+# the base path Weaviate serves grpc-web on
+GRPC_WEB_SERVER_PATH_PREFIX = "/v1/grpc-web"
 
 
 def _grpc_web_shim_active() -> bool:

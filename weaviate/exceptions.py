@@ -329,12 +329,6 @@ def _grpc_status_of(
     return None, None
 
 
-# first Weaviate release that serves grpc-web on the REST port
-GRPC_WEB_MIN_SERVER_VERSION = "1.38.3"
-# the base path Weaviate serves grpc-web on
-GRPC_WEB_SERVER_PATH_PREFIX = "/v1/grpc-web"
-
-
 class WeaviateGRPCUnavailableError(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
@@ -354,6 +348,13 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
             )
 
         if grpc_path_prefix:
+            # local import: weaviate.connect imports this module at import time, so a
+            # module-level import here would be circular
+            from weaviate.connect.base import (
+                GRPC_WEB_MIN_SERVER_VERSION,
+                GRPC_WEB_SERVER_PATH_PREFIX,
+            )
+
             # grpc-web shares the REST host:port under a base path: there is no separate
             # gRPC port to open, and REST already worked against this endpoint, so no
             # firewall/wrong-port advice here

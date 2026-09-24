@@ -16,9 +16,8 @@ from weaviate.auth import (
 )
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
-from weaviate.connect.base import ConnectionParams, ProtocolParams
+from weaviate.connect.base import GRPC_WEB_SERVER_PATH_PREFIX, ConnectionParams, ProtocolParams
 from weaviate.embedded import WEAVIATE_VERSION, EmbeddedOptions
-from weaviate.exceptions import GRPC_WEB_SERVER_PATH_PREFIX
 from weaviate.util import docstring_deprecated
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings

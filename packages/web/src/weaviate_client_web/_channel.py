@@ -345,7 +345,7 @@ def _body_excerpt(body: bytes, limit: int = _BODY_EXCERPT_LIMIT) -> str:
 def _no_path_prefix_hint() -> str:
     # Lazy import: this module is imported while ``weaviate/__init__`` is still
     # bootstrapping the shim under Emscripten.
-    from weaviate.exceptions import GRPC_WEB_MIN_SERVER_VERSION, GRPC_WEB_SERVER_PATH_PREFIX
+    from weaviate.connect.base import GRPC_WEB_MIN_SERVER_VERSION, GRPC_WEB_SERVER_PATH_PREFIX
 
     return (
         "(no grpc_path_prefix set — under WebAssembly the connect helpers route gRPC to "
