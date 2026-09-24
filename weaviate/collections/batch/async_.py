@@ -202,6 +202,16 @@ class _BatchBaseAsync:
             self.__results_for_wrapper.imported_shards
         )
 
+        if self.__bg_exception is not None:
+            # surface the background failure instead of returning partial results as a success
+            raise self.__bg_exception
+        n_objs, n_refs = len(self.__batch_objects), len(self.__batch_references)
+        if n_objs + n_refs > 0 and not self.__all_tasks_alive():
+            # the tasks are gone with data still queued: the batch did NOT complete
+            raise WeaviateBatchStreamError(
+                f"batch stream ended with {n_objs} objects and {n_refs} references unsent"
+            )
+
     async def _shutdown(self) -> None:
         self.__is_stopped.set()
 
@@ -532,6 +542,8 @@ class _BatchBaseAsync:
         # bg thread is sending objs+refs automatically, so simply wait for everything to be done
         while len(self.__batch_objects) > 0 or len(self.__batch_references) > 0:
             await asyncio.sleep(0.01)
+            # a dead task means nothing drains the queues: raise, don't spin forever
+            self.__check_bg_tasks_alive()
 
     async def _add_object(
         self,
@@ -628,4 +640,4 @@ class _BatchBaseAsync:
         if self.__all_tasks_alive():
             return
 
-        raise self.__bg_exception or Exception("Batch tasks died unexpectedly")
+        raise self.__bg_exception or WeaviateBatchStreamError("the batch stream has ended")
