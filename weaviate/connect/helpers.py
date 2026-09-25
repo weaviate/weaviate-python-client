@@ -1,5 +1,6 @@
 """Helper functions for creating new WeaviateClient or WeaviateAsyncClient instances in common scenarios."""
 
+import sys
 from typing import Dict, Optional, Tuple, Union
 from urllib.parse import urlparse
 
@@ -15,11 +16,42 @@ from weaviate.auth import (
 )
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
-from weaviate.connect.base import ConnectionParams, ProtocolParams
+from weaviate.connect.base import GRPC_WEB_SERVER_PATH_PREFIX, ConnectionParams, ProtocolParams
 from weaviate.embedded import WEAVIATE_VERSION, EmbeddedOptions
 from weaviate.util import docstring_deprecated
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
+
+# Default gRPC port of a local Weaviate. use_async_with_local() also uses it to tell
+# whether the caller picked a gRPC port of their own.
+_LOCAL_GRPC_PORT_DEFAULT = 50051
+
+
+def _grpc_endpoint_str(params: ProtocolParams) -> str:
+    """The endpoint as shown in Con006; the scheme makes a secure-only mismatch visible."""
+    return f"{'grpcs' if params.secure else 'grpc'}://{params.host}:{params.port}"
+
+
+def _webify(
+    http: ProtocolParams, grpc: ProtocolParams, *, grpc_chosen_by_caller: bool
+) -> ConnectionParams:
+    """Build ConnectionParams; under Emscripten, route gRPC to the REST endpoint over grpc-web.
+
+    grpc_chosen_by_caller: whether ``grpc`` is caller input rather than a helper default; a
+    replaced caller endpoint raises warning Con006.
+    """
+    if sys.platform != "emscripten":
+        # grpc_path_prefix=None is passed explicitly so the constructor call (and pydantic's
+        # error output for it) looks exactly as it did before grpc-web existed
+        return ConnectionParams(http=http, grpc=grpc, grpc_path_prefix=None)
+
+    web_grpc = ProtocolParams(host=http.host, port=http.port, secure=http.secure)
+    if grpc_chosen_by_caller and web_grpc != grpc:
+        _Warnings.grpc_endpoint_forced_to_grpc_web(
+            requested=_grpc_endpoint_str(grpc),
+            effective=_grpc_endpoint_str(web_grpc),
+        )
+    return ConnectionParams(http=http, grpc=web_grpc, grpc_path_prefix=GRPC_WEB_SERVER_PATH_PREFIX)
 
 
 def __parse_weaviate_cloud_cluster_url(cluster_url: str) -> Tuple[str, str]:
@@ -384,6 +416,9 @@ def use_async_with_weaviate_cloud(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
+    Under Pyodide, gRPC runs over grpc-web on the cluster's REST endpoint (443) instead of
+    the ``grpc-`` host.
+
     Args:
         cluster_url: The WCD cluster URL or hostname to connect to. Usually in the form: rAnD0mD1g1t5.something.weaviate.cloud
         auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use `weaviate.classes.init.Auth.api_key()`,
@@ -420,9 +455,11 @@ def use_async_with_weaviate_cloud(
     """
     cluster_url, grpc_host = __parse_weaviate_cloud_cluster_url(cluster_url)
     return WeaviateAsyncClient(
-        connection_params=ConnectionParams(
+        connection_params=_webify(
             http=ProtocolParams(host=cluster_url, port=443, secure=True),
             grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
+            # the grpc-<cluster> host is the helper's default, not caller input
+            grpc_chosen_by_caller=False,
         ),
         auth_client_secret=__parse_auth_credentials(auth_credentials),
         additional_headers=headers,
@@ -446,10 +483,13 @@ def use_async_with_local(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
+    Under Pyodide, gRPC runs over grpc-web on the REST endpoint; a non-default
+    ``grpc_port`` is ignored with a warning.
+
     Args:
         host: The host to use for the underlying REST and GraphQL API calls.
         port: The port to use for the underlying REST and GraphQL API calls.
-        grpc_port: The port to use for the underlying gRPC API.
+        grpc_port: The port to use for the underlying gRPC API. Ignored under Pyodide.
         headers: Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         skip_init_checks: Whether to skip the initialization checks when connecting to Weaviate.
@@ -486,9 +526,11 @@ def use_async_with_local(
         >>> # The connection is automatically closed when the context is exited.
     """
     return WeaviateAsyncClient(
-        connection_params=ConnectionParams(
+        connection_params=_webify(
             http=ProtocolParams(host=host, port=port, secure=False),
             grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
+            # the default port comes from the helper; anything else the caller chose
+            grpc_chosen_by_caller=grpc_port != _LOCAL_GRPC_PORT_DEFAULT,
         ),
         additional_headers=headers,
         additional_config=additional_config,
@@ -596,13 +638,18 @@ def use_async_with_custom(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
+    Under Pyodide, gRPC runs over grpc-web on the REST endpoint: ``grpc_host``,
+    ``grpc_port`` and ``grpc_secure`` are replaced by the HTTP values, with a warning if
+    they differ.
+
     Args:
         http_host: The host to use for the underlying REST and GraphQL API calls.
         http_port: The port to use for the underlying REST and GraphQL API calls.
         http_secure: Whether to use https for the underlying REST and GraphQL API calls.
-        grpc_host: The host to use for the underlying gRPC API.
-        grpc_port: The port to use for the underlying gRPC API.
-        grpc_secure: Whether to use a secure channel for the underlying gRPC API.
+        grpc_host: The host to use for the underlying gRPC API. Ignored under Pyodide.
+        grpc_port: The port to use for the underlying gRPC API. Ignored under Pyodide.
+        grpc_secure: Whether to use a secure channel for the underlying gRPC API. Ignored
+            under Pyodide.
         headers: Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use `weaviate.classes.init.Auth.api_key()`,
@@ -645,13 +692,11 @@ def use_async_with_custom(
         >>> # The connection is automatically closed when the context is exited.
     """
     return WeaviateAsyncClient(
-        ConnectionParams.from_params(
-            http_host=http_host,
-            http_port=http_port,
-            http_secure=http_secure,
-            grpc_host=grpc_host,
-            grpc_port=grpc_port,
-            grpc_secure=grpc_secure,
+        _webify(
+            http=ProtocolParams(host=http_host, port=http_port, secure=http_secure),
+            grpc=ProtocolParams(host=grpc_host, port=grpc_port, secure=grpc_secure),
+            # all three gRPC arguments are required here, so they are caller input
+            grpc_chosen_by_caller=True,
         ),
         auth_client_secret=__parse_auth_credentials(auth_credentials),
         additional_headers=headers,
