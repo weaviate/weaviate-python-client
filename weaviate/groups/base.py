@@ -1,6 +1,6 @@
 from typing import Dict, Generic, List, Literal, Union, overload
 
-from httpx import Response
+from httpx2 import Response
 
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes

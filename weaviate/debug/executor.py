@@ -1,6 +1,6 @@
 from typing import Dict, Generic, Optional
 
-from httpx import Response
+from httpx2 import Response
 
 from weaviate.classes.config import ConsistencyLevel
 from weaviate.connect import executor
