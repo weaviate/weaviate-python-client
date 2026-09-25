@@ -1,11 +1,4 @@
-"""grpc shim tests, against this interpreter's real installation.
-
-Run by pytest inside Pyodide via ``ci/pyodide-e2e/units.mjs``: importing
-``weaviate_client_web`` bootstrapped the shim, so ``sys.modules['grpc']`` here IS the
-shim. Bootstrap scenarios that need a clean import state live in ``units.mjs`` (one
-fresh interpreter) and, for the base client's hook logic, in
-``test/test_wasm_compat.py`` on CPython.
-"""
+"""grpc shim tests; sys.modules["grpc"] is the shim, installed by importing weaviate_client_web."""
 
 import struct
 
@@ -76,9 +69,7 @@ async def test_real_proto_unary_round_trip_under_shim():
 
 
 def test_fake_grpc_version_matches_base_fallback():
-    # The shim advertises FAKE_GRPC_VERSION as grpc.__version__ and the base package
-    # falls back to _GRPCIO_FALLBACK_VERSION under Emscripten — the vendored stubs'
-    # version gates see both, so they must never drift apart.
+    # grpc.__version__ and the proto-selection fallback describe the same fake grpcio
     from weaviate.proto.v1 import _GRPCIO_FALLBACK_VERSION
 
     assert FAKE_GRPC_VERSION == _GRPCIO_FALLBACK_VERSION

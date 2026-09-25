@@ -358,9 +358,7 @@ class _ConnectionBase:
         return None
 
     def __handle_ping_exception(self, e: Exception) -> None:
-        # pass the error on: its code()/details() say what actually went wrong, and the
-        # generic advice does not apply to grpc-web (no separate gRPC port, no firewall;
-        # REST just worked against this same endpoint)
+        # pass the error on so the message can report its status and details
         raise WeaviateGRPCUnavailableError(
             f"v{self.server_version}",
             self._connection_params._grpc_address,
@@ -369,7 +367,7 @@ class _ConnectionBase:
         ) from e
 
     def __grpc_web_prefix(self) -> Optional[str]:
-        """The configured grpc-web base path, or None when this is native gRPC."""
+        """The configured grpc-web path prefix, or None for native gRPC."""
         return self._connection_params._grpc_web_path_prefix or None
 
     @property

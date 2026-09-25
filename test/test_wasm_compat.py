@@ -1,9 +1,4 @@
-"""Unit tests for WASM/Pyodide-compatibility behaviour that runs on CPython too.
-
-Under Emscripten there are no subprocesses, no threads and no sockets — these tests pin
-the guards, the grpc-web auto-routing and the grpc-web diagnostics added for that
-environment without needing a browser.
-"""
+"""CPython tests for the Emscripten guards, grpc-web routing and grpc-web diagnostics."""
 
 import asyncio
 import pathlib
@@ -29,24 +24,20 @@ from weaviate.util import _ServerVersion
 
 
 def test_embedded_raises_explicit_error_under_emscripten(monkeypatch) -> None:
-    # without the guard, the Emscripten socket emulation makes the port probe
-    # "succeed" and embedded misreports that Weaviate is already listening
     monkeypatch.setattr(sys, "platform", "emscripten")
     with pytest.raises(WeaviateStartUpError, match="WebAssembly/Pyodide"):
         _EmbeddedBase.check_supported_platform()
 
 
 def test_sync_client_construction_raises_async_only_under_emscripten(monkeypatch) -> None:
-    # without the guard the sync client constructs fine and the first REST call fails
-    # with an opaque ConnectError; the clear async-only error must win, at construction
+    # fails at construction, not with a ConnectError on the first REST call
     monkeypatch.setattr(sys, "platform", "emscripten")
     with pytest.raises(WeaviateStartUpError, match="async client"):
         WeaviateClient(connection_params=ConnectionParams.from_url("http://localhost:8080", 50051))
 
 
 def test_batch_stream_fails_fast_when_grpc_web_shim_active(monkeypatch) -> None:
-    # over grpc-web the BatchStream RPC would die inside the background tasks (silent
-    # drop / endless flush); _start must raise before any task is created
+    # _start must raise before any background task exists
     monkeypatch.setattr(grpc, "__weaviate_client_web_shim__", True, raising=False)
     batch = object.__new__(_BatchBaseAsync)  # the guard runs before any attribute access
     with pytest.raises(WeaviateBatchStreamError, match="insert_many"):
@@ -74,8 +65,6 @@ def _ping_exception(conn: _ConnectionBase, error: Exception) -> None:
 
 
 def test_grpc_web_404_names_the_two_real_causes_and_drops_firewall_advice() -> None:
-    # over grpc-web there is no separate gRPC port and no firewall: REST just succeeded
-    # against this very host:port. A 404 means the path was not routed.
     conn = _connection(prefix="/grpc-web")
     error = AioRpcError(
         grpc.StatusCode.UNIMPLEMENTED,
@@ -141,7 +130,7 @@ def test_native_grpc_message_keeps_its_advice_and_gains_the_real_status() -> Non
     # unchanged guidance for native gRPC ...
     assert "The gRPC traffic at the specified port is blocked by a firewall." in msg
     assert "Please check that the server address and port (localhost:50051) are correct." in msg
-    # ... plus the error that was previously discarded
+    # ... plus the call's status and details
     assert "UNAVAILABLE" in msg
     assert "failed to connect" in msg
 
@@ -154,18 +143,14 @@ def test_non_grpc_ping_error_is_still_reported() -> None:
     assert "blocked by a firewall" in str(excinfo.value)
 
 
-# --- grpc-web auto-routing under Emscripten -------------------------------------------
-#
-# Native gRPC is impossible under WASM (no sockets, no grpcio wheel), so the async connect
-# helpers pin gRPC to the REST endpoint under Weaviate's own grpc-web base path — the same
-# contract as the TypeScript @weaviate/web client's webify(). Nothing selects it.
+# --- grpc-web routing under Emscripten ------------------------------------------------
 
 GRPC_WEB_PREFIX = "/v1/grpc-web"
 
 
 @pytest.fixture
 def emscripten(monkeypatch):
-    """Fake Emscripten, with the grpc-web shim marked active.
+    """Fake Emscripten, with the grpc shim marked active.
 
     Under real Pyodide ``import weaviate`` installs the shim itself; here only the
     routing decision is under test, not the environment check that guards it.
@@ -199,7 +184,7 @@ def test_use_async_with_local_routes_grpc_to_rest_under_emscripten(emscripten) -
 
 
 def test_use_async_with_weaviate_cloud_routes_grpc_to_the_cluster_host(emscripten) -> None:
-    # WCD serves grpc-web on the cluster's own REST endpoint, not on grpc-<cluster>
+    # Weaviate Cloud serves grpc-web on the cluster's own REST endpoint, not on grpc-<cluster>
     import weaviate
 
     client = weaviate.use_async_with_weaviate_cloud("abc.something.weaviate.cloud", None)
@@ -227,8 +212,7 @@ def test_use_async_with_custom_routes_grpc_to_rest_under_emscripten(emscripten) 
 
 
 def test_matching_grpc_arguments_are_not_warned_about(emscripten, recwarn) -> None:
-    # the documented WASM shape: gRPC arguments equal to the HTTP ones. Nothing is
-    # discarded, so warning here would just train users to ignore the warning.
+    # gRPC arguments equal to the HTTP ones: nothing is replaced, so no warning
     import weaviate
 
     weaviate.use_async_with_custom(
@@ -245,9 +229,7 @@ def test_matching_grpc_arguments_are_not_warned_about(emscripten, recwarn) -> No
 
 
 def test_overridden_grpc_arguments_are_warned_about(emscripten) -> None:
-    # Python cannot drop required parameters the way TypeScript drops them from a type,
-    # so a WASM caller must pass something. Overriding keeps the client usable, but it
-    # must never look like the endpoint they gave was honoured.
+    # a replaced caller endpoint must warn
     import weaviate
 
     with pytest.warns(UserWarning, match="Con006") as record:
@@ -295,12 +277,8 @@ def test_an_explicit_local_grpc_port_is_warned_about_but_the_default_is_not(emsc
 
 # --- the single-import hook (weaviate/__init__.py) ------------------------------------
 #
-# The hook fires on sys.platform == "emscripten" and (via the companion's bootstrap)
-# replaces sys.modules['grpc'] process-wide, so each scenario runs in a fresh subprocess
-# with the platform faked before `import weaviate`. The success path — a bare import
-# that bootstraps the real companion — needs real Pyodide and runs in
-# ci/pyodide-e2e/units.mjs; the hook's other branches are plain CPython logic and are
-# pinned here.
+# The import hook replaces sys.modules["grpc"], so each scenario runs in a fresh subprocess.
+# The success path runs in ci/pyodide-e2e/units.mjs.
 
 _REPO_ROOT = str(pathlib.Path(__file__).resolve().parents[1])
 
@@ -347,8 +325,8 @@ def test_bare_import_without_companion_raises_clear_import_error() -> None:
 
 
 def test_bare_import_with_grpc_present_falls_through_silently() -> None:
-    # Companion blocked but a real grpc IS importable (grpcio in the dev env): the hook
-    # must fall through and leave the normal import path untouched.
+    # weaviate_client_web blocked but a real grpc importable (grpcio in the dev env): the
+    # hook falls through and leaves the normal import path untouched
     result = _run_hook_scenario(
         prelude=_PRIME_SYSCONFIG,
         body="""
@@ -367,9 +345,8 @@ def test_bare_import_with_grpc_present_falls_through_silently() -> None:
 
 
 def test_bare_import_with_broken_companion_surfaces_its_own_error(tmp_path) -> None:
-    # An INSTALLED companion whose import fails (here: a missing dependency of its own)
-    # must raise that error, not the install hint — the hint would send the user to
-    # reinstall a package that is already there.
+    # an installed weaviate-client-web that fails to import surfaces its own error, not the
+    # install hint
     fake_pkg = tmp_path / "weaviate_client_web"
     fake_pkg.mkdir()
     (fake_pkg / "__init__.py").write_text(

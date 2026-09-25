@@ -1,16 +1,7 @@
-// Runs the Weaviate Python client e2e suite (e2e.py) inside Pyodide (WASM) under Node.
-//
-// Usage: node run.mjs <wheels-dir>
-//   <wheels-dir> must contain exactly the two locally-built pure wheels:
-//   weaviate_client-*.whl and weaviate_client_web-*.whl.
+// Runs e2e.py inside Pyodide under Node against a live Weaviate.
+// Usage: node run.mjs <wheels-dir>  (one weaviate_client-*.whl, one weaviate_client_web-*.whl)
 // Env: WEAVIATE_HOST (default localhost), WEAVIATE_PORT (default 8090).
-//
-// The pinned `pyodide` npm package fixes the interpreter (the 314.x line bundles
-// CPython 3.14), so there is no Python version matrix here. micropip installs the two
-// local wheels; transitive deps resolve from the Pyodide distribution
-// (pydantic/pydantic_core/cryptography ship wasm builds there — pydantic_core has no
-// wasm wheel on PyPI) or from PyPI as pure wheels (protobuf), and the base client's
-// `grpcio; sys_platform != "emscripten"` marker correctly skips grpcio.
+// The pyodide npm pin in package.json fixes the interpreter.
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,9 +41,8 @@ console.log(
 
 await pyodide.loadPackage("micropip");
 const micropip = pyodide.pyimport("micropip");
-// anyio (needed because Pyodide's httpx recipe drops it, while authlib imports it
-// directly) resolves from the companion wheel's `anyio ; sys_platform == "emscripten"`
-// marker — no explicit install here, so the marker stays proven.
+// anyio comes from weaviate-client-web's emscripten marker; installing it here would
+// hide a broken marker.
 
 pyodide.FS.mkdirTree("/wheels");
 pyodide.mountNodeFS("/wheels", wheelsDir);
@@ -61,8 +51,7 @@ for (const wheel of wheels) {
   await micropip.install(`emfs:/wheels/${wheel}`);
 }
 
-// Single-import check: the FIRST weaviate-side import in this interpreter is a bare
-// `import weaviate` — the base client must bootstrap the companion (and the shim) itself.
+// The first import is a bare `import weaviate`: it must install the grpc shim itself.
 pyodide.runPython(`
 import sys
 assert "weaviate_client_web" not in sys.modules
@@ -72,8 +61,7 @@ assert getattr(sys.modules.get("grpc"), "__weaviate_client_web_shim__", False), 
 print("OK bare 'import weaviate' bootstrapped the grpc shim")
 `);
 
-// Define e2e.py's globals (imports run here, installing the grpc shim), then await
-// main() on Pyodide's event loop — asyncio.run() cannot be used inside Pyodide.
+// asyncio.run() is unavailable in Pyodide: load e2e.py, then await main() on Pyodide's loop.
 pyodide.runPython(readFileSync(resolve(here, "e2e.py"), "utf8"));
 try {
   await pyodide.runPythonAsync("await main()");

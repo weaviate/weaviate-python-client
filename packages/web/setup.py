@@ -1,14 +1,8 @@
-"""Injects the lockstep ``weaviate-client==<version>`` pin at build time.
+"""Pins weaviate-client==<this version> at build time (the version comes from git tags).
 
-Both packages derive their version from the repository's git tags (setuptools_scm), so
-the version is only known when the wheel is built and a static ``dependencies`` list
-cannot express the pin. The pin makes mismatched pairs unresolvable at install time:
-the two packages share private contracts (the ``HTTP <status>`` error-string markers,
-the exception constants ``_channel`` imports), so a companion must only ever install
-next to the base client it was built with.
-
-Consequence for releasing: every tag must publish BOTH packages — a base-only release
-would leave the extra pointing at a companion whose pin no longer resolves.
+The packages share private contracts (the "HTTP <status>" details that weaviate.exceptions
+matches, and the grpc-web constants _channel imports from weaviate.connect.base), so every
+release tag must publish both.
 """
 
 from setuptools import setup

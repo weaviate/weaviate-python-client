@@ -1,22 +1,7 @@
-// Runs the weaviate_client_web unit suite (packages/web/tests) with pytest inside
-// Pyodide (WASM) under Node, plus a bootstrap scenario in a fresh interpreter. No
-// running Weaviate is needed — everything is driven through fake senders / a fake
-// pyfetch.
-//
-// Usage: node --experimental-wasm-jspi units.mjs <wheels-dir>
-//   <wheels-dir> must contain exactly the two locally-built pure wheels:
-//   weaviate_client-*.whl and weaviate_client_web-*.whl (same layout as run.mjs).
-//
-// The JSPI flag is required: pytest's runner is synchronous, so async tests execute
-// through run_until_complete, which needs stack switching (enableRunUntilComplete +
-// a callPromising() entrypoint). Without the flag the run fails loudly at startup —
-// it can never produce a false green.
-//
-// The package imports pyodide at module scope, so this harness is the only place its
-// unit tests can run. The base client's hook logic (missing companion, broken
-// companion, grpc-present fall-through) is covered by subprocess tests in
-// test/test_wasm_compat.py on CPython; the bootstrap scenario below covers the one
-// path that needs real Pyodide, micropip and the wheels.
+// Runs packages/web/tests with pytest inside Pyodide under Node, plus a fresh-interpreter
+// bootstrap check. No Weaviate needed.
+// Usage: node --experimental-wasm-jspi units.mjs <wheels-dir>  (same wheels as run.mjs)
+// JSPI is required: pytest runs async tests through run_until_complete (stack switching).
 import { readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -93,12 +78,8 @@ console.log(
   `pyodide ${pyodide.version} / python ${pyodide.runPython("import sys; sys.version.split()[0]")}`,
 );
 const micropip = pyodide.pyimport("micropip");
-// A metadata-coherent pair: pytest-asyncio 0.25.3 declares pytest<9,>=8.2. Its
-// run_until_complete-based execution stack-switches correctly under JSPI, unlike the
-// asyncio.Runner-based pytest-asyncio 1.x, whose async tests fail here. (The Pyodide
-// distribution bundles pytest 9 next to pytest-asyncio 0.25.3, contradicting that
-// constraint — micropip tolerates it, but there is no reason to depend on its
-// leniency, so both are pinned from PyPI.)
+// pytest-asyncio 1.x (asyncio.Runner) fails under JSPI; 0.25.3 needs pytest<9, so pin
+// both from PyPI.
 await micropip.install(["pytest==8.4.2", "pytest-asyncio==0.25.3"]);
 pyodide.FS.mkdirTree("/units");
 pyodide.mountNodeFS("/units", testsDir);

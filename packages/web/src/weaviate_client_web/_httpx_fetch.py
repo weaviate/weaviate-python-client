@@ -1,30 +1,8 @@
-"""fetch-based httpx transport for Pyodide/Emscripten.
+"""fetch-based httpx.AsyncHTTPTransport for Pyodide, where httpcore has no sockets.
 
-The base client's REST path uses ``httpx.AsyncClient`` with explicit
-``httpx.AsyncHTTPTransport`` mounts (``weaviate/connect/v4.py``). httpcore opens raw
-sockets, which do not exist under WASM, so without this module every REST call
-(``is_ready``, collection config, batch references, …) fails with an empty connection
-error even though the grpc-web data path works.
-
-Installing reroutes ``AsyncHTTPTransport.handle_async_request`` through the browser's
-``fetch`` via ``pyodide.http.pyfetch`` — the same install-globally-under-Emscripten
-philosophy as the grpc shim in ``_shim.py``. Responses are fully buffered, which matches
-how the base client consumes them (JSON bodies, no streaming).
-
-It installs under Emscripten even when Pyodide's bundled httpx carries its own JS-fetch
-transport (``httpx/_transports/jsfetch.py``): that transport reads ``Response.body``
-unconditionally, which is ``null`` for HEAD requests and 204 responses (``data.exists``,
-``data.delete_by_id``, ``tenants.exists``, …), and it does not enforce the per-request
-read timeout end-to-end.
-
-Known divergences from native httpx (acceptable for the weaviate client's usage):
-- the browser's fetch follows redirects internally, so httpx never sees a 3xx;
-- multi-value response headers (e.g. Set-Cookie) are folded into one value;
-- responses are fully buffered (no streaming).
-
-Like the rest of this package, this module imports ``pyodide`` at module scope and is
-therefore only importable under Emscripten/Pyodide (or with a ``pyodide`` stand-in
-pre-installed in ``sys.modules``).
+Replaces Pyodide's bundled jsfetch transport, which fails on body-less HEAD/204 responses
+and ignores read timeouts. Differs from native httpx: fetch follows redirects itself,
+multi-value headers are folded, and bodies are fully buffered.
 """
 
 import math
@@ -48,12 +26,8 @@ _FETCH_MANAGED_HEADERS = {
     "transfer-encoding",
 }
 
-# Response headers describing the wire encoding of the body. fetch decompresses
-# responses transparently, so the bytes handed to httpx are already plain; passing the
-# original content-encoding through makes httpx run its decoders over them again and
-# raise DecodingError, and the original content-length no longer matches the body.
-# (Browsers usually hide content-encoding on CORS responses, which is why this never
-# fired live — same-origin and Node fetch do expose it.)
+# fetch has already decoded the body; passing content-encoding/length through would make
+# httpx decode it again.
 _FETCH_DECODED_RESPONSE_HEADERS = {
     "content-encoding",
     "content-length",
@@ -74,24 +48,18 @@ async def _read_request_body(request: httpx.Request) -> bytes:
 
 
 def _pick_timeout(request: httpx.Request) -> Optional[float]:
-    """Pick the request deadline from httpx's timeout extension: the ``read`` value only.
+    """The request deadline: httpx's ``read`` timeout only (None = no deadline).
 
-    The base client sets ``read`` per request and passes ``read=None`` for "no deadline"
-    while still carrying a ``pool`` value; ``connect`` is not separable under fetch and a
-    pool-acquire timeout has no meaning there, so neither may stand in for ``read``.
+    ``connect`` and ``pool`` have no meaning under fetch.
     """
     timeouts = request.extensions.get("timeout") or {}
     return timeouts.get("read")
 
 
 def _abort_signal_ms(timeout: Optional[float]) -> Optional[int]:
-    """Milliseconds for ``AbortSignal.timeout``; ``None`` means no client-side deadline.
+    """Milliseconds for an abort timer, or None for no deadline (None, negative, non-finite).
 
-    Absent, negative and non-finite timeouts mean "no deadline". Zero is an immediate
-    deadline — native httpx times a ``read=0`` request out at once, and this package's
-    own grpc-timeout encoding treats zero the same way, so the fetch path must not
-    silently turn the same configuration into an indefinite wait. Positive values are
-    rounded up so a sub-millisecond timeout never becomes immediate.
+    Zero is immediate, as in httpx; positive values round up; capped at 2**31-1.
     """
     if timeout is None or not math.isfinite(timeout) or timeout < 0:
         return None
@@ -105,13 +73,9 @@ def _abort_signal_ms(timeout: Optional[float]) -> Optional[int]:
 def _map_fetch_error(
     e: BaseException, request: httpx.Request, deadline_set: bool
 ) -> httpx.TransportError:
-    """Translate a pyfetch failure into httpx's exception taxonomy.
+    """Map a pyfetch OSError (network, DNS, CORS, CSP, abort) to an httpx error.
 
-    Pyodide surfaces every JS fetch rejection (network down, DNS, CORS, CSP, an
-    AbortSignal firing) as OSError — or pyodide.http.AbortError, an OSError subclass —
-    never as an httpx exception. Without this mapping the base client cannot classify
-    failures (WeaviateConnectionError/WeaviateTimeoutError) and best-effort callers that
-    swallow httpx.RequestError break.
+    httpx.ReadTimeout if our deadline fired, else httpx.ConnectError.
     """
     msg = str(e) or repr(e)
     if deadline_set and any(hint in msg.lower() for hint in _TIMEOUT_HINTS):
@@ -120,9 +84,7 @@ def _map_fetch_error(
 
 
 def _validate_header(name: str, value: str) -> None:
-    # httpx.Request accepts CR/LF in header values and relies on h11 to reject them at
-    # send time; this transport bypasses h11, so mirror that defence here rather than
-    # delegating it entirely to the JS runtime's fetch.
+    # h11 normally rejects CR/LF/NUL in headers; this transport bypasses h11.
     if any(c in name or c in value for c in ("\r", "\n", "\0")):
         raise httpx.LocalProtocolError(f"Illegal character in header {name!r}")
 
@@ -179,7 +141,7 @@ async def _fetch_handle_async_request(
     )
 
 
-# sentinel so other packages (and uninstall) can recognise the patched method
+# marker for detecting the patched method (tests, ci/pyodide-e2e)
 _fetch_handle_async_request.__weaviate_fetch_shim__ = True  # type: ignore[attr-defined]
 
 

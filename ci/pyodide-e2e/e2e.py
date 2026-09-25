@@ -1,12 +1,6 @@
-"""In-Pyodide e2e for the Weaviate client over core-native grpc-web.
+"""e2e suite run inside Pyodide by run.mjs, which awaits main(); prints one OK line per step.
 
-Executed by ``run.mjs`` inside Pyodide under Node: the runner runs this module's code
-(imports below install the grpc shim + fetch transport) and then awaits ``main()`` on
-Pyodide's event loop. Plain asserts with one ``OK`` line per step so CI logs are
-diagnosable; any failure exits nonzero.
-
-Deliberately not covered: browser/CORS behaviour (this runs under Node, no CORS layer)
-and OIDC auth flows (anonymous access only).
+Not covered: browser CORS (runs under Node) and OIDC (anonymous access only).
 """
 
 import os
@@ -27,9 +21,7 @@ from weaviate.exceptions import WeaviateBatchStreamError, WeaviateQueryError
 
 COLL = "PyodideE2E"
 MT_COLL = "PyodideE2ETenants"
-# Weaviate core serves grpc-web natively on the REST port under this prefix (default-on
-# since 1.38.3), so no proxy sits between the client and the server. Under Emscripten the
-# connect helpers route gRPC there themselves — nothing here selects it.
+# Weaviate's grpc-web path prefix; the connect helpers select it under Emscripten.
 GRPC_WEB_PREFIX = "/v1/grpc-web"
 
 
@@ -42,8 +34,7 @@ async def main() -> None:
     assert getattr(grpc, "__weaviate_client_web_shim__", False), (
         "sys.modules['grpc'] is not the shim"
     )
-    # REST must run through the package's own fetch transport, not Pyodide's bundled
-    # httpx transport (which cannot read the null body of HEAD / 204 responses).
+    # REST must use weaviate-client-web's fetch transport, not Pyodide's bundled one.
     assert weaviate_client_web.is_fetch_transport_installed(), "fetch transport not installed"
     assert getattr(
         httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
@@ -142,8 +133,7 @@ async def main() -> None:
 
         assert await coll.data.delete_by_id(last) is True
         assert await coll.data.exists(last) is False
-        # deleting a missing object answers 204 or 404 depending on the server topology;
-        # either way it is a body-less response the transport must handle
+        # a repeat delete answers 204 or 404 depending on topology; both are body-less
         assert isinstance(await coll.data.delete_by_id(last), bool)
         ok("data.delete_by_id (DELETE 204; repeat -> 204/404) = True, then bool")
 

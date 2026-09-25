@@ -2,8 +2,8 @@
 
 import sys
 
-# Must run before every other import: under Pyodide there is no grpcio, so importing
-# weaviate-client-web first installs the pure-Python grpc replacement the imports below use.
+# Must run first: under Emscripten weaviate_client_web installs the grpc shim the imports
+# below need.
 if sys.platform == "emscripten":
     try:
         import weaviate_client_web  # noqa: F401

@@ -1,21 +1,7 @@
-"""A minimal pure-Python stand-in for the ``grpc`` API surface ``weaviate-client`` uses.
+"""Pure-Python stand-in for the grpc API that weaviate-client imports (Pyodide has no grpcio).
 
-It covers what ``weaviate-client`` touches at import time and on the async unary data
-path. It is installed into ``sys.modules`` (as ``grpc``, ``grpc.aio``, ``grpc._utilities``,
-``grpc.aio._typing``, ``grpc.experimental``) *before* ``import weaviate`` so the client
-loads under Pyodide/Emscripten, where the real ``grpcio`` C-extension wheel does not
-exist. The shim satisfies two contracts at once:
-
-1. **Import surface** — every ``import grpc`` / ``from grpc(.aio) import ...`` executed
-   while ``weaviate`` and its generated ``*_pb2_grpc`` stubs are imported
-   (``weaviate/config.py``, ``exceptions.py``, ``retry.py``, ``connect/base.py``,
-   ``connect/v4.py``, and the v6300 stub's ``grpc.__version__`` /
-   ``grpc._utilities.first_version_is_lower`` version gate).
-2. **Runtime type contract** — :class:`AioChannel` becomes ``grpc.aio.Channel`` so the
-   real grpc-web channel (which subclasses it) passes the
-   ``isinstance(..., grpc.aio.Channel)`` assertions in ``connect/v4.py``;
-   :class:`AioRpcError` is the error the client catches and inspects via ``.code()`` /
-   ``.details()`` (``exceptions.py``, ``retry.py``).
+Installed into sys.modules as grpc, grpc.aio, grpc._utilities, grpc.aio._typing and
+grpc.experimental before weaviate is imported.
 """
 
 import enum
@@ -23,20 +9,14 @@ import sys
 import types
 from typing import Any, Optional
 
-# grpcio reports 1.72.1 as the version that the v6300 generated stub requires; matching
-# it makes the stub's import-time version gate pass. See weaviate/proto/v1/__init__.py.
+# grpc.__version__ under the shim; kept equal to weaviate.proto.v1._GRPCIO_FALLBACK_VERSION.
 FAKE_GRPC_VERSION = "1.72.1"
 
 _SHIM_MARKER = "__weaviate_client_web_shim__"
 
 
 class StatusCode(enum.Enum):
-    """Mirror of ``grpc.StatusCode``.
-
-    ``value`` is the canonical ``(int, str)`` tuple, matching grpcio so ``code.value[0]``
-    / ``code.value[1]`` (``exceptions.py``) and ``code.name`` (``connect/v4.py``) behave
-    identically.
-    """
+    """Mirror of ``grpc.StatusCode``; ``value`` is grpcio's ``(int, str)`` tuple."""
 
     OK = (0, "ok")
     CANCELLED = (1, "cancelled")
@@ -72,11 +52,11 @@ class RpcError(Exception):
 class Call:
     """Stand-in for ``grpc.Call`` (imported by ``exceptions.py`` / ``retry.py``).
 
-    Only used for ``isinstance``/type-import purposes; the async-only WASM path raises
+    Only used for ``isinstance``/type-import purposes; the async-only grpc-web path raises
     :class:`AioRpcError`, never a sync ``Call``.
     """
 
-    def code(self) -> StatusCode:  # pragma: no cover - never instantiated under WASM
+    def code(self) -> StatusCode:  # pragma: no cover - never instantiated
         raise NotImplementedError
 
     def details(self) -> str:  # pragma: no cover
@@ -134,19 +114,11 @@ def ssl_channel_credentials(*_args: Any, **_kwargs: Any) -> ChannelCredentials:
 
 
 class SyncChannel:
-    """Stand-in for ``grpc.Channel`` (sync).
-
-    Never instantiated under WASM — the sync channel factory raises (the WASM transport
-    is async-only).
-    """
+    """Stand-in for ``grpc.Channel``; never instantiated (the sync factories raise)."""
 
 
 class AioChannel:
-    """Become ``grpc.aio.Channel``.
-
-    The grpc-web channel subclasses this so the ``isinstance(..., grpc.aio.Channel)``
-    assertions in ``connect/v4.py`` hold.
-    """
+    """Stand-in for ``grpc.aio.Channel``; ``GrpcWebChannel`` subclasses it."""
 
 
 def first_version_is_lower(_version: str, _other: str) -> bool:
@@ -205,11 +177,7 @@ def _aio_insecure_channel(
 
 
 def _noop(*_args: Any, **_kwargs: Any) -> None:
-    """Inert stand-in for imported-but-unused server-side stub-registration helpers.
-
-    e.g. ``grpc.unary_unary_rpc_method_handler``: imported by generated ``*_pb2_grpc``
-    code, never called by the client.
-    """
+    """Stand-in for server-side registration helpers that *_pb2_grpc imports but never calls."""
     return None
 
 
@@ -218,19 +186,16 @@ def is_installed() -> bool:
 
 
 def install() -> bool:
-    """Install the shim into ``sys.modules`` as ``grpc`` and submodules.
+    """Install the shim as ``grpc`` and its submodules under Emscripten; no-op elsewhere.
 
-    On normal platforms this is a no-op — a real, working ``grpcio`` must be left in
-    place. Under Emscripten the bootstrap calls this automatically. Returns ``True``
-    if the shim is in place afterwards.
+    Returns ``True`` if the shim is in place.
     """
     if sys.platform != "emscripten":
         return False
     if is_installed():
         return True
 
-    # Modules are populated via __dict__.update — dynamic module synthesis, so static
-    # type checkers do not flag each attribute assignment.
+    # __dict__ assignment keeps type checkers quiet on these synthesized modules
     utilities = types.ModuleType("grpc._utilities")
     utilities.__dict__["first_version_is_lower"] = first_version_is_lower
 
@@ -263,7 +228,6 @@ def install() -> bool:
             "ssl_channel_credentials": ssl_channel_credentials,
             "secure_channel": _sync_channel_unsupported,
             "insecure_channel": _sync_channel_unsupported,
-            # Imported (never called) by generated *_pb2_grpc servicer/registration code.
             "unary_unary_rpc_method_handler": _noop,
             "stream_stream_rpc_method_handler": _noop,
             "unary_stream_rpc_method_handler": _noop,

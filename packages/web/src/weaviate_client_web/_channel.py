@@ -1,15 +1,6 @@
-"""The grpc-web channel and multicallables.
+"""grpc-web channel: the grpc.aio channel methods the client uses.
 
-:class:`GrpcWebChannel` implements the small slice of the ``grpc.aio`` channel interface
-that ``weaviate``'s generated stub and ``ConnectionV4`` actually use — ``unary_unary``,
-``stream_stream`` and ``close`` — by framing requests as grpc-web and POSTing them via a
-pluggable async sender. It subclasses the shim's ``grpc.aio.Channel`` (:class:`AioChannel`)
-so the ``isinstance(..., grpc.aio.Channel)`` assertions in ``connect/v4.py`` hold.
-
-Only unary RPCs are supported (Search, Aggregate, TenantsGet, BatchObjects,
-BatchReferences, BatchDelete, and the unary health check). ``stream_stream`` (the bidi
-``BatchStream`` used by opt-in server-side batching) cannot work over grpc-web/fetch and
-raises a clear error.
+unary_unary POSTs grpc-web through a pluggable sender; stream_stream (BatchStream) raises.
 """
 
 import asyncio
@@ -23,7 +14,6 @@ from ._framing import TruncatedFrameError, UnknownFrameFlagError, encode_message
 from ._sender import Sender, pyfetch_sender
 from ._shim import AioChannel, AioRpcError, StatusCode, status_from_int
 
-# Module-level default sender; overridable for tests.
 _default_sender: Sender = pyfetch_sender
 
 
@@ -42,13 +32,10 @@ _GRPC_TIMEOUT_MAX = 100_000_000
 
 
 def _encode_timeout(seconds: Optional[float]) -> Optional[str]:
-    """Encode a timeout as a grpc-timeout header value; ``None`` means no deadline.
+    """Encode seconds as a grpc-timeout value: at most 8 digits, unit m/S/M, rounded up.
 
-    ``None``, non-finite values and anything beyond 99,999,999 minutes (~190 years) carry
-    no deadline. Rounds up so we never advertise a shorter deadline than requested (which
-    would risk premature server-side cancellation), moving to a coarser unit
-    (m -> S -> M) to stay within 8 digits. Hours are never emitted: grpc-web transcoders
-    (vanguard) reject any H value above 8H with HTTP 400.
+    Returns None (no deadline) for None, non-finite values and anything beyond 99,999,999
+    minutes. Never uses H: vanguard rejects values above 8H.
     """
     if seconds is None or not math.isfinite(seconds):
         return None
@@ -135,9 +122,7 @@ class _UnsupportedStreamMultiCallable:
         self._path = path
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        # NOTE: do not recommend batch.dynamic()/fixed_size()/rate_limit() here — those
-        # are sync-client-only APIs and do not exist on the async client, which is the
-        # only client supported under WASM.
+        # batch.dynamic()/fixed_size()/rate_limit() are sync-only, so not suggested here.
         raise RuntimeError(
             f"Bidirectional streaming RPC {self._path!r} (server-side batching / "
             "BatchStream) is not supported over grpc-web/fetch. Use "
@@ -146,7 +131,7 @@ class _UnsupportedStreamMultiCallable:
 
 
 class GrpcWebChannel(AioChannel):
-    """grpc-web/fetch implementation of the async grpc channel slice the client uses."""
+    """grpc.aio channel that sends unary RPCs as grpc-web."""
 
     def __init__(
         self,
@@ -261,9 +246,8 @@ class GrpcWebChannel(AioChannel):
         deserialize: Callable[[bytes], Any],
         url: str = "",
     ) -> Any:
-        # A frame-parse failure must never decide the outcome by itself: real error
-        # responses carry non-grpc-web bodies (Weaviate's 404 JSON, an nginx page), and
-        # the HTTP status, URL and the server's own text must survive into the error.
+        # Real error responses carry non-grpc-web bodies (404 JSON, proxy HTML); keep
+        # status, URL and body in the error.
         messages: List[bytes] = []
         trailers: Dict[str, str] = {}
         frame_error: Optional[BaseException] = None
@@ -282,8 +266,8 @@ class GrpcWebChannel(AioChannel):
         message = urllib.parse.unquote(raw_message)
 
         if raw_status is None:
-            # No grpc-status anywhere AND either a non-200 or a body that is not
-            # grpc-web framing: a gRPC service did not answer this request at all.
+            # no grpc-status anywhere and either a non-200 or a body that is not
+            # grpc-web framing: a gRPC service did not answer this request
             if http_status != 200 or frame_error is not None:
                 raise _frame_error_to_rpc(http_status, url, body, frame_error)
             if messages:
@@ -377,12 +361,9 @@ def _non_grpc_web_error(
     body: bytes,
     frame_error: Optional[BaseException] = None,
 ) -> AioRpcError:
-    """Build the error for a response that is not a usable grpc-web response.
+    """Error for a response that is not usable grpc-web.
 
-    Details always begin with ``HTTP <status>`` and carry the request URL plus a body
-    excerpt (``weaviate/connect`` matches on that prefix). The status alone rarely
-    separates "endpoint missing" from "proxy misconfigured"; the server's own body
-    text usually does.
+    Details start with "HTTP <status>", then the URL and a body excerpt.
     """
     truncated = isinstance(frame_error, TruncatedFrameError)
     what = "not a grpc-web response"
@@ -396,8 +377,7 @@ def _non_grpc_web_error(
     parts = [f"HTTP {http_status} from {url or '<unknown url>'}: {what}."]
 
     if http_status == 404:
-        # Two candidate causes, and the channel cannot tell them apart (it does not know
-        # the server version) — name both rather than guess.
+        # either cause is possible; the channel does not know the server version
         parts.append(
             "The grpc-web endpoint does not exist at that path: either this Weaviate "
             "server predates 1.38.3, the first release to serve grpc-web natively, or "
@@ -405,7 +385,7 @@ def _non_grpc_web_error(
             "Weaviate's native prefix is '/v1/grpc-web'."
         )
     elif http_status == 405:
-        # A 405 can only come from an existing HTTP route: the prefix points at one.
+        # a 405 comes only from an existing HTTP route: the prefix points at one
         parts.append(
             "An HTTP route answered instead of the grpc-web endpoint (method not "
             "allowed): the configured grpc-web path prefix is wrong. Weaviate's native "
@@ -431,12 +411,9 @@ def _non_grpc_web_error(
 
 
 def _status_from_http(http_status: int) -> StatusCode:
-    """Map an HTTP status to a gRPC status when no grpc-status is present.
+    """Map an HTTP status to gRPC per the grpc-web spec.
 
-    Mirrors the grpc-web spec's HTTP-to-gRPC code mapping, plus 405 -> UNIMPLEMENTED,
-    which the spec leaves unmapped: method-not-allowed means an HTTP route answered
-    instead of the grpc-web endpoint — the same wrong-path condition as a 404, and the
-    base client's diagnosis (weaviate.exceptions) keys on UNIMPLEMENTED for both.
+    Adds 405 -> UNIMPLEMENTED: an HTTP route answered, so the path is wrong, as for 404.
     """
     return {
         400: StatusCode.INTERNAL,

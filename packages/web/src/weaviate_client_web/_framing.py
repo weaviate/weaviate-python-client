@@ -1,17 +1,7 @@
-r"""grpc-web binary framing (``application/grpc-web+proto``).
+"""grpc-web binary framing (application/grpc-web+proto).
 
-A grpc-web message frame is a 1-byte flag + 4-byte big-endian length + payload:
-
-    +--------+----------------+----------------------+
-    | flag   | length (uint32)| payload (length bytes)|
-    +--------+----------------+----------------------+
-
-The flag's high bit (``0x80``) marks a trailer frame whose payload is an
-HTTP/1-style header block (``grpc-status: 0\\r\\ngrpc-message: ...``). The low bit
-(``0x01``) marks a compressed message, which this transport neither sends nor
-accepts. A unary grpc-web response body is one or more message frames followed by
-exactly one trailer frame (or a "trailers-only" response carrying the status in
-the HTTP headers, handled by the caller).
+Each frame is a 1-byte flag, a 4-byte big-endian length and the payload. Flag 0x80 marks
+the trailer frame (an HTTP/1-style header block); 0x01 (compressed) is not supported.
 """
 
 import struct
@@ -62,13 +52,9 @@ def iter_frames(buf: bytes) -> Iterator[Tuple[int, bytes]]:
 
 
 def parse_trailers(raw: bytes) -> Dict[str, str]:
-    """Parse a trailer frame payload into a lower-cased header dict.
+    """Parse a trailer payload into a lower-cased dict; accepts CRLF or LF line ends.
 
-    Decoded leniently on both sides of the colon: a proxy that does not percent-encode
-    ``grpc-message``, or a server error quoting a UTF-8 collection / tenant / property
-    name, puts raw non-ASCII bytes in the trailer, and one odd key must not discard the
-    ``grpc-status`` travelling with it. Lines are CRLF-terminated by spec; bare LF is
-    accepted.
+    Undecodable bytes are replaced, so an odd grpc-message never drops grpc-status.
     """
     out: Dict[str, str] = {}
     for line in raw.split(b"\n"):
@@ -82,11 +68,9 @@ def parse_trailers(raw: bytes) -> Dict[str, str]:
 
 
 def split_response(body: bytes) -> Tuple[List[bytes], Dict[str, str]]:
-    """Split a grpc-web response body into message payloads and trailers.
+    """Split a grpc-web body into message payloads and trailers.
 
-    Exactly one uncompressed trailer frame is accepted: a second trailer could
-    overwrite the first one's ``grpc-status`` (turning an error into a fabricated OK),
-    so it must be rejected, not merged.
+    Rejects a second trailer frame, which could overwrite an error grpc-status.
     """
     messages: List[bytes] = []
     trailers: Dict[str, str] = {}

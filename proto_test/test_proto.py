@@ -7,11 +7,8 @@ import pytest
 from packaging import version
 
 
-# The CI matrix deliberately installs incompatible grpcio/protobuf pairs to exercise the
-# version gate in weaviate/proto/v1/__init__.py. In those cells the package raises on
-# import (covered by test_proto_import), so the get_version tests below are skipped; they
-# still run in every compatible cell. This check imports nothing from weaviate, so the
-# test module always loads.
+# CI installs incompatible grpcio/protobuf pairs; there weaviate.proto.v1 cannot import, so
+# the tests below are skipped. This check imports nothing from weaviate.
 def _versions_incompatible() -> bool:
     """Whether the installed grpcio/protobuf pair makes ``import weaviate.proto.v1`` raise."""
     try:
@@ -51,11 +48,9 @@ def test_proto_import():
 
 @_skip_if_incompatible
 def test_grpcio_metadata_fallback_under_emscripten(monkeypatch):
-    """Fall back for grpcio when its metadata is absent; protobuf still surfaces.
+    """Under Emscripten a missing grpcio falls back to _GRPCIO_FALLBACK_VERSION.
 
-    Under Pyodide/Emscripten grpcio is excluded via an environment marker, so its
-    distribution metadata is missing and ``get_version`` must fall back to a working
-    proto variant; a genuinely missing protobuf is still surfaced, not masked.
+    A missing protobuf still raises.
     """
     mod = importlib.import_module("weaviate.proto.v1")
 
@@ -86,14 +81,7 @@ def test_grpcio_missing_metadata_raises_off_emscripten(monkeypatch):
 
 @_skip_if_incompatible
 def test_grpcio_fallback_version_passes_every_vendored_stub_gate():
-    """The Emscripten fallback version must satisfy every vendored stub's version gate.
-
-    Under Pyodide ``get_version("grpcio")`` returns ``_GRPCIO_FALLBACK_VERSION`` and the
-    shim reports it as ``grpc.__version__``, so every vendored ``*_pb2_grpc.py`` whose
-    import-time gate (``first_version_is_lower``) rejects it would break at import. If
-    the protos are regenerated with a newer grpcio-tools, this fails until the fallback
-    (and the grpc-web shim's ``FAKE_GRPC_VERSION``) is bumped to match.
-    """
+    """_GRPCIO_FALLBACK_VERSION is at least every vendored stub's GRPC_GENERATED_VERSION."""
     try:
         from grpc._utilities import first_version_is_lower
     except ImportError:

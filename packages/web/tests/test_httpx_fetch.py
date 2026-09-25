@@ -1,12 +1,6 @@
-"""Tests for the fetch-based httpx transport (``_httpx_fetch.py``).
+"""Tests for _httpx_fetch. Fakes patch _httpx_fetch.pyfetch and sys.modules["js"].
 
-Run by pytest inside Pyodide via ``ci/pyodide-e2e/units.mjs``. ``pyfetch`` is bound at
-import time in ``_httpx_fetch``, so fakes patch that module attribute; ``from js
-import AbortSignal`` is resolved per request, so a fake js module in ``sys.modules``
-intercepts it even under real Pyodide.
-
-The install-semantics tests at the bottom run against this interpreter's real
-installation: importing ``weaviate_client_web`` bootstrapped the transport globally.
+The install tests at the bottom use the real bootstrap.
 """
 
 import sys
@@ -202,9 +196,7 @@ async def test_query_string_preserved_in_url(fake_pyfetch):
 
 
 async def test_content_encoding_stripped_from_response(fake_pyfetch):
-    # fetch hands back ALREADY-decompressed bytes; if the original content-encoding
-    # header were passed through, httpx.Response would gunzip a second time and raise
-    # DecodingError. content-length is stale for the same reason.
+    # fetch returns decoded bytes; passing content-encoding through would decode twice
     fake_pyfetch.response = FakeFetchResponse(
         status=200,
         headers={"content-encoding": "gzip", "content-length": "23", "x-other": "kept"},
@@ -244,9 +236,7 @@ async def test_read_timeout_maps_to_abort_signal_ms(fake_pyfetch, fake_abort_sig
 async def test_read_none_means_no_deadline_even_with_pool_and_connect_set(
     fake_pyfetch, fake_abort_signal
 ):
-    # what the base client hands over for a non-finite request timeout: read=None with the
-    # session pool timeout still set; falling back to pool/connect would abort a long
-    # insert after 5 s
+    # a non-finite timeout arrives as read=None with pool set; pool must not become the deadline
     await _handle(_request_with_timeout({"connect": None, "read": None, "write": None, "pool": 5}))
     await _handle(_request_with_timeout({"connect": 2.0, "read": None, "write": None, "pool": 9.0}))
     assert fake_abort_signal.timeouts == []
@@ -275,9 +265,7 @@ async def test_missing_js_module_degrades_to_no_signal(fake_pyfetch, missing_js)
 
 
 async def test_zero_timeout_is_an_immediate_deadline(fake_pyfetch, fake_abort_signal):
-    # native httpx times a read=0 request out at once; the WASM transport must not
-    # silently turn the same configuration into an indefinite wait (and it must not
-    # fall through to the 5s connect timeout either)
+    # read=0 is an immediate deadline, as in httpx; connect is ignored
     await _handle(_request_with_timeout({"connect": 5.0, "read": 0, "write": None, "pool": None}))
     assert fake_abort_signal.timeouts == [0]
     assert fake_pyfetch.calls[0]["signal"] == "signal-0"
@@ -334,7 +322,7 @@ def _install_raising_pyfetch(monkeypatch, exc: BaseException) -> None:
 
 async def test_fetch_failure_maps_to_httpx_connect_error(monkeypatch):
     # pyodide surfaces JS fetch rejections as OSError; the base client can only classify
-    # httpx exceptions (WeaviateConnectionError etc.), so the shim must translate
+    # httpx exceptions, so the transport maps OSError to httpx errors
     _install_raising_pyfetch(monkeypatch, OSError("TypeError: Failed to fetch"))
     with pytest.raises(httpx.ConnectError, match="Failed to fetch") as excinfo:
         await _handle(httpx.Request("GET", "http://h:8080/v1/meta"))
@@ -364,8 +352,7 @@ async def test_fetch_failure_with_deadline_but_no_timeout_message_stays_connect_
 
 
 async def test_fetch_abort_without_deadline_stays_connect_error(monkeypatch, missing_js):
-    # the same message without a deadline set (no js bridge -> no signal) is not OUR
-    # timeout, so it must stay a connection error
+    # without our deadline (no js bridge -> no signal), an abort is a connection error
     _install_raising_pyfetch(monkeypatch, OSError("AbortError: signal timed out"))
     with pytest.raises(httpx.ConnectError):
         await _handle(
@@ -381,8 +368,6 @@ async def test_empty_oserror_str_keeps_repr_detail(monkeypatch):
 
 
 async def test_crlf_in_header_value_rejected(fake_pyfetch):
-    # httpx.Request accepts CR/LF in header values and relies on h11 to reject them at
-    # send time; this transport bypasses h11 and must keep that defence
     request = httpx.Request(
         "GET", "http://h:8080/v1/meta", headers={"x-key": "val\r\nx-injected: evil"}
     )
@@ -397,9 +382,7 @@ async def test_crlf_in_header_value_rejected(fake_pyfetch):
 
 
 def test_bootstrap_installed_fetch_transport():
-    # This interpreter imported weaviate_client_web at the top of this file, so the real
-    # bootstrap ran — even though Pyodide's bundled httpx carries its own jsfetch
-    # transport, the package's transport must be the active one.
+    # the import at the top ran the real bootstrap, which replaces Pyodide's jsfetch transport
     assert weaviate_client_web.is_fetch_transport_installed()
     assert (
         getattr(httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False)

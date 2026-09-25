@@ -1,12 +1,8 @@
 """HTTP senders for the grpc-web transport.
 
 A *sender* is ``async def sender(url, headers, body, timeout) -> (status, headers, body)``.
-The default uses ``pyodide.http.pyfetch`` (browser fetch); a sender can be injected for
-testing via :func:`weaviate_client_web.set_sender`.
-
-Like the rest of this package, this module imports ``pyodide`` at module scope and is
-therefore only importable under Emscripten/Pyodide (or with a ``pyodide`` stand-in
-pre-installed in ``sys.modules``).
+The default uses ``pyodide.http.pyfetch``; tests inject one with
+:func:`weaviate_client_web.set_sender`.
 """
 
 from typing import Awaitable, Callable, Dict, Optional, Tuple

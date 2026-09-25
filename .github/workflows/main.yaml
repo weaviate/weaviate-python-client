@@ -109,8 +109,7 @@ jobs:
     name: Run Pyodide (WASM) Unit + e2e Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # No Python matrix: the pinned Pyodide bundle fixes the interpreter (see
-    # ci/pyodide-e2e/package.json for the exact pin).
+    # The interpreter comes from the pyodide pin in ci/pyodide-e2e/package.json.
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -143,10 +142,8 @@ jobs:
           echo "weaviate-client=$base weaviate-client-web=$web"
           test "$base" = "$web"
       - name: Run the unit suite inside Pyodide under Node
-        # The grpc-web package imports pyodide at module scope, so its unit tests only
-        # run here. Needs no running Weaviate. The JSPI flag lets pytest's synchronous
-        # runner await async tests via stack switching; without it the run fails
-        # loudly at startup (never a false green).
+        # weaviate-client-web imports pyodide, so its unit tests run only here.
+        # JSPI lets pytest run async tests.
         run: |
           npm install --prefix ci/pyodide-e2e
           node --experimental-wasm-jspi ci/pyodide-e2e/units.mjs dist
@@ -432,16 +429,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-devel.txt
       - name: Build distributions (base client + grpc-web companion)
-        # The companion is wheel-only: its setup.py resolves the lockstep version from
-        # the repository's git tags, which an unpacked sdist would not have — and
-        # micropip consumes wheels only anyway.
+        # weaviate-client-web is wheel-only: its version comes from git tags, which an
+        # sdist lacks.
         run: |
           python -m build
           python -m build --wheel --outdir dist packages/web
       - name: Assert both packages carry the same version
-        # weaviate-client-web pins weaviate-client==<its own version> at build time, so
-        # a base-only release would leave the [grpc-web] extra unresolvable. This gate
-        # runs on the artifacts that are actually uploaded.
+        # weaviate-client-web pins weaviate-client==<own version>; a mismatch leaves the
+        # [grpc-web] extra unresolvable.
         run: |
           base=$(basename dist/weaviate_client-*.whl); base=${base#weaviate_client-}; base=${base%%-*}
           web=$(basename dist/weaviate_client_web-*.whl); web=${web#weaviate_client_web-}; web=${web%%-*}

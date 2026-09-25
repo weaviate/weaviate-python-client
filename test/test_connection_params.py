@@ -179,8 +179,7 @@ def test_sync_client_construction_rejects_grpc_web_prefix() -> None:
     ],
 )
 def test_helper_params_off_emscripten_are_unchanged(call, expected) -> None:
-    # the no-regression pin: off Emscripten the helpers build exactly the params they
-    # always did; grpc_path_prefix is new and stays None (native gRPC)
+    # off Emscripten the helpers use native gRPC: grpc_path_prefix stays None
     import weaviate
 
     assert sys.platform != "emscripten"

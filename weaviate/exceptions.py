@@ -355,13 +355,11 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
                 GRPC_WEB_SERVER_PATH_PREFIX,
             )
 
-            # grpc-web shares the REST host:port under a base path: there is no separate
-            # gRPC port to open, and REST already worked against this endpoint, so no
-            # firewall/wrong-port advice here
+            # no firewall/wrong-port advice: REST already worked, and grpc-web normally
+            # shares its endpoint
             address = f"{grpc_address[0]}:{grpc_address[1]}"
-            # the grpc-web channel reports an unrouted path as UNIMPLEMENTED with the
-            # HTTP status in the details (see weaviate_client_web._channel); a genuine
-            # UNIMPLEMENTED from a routed endpoint must not get the wrong-path diagnosis
+            # weaviate_client_web reports an unrouted path as UNIMPLEMENTED with "HTTP 404/405"
+            # in details; a routed endpoint's own UNIMPLEMENTED is not a wrong path
             if code is StatusCode.UNIMPLEMENTED and any(
                 marker in (details or "") for marker in ("HTTP 404", "HTTP 405")
             ):

@@ -61,9 +61,7 @@ def test_parse_trailers_lowercases_keys():
 
 
 def test_parse_trailers_keeps_status_when_message_is_not_ascii():
-    # A proxy that does not percent-encode grpc-message, or a server error quoting a
-    # UTF-8 collection/tenant name, sends raw non-ASCII bytes. Decoding must not raise:
-    # the grpc-status travelling with it is the part the client acts on.
+    # raw UTF-8 in grpc-message must not lose grpc-status
     parsed = parse_trailers("grpc-status:5\r\ngrpc-message:Café not found\r\n".encode("utf-8"))
     assert parsed["grpc-status"] == "5"
     assert parsed["grpc-message"] == "Café not found"
@@ -123,8 +121,7 @@ def test_compressed_message_frame_rejected():
 
 
 def test_second_trailer_frame_rejected():
-    # a later trailer must not overwrite the first one's grpc-status — an error could
-    # be laundered into a fabricated OK; the spec allows exactly one trailer frame
+    # a second trailer could overwrite an error grpc-status; the spec allows one
     body = _frame(b"a") + _frame(b"grpc-status:7\r\n", 0x80) + _frame(b"grpc-status:0\r\n", 0x80)
     with pytest.raises(FrameError, match="second trailer frame"):
         split_response(body)

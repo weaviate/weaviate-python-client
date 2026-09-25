@@ -1,10 +1,4 @@
-"""grpc-web channel / multicallable tests.
-
-Run by pytest inside Pyodide via ``ci/pyodide-e2e/units.mjs`` — async tests execute on
-Pyodide's event loop through JSPI stack switching (pytest-asyncio in auto mode). These
-exercise the transport classes directly through fake senders — no network, no running
-Weaviate.
-"""
+"""GrpcWebChannel tests through fake senders (no network, no Weaviate)."""
 
 import asyncio
 import struct
@@ -124,11 +118,7 @@ async def test_trailers_only_status_in_http_headers():
     assert excinfo.value.code() is StatusCode.UNAUTHENTICATED
 
 
-# --- non-grpc-web responses -------------------------------------------------------
-#
-# Every real error response carries a body, and none of them is grpc-web framing. The
-# bodies below are verbatim shapes seen in the wild (an empty error body is the one
-# shape no server or proxy produces).
+# --- non-grpc-web responses: bodies captured from real servers and proxies ---------
 
 # Weaviate's own 404, verbatim from a 1.39.0 server asked for the wrong prefix.
 WEAVIATE_404_JSON = (
@@ -162,8 +152,8 @@ async def _details_of(status, body, headers=None, path="/grpc.health.v1.Health/C
 
 
 async def test_weaviate_404_json_names_both_candidate_causes():
-    # A 404 means EITHER the server predates the native /v1/grpc-web endpoint OR the
-    # configured path prefix is wrong. The channel cannot tell which, so it must say both.
+    # a 404 means the server predates grpc-web or the prefix is wrong; the channel
+    # cannot tell which
     err = await _details_of(404, WEAVIATE_404_JSON, {"content-type": "application/json"})
     details = err.details()
 
@@ -172,14 +162,13 @@ async def test_weaviate_404_json_names_both_candidate_causes():
     assert "/grpc.health.v1.Health/Check" in details  # the request path
     assert "1.38.3" in details  # candidate 1: server too old
     assert "path prefix" in details  # candidate 2: wrong prefix
-    assert "/v1/grpc-web" in details  # the native prefix, spelled out
+    assert "/v1/grpc-web" in details  # Weaviate's prefix, spelled out
     assert "was not found" in details  # the server's own explanation
     assert "malformed grpc-web response" not in details
 
 
 async def test_nginx_502_maps_to_unavailable_so_the_client_retries():
-    # weaviate/retry.py retries UNAVAILABLE and nothing else; a gateway error arriving
-    # as INTERNAL is silently un-retried, which is the regression this pins.
+    # weaviate/retry.py retries only UNAVAILABLE
     err = await _details_of(502, NGINX_502_HTML)
     assert err.code() is StatusCode.UNAVAILABLE
     assert err.details().startswith("HTTP 502 ")
@@ -201,8 +190,7 @@ async def test_nginx_404_html_is_reported_as_an_http_404():
 
 
 async def test_405_names_the_wrong_prefix():
-    # a 405 can only come from an existing HTTP route (measured live: a prefix pointing
-    # at /v1/objects answers "method POST is not allowed"), so the prefix is wrong
+    # a 405 comes from an existing HTTP route (e.g. /v1/objects): the prefix is wrong
     err = await _details_of(
         405, b'{"code":405,"message":"method POST is not allowed, but [GET] are"}'
     )
@@ -215,8 +203,8 @@ async def test_405_names_the_wrong_prefix():
 
 
 async def test_truncated_grpc_web_body_is_reported_as_truncated_not_as_wrong_prefix():
-    # a valid frame header whose payload was cut short: the endpoint IS grpc-web, so the
-    # SPA / path-prefix hint would send the user the wrong way
+    # a valid frame header with a cut-short payload: the endpoint is grpc-web, so no
+    # SPA / path-prefix hint
     body = _ok_response(b"reply-bytes")[:-6]
     err = await _details_of(200, body)
     assert err.code() is StatusCode.INTERNAL
@@ -281,8 +269,7 @@ async def test_401_json_body_maps_to_unauthenticated():
 
 
 async def test_403_error_body_reaches_details():
-    # regression: the response body is the most actionable part of the error and must
-    # survive into details() rather than being parsed as frames and discarded
+    # the response body must reach details()
     err = await _details_of(403, b'{"code":403,"message":"forbidden: rbac denied"}')
     assert err.code() is StatusCode.PERMISSION_DENIED
     assert "forbidden: rbac denied" in err.details()
@@ -305,16 +292,14 @@ async def test_binary_error_body_does_not_break_the_error():
 
 
 async def test_non_200_with_valid_grpc_web_trailers_still_uses_grpc_status():
-    # guard on the fix's shape: the HTTP status must not shadow a real grpc-status that
-    # a proxy shipped alongside a non-200
+    # a grpc-status on a non-200 response wins over the HTTP status
     err = await _details_of(500, _frame(b"grpc-status:7\r\ngrpc-message:denied\r\n", 0x80))
     assert err.code() is StatusCode.PERMISSION_DENIED
     assert err.details() == "denied"
 
 
 async def test_non_ascii_grpc_message_preserves_the_status():
-    # a trailer carrying raw UTF-8 (an un-percent-encoded proxy, or an error quoting a
-    # collection name) must not degrade to INTERNAL and lose grpc-status
+    # raw UTF-8 grpc-message keeps its status
     body = _frame("grpc-status:5\r\ngrpc-message:collection Café not found\r\n".encode(), 0x80)
     err = await _details_of(200, body)
     assert err.code() is StatusCode.NOT_FOUND
@@ -392,8 +377,7 @@ async def test_empty_ok_response_hints_at_cors_expose_headers():
 
 
 async def test_empty_ok_response_with_grpc_status_has_no_cors_hint():
-    # when grpc-status WAS visible (status 0, no frames), it is a malformed response,
-    # not a CORS problem — the hint must not appear
+    # grpc-status was visible (status 0, no frames): malformed, not a CORS problem
     channel = _channel(FakeSender(status=200, headers={"grpc-status": "0"}, body=b""))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
     with pytest.raises(AioRpcError) as excinfo:
@@ -403,8 +387,7 @@ async def test_empty_ok_response_with_grpc_status_has_no_cors_hint():
 
 
 async def test_message_frame_without_grpc_status_is_internal_not_success():
-    # HTTP 200 with a valid message frame but no grpc-status anywhere (e.g. a proxy
-    # dropped the trailer frame) must be an error, never a fabricated success
+    # a message frame without grpc-status (dropped trailer) is INTERNAL
     channel = _channel(FakeSender(status=200, headers={}, body=_frame(b"reply-bytes")))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
     with pytest.raises(AioRpcError) as excinfo:
@@ -424,8 +407,6 @@ async def test_message_frame_with_grpc_status_header_still_succeeds():
 
 
 def test_stream_stream_error_recommends_insert_many_only():
-    # batch.dynamic()/fixed_size()/rate_limit() do not exist on the async client (the
-    # only one supported under WASM), so the error must not recommend them
     channel = _channel(FakeSender())
     mc = channel.stream_stream("/weaviate.v1.Weaviate/BatchStream", lambda x: x, lambda b: b)
     with pytest.raises(RuntimeError) as excinfo:
@@ -457,7 +438,7 @@ async def test_grpc_timeout_header_rounds_up():
     sender = FakeSender(body=_ok_response(b"x"))
     channel = _channel(sender)
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
-    # 123.4ms must round UP to 124ms (never advertise a shorter deadline than requested).
+    # 123.4ms must round up to 124ms (never advertise a shorter deadline than requested).
     await mc(b"q", timeout=0.1234)
     assert sender.calls[0][1]["grpc-timeout"] == "124m"
 
@@ -507,9 +488,7 @@ async def test_infinite_timeout_sends_no_deadline():
 
 
 async def test_huge_timeout_uses_minutes_then_no_deadline():
-    # 1e8 s in milliseconds is 12 digits; the server rejects more than 8 ("timeout is
-    # too long", HTTP 400) and transcoders reject hour values above 8H, so past the
-    # minute range the request carries no deadline at all
+    # beyond 8 minute digits no grpc-timeout is sent (see _encode_timeout)
     sender = FakeSender(body=_ok_response(b"x"))
     channel = _channel(sender)
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)

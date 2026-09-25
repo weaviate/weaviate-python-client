@@ -19,19 +19,14 @@ from weaviate.util import is_weaviate_domain
 JSONPayload = Union[Mapping[str, Any], Sequence[Any]]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
-# first Weaviate release that serves grpc-web on the REST port
+# first Weaviate release serving grpc-web on the REST endpoint
 GRPC_WEB_MIN_SERVER_VERSION = "1.38.3"
-# the base path Weaviate serves grpc-web on
+# Weaviate's grpc-web path prefix
 GRPC_WEB_SERVER_PATH_PREFIX = "/v1/grpc-web"
 
 
 def _grpc_web_shim_active() -> bool:
-    """Whether the 'weaviate-client-web' package has replaced the grpc module.
-
-    That replacement (used under WASM/Pyodide, where grpcio is not available) sends unary
-    RPCs over grpc-web/fetch and cannot do bidirectional streaming. The marker attribute
-    is the agreed contract between the two packages; check it only through this helper.
-    """
+    """Whether weaviate-client-web's grpc shim is installed (unary grpc-web RPCs, no streaming)."""
     return getattr(grpc, "__weaviate_client_web_shim__", False) is True
 
 
@@ -62,9 +57,8 @@ T = TypeVar("T", bound="ConnectionParams")
 class ConnectionParams(BaseModel):
     http: ProtocolParams
     grpc: ProtocolParams
-    # Optional base path of a grpc-web endpoint on the REST host:port (e.g. "/grpc-web").
-    # None/"" means native gRPC. When set, gRPC may share the REST host:port and the
-    # prefix is passed on to the grpc-web transport.
+    # grpc-web path prefix (e.g. "/v1/grpc-web"); None/"" = native gRPC. When set, gRPC may
+    # share the REST host:port.
     grpc_path_prefix: Optional[str] = None
 
     @classmethod
@@ -128,8 +122,6 @@ class ConnectionParams(BaseModel):
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:
         same_endpoint = self.http.host == self.grpc.host and self.http.port == self.grpc.port
-        # with a grpc-web prefix gRPC may share the REST host:port; without one (native
-        # gRPC) the same host:port is a conflict
         if same_endpoint and self._grpc_web_path_prefix == "":
             raise ValueError("http.port and grpc.port must be different if using the same host")
         return self
@@ -144,19 +136,18 @@ class ConnectionParams(BaseModel):
 
     @property
     def _grpc_web_path_prefix(self) -> str:
-        """The normalized grpc-web base path; "" means native gRPC.
+        """Normalized grpc-web path prefix; "" means native gRPC.
 
-        A set prefix comes back with one leading slash and no trailing slash
-        (e.g. "grpc-web/" -> "/grpc-web"); empty/None -> "".
+        One leading slash, no trailing slash ("grpc-web/" -> "/grpc-web"); empty or
+        None -> "".
         """
         cleaned = (self.grpc_path_prefix or "").strip("/")
         return f"/{cleaned}" if cleaned else ""
 
     def _check_grpc_web_usable(self, is_async: bool) -> None:
-        """Fail early on a grpc-web prefix this client cannot use; does nothing for native gRPC.
+        """Raise if a grpc-web prefix is set but unusable (sync client, or no grpc shim).
 
-        A native grpcio channel would silently ignore the ``grpc-web.path_prefix`` option
-        and use native gRPC, so the replacement grpc module must be in place.
+        grpcio would ignore the prefix option.
         """
         if self._grpc_web_path_prefix == "":
             return
@@ -199,7 +190,6 @@ class ConnectionParams(BaseModel):
         if grpc_config is not None and grpc_config.channel_options is not None:
             options.extend(grpc_config.channel_options)
 
-        # only grpc-web adds an option; native gRPC channel options are unchanged
         if (prefix := self._grpc_web_path_prefix) != "":
             options.append(("grpc-web.path_prefix", prefix))
 

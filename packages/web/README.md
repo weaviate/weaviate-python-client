@@ -1,16 +1,11 @@
 # weaviate-client-web
 
-A grpc-web / WebAssembly (Pyodide) transport for the
-[Weaviate Python client](https://github.com/weaviate/weaviate-python-client), so the
-client's **async** gRPC data path can run inside a browser (marimo notebooks, Pyodide,
-WASM workers) where there is no socket and no `grpcio` wheel.
+Runs the async [Weaviate Python client](https://github.com/weaviate/weaviate-python-client)
+under Pyodide (browser pages, marimo notebooks, Web Workers): gRPC goes over grpc-web and
+REST over `fetch`.
 
-It is built from the same repository as `weaviate-client` and reuses its generated
-protobuf stubs — it does **not** fork code generation.
-
-Requires Weaviate ≥ 1.38.3 (the first release to serve grpc-web natively) or a grpc-web
-transcoder in front of an older server. Pyodide ≥ 0.27 recommended; verified on
-Pyodide 314.0.4 (CPython 3.14).
+Requires Weaviate ≥ 1.38.3 (the first release serving grpc-web) or a grpc-web transcoder
+in front of an older server. Tested on Pyodide 314.0.4 (CPython 3.14).
 
 ## Installation
 
@@ -21,47 +16,26 @@ import micropip
 await micropip.install("weaviate-client[grpc-web]")
 ```
 
-The extra carries a `sys_platform == "emscripten"` marker, so the same requirement is a
-no-op on CPython — one requirements list works everywhere. Installing the companion
-directly (`micropip.install("weaviate-client-web")`) works too: it pins
-`weaviate-client` to its own exact version, so a mismatched pair can never resolve.
-Both forms require the first `weaviate-client` release that ships the extra and the
-Emscripten marker; against older releases the resolver fails on `grpcio`.
+The extra has a `sys_platform == "emscripten"` marker, so it installs nothing on CPython.
+`micropip.install("weaviate-client-web")` also works; it pins `weaviate-client` to its own
+version. Both need a `weaviate-client` release that ships the extra; older releases fail to
+resolve `grpcio`.
 
-This package is defined for its environment: it imports `pyodide` at module scope and is
-therefore only importable under Emscripten/Pyodide. On CPython the base client never
-imports it (and the extra never installs it).
+The package imports `pyodide` at module scope, so it imports only under Pyodide.
 
 ## How it works
 
-Under Pyodide there is no `grpcio` Emscripten wheel, and `import weaviate` hard-imports
-`grpc` at module load. This package installs a small pure-Python `grpc` shim into
-`sys.modules` **before** `import weaviate`, which:
+Under Pyodide there is no `grpcio` wheel. Importing this package puts a pure-Python `grpc`
+shim in `sys.modules`, and `GrpcWebChannel` sends unary RPCs as grpc-web POSTs through
+`pyodide.http.pyfetch`. Call metadata (API key, OIDC bearer) becomes fetch headers.
 
-- satisfies every import-time `import grpc` / `from grpc(.aio) import ...` in the base
-  client and its generated `*_pb2_grpc` stubs;
-- provides `grpc.aio.Channel` as a real base class, so the grpc-web channel
-  (`GrpcWebChannel`) subclasses it and the client's `isinstance(..., grpc.aio.Channel)`
-  assertions pass;
-- satisfies the generated v6300 stub's version gate
-  (`grpc.__version__` / `grpc._utilities.first_version_is_lower`).
+Under Pyodide the connect helpers send gRPC to the REST endpoint (same host, port and TLS)
+under `/v1/grpc-web`. As in the TypeScript `@weaviate/web` client, native gRPC is not
+available there, so this endpoint is not configurable through the helpers.
 
-The `GrpcWebChannel` frames unary RPCs as grpc-web (a 5-byte header + protobuf payload)
-and POSTs them via `pyodide.http.pyfetch`. Call metadata (API key / OIDC bearer) is
-folded into `fetch` headers.
-
-The target is not configurable: under Emscripten the connect helpers
-(`use_async_with_local`, `use_async_with_weaviate_cloud`, `use_async_with_custom`) pin
-gRPC to the **REST** endpoint — same host, port and TLS — under Weaviate's own
-`/v1/grpc-web` base path, so gRPC and REST share one origin and no proxy is needed. That
-is deliberate: native gRPC cannot work under WASM at all, so grpc-web on the REST
-listener is not a choice that could be wrong. The TypeScript `@weaviate/web` client makes
-the same call, dropping `grpcHost`/`grpcPort`/`grpcSecure` from its options entirely.
-
-A grpc-web transcoder on a separate endpoint (Envoy,
-[connectrpc/vanguard](https://github.com/connectrpc/vanguard-go)) is therefore not
-reachable through the helpers. If you need one — e.g. in front of a Weaviate older than
-1.38.3 — build the connection parameters yourself:
+To use a grpc-web transcoder on another endpoint (Envoy,
+[vanguard](https://github.com/connectrpc/vanguard-go)), for example in front of
+Weaviate < 1.38.3, build the connection parameters yourself:
 
 ```python
 from weaviate import WeaviateAsyncClient
@@ -71,27 +45,22 @@ client = WeaviateAsyncClient(
     ConnectionParams.from_params(
         http_host="weaviate.example.com", http_port=443, http_secure=True,
         grpc_host="transcoder.example.com", grpc_port=443, grpc_secure=True,
-        # add grpc_path_prefix="/base/path" if the transcoder is not at the root
+        # add grpc_path_prefix="/prefix" if the transcoder is not at the root
     )
 )
 ```
 
-For REST (`is_ready`, collection config, `/batch/references`, …) the package patches
-`httpx.AsyncHTTPTransport` with its own `pyfetch`-based transport. It does so even on
-Pyodide builds whose bundled httpx has a JS-fetch transport of its own: that transport
-cannot read the null body of HEAD requests and 204 responses (`data.exists`,
-`data.delete_by_id`, `tenants.exists`, …) and does not enforce the client's per-request
-timeouts.
+REST goes through the package's own `fetch`-based httpx transport, including on Pyodide
+builds whose httpx has one (that one fails on body-less HEAD/204 responses).
 
 ## Usage
 
-With this package installed, a plain `import weaviate` is all you need — under
-Emscripten the base client imports `weaviate_client_web` itself before anything else,
-which installs the shim and the fetch transport (and raises a clear error if the package
-is missing). Against Weaviate ≥ 1.38.3:
+With this package installed, `import weaviate` imports it first, under Pyodide only. If it
+is missing, `import weaviate` raises an ImportError naming the extra. Against
+Weaviate ≥ 1.38.3:
 
 ```python
-import weaviate  # bootstraps weaviate_client_web automatically under Emscripten
+import weaviate
 
 client = weaviate.use_async_with_local(port=8080)
 await client.connect()       # runs the gRPC health check over grpc-web
@@ -99,16 +68,16 @@ collection = client.collections.get("Article")
 await collection.query.near_text("hello", limit=3)
 ```
 
-Nothing selects grpc-web: `use_async_with_local()`, `use_async_with_weaviate_cloud()` and
-`use_async_with_custom()` all route gRPC onto the REST endpoint under `/v1/grpc-web` when
-they run under Emscripten, and use native gRPC everywhere else.
-
 ```python
 client = weaviate.use_async_with_weaviate_cloud(
     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
 )
 ```
+
+Weaviate Cloud: browser use requires **Allow all CORS origins** in the cluster's settings
+in the Weaviate Cloud console (takes a few minutes to apply). Until it applies, the client
+fails at its first REST call with a `Failed to fetch` connection error.
 
 `use_async_with_custom()` still requires `grpc_host`/`grpc_port`/`grpc_secure` — Python
 cannot drop required parameters on one platform the way TypeScript drops them from a
@@ -122,37 +91,28 @@ client = weaviate.use_async_with_custom(
 )
 ```
 
-Pass `headers={...}` / `auth_credentials=...` as usual for API keys, OIDC or WCD.
-
-Importing the companion explicitly first also works and remains the explicit form:
-
-```python
-import weaviate_client_web   # installs the grpc shim (only importable under Emscripten)
-import weaviate
-```
+Pass `headers={...}` / `auth_credentials=...` as usual for API keys, OIDC or Weaviate Cloud.
+Importing `weaviate_client_web` before `weaviate` is equivalent.
 
 ## Supported / unsupported
 
 | Feature                                                   | Kind            | Status |
 |----------------------------------------------------------|-----------------|--------|
-| Search, Aggregate, TenantsGet, BatchObjects, BatchDelete | unary gRPC      | ✅ works over grpc-web |
-| Health check (`/grpc.health.v1.Health/Check`)            | unary gRPC      | ✅ runs on `connect()` over grpc-web |
-| REST (`is_ready`, config, `/batch/references`, …)         | REST            | ✅ via the package's own fetch transport |
-| API-key auth (`Auth.api_key`)                             | header          | ✅ |
-| OIDC auth (`client_credentials` / `client_password` / `bearer_token`) | REST | ✅ token fetch + asyncio-task refresh (no threads) |
-| Bulk insert: `collection.data.insert_many()`              | unary gRPC      | ✅ the supported bulk path under WASM |
-| `batch.stream()` / `batch.experimental()` (BatchStream)  | bidi streaming  | ❌ not possible over grpc-web/fetch — raises immediately; use `insert_many()` |
-| `batch.dynamic()` / `fixed_size()` / `rate_limit()`      | sync-client API | ❌ these only exist on the sync client, which is unsupported under WASM |
-| Embedded Weaviate (`use_async_with_embedded`)            | subprocess      | ❌ raises "not supported under WebAssembly/Pyodide" |
-| Synchronous client                                       | —               | ❌ async-only under WASM |
-| Weaviate Agents: `AsyncQueryAgent` `run/ask/search`      | REST            | ✅ via fetch |
-| Weaviate Agents: `ask_stream` / `research_stream` (SSE)  | REST streaming  | ⚠️ degraded: the fetch transport buffers the whole response, so events arrive only when the run completes (and long runs can hit the request timeout) |
-| Weaviate Agents: sync `QueryAgent`, `TransformationAgent`, `PersonalizationAgent` | REST sync | ❌ no async flavour exists |
+| Search, Aggregate, TenantsGet, BatchObjects, BatchDelete | unary gRPC      | Yes, over grpc-web |
+| Health check (`/grpc.health.v1.Health/Check`)            | unary gRPC      | Yes, on `connect()` over grpc-web |
+| REST (`is_ready`, config, `/batch/references`, …)         | REST            | Yes, via the package's own fetch transport |
+| API-key auth (`Auth.api_key`)                             | header          | Yes |
+| OIDC auth (`client_credentials` / `client_password` / `bearer_token`) | REST | Untested: token refresh runs on an asyncio task (no threads) |
+| Bulk insert: `collection.data.insert_many()`              | unary gRPC      | Yes, the bulk path under Pyodide |
+| `batch.stream()` / `batch.experimental()` (BatchStream)  | bidi streaming  | No: grpc-web has no bidirectional streaming; raises at once, use `insert_many()` |
+| `batch.dynamic()` / `fixed_size()` / `rate_limit()`      | sync-client API | No: sync client only |
+| Embedded Weaviate (`use_async_with_embedded`)            | subprocess      | No: raises "not supported under WebAssembly/Pyodide" |
+| Synchronous client                                       | —               | No: async only |
 
 ## Configuration not honored in the browser
 
 `fetch` manages connections itself, so several knobs are accepted but have no effect
-under WASM:
+under Pyodide:
 
 - `AdditionalConfig.proxies` / `trust_env` proxy environment variables (the browser
   cannot proxy fetch requests per-client),
@@ -166,20 +126,26 @@ under WASM:
 
 ## CORS requirements (browsers)
 
-Weaviate ≥ 1.38.3 serves the CORS headers below for its `/v1/grpc-web` endpoint itself,
-with no configuration. Its request-header list is a **closed allowlist**: custom
-`headers={...}` that are not on it fail the browser's preflight. Cross-origin
-deployments that go through a grpc-web transcoder or a proxy must configure CORS there:
+Self-hosted Weaviate ≥ 1.38.3 (unchanged through 1.40.0-rc.1) answers CORS for its
+`/v1/grpc-web` endpoint as follows (for Weaviate Cloud, see [Usage](#usage)):
 
-- allow every request header the client sends: `content-type`, `x-grpc-web`,
-  `x-user-agent`, `grpc-timeout`, `x-weaviate-client`, `authorization` (when auth is
-  used) and `x-weaviate-cluster-url` (Weaviate Cloud);
-- expose the grpc-web status headers on responses:
-  `Access-Control-Expose-Headers: grpc-status, grpc-message` — without this,
-  trailers-only error responses (e.g. a bad API key) are reported as
-  `INTERNAL: grpc-web response contained no message frame` instead of the real error;
-- note that a CORS-blocked request is indistinguishable from a network failure in the
-  browser (`TypeError: Failed to fetch`), and is retried as UNAVAILABLE.
+- allowed origins come from `CORS_ALLOW_ORIGIN` (default `*`);
+- allowed request headers are `X-Grpc-Web`, `X-User-Agent`, `Grpc-Timeout`,
+  `Connect-Protocol-Version`, `Connect-Timeout-Ms` and `X-Weaviate-Client`, plus everything
+  in `CORS_ALLOW_HEADERS`, whose default already covers `Content-Type`, `Authorization`,
+  `X-Weaviate-Cluster-Url` and the vendor `*-Api-Key` headers;
+- exposed response headers are `Grpc-Status`, `Grpc-Message` and
+  `Grpc-Status-Details-Bin`.
+
+A custom `headers={...}` entry outside that list must be added to `CORS_ALLOW_HEADERS`,
+or the browser's preflight rejects the request. A proxy or grpc-web transcoder in front of
+Weaviate must allow the same origins and request headers and expose the same response
+headers; without `grpc-status, grpc-message` exposed, trailers-only error responses (e.g.
+a bad API key) are reported as `INTERNAL: grpc-web response contained no message frame`
+instead of the real error.
+
+In the browser a CORS-blocked request is indistinguishable from a network failure
+(`TypeError: Failed to fetch`), and is retried as UNAVAILABLE.
 
 ## Testing
 
@@ -193,10 +159,3 @@ npm install --prefix ci/pyodide-e2e
 node --experimental-wasm-jspi ci/pyodide-e2e/units.mjs dist   # pytest unit suite, no Weaviate needed
 node ci/pyodide-e2e/run.mjs dist                              # e2e suite, needs a running Weaviate (see ci/)
 ```
-
-`units.mjs` runs pytest over `packages/web/tests/` inside Pyodide — async tests execute
-on Pyodide's event loop via JSPI stack switching, hence the Node flag — plus a
-fresh-interpreter bootstrap scenario; everything is driven through fake senders and a
-fake `pyfetch`. `run.mjs` runs the e2e suite against a live Weaviate. On CPython the
-`conftest.py` keeps pytest from collecting these modules (they cannot import there);
-the base client's import-hook branches are covered by `test/test_wasm_compat.py`.

@@ -35,16 +35,10 @@ def _grpc_endpoint_str(params: ProtocolParams) -> str:
 def _webify(
     http: ProtocolParams, grpc: ProtocolParams, *, grpc_chosen_by_caller: bool
 ) -> ConnectionParams:
-    """Build connection params; under WebAssembly, route gRPC over grpc-web.
+    """Build ConnectionParams; under Emscripten, route gRPC to the REST endpoint over grpc-web.
 
-    Under Emscripten there is no grpcio and no sockets, so native gRPC cannot work; the
-    only option is grpc-web on the REST endpoint. gRPC is therefore pointed at the HTTP
-    host/port under Weaviate's own grpc-web base path, the same thing the TypeScript
-    ``@weaviate/web`` client does in its ``webify()``. On every other platform ``grpc``
-    is used exactly as given.
-
-    ``grpc_chosen_by_caller`` says whether ``grpc`` came from the caller rather than from
-    a default of the helper. If a caller's endpoint is replaced, a warning says so.
+    grpc_chosen_by_caller: whether ``grpc`` is caller input rather than a helper default; a
+    replaced caller endpoint raises warning Con006.
     """
     if sys.platform != "emscripten":
         # grpc_path_prefix=None is passed explicitly so the constructor call (and pydantic's
@@ -422,9 +416,8 @@ def use_async_with_weaviate_cloud(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
-    Under WebAssembly/Pyodide gRPC goes over grpc-web on the cluster's own REST endpoint
-    (443/TLS) rather than the separate ``grpc-`` host, because native gRPC cannot work
-    there. Nothing to configure: the cluster serves grpc-web itself.
+    Under Pyodide, gRPC runs over grpc-web on the cluster's REST endpoint (443) instead of
+    the ``grpc-`` host.
 
     Args:
         cluster_url: The WCD cluster URL or hostname to connect to. Usually in the form: rAnD0mD1g1t5.something.weaviate.cloud
@@ -490,15 +483,13 @@ def use_async_with_local(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
-    Under WebAssembly/Pyodide gRPC goes over grpc-web on the REST endpoint, because native
-    gRPC cannot work there. ``grpc_port`` is then replaced by ``port``; if you passed a
-    ``grpc_port`` of your own it is ignored and a ``UserWarning`` says so.
+    Under Pyodide, gRPC runs over grpc-web on the REST endpoint; a non-default
+    ``grpc_port`` is ignored with a warning.
 
     Args:
         host: The host to use for the underlying REST and GraphQL API calls.
         port: The port to use for the underlying REST and GraphQL API calls.
-        grpc_port: The port to use for the underlying gRPC API. Ignored under
-            WebAssembly/Pyodide, where gRPC shares the REST ``port`` over grpc-web.
+        grpc_port: The port to use for the underlying gRPC API. Ignored under Pyodide.
         headers: Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         skip_init_checks: Whether to skip the initialization checks when connecting to Weaviate.
@@ -647,23 +638,18 @@ def use_async_with_custom(
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
-    Under WebAssembly/Pyodide gRPC goes over grpc-web on the REST endpoint, because native
-    gRPC cannot work there (no sockets, no ``grpcio`` wheel). ``grpc_host``, ``grpc_port``
-    and ``grpc_secure`` are then replaced by ``http_host``, ``http_port`` and
-    ``http_secure``; if what you passed differed, it is ignored and a ``UserWarning``
-    names both endpoints. This mirrors the TypeScript ``@weaviate/web`` client, which
-    removes those three options from its API altogether.
+    Under Pyodide, gRPC runs over grpc-web on the REST endpoint: ``grpc_host``,
+    ``grpc_port`` and ``grpc_secure`` are replaced by the HTTP values, with a warning if
+    they differ.
 
     Args:
         http_host: The host to use for the underlying REST and GraphQL API calls.
         http_port: The port to use for the underlying REST and GraphQL API calls.
         http_secure: Whether to use https for the underlying REST and GraphQL API calls.
-        grpc_host: The host to use for the underlying gRPC API. Ignored under
-            WebAssembly/Pyodide, where gRPC shares the REST endpoint over grpc-web.
-        grpc_port: The port to use for the underlying gRPC API. Ignored under
-            WebAssembly/Pyodide, where gRPC shares the REST endpoint over grpc-web.
+        grpc_host: The host to use for the underlying gRPC API. Ignored under Pyodide.
+        grpc_port: The port to use for the underlying gRPC API. Ignored under Pyodide.
         grpc_secure: Whether to use a secure channel for the underlying gRPC API. Ignored
-            under WebAssembly/Pyodide, where gRPC shares the REST endpoint over grpc-web.
+            under Pyodide.
         headers: Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use `weaviate.classes.init.Auth.api_key()`,
