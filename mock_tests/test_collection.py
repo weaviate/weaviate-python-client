@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Mapping, Optional
 
 import grpc
 import pytest
@@ -42,6 +42,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     WeaviateStartUpError,
 )
+from weaviate.proto.v1 import properties_pb2, search_get_pb2, weaviate_pb2_grpc
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
@@ -639,3 +640,54 @@ def test_grpc_client_version_header(
     assert "x-weaviate-client" in service.captured_metadata
     expected = f"weaviate-client-python/{client_version}-sync"
     assert service.captured_metadata["x-weaviate-client"] == expected
+
+
+class MockSearchCaptureWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    captured_request: Optional[search_get_pb2.SearchRequest] = None
+
+    def Search(
+        self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
+    ) -> search_get_pb2.SearchReply:
+        self.captured_request = request
+        tags: Mapping[str, properties_pb2.Value] = {
+            "tags": properties_pb2.Value(
+                list_value=properties_pb2.ListValue(
+                    text_values=properties_pb2.TextValues(values=["tag1", "tag2"])
+                )
+            )
+        }
+        return search_get_pb2.SearchReply(
+            results=[
+                search_get_pb2.SearchResult(
+                    properties=search_get_pb2.PropertiesResult(
+                        non_ref_props=properties_pb2.Properties(fields=tags)
+                    )
+                )
+            ]
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_collection_made_before_connect(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    # The async client only learns the server version inside `connect()`, so a collection object
+    # made beforehand used to send every request as if the server were older than 1.25, see
+    # issue #1831. The flags on the captured request are what this pins down; the legacy list
+    # encoding that originally made the reply unparseable no longer exists in the generated
+    # protos, so the parsed property below is only a round-trip sanity check.
+    service = MockSearchCaptureWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+
+    client = weaviate.use_async_with_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    collection = client.collections.use("TestCollection")
+    await client.connect()
+    try:
+        objects = (await collection.query.fetch_objects()).objects
+    finally:
+        await client.close()
+
+    assert service.captured_request is not None
+    assert service.captured_request.uses_125_api is True
+    assert service.captured_request.uses_127_api is True
+    assert objects[0].properties["tags"] == ["tag1", "tag2"]
