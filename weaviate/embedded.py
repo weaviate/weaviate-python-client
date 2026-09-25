@@ -180,8 +180,7 @@ class _EmbeddedBase:
             # without this check the port probe below "succeeds" under Emscripten's fake
             # sockets and wrongly reports that Weaviate is already running
             raise WeaviateStartUpError(
-                "Embedded Weaviate is not supported under WebAssembly/Pyodide: it spawns a "
-                "local Weaviate subprocess, and processes are unavailable in the browser. "
+                "Embedded Weaviate is not supported under Pyodide: it needs a subprocess. "
                 "Connect to a remote Weaviate instance instead."
             )
         if platform.system() in ["Windows"]:

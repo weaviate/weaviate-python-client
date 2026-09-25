@@ -1,5 +1,6 @@
 """Weaviate Exceptions."""
 
+import sys
 from json.decoder import JSONDecodeError
 from typing import Optional, Tuple, Union, cast
 
@@ -338,6 +339,7 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
         grpc_address: Tuple[str, int] = ("not provided", 0),
         grpc_path_prefix: Optional[str] = None,
         error: Optional[BaseException] = None,
+        http_address: Optional[Tuple[str, int]] = None,
     ) -> None:
         code, details = _grpc_status_of(error)
         observed = ""
@@ -351,6 +353,7 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
             # local import: weaviate.connect imports this module at import time, so a
             # module-level import here would be circular
             from weaviate.connect.base import (
+                GRPC_WEB_CORS_HINT,
                 GRPC_WEB_MIN_SERVER_VERSION,
                 GRPC_WEB_SERVER_PATH_PREFIX,
             )
@@ -358,6 +361,12 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
             # no firewall/wrong-port advice: REST already worked, and grpc-web normally
             # shares its endpoint
             address = f"{grpc_address[0]}:{grpc_address[1]}"
+            if http_address is not None and tuple(http_address) == tuple(grpc_address):
+                transport = (
+                    f"carries gRPC over the REST endpoint {address}; there is no separate gRPC port"
+                )
+            else:
+                transport = f"carries gRPC over {address} (grpc-web)"
             # weaviate_client_web reports an unrouted path as UNIMPLEMENTED with "HTTP 404/405"
             # in details; a routed endpoint's own UNIMPLEMENTED is not a wrong path
             if code is StatusCode.UNIMPLEMENTED and any(
@@ -365,22 +374,37 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
             ):
                 reason = f"""The server did not route the grpc-web path '{grpc_path_prefix}' at {address}. Either:
 - the server is too old: grpc-web is served from Weaviate {GRPC_WEB_MIN_SERVER_VERSION} onwards, and this server reports {weaviate_version or "an unknown version"}, or
-- the grpc-web base path is wrong: Weaviate serves grpc-web at '{GRPC_WEB_SERVER_PATH_PREFIX}'. The connect helpers set it themselves; only hand-built ConnectionParams choose it (grpc_path_prefix).
+- the grpc-web path prefix is wrong: Weaviate serves grpc-web at '{GRPC_WEB_SERVER_PATH_PREFIX}' (set by the connect helpers; hand-built ConnectionParams set grpc_path_prefix).
 """
             else:
                 reason = f"""This error could be due to one of several reasons:
 - grpc-web is not enabled or is incorrectly configured on the server at {address}.
+- {GRPC_WEB_CORS_HINT}.
 - your connection is unstable or has a high latency. In this case you can:
     - increase init-timeout in `weaviate.use_async_with_custom(additional_config=wvc.init.AdditionalConfig(timeout=wvc.init.Timeout(init=X)))`
     - disable startup checks by connecting using `skip_init_checks=True`
 """
             msg = f"""
 Weaviate {weaviate_version} makes use of a high-speed gRPC API as well as a REST API.
-Unfortunately, the gRPC health check against Weaviate could not be completed.
-
-This client speaks grpc-web (base path '{grpc_path_prefix}'), which carries gRPC over the REST endpoint {address}; there is no separate gRPC port.
+The gRPC health check over grpc-web (path prefix '{grpc_path_prefix}') failed. This client {transport}.
 
 {reason}{observed}"""
+            super().__init__(msg)
+            return
+
+        if sys.platform == "emscripten":
+            # no prefix under Pyodide means hand-built ConnectionParams; the sync helpers and
+            # the firewall advice below do not apply
+            from weaviate.connect.base import GRPC_WEB_SERVER_PATH_PREFIX
+
+            msg = f"""
+Weaviate {weaviate_version} makes use of a high-speed gRPC API as well as a REST API.
+The gRPC health check against Weaviate could not be completed.
+
+Under Pyodide gRPC travels as grpc-web, and these connection parameters set no grpc-web path prefix, so requests went to {grpc_address[0]}:{grpc_address[1]} without one. Either:
+- connect with `weaviate.use_async_with_local`, `use_async_with_weaviate_cloud` or `use_async_with_custom`, which route gRPC over the REST endpoint themselves, or
+- set grpc_path_prefix='{GRPC_WEB_SERVER_PATH_PREFIX}' with the gRPC host and port equal to the REST ones on the ConnectionParams you build.
+{observed}"""
             super().__init__(msg)
             return
 

@@ -150,7 +150,7 @@ class _ConnectionBase:
             # fail here, at construction, instead of with an unclear ConnectError on the
             # first REST call; _client/_grpc_channel are already set, so __del__ does not warn
             raise WeaviateStartUpError(
-                "The synchronous client is not supported under WebAssembly/Pyodide. "
+                "The synchronous client is not supported under Pyodide. "
                 "Use an async client (weaviate.use_async_with_local / "
                 "use_async_with_weaviate_cloud / use_async_with_custom, or "
                 "WeaviateAsyncClient) instead."
@@ -354,6 +354,7 @@ class _ConnectionBase:
                 f"v{self.server_version}",
                 self._connection_params._grpc_address,
                 grpc_path_prefix=self.__grpc_web_prefix(),
+                http_address=self.__http_address(),
             )
         return None
 
@@ -364,11 +365,15 @@ class _ConnectionBase:
             self._connection_params._grpc_address,
             grpc_path_prefix=self.__grpc_web_prefix(),
             error=e,
+            http_address=self.__http_address(),
         ) from e
 
     def __grpc_web_prefix(self) -> Optional[str]:
         """The configured grpc-web path prefix, or None for native gRPC."""
         return self._connection_params._grpc_web_path_prefix or None
+
+    def __http_address(self) -> Tuple[str, int]:
+        return (self._connection_params.http.host, self._connection_params.http.port)
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
@@ -811,11 +816,8 @@ class _ConnectionBase:
                     async with AsyncClient() as client:
                         res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
                     return resp(res)
-                except (RequestError, OSError):
-                    # ignore any request error, this is a best-effort warning. OSError covers
-                    # fetch failures under Pyodide/WASM, where the page's CSP often blocks
-                    # pypi.org; that must not fail connect().
-                    pass
+                except RequestError:
+                    pass  # ignore any errors related to requests, it is a best-effort warning
 
             return _execute()
 
@@ -823,7 +825,7 @@ class _ConnectionBase:
             with Client() as client:
                 res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
             return resp(res)
-        except (RequestError, OSError):
+        except RequestError:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
     def delete(

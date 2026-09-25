@@ -23,6 +23,12 @@ MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC 
 GRPC_WEB_MIN_SERVER_VERSION = "1.38.3"
 # Weaviate's grpc-web path prefix
 GRPC_WEB_SERVER_PATH_PREFIX = "/v1/grpc-web"
+# appended to fetch failures under Pyodide; a dead port fails the same way, so it is a hint
+GRPC_WEB_CORS_HINT = (
+    "In a browser, this also happens when the server's CORS policy blocks the request "
+    "(Weaviate: CORS_ALLOW_ORIGIN / CORS_ALLOW_HEADERS; Weaviate Cloud: enable 'Allow all "
+    "CORS origins' in the cluster's settings)"
+)
 
 
 def _grpc_web_shim_active() -> bool:
@@ -138,11 +144,11 @@ class ConnectionParams(BaseModel):
     def _grpc_web_path_prefix(self) -> str:
         """Normalized grpc-web path prefix; "" means native gRPC.
 
-        One leading slash, no trailing slash ("grpc-web/" -> "/grpc-web"); empty or
-        None -> "".
+        One leading slash, no trailing or repeated slashes ("grpc-web/" -> "/grpc-web",
+        "//a//b/" -> "/a/b"); blank or None -> "".
         """
-        cleaned = (self.grpc_path_prefix or "").strip("/")
-        return f"/{cleaned}" if cleaned else ""
+        segments = [part for part in (self.grpc_path_prefix or "").strip().split("/") if part]
+        return "/" + "/".join(segments) if segments else ""
 
     def _check_grpc_web_usable(self, is_async: bool) -> None:
         """Raise if a grpc-web prefix is set but unusable (sync client, or no grpc shim).
@@ -153,18 +159,14 @@ class ConnectionParams(BaseModel):
             return
         if not is_async:
             raise WeaviateInvalidInputError(
-                "grpc_path_prefix (grpc-web) is only supported for async clients; "
-                "use use_async_with_custom(...) / WeaviateAsyncClient"
+                "grpc_path_prefix (grpc-web) is only supported for async clients; use "
+                "WeaviateAsyncClient(ConnectionParams.from_params(..., grpc_path_prefix=...))"
             )
         if not _grpc_web_shim_active():
             raise WeaviateInvalidInputError(
-                "grpc_path_prefix enables grpc-web, which requires the "
-                "'weaviate-client-web' package (it installs a grpc shim before "
-                "'import weaviate'); it is not active in this environment. grpc-web is "
-                "only available under WebAssembly/Pyodide, where a plain `import "
-                "weaviate` activates it (install the companion with "
-                "micropip.install('weaviate-client[grpc-web]')); on CPython use native "
-                "gRPC instead."
+                "grpc_path_prefix (grpc-web) needs weaviate-client-web, which runs only "
+                "under Pyodide (micropip.install('weaviate-client[grpc-web]')); on CPython, "
+                "use native gRPC instead"
             )
 
     def _grpc_channel(
