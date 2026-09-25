@@ -497,7 +497,9 @@ def is_weaviate_domain(url: str) -> bool:
 
 
 def strip_newlines(s: str) -> str:
-    return s.replace("\n", " ")
+    # GraphQL treats CR as a line terminator inside string literals just like LF,
+    # so a CRLF value must collapse to one space instead of leaving a bare CR.
+    return s.replace("\r\n", "\n").replace("\r", "\n").replace("\n", " ")
 
 
 def _sanitize_str(value: str) -> str:
