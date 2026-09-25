@@ -145,13 +145,11 @@ class _ObjectTTLUpdate:
 
         Args:
             property_name: The name of the date property to use for object expiration.
-            ttl_offset: The time-to-live for objects relative to the date (seconds if integer). Can be negative for indicating that objects should expire before the date property value.
+            ttl_offset: The time-to-live for objects relative to the date (seconds if integer). Can be negative for indicating that objects should expire before the date property value. If `None`, preserve the existing offset. Pass `0` to reset it.
             filter_expired_objects: If enabled, exclude expired but not deleted objects from search results.
         """
         if isinstance(ttl_offset, datetime.timedelta):
             ttl_offset = int(ttl_offset.total_seconds())
-        if ttl_offset is None:
-            ttl_offset = 0
         return ObjectTTLConfigUpdate(
             enabled=True,
             deleteOn=property_name,

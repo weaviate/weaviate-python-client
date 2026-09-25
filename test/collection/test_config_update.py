@@ -1,11 +1,53 @@
+from datetime import timedelta
+
 import pytest
 
 from test.collection.schema import multi_vector_schema
 from weaviate.collections.classes.config import (
+    Configure,
     Reconfigure,
     _CollectionConfigUpdate,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
+
+
+@pytest.mark.parametrize("offset", [3600, -3600])
+def test_object_ttl_update_preserves_omitted_offset(offset: int) -> None:
+    schema = {
+        "objectTTLConfig": {
+            "enabled": True,
+            "deleteOn": "expiresAt",
+            "defaultTtl": offset,
+            "filterExpiredObjects": False,
+        }
+    }
+    update = _CollectionConfigUpdate(
+        object_ttl_config=Reconfigure.ObjectTTL.delete_by_date_property(filter_expired_objects=True)
+    )
+
+    merged = update.merge_with_existing(schema)
+
+    assert merged["objectTTLConfig"] == {
+        "enabled": True,
+        "deleteOn": "expiresAt",
+        "defaultTtl": offset,
+        "filterExpiredObjects": True,
+    }
+
+
+@pytest.mark.parametrize("offset", [0, -60, timedelta(seconds=120)])
+def test_object_ttl_update_applies_explicit_offset(offset: int | timedelta) -> None:
+    update = Reconfigure.ObjectTTL.delete_by_date_property(ttl_offset=offset)
+    merged = update.merge_with_existing({"deleteOn": "expiresAt", "defaultTtl": 3600})
+    assert merged["defaultTtl"] == (
+        int(offset.total_seconds()) if isinstance(offset, timedelta) else offset
+    )
+    assert merged["deleteOn"] == "expiresAt"
+
+
+def test_object_ttl_creation_defaults_to_zero_offset() -> None:
+    config = Configure.ObjectTTL.delete_by_date_property("expiresAt")
+    assert config._to_dict()["defaultTtl"] == 0
 
 
 @pytest.mark.parametrize(
