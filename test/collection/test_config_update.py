@@ -12,22 +12,23 @@ from weaviate.exceptions import WeaviateInvalidInputError
 
 
 @pytest.mark.parametrize("offset", [3600, -3600])
-def test_object_ttl_update_preserves_omitted_offset(offset: int) -> None:
+def test_object_ttl_update_omits_unspecified_offset(offset: int) -> None:
     schema = {
-        "objectTTLConfig": {
-            "enabled": True,
-            "deleteOn": "expiresAt",
-            "defaultTtl": offset,
-            "filterExpiredObjects": False,
-        }
+        "enabled": True,
+        "deleteOn": "expiresAt",
+        "defaultTtl": offset,
+        "filterExpiredObjects": False,
     }
-    update = _CollectionConfigUpdate(
-        object_ttl_config=Reconfigure.ObjectTTL.delete_by_date_property(filter_expired_objects=True)
-    )
+    update = Reconfigure.ObjectTTL.delete_by_date_property(filter_expired_objects=True)
 
-    merged = update.merge_with_existing(schema)
+    assert update.defaultTtl is None
+    assert update.merge_with_existing({}) == {
+        "enabled": True,
+        "filterExpiredObjects": True,
+    }
 
-    assert merged["objectTTLConfig"] == {
+    # Verify the TTL block independently of the collection-level key spelling.
+    assert update.merge_with_existing(schema) == {
         "enabled": True,
         "deleteOn": "expiresAt",
         "defaultTtl": offset,
