@@ -31,7 +31,7 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 DEFAULT_PORT = 8079
 DEFAULT_GRPC_PORT = 50060
 
-WEAVIATE_VERSION = "1.30.5"
+WEAVIATE_VERSION = "1.39.7"
 
 
 @dataclass
