@@ -1616,7 +1616,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     invertedIndexConfig: Optional[InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
     )
-    objectTTLConfig: Optional[ObjectTTLConfigUpdate] = Field(
+    objectTtlConfig: Optional[ObjectTTLConfigUpdate] = Field(
         default=None, alias="object_ttl_config"
     )
     replicationConfig: Optional[ReplicationConfigUpdate] = Field(
@@ -1745,10 +1745,11 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             schema["multiTenancyConfig"] = self.multiTenancyConfig.merge_with_existing(
                 schema["multiTenancyConfig"]
             )
-        if self.objectTTLConfig is not None:
-            schema["objectTTLConfig"] = self.objectTTLConfig.merge_with_existing(
-                schema.get("objectTTLConfig", {})
+        if self.objectTtlConfig is not None:
+            schema["objectTtlConfig"] = self.objectTtlConfig.merge_with_existing(
+                schema.get("objectTtlConfig") or schema.get("objectTTLConfig") or {}
             )
+            schema.pop("objectTTLConfig", None)
         if self.vectorIndexConfig is not None:
             self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(

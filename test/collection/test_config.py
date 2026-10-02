@@ -14,6 +14,7 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     _AsyncReplicationConfig,
     _CollectionConfigCreate,
+    _CollectionConfigUpdate,
     _GenerativeProvider,
     _ReplicationConfig,
     _ReplicationConfigUpdate,
@@ -30,6 +31,7 @@ from weaviate.collections.classes.config_vectorizers import (
     VectorDistances,
 )
 from weaviate.collections.classes.config_vectors import _VectorConfigCreate
+from weaviate.collections.classes.config_object_ttl import ObjectTTLConfigUpdate
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError
 
 DEFAULTS = {
@@ -3529,3 +3531,23 @@ class TestInvertedIndexStopwordPresets:
         }
         merged = rc.merge_with_existing(existing)
         assert merged["stopwordPresets"] == {"fr": ["le", "la"]}
+
+
+def test_object_ttl_update_uses_server_schema_key():
+    stored = {
+        "objectTtlConfig": {
+            "enabled": True,
+            "deleteOn": "expiresAt",
+            "defaultTtl": 3600,
+            "filterExpiredObjects": False,
+        }
+    }
+    update = _CollectionConfigUpdate(
+        object_ttl_config=ObjectTTLConfigUpdate(enabled=True, filterExpiredObjects=True)
+    )
+    merged = update.merge_with_existing(stored)
+
+    assert "objectTTLConfig" not in merged
+    assert merged["objectTtlConfig"]["filterExpiredObjects"] is True
+    assert merged["objectTtlConfig"]["defaultTtl"] == 3600
+    assert merged["objectTtlConfig"]["deleteOn"] == "expiresAt"
