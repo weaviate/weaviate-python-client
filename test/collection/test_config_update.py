@@ -289,3 +289,58 @@ def test_updating_vector_when_none_left() -> None:
 
     with pytest.raises(WeaviateInvalidInputError, match="does not exist"):
         update.merge_with_existing({"class": "Test", "properties": []})
+
+
+def _single_vector_schema(vector_index_type: str) -> dict:
+    """A legacy collection with a single, unnamed vector."""
+    return {
+        "class": "SingleVector",
+        "vectorizer": "none",
+        "vectorIndexType": vector_index_type,
+        "vectorIndexConfig": {"distance": "cosine", "vectorCacheMaxObjects": 1000},
+    }
+
+
+@pytest.mark.parametrize("argument", ["vector_index_config", "vectorizer_config"])
+def test_changing_single_vector_index_type_raises(argument: str) -> None:
+    """Changing the index type used to be silently dropped for a single vector (#1277)."""
+    update = _CollectionConfigUpdate(**{argument: Reconfigure.VectorIndex.dynamic(threshold=1000)})
+
+    with pytest.raises(WeaviateInvalidInputError, match="from 'flat' to 'dynamic'"):
+        update.merge_with_existing(_single_vector_schema("flat"))
+
+
+@pytest.mark.parametrize("use_deprecated_syntax", [False, True])
+def test_changing_named_vector_index_type_raises(use_deprecated_syntax: bool) -> None:
+    """Changing the index type of a named vector is rejected before reaching the server (#1277)."""
+    flat = Reconfigure.VectorIndex.flat(vector_cache_max_objects=1000)
+    update = (
+        _CollectionConfigUpdate(
+            vectorizer_config=[
+                Reconfigure.NamedVectors.update(name="boi", vector_index_config=flat)
+            ]
+        )
+        if use_deprecated_syntax
+        else _CollectionConfigUpdate(
+            vector_config=Reconfigure.Vectors.update(name="boi", vector_index_config=flat)
+        )
+    )
+
+    with pytest.raises(WeaviateInvalidInputError, match="vector 'boi' from 'hnsw' to 'flat'"):
+        update.merge_with_existing(multi_vector_schema())
+
+
+def test_updating_with_same_vector_index_type_still_works() -> None:
+    single = _CollectionConfigUpdate(
+        vectorizer_config=Reconfigure.VectorIndex.flat(vector_cache_max_objects=5)
+    ).merge_with_existing(_single_vector_schema("flat"))
+    assert single["vectorIndexType"] == "flat"
+    assert single["vectorIndexConfig"]["vectorCacheMaxObjects"] == 5
+
+    named = _CollectionConfigUpdate(
+        vector_config=Reconfigure.Vectors.update(
+            name="boi", vector_index_config=Reconfigure.VectorIndex.hnsw(ef=128)
+        )
+    ).merge_with_existing(multi_vector_schema())
+    assert named["vectorConfig"]["boi"]["vectorIndexType"] == "hnsw"
+    assert named["vectorConfig"]["boi"]["vectorIndexConfig"]["ef"] == 128

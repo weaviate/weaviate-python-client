@@ -1674,6 +1674,22 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         return cast(Dict[str, Any], existing["vectorIndexConfig"])
 
+    @staticmethod
+    def __check_vector_index_type(
+        update: VectorIndexConfigUpdate, existing_type: Optional[str], name: Optional[str] = None
+    ) -> None:
+        # The vector index type is immutable server-side. Without this check, the change is either
+        # silently dropped (single unnamed vector) or the server fails with an internal error
+        # (named vectors).
+        new_type = update.vector_index_type().value
+        if existing_type and existing_type != new_type:
+            target = "the collection" if name is None else f"vector '{name}'"
+            raise WeaviateInvalidInputError(
+                f"Cannot update the vector index type of {target} from '{existing_type}' to "
+                f"'{new_type}', the vector index type is immutable. To use a different vector "
+                "index type, you must recreate the collection"
+            )
+
     def __check_quantizers(
         self,
         quantizer: Optional[_QuantizerConfigUpdate],
@@ -1750,6 +1766,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 schema.get("objectTTLConfig", {})
             )
         if self.vectorIndexConfig is not None:
+            self.__check_vector_index_type(self.vectorIndexConfig, schema.get("vectorIndexType"))
             self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
                 schema["vectorIndexConfig"]
@@ -1778,6 +1795,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, VectorIndexConfigUpdate):
+                self.__check_vector_index_type(self.vectorizerConfig, schema.get("vectorIndexType"))
                 self.__check_quantizers(
                     self.vectorizerConfig.quantizer, schema["vectorIndexConfig"]
                 )
@@ -1787,6 +1805,11 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             else:
                 for vc in self.vectorizerConfig:
                     existing = self.__existing_vector_index_config(schema, vc.name)
+                    self.__check_vector_index_type(
+                        vc.vectorIndexConfig,
+                        schema["vectorConfig"][vc.name].get("vectorIndexType"),
+                        vc.name,
+                    )
                     self.__check_quantizers(vc.vectorIndexConfig.quantizer, existing)
                     schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
                         vc.vectorIndexConfig.merge_with_existing(existing)
@@ -1802,6 +1825,11 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
             for vc in vcs:
                 existing = self.__existing_vector_index_config(schema, vc.name)
+                self.__check_vector_index_type(
+                    vc.vectorIndexConfig,
+                    schema["vectorConfig"][vc.name].get("vectorIndexType"),
+                    vc.name,
+                )
                 self.__check_quantizers(vc.vectorIndexConfig.quantizer, existing)
                 schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
                     vc.vectorIndexConfig.merge_with_existing(existing)
