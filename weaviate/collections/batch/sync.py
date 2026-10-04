@@ -356,6 +356,8 @@ class _BatchBaseSync:
                         try:
                             with self.__objs_cache_lock:
                                 cached = self.__objs_cache.pop(error.uuid)
+                            with self.__uuid_lookup_lock:
+                                self.__uuid_lookup.discard(error.uuid)
                         except KeyError:
                             continue
                         err = ErrorObject(
