@@ -340,7 +340,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         path = f"/authz/roles/{role}/has-permission"
 
         def resp(res: Response) -> bool:
-            return res.status_code == 200
+            # the endpoint answers 200 with a boolean body, 404 if the role is missing
+            return res.status_code == 200 and res.json() is True
 
         return executor.execute(
             response_callback=resp,
