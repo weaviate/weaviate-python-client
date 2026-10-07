@@ -29,6 +29,26 @@ RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 
+def test_create_backup_reader_role(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 39, 0):
+            pytest.skip("This test requires Weaviate 1.39.0 or higher")
+        role_name = "ReadBackupsOnly"
+        try:
+            client.roles.delete(role_name)
+            client.roles.create(
+                role_name=role_name,
+                permissions=Permissions.backup(collection="Test", read=True),
+            )
+            role = client.roles.get(role_name)
+            assert role is not None
+            assert role.backups_permissions == [
+                BackupsPermissionOutput(collection="Test", actions={Actions.Backups.READ})
+            ]
+        finally:
+            client.roles.delete(role_name)
+
+
 @pytest.mark.parametrize(
     "permissions,expected,min_version",
     [
