@@ -5,6 +5,9 @@ from typing import Generic, List, Literal, Optional, Type, Union, overload
 from weaviate.cluster import _ClusterAsync
 from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.collections.backups import _CollectionBackupAsync
+from weaviate.collections.batch.collection import (
+    _BatchCollectionWrapperAsync,
+)
 from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
@@ -24,6 +27,7 @@ from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
 from weaviate.collections.query import _QueryCollectionAsync
 from weaviate.collections.tenants import _TenantsAsync
 from weaviate.connect.v4 import ConnectionAsync
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID
 
 from .base import _CollectionBase
@@ -77,6 +81,15 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
         self.backup: _CollectionBackupAsync = _CollectionBackupAsync(connection, name)
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
+        self.batch: _BatchCollectionWrapperAsync[Properties] = _BatchCollectionWrapperAsync[
+            Properties
+        ](
+            connection,
+            consistency_level,
+            name,
+            tenant,
+        )
+        """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.config = _ConfigCollectionAsync(connection, name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollectionAsync[Properties](
@@ -171,8 +184,10 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         try:
             await self.config.get(simple=True)
             return True
-        except Exception:
-            return False
+        except UnexpectedStatusCodeError as e:
+            if e.status_code == 404:
+                return False
+            raise e
 
     async def shards(self) -> List[Shard]:
         """Get the statuses of all the shards of this collection.

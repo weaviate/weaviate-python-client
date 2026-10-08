@@ -9,8 +9,10 @@ from weaviate.collections.classes.filters import (
     _FilterAnd,
     _FilterNot,
     _FilterOr,
+    _FilterValue,
     _Operator,
 )
+from weaviate.collections.filters import _FilterToGRPC
 from weaviate.proto.v1 import base_pb2
 
 
@@ -19,11 +21,59 @@ def test_empty_input_contains_any() -> None:
         wvc.query.Filter.by_id().contains_any([])
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
         wvc.query.Filter.by_property("test").contains_any([])
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_creation_time().contains_any([])
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_update_time().contains_any([])
+
+
+def test_empty_input_contains_none_time() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_creation_time().contains_none([])
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_update_time().contains_none([])
 
 
 def test_empty_input_contains_all() -> None:
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
         wvc.query.Filter.by_property("test").contains_all([])
+
+
+def test_empty_list_equal() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").equal([])
+
+
+def test_empty_list_not_equal() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").not_equal([])
+
+
+def test_empty_list_less_than() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").less_than([])
+
+
+def test_empty_list_less_or_equal() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").less_or_equal([])
+
+
+def test_empty_list_greater_than() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").greater_than([])
+
+
+def test_empty_list_greater_or_equal() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.by_property("test").greater_or_equal([])
+
+
+def test_empty_list_grpc_conversion() -> None:
+    """Ensure the gRPC converter raises WeaviateInvalidInputError for empty lists."""
+    fv = _FilterValue(target="test", value=[], operator=_Operator.EQUAL)
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        _FilterToGRPC.convert(fv)
 
 
 def test_filter_lists() -> None:
@@ -111,6 +161,29 @@ def test_auto_capitalize_first_letter_by_ref_multi_target() -> None:
     result = Filter.by_ref_multi_target(link_on="ref1", target_collection="test")
     target_collection_stored = result._FilterByRef__target.target_collection
     assert target_collection_stored == "Test"
+
+
+def test_reuse_by_ref_builder_for_independent_filters() -> None:
+    ref = Filter.by_ref("hasCategory")
+
+    name_filter = ref.by_property("name").equal("Electronics")
+    rating_filter = ref.by_property("rating").greater_than(4)
+
+    assert name_filter.target.link_on == "hasCategory"
+    assert name_filter.target.target == "name"
+    assert rating_filter.target.link_on == "hasCategory"
+    assert rating_filter.target.target == "rating"
+    assert name_filter.target is not rating_filter.target
+
+    property_filter = ref.by_property("name")
+    first_value = property_filter.equal("Electronics")
+    second_value = property_filter.equal("Appliances")
+
+    assert first_value.target.link_on == "hasCategory"
+    assert first_value.target.target == "name"
+    assert second_value.target.link_on == "hasCategory"
+    assert second_value.target.target == "name"
+    assert first_value.target is not second_value.target
 
 
 @pytest.mark.parametrize(

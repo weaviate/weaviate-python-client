@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import sys
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -7,6 +9,7 @@ from ssl import SSLZeroReturnError
 from threading import Event, Thread
 from typing import (
     Any,
+    AsyncGenerator,
     Awaitable,
     Dict,
     Generator,
@@ -20,13 +23,14 @@ from typing import (
     overload,
 )
 
+import grpc
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
 from grpc import Call, RpcError, StatusCode
 from grpc import Channel as SyncChannel  # type: ignore
-from grpc.aio import AioRpcError
+from grpc.aio import AioRpcError, StreamStreamCall
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 
 # from grpclib.client import Channel
@@ -50,7 +54,7 @@ from httpx import (
 
 from weaviate import __version__ as client_version
 from weaviate.auth import AuthApiKey, AuthClientCredentials, AuthCredentials
-from weaviate.config import ConnectionConfig, Proxies
+from weaviate.config import ConnectionConfig, GrpcConfig, Proxies
 from weaviate.config import Timeout as TimeoutConfig
 from weaviate.connect import executor
 from weaviate.connect.authentication import _Auth
@@ -59,7 +63,6 @@ from weaviate.connect.base import (
     JSONPayload,
     _get_proxies,
 )
-from weaviate.connect.event_loop import _EventLoopSingleton
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
@@ -132,6 +135,7 @@ class _ConnectionBase:
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedV4] = None,
         skip_init_checks: bool = False,
+        grpc_config: Optional[GrpcConfig] = None,
     ):
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
@@ -142,6 +146,17 @@ class _ConnectionBase:
         self._connection_params = connection_params
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Union[AsyncChannel, SyncChannel, None] = None
+        if sys.platform == "emscripten" and isinstance(self, ConnectionSync):
+            # fail here, at construction, instead of with an unclear ConnectError on the
+            # first REST call; _client/_grpc_channel are already set, so __del__ does not warn
+            raise WeaviateStartUpError(
+                "The synchronous client is not supported under WebAssembly/Pyodide. "
+                "Use an async client (weaviate.use_async_with_local / "
+                "use_async_with_weaviate_cloud / use_async_with_custom, or "
+                "WeaviateAsyncClient) instead."
+            )
+        # a grpc-web prefix this client cannot use fails here, not deep inside connect()
+        connection_params._check_grpc_web_usable(is_async=not isinstance(self, ConnectionSync))
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
@@ -149,6 +164,9 @@ class _ConnectionBase:
         self._grpc_max_msg_size: Optional[int] = None
         self._connected = False
         self._skip_init_checks = skip_init_checks
+        self._grpc_config = grpc_config
+        self._shutdown_background_event: Optional[Event] = None
+        self.__token_refresh_task: Optional["asyncio.Task[None]"] = None
 
         client_type = "sync" if isinstance(self, ConnectionSync) else "async"
         embedded_suffix = "-embedded" if self.embedded_db is not None else ""
@@ -262,9 +280,11 @@ class _ConnectionBase:
 
     def _prepare_grpc_headers(self) -> None:
         self.__metadata_list: List[Tuple[str, str]] = []
+        if "X-Weaviate-Client" in self._headers:
+            self.__metadata_list.append(("x-weaviate-client", self._headers["X-Weaviate-Client"]))
         if len(self.additional_headers):
             for key, val in self.additional_headers.items():
-                if val is not None:
+                if val is not None and key.lower() != "x-weaviate-client":
                     self.__metadata_list.append((key.lower(), val))
 
         if self._auth is not None:
@@ -331,14 +351,24 @@ class _ConnectionBase:
     def __handle_ping_response(self, res: health_weaviate_pb2.WeaviateHealthCheckResponse) -> None:
         if res.status != health_weaviate_pb2.WeaviateHealthCheckResponse.SERVING:
             raise WeaviateGRPCUnavailableError(
-                f"v{self.server_version}", self._connection_params._grpc_address
+                f"v{self.server_version}",
+                self._connection_params._grpc_address,
+                grpc_path_prefix=self.__grpc_web_prefix(),
             )
         return None
 
     def __handle_ping_exception(self, e: Exception) -> None:
+        # pass the error on so the message can report its status and details
         raise WeaviateGRPCUnavailableError(
-            f"v{self.server_version}", self._connection_params._grpc_address
+            f"v{self.server_version}",
+            self._connection_params._grpc_address,
+            grpc_path_prefix=self.__grpc_web_prefix(),
+            error=e,
         ) from e
+
+    def __grpc_web_prefix(self) -> Optional[str]:
+        """The configured grpc-web path prefix, or None for native gRPC."""
+        return self._connection_params._grpc_web_path_prefix or None
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
@@ -370,6 +400,7 @@ class _ConnectionBase:
             proxies=self._proxies,
             grpc_msg_size=self._grpc_max_msg_size,
             is_async=colour == "async",
+            grpc_config=self._grpc_config,
         )
         self._grpc_channel = channel
         assert self._grpc_channel is not None
@@ -398,7 +429,7 @@ class _ConnectionBase:
             async def get_oidc() -> None:
                 async with self._make_client("async") as client:
                     try:
-                        response = await client.get(oidc_url)
+                        response = await client.get(oidc_url, timeout=self.timeout_config.init)
                     except Exception as e:
                         raise WeaviateConnectionError(
                             f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -413,7 +444,7 @@ class _ConnectionBase:
 
         with self._make_client("sync") as client:
             try:
-                response = client.get(oidc_url)
+                response = client.get(oidc_url, timeout=self.timeout_config.init)
             except Exception as e:
                 raise WeaviateConnectionError(
                     f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -523,78 +554,98 @@ class _ConnectionBase:
         if "refresh_token" not in self._client.token and _auth is None:
             return
 
-        # make an event loop sidecar thread for running async token refreshing
-        event_loop = (
-            _EventLoopSingleton.get_instance()
-            if isinstance(self._client, AsyncOAuth2Client)
-            else None
-        )
+        # stop the refresher from an earlier connect(), if any
+        self._cancel_background_token_refresh()
 
-        expires_in: int = self._client.token.get(
-            "expires_in", 60
-        )  # use 1minute as token lifetime if not supplied
-        self._shutdown_background_event = Event()
+        # refresh 30s before the token expires (assume 1 minute if the token does not say);
+        # the loops below always wait at least 1s
+        refresh_in: int = self._client.token.get("expires_in", 60) - 30
+        # the refresher keeps its own event: after close() + connect() the old refresher
+        # must stop on this one instead of running on with the new one
+        shutdown = Event()
+        self._shutdown_background_event = shutdown
 
-        def refresh_token() -> None:
-            if isinstance(self._client, AsyncOAuth2Client):
-                assert event_loop is not None
-                self._client.token = event_loop.run_until_complete(
-                    self._client.refresh_token,
-                    url=self._client.metadata["token_endpoint"],
-                )
-            elif isinstance(self._client, OAuth2Client):
-                self._client.token = self._client.refresh_token(
-                    url=self._client.metadata["token_endpoint"]
-                )
-
-        def refresh_session() -> None:
-            assert _auth is not None
-            if isinstance(self._client, AsyncOAuth2Client):
-                assert event_loop is not None
-                new_session = event_loop.run_until_complete(
-                    _auth.aresult, result=_auth.get_auth_session()
-                )
-                self._client.token = event_loop.run_until_complete(new_session.fetch_token)
-            elif isinstance(self._client, OAuth2Client):
-                new_session = _auth.result(_auth.get_auth_session())
-                self._client.token = new_session.fetch_token()
-
-        def update_refresh_time() -> int:
-            assert isinstance(self._client, (OAuth2Client, AsyncOAuth2Client))
-            return self._client.token.get("expires_in", 60) - 30
+        if isinstance(self._client, AsyncOAuth2Client):
+            # async client: refresh in an asyncio task on the current loop, not in a thread
+            # (threads cannot start under WASM/Pyodide)
+            self.__token_refresh_task = asyncio.get_running_loop().create_task(
+                self.__periodic_token_refresh_async(refresh_in, _auth, shutdown)
+            )
+            return
 
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
-            while (
-                self._shutdown_background_event is not None
-                and not self._shutdown_background_event.is_set()
-            ):
-                # use refresh token when available
-                time.sleep(max(refresh_time, 1))
+            # wait on the event instead of sleeping, so close() can end the thread right away
+            while not shutdown.wait(timeout=max(refresh_time, 1)):
                 try:
-                    if self._client is None:
+                    # use one client for the whole round: close()/connect() may replace
+                    # self._client while a refresh is running
+                    client = self._client
+                    if not isinstance(client, OAuth2Client):
                         continue
-                    elif (
-                        isinstance(self._client, (OAuth2Client, AsyncOAuth2Client))
-                        and "refresh_token" in self._client.token
-                    ):
-                        refresh_token()
+                    if "refresh_token" in client.token:
+                        client.token = client.refresh_token(url=client.metadata["token_endpoint"])
                     else:
-                        # client credentials usually does not contain a refresh token => get a new token using the
-                        # saved credentials
-                        refresh_session()
-                    refresh_time = update_refresh_time()
-                except HTTPError as exc:
-                    # retry again after one second, might be an unstable connection
+                        # client credentials usually does not contain a refresh token => get a
+                        # new token using the saved credentials
+                        assert _auth is not None
+                        new_session = _auth.result(_auth.get_auth_session())
+                        client.token = new_session.fetch_token()
+                    refresh_time = client.token.get("expires_in", 60) - 30
+                except Exception as exc:
+                    # retry in one second; any error must keep the refresher alive, not only
+                    # network errors
                     refresh_time = 1
                     _Warnings.token_refresh_failed(exc)
 
         demon = Thread(
             target=periodic_refresh_token,
-            args=(expires_in, _auth),
+            args=(refresh_in, _auth),
             daemon=True,
             name="TokenRefresh",
         )
         demon.start()
+
+    def _cancel_background_token_refresh(self) -> Optional["asyncio.Task[None]"]:
+        """Stop the token refresher: set the shutdown event (sync thread) and cancel the async task.
+
+        Returns the cancelled task, if any, so close() can wait for it to finish.
+        """
+        if self._shutdown_background_event is not None:
+            self._shutdown_background_event.set()
+        task, self.__token_refresh_task = self.__token_refresh_task, None
+        if task is not None:
+            try:
+                task.cancel()
+            except RuntimeError:
+                # the task's loop is closed; the task can never run again
+                pass
+        return task
+
+    async def __periodic_token_refresh_async(
+        self, refresh_time: int, _auth: Optional[_Auth], shutdown: Event
+    ) -> None:
+        """Async version of ``periodic_refresh_token``, run as a task; close() cancels it."""
+        while not shutdown.is_set():
+            await asyncio.sleep(max(refresh_time, 1))
+            try:
+                client = self._client
+                if not isinstance(client, AsyncOAuth2Client):
+                    continue
+                if "refresh_token" in client.token:
+                    client.token = await client.refresh_token(url=client.metadata["token_endpoint"])
+                else:
+                    # client credentials usually does not contain a refresh token => get a
+                    # new token using the saved credentials
+                    assert _auth is not None
+                    new_session = await _Auth.aresult(_auth.get_auth_session())
+                    client.token = await new_session.fetch_token()
+                refresh_time = client.token.get("expires_in", 60) - 30
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                # retry in one second; any error must keep the refresher alive
+                refresh_time = 1
+                _Warnings.token_refresh_failed(exc)
 
     def __get_latest_headers(self) -> Dict[str, str]:
         if "authorization" in self._headers:
@@ -703,9 +754,17 @@ class _ConnectionBase:
     def close(self, colour: executor.Colour) -> executor.Result[None]:
         if self.embedded_db is not None:
             self.embedded_db.stop()
+        refresh_task = self._cancel_background_token_refresh()
         if colour == "async":
 
             async def execute() -> None:
+                if (
+                    refresh_task is not None
+                    and refresh_task.get_loop() is asyncio.get_running_loop()
+                ):
+                    # wait for the task to finish before the client is closed; a task from
+                    # another loop cannot be awaited here and is done or orphaned with its loop
+                    await asyncio.gather(refresh_task, return_exceptions=True)
                 if self._client is not None:
                     assert isinstance(self._client, AsyncClient)
                     await self._client.aclose()
@@ -738,19 +797,26 @@ class _ConnectionBase:
             if is_weaviate_client_too_old(client_version, latest_version):
                 _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
 
-        try:
-            if colour == "async":
+        if colour == "async":
 
-                async def _execute() -> None:
+            async def _execute() -> None:
+                try:
                     async with AsyncClient() as client:
                         res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
                     return resp(res)
+                except (RequestError, OSError):
+                    # ignore any request error, this is a best-effort warning. OSError covers
+                    # fetch failures under Pyodide/WASM, where the page's CSP often blocks
+                    # pypi.org; that must not fail connect().
+                    pass
 
-                return _execute()
+            return _execute()
+
+        try:
             with Client() as client:
                 res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
             return resp(res)
-        except RequestError:
+        except (RequestError, OSError):
             pass  # ignore any errors related to requests, it is a best-effort warning
 
     def delete(
@@ -1011,7 +1077,9 @@ class ConnectionSync(_ConnectionBase):
         try:
             assert self.grpc_stub is not None
             for msg in self.grpc_stub.BatchStream(
-                request_iterator=requests, metadata=self.grpc_headers()
+                request_iterator=requests,
+                timeout=self.timeout_config.stream,
+                metadata=self.grpc_headers(),
             ):
                 yield msg
         except RpcError as e:
@@ -1020,7 +1088,7 @@ class ConnectionSync(_ConnectionBase):
                 raise InsufficientPermissionsError(error)
             if error.code() == StatusCode.ABORTED:
                 raise _BatchStreamShutdownError()
-            raise WeaviateBatchStreamError(str(error.details()))
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest
@@ -1039,7 +1107,7 @@ class ConnectionSync(_ConnectionBase):
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
-            raise WeaviateDeleteManyError(str(error.details()))
+            raise WeaviateDeleteManyError(f"[{error.code().name}] {error.details()}")
 
     def grpc_tenants_get(
         self, request: tenants_pb2.TenantsGetRequest
@@ -1088,8 +1156,8 @@ class ConnectionSync(_ConnectionBase):
 class ConnectionAsync(_ConnectionBase):
     """Connection class used to communicate to a weaviate instance."""
 
-    async def connect(self) -> None:
-        if self._connected:
+    async def connect(self, force: bool = False) -> None:
+        if self._connected and not force:
             return None
 
         await executor.aresult(self._open_connections_rest(self._auth, "async"))
@@ -1146,7 +1214,7 @@ class ConnectionAsync(_ConnectionBase):
                 ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
-                time.sleep(1)
+                await asyncio.sleep(1)
 
         try:
             (
@@ -1219,7 +1287,63 @@ class ConnectionAsync(_ConnectionBase):
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
-            raise WeaviateDeleteManyError(str(e))
+            raise WeaviateDeleteManyError(f"[{e.code().name}] {e.details()}")
+
+    async def grpc_batch_stream(
+        self,
+        requests: AsyncGenerator[batch_pb2.BatchStreamRequest, None],
+    ) -> AsyncGenerator[batch_pb2.BatchStreamReply, None]:
+        assert isinstance(self._grpc_channel, grpc.aio.Channel)
+        try:
+            async for msg in self._grpc_channel.stream_stream(
+                "/weaviate.v1.Weaviate/BatchStream",
+                request_serializer=batch_pb2.BatchStreamRequest.SerializeToString,
+                response_deserializer=batch_pb2.BatchStreamReply.FromString,
+            )(
+                request_iterator=requests,
+                timeout=self.timeout_config.stream,
+                metadata=self.grpc_headers(),
+            ):
+                yield msg
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
+
+    async def grpc_batch_stream_write(
+        self,
+        stream: StreamStreamCall[batch_pb2.BatchStreamRequest, batch_pb2.BatchStreamReply],
+        request: batch_pb2.BatchStreamRequest,
+    ) -> None:
+        try:
+            await stream.write(request)
+        except AioRpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(str(error.details()))
+
+    async def grpc_batch_stream_read(
+        self,
+        stream: StreamStreamCall[batch_pb2.BatchStreamRequest, batch_pb2.BatchStreamReply],
+    ) -> Optional[batch_pb2.BatchStreamReply]:
+        try:
+            msg = await stream.read()
+            if not isinstance(msg, batch_pb2.BatchStreamReply):
+                return None
+            return msg
+        except AioRpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            if error.code() == StatusCode.ABORTED:
+                raise _BatchStreamShutdownError()
+            raise WeaviateBatchStreamError(str(error.details()))
 
     async def grpc_tenants_get(
         self, request: tenants_pb2.TenantsGetRequest

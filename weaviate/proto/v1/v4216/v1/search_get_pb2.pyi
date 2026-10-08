@@ -3,6 +3,7 @@ from weaviate.proto.v1.v4216.v1 import base_search_pb2 as _base_search_pb2
 from weaviate.proto.v1.v4216.v1 import generative_pb2 as _generative_pb2
 from weaviate.proto.v1.v4216.v1 import properties_pb2 as _properties_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
@@ -10,7 +11,7 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SearchRequest(_message.Message):
-    __slots__ = ["collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "uses_123_api", "uses_125_api", "uses_127_api"]
+    __slots__ = ["collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "boost", "uses_123_api", "uses_125_api", "uses_127_api"]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
@@ -36,6 +37,7 @@ class SearchRequest(_message.Message):
     NEAR_IMU_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     RERANK_FIELD_NUMBER: _ClassVar[int]
+    BOOST_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
     USES_125_API_FIELD_NUMBER: _ClassVar[int]
     USES_127_API_FIELD_NUMBER: _ClassVar[int]
@@ -64,10 +66,11 @@ class SearchRequest(_message.Message):
     near_imu: _base_search_pb2.NearIMUSearch
     generative: _generative_pb2.GenerativeSearch
     rerank: Rerank
+    boost: Boost
     uses_123_api: bool
     uses_125_api: bool
     uses_127_api: bool
-    def __init__(self, collection: _Optional[str] = ..., tenant: _Optional[str] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., properties: _Optional[_Union[PropertiesRequest, _Mapping]] = ..., metadata: _Optional[_Union[MetadataRequest, _Mapping]] = ..., group_by: _Optional[_Union[GroupBy, _Mapping]] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ..., filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., hybrid_search: _Optional[_Union[_base_search_pb2.Hybrid, _Mapping]] = ..., bm25_search: _Optional[_Union[_base_search_pb2.BM25, _Mapping]] = ..., near_vector: _Optional[_Union[_base_search_pb2.NearVector, _Mapping]] = ..., near_object: _Optional[_Union[_base_search_pb2.NearObject, _Mapping]] = ..., near_text: _Optional[_Union[_base_search_pb2.NearTextSearch, _Mapping]] = ..., near_image: _Optional[_Union[_base_search_pb2.NearImageSearch, _Mapping]] = ..., near_audio: _Optional[_Union[_base_search_pb2.NearAudioSearch, _Mapping]] = ..., near_video: _Optional[_Union[_base_search_pb2.NearVideoSearch, _Mapping]] = ..., near_depth: _Optional[_Union[_base_search_pb2.NearDepthSearch, _Mapping]] = ..., near_thermal: _Optional[_Union[_base_search_pb2.NearThermalSearch, _Mapping]] = ..., near_imu: _Optional[_Union[_base_search_pb2.NearIMUSearch, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeSearch, _Mapping]] = ..., rerank: _Optional[_Union[Rerank, _Mapping]] = ..., uses_123_api: bool = ..., uses_125_api: bool = ..., uses_127_api: bool = ...) -> None: ...
+    def __init__(self, collection: _Optional[str] = ..., tenant: _Optional[str] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., properties: _Optional[_Union[PropertiesRequest, _Mapping]] = ..., metadata: _Optional[_Union[MetadataRequest, _Mapping]] = ..., group_by: _Optional[_Union[GroupBy, _Mapping]] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ..., filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., hybrid_search: _Optional[_Union[_base_search_pb2.Hybrid, _Mapping]] = ..., bm25_search: _Optional[_Union[_base_search_pb2.BM25, _Mapping]] = ..., near_vector: _Optional[_Union[_base_search_pb2.NearVector, _Mapping]] = ..., near_object: _Optional[_Union[_base_search_pb2.NearObject, _Mapping]] = ..., near_text: _Optional[_Union[_base_search_pb2.NearTextSearch, _Mapping]] = ..., near_image: _Optional[_Union[_base_search_pb2.NearImageSearch, _Mapping]] = ..., near_audio: _Optional[_Union[_base_search_pb2.NearAudioSearch, _Mapping]] = ..., near_video: _Optional[_Union[_base_search_pb2.NearVideoSearch, _Mapping]] = ..., near_depth: _Optional[_Union[_base_search_pb2.NearDepthSearch, _Mapping]] = ..., near_thermal: _Optional[_Union[_base_search_pb2.NearThermalSearch, _Mapping]] = ..., near_imu: _Optional[_Union[_base_search_pb2.NearIMUSearch, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeSearch, _Mapping]] = ..., rerank: _Optional[_Union[Rerank, _Mapping]] = ..., boost: _Optional[_Union[Boost, _Mapping]] = ..., uses_123_api: bool = ..., uses_125_api: bool = ..., uses_127_api: bool = ...) -> None: ...
 
 class GroupBy(_message.Message):
     __slots__ = ["path", "number_of_groups", "objects_per_group"]
@@ -88,7 +91,7 @@ class SortBy(_message.Message):
     def __init__(self, ascending: bool = ..., path: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class MetadataRequest(_message.Message):
-    __slots__ = ["uuid", "vector", "creation_time_unix", "last_update_time_unix", "distance", "certainty", "score", "explain_score", "is_consistent", "vectors"]
+    __slots__ = ["uuid", "vector", "creation_time_unix", "last_update_time_unix", "distance", "certainty", "score", "explain_score", "is_consistent", "vectors", "query_profile"]
     UUID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CREATION_TIME_UNIX_FIELD_NUMBER: _ClassVar[int]
@@ -99,6 +102,7 @@ class MetadataRequest(_message.Message):
     EXPLAIN_SCORE_FIELD_NUMBER: _ClassVar[int]
     IS_CONSISTENT_FIELD_NUMBER: _ClassVar[int]
     VECTORS_FIELD_NUMBER: _ClassVar[int]
+    QUERY_PROFILE_FIELD_NUMBER: _ClassVar[int]
     uuid: bool
     vector: bool
     creation_time_unix: bool
@@ -109,7 +113,8 @@ class MetadataRequest(_message.Message):
     explain_score: bool
     is_consistent: bool
     vectors: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, uuid: bool = ..., vector: bool = ..., creation_time_unix: bool = ..., last_update_time_unix: bool = ..., distance: bool = ..., certainty: bool = ..., score: bool = ..., explain_score: bool = ..., is_consistent: bool = ..., vectors: _Optional[_Iterable[str]] = ...) -> None: ...
+    query_profile: bool
+    def __init__(self, uuid: bool = ..., vector: bool = ..., creation_time_unix: bool = ..., last_update_time_unix: bool = ..., distance: bool = ..., certainty: bool = ..., score: bool = ..., explain_score: bool = ..., is_consistent: bool = ..., vectors: _Optional[_Iterable[str]] = ..., query_profile: bool = ...) -> None: ...
 
 class PropertiesRequest(_message.Message):
     __slots__ = ["non_ref_properties", "ref_properties", "object_properties", "return_all_nonref_properties"]
@@ -154,18 +159,54 @@ class Rerank(_message.Message):
     def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
 
 class SearchReply(_message.Message):
-    __slots__ = ["took", "results", "generative_grouped_result", "group_by_results", "generative_grouped_results"]
+    __slots__ = ["took", "results", "generative_grouped_result", "group_by_results", "generative_grouped_results", "query_profile"]
     TOOK_FIELD_NUMBER: _ClassVar[int]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULT_FIELD_NUMBER: _ClassVar[int]
     GROUP_BY_RESULTS_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULTS_FIELD_NUMBER: _ClassVar[int]
+    QUERY_PROFILE_FIELD_NUMBER: _ClassVar[int]
     took: float
     results: _containers.RepeatedCompositeFieldContainer[SearchResult]
     generative_grouped_result: str
     group_by_results: _containers.RepeatedCompositeFieldContainer[GroupByResult]
     generative_grouped_results: _generative_pb2.GenerativeResult
-    def __init__(self, took: _Optional[float] = ..., results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., generative_grouped_result: _Optional[str] = ..., group_by_results: _Optional[_Iterable[_Union[GroupByResult, _Mapping]]] = ..., generative_grouped_results: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ...) -> None: ...
+    query_profile: QueryProfile
+    def __init__(self, took: _Optional[float] = ..., results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., generative_grouped_result: _Optional[str] = ..., group_by_results: _Optional[_Iterable[_Union[GroupByResult, _Mapping]]] = ..., generative_grouped_results: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ..., query_profile: _Optional[_Union[QueryProfile, _Mapping]] = ...) -> None: ...
+
+class QueryProfile(_message.Message):
+    __slots__ = ["shards"]
+    class SearchProfile(_message.Message):
+        __slots__ = ["details"]
+        class DetailsEntry(_message.Message):
+            __slots__ = ["key", "value"]
+            KEY_FIELD_NUMBER: _ClassVar[int]
+            VALUE_FIELD_NUMBER: _ClassVar[int]
+            key: str
+            value: str
+            def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+        DETAILS_FIELD_NUMBER: _ClassVar[int]
+        details: _containers.ScalarMap[str, str]
+        def __init__(self, details: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    class ShardProfile(_message.Message):
+        __slots__ = ["name", "node", "searches"]
+        class SearchesEntry(_message.Message):
+            __slots__ = ["key", "value"]
+            KEY_FIELD_NUMBER: _ClassVar[int]
+            VALUE_FIELD_NUMBER: _ClassVar[int]
+            key: str
+            value: QueryProfile.SearchProfile
+            def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[QueryProfile.SearchProfile, _Mapping]] = ...) -> None: ...
+        NAME_FIELD_NUMBER: _ClassVar[int]
+        NODE_FIELD_NUMBER: _ClassVar[int]
+        SEARCHES_FIELD_NUMBER: _ClassVar[int]
+        name: str
+        node: str
+        searches: _containers.MessageMap[str, QueryProfile.SearchProfile]
+        def __init__(self, name: _Optional[str] = ..., node: _Optional[str] = ..., searches: _Optional[_Mapping[str, QueryProfile.SearchProfile]] = ...) -> None: ...
+    SHARDS_FIELD_NUMBER: _ClassVar[int]
+    shards: _containers.RepeatedCompositeFieldContainer[QueryProfile.ShardProfile]
+    def __init__(self, shards: _Optional[_Iterable[_Union[QueryProfile.ShardProfile, _Mapping]]] = ...) -> None: ...
 
 class RerankReply(_message.Message):
     __slots__ = ["score"]
@@ -274,3 +315,81 @@ class RefPropertiesResult(_message.Message):
     properties: _containers.RepeatedCompositeFieldContainer[PropertiesResult]
     prop_name: str
     def __init__(self, properties: _Optional[_Iterable[_Union[PropertiesResult, _Mapping]]] = ..., prop_name: _Optional[str] = ...) -> None: ...
+
+class Boost(_message.Message):
+    __slots__ = ["conditions", "weight", "depth"]
+    class PropertyValueModifier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
+        PROPERTY_VALUE_MODIFIER_UNSPECIFIED: _ClassVar[Boost.PropertyValueModifier]
+        PROPERTY_VALUE_MODIFIER_LOG1P: _ClassVar[Boost.PropertyValueModifier]
+        PROPERTY_VALUE_MODIFIER_SQRT: _ClassVar[Boost.PropertyValueModifier]
+    PROPERTY_VALUE_MODIFIER_UNSPECIFIED: Boost.PropertyValueModifier
+    PROPERTY_VALUE_MODIFIER_LOG1P: Boost.PropertyValueModifier
+    PROPERTY_VALUE_MODIFIER_SQRT: Boost.PropertyValueModifier
+    class DecayCurve(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
+        DECAY_CURVE_UNSPECIFIED: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_GAUSS: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_LINEAR: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_EXPONENTIAL: _ClassVar[Boost.DecayCurve]
+    DECAY_CURVE_UNSPECIFIED: Boost.DecayCurve
+    DECAY_CURVE_GAUSS: Boost.DecayCurve
+    DECAY_CURVE_LINEAR: Boost.DecayCurve
+    DECAY_CURVE_EXPONENTIAL: Boost.DecayCurve
+    class PropertyValueFunction(_message.Message):
+        __slots__ = ["property", "modifier"]
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        MODIFIER_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        modifier: Boost.PropertyValueModifier
+        def __init__(self, property: _Optional[str] = ..., modifier: _Optional[_Union[Boost.PropertyValueModifier, str]] = ...) -> None: ...
+    class TimeDecayFunction(_message.Message):
+        __slots__ = ["property", "origin", "scale", "offset", "curve", "decay_value"]
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        ORIGIN_FIELD_NUMBER: _ClassVar[int]
+        SCALE_FIELD_NUMBER: _ClassVar[int]
+        OFFSET_FIELD_NUMBER: _ClassVar[int]
+        CURVE_FIELD_NUMBER: _ClassVar[int]
+        DECAY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        origin: str
+        scale: str
+        offset: str
+        curve: Boost.DecayCurve
+        decay_value: float
+        def __init__(self, property: _Optional[str] = ..., origin: _Optional[str] = ..., scale: _Optional[str] = ..., offset: _Optional[str] = ..., curve: _Optional[_Union[Boost.DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
+    class NumericDecayFunction(_message.Message):
+        __slots__ = ["property", "origin", "scale", "offset", "curve", "decay_value"]
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        ORIGIN_FIELD_NUMBER: _ClassVar[int]
+        SCALE_FIELD_NUMBER: _ClassVar[int]
+        OFFSET_FIELD_NUMBER: _ClassVar[int]
+        CURVE_FIELD_NUMBER: _ClassVar[int]
+        DECAY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        origin: float
+        scale: float
+        offset: float
+        curve: Boost.DecayCurve
+        decay_value: float
+        def __init__(self, property: _Optional[str] = ..., origin: _Optional[float] = ..., scale: _Optional[float] = ..., offset: _Optional[float] = ..., curve: _Optional[_Union[Boost.DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
+    class Condition(_message.Message):
+        __slots__ = ["filter", "time_decay", "property_value", "numeric_decay", "weight"]
+        FILTER_FIELD_NUMBER: _ClassVar[int]
+        TIME_DECAY_FIELD_NUMBER: _ClassVar[int]
+        PROPERTY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        NUMERIC_DECAY_FIELD_NUMBER: _ClassVar[int]
+        WEIGHT_FIELD_NUMBER: _ClassVar[int]
+        filter: _base_pb2.Filters
+        time_decay: Boost.TimeDecayFunction
+        property_value: Boost.PropertyValueFunction
+        numeric_decay: Boost.NumericDecayFunction
+        weight: float
+        def __init__(self, filter: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., time_decay: _Optional[_Union[Boost.TimeDecayFunction, _Mapping]] = ..., property_value: _Optional[_Union[Boost.PropertyValueFunction, _Mapping]] = ..., numeric_decay: _Optional[_Union[Boost.NumericDecayFunction, _Mapping]] = ..., weight: _Optional[float] = ...) -> None: ...
+    CONDITIONS_FIELD_NUMBER: _ClassVar[int]
+    WEIGHT_FIELD_NUMBER: _ClassVar[int]
+    DEPTH_FIELD_NUMBER: _ClassVar[int]
+    conditions: _containers.RepeatedCompositeFieldContainer[Boost.Condition]
+    weight: float
+    depth: int
+    def __init__(self, conditions: _Optional[_Iterable[_Union[Boost.Condition, _Mapping]]] = ..., weight: _Optional[float] = ..., depth: _Optional[int] = ...) -> None: ...

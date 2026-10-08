@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Union
 
-from pydantic import BaseModel, Field
+from grpc import ChannelCredentials
+from grpc.aio._typing import ChannelArgumentType
+from pydantic import BaseModel, ConfigDict, Field
 
 
 @dataclass
@@ -12,19 +14,27 @@ class ConnectionConfig:
     session_pool_timeout: int = 5
 
     def __post_init__(self) -> None:
-        if not isinstance(self.session_pool_connections, int):
+        if not isinstance(self.session_pool_connections, int) or isinstance(
+            self.session_pool_connections, bool
+        ):
             raise TypeError(
                 f"session_pool_connections must be {int}, received {type(self.session_pool_connections)}"
             )
-        if not isinstance(self.session_pool_maxsize, int):
+        if not isinstance(self.session_pool_maxsize, int) or isinstance(
+            self.session_pool_maxsize, bool
+        ):
             raise TypeError(
                 f"session_pool_maxsize must be {int}, received {type(self.session_pool_maxsize)}"
             )
-        if not isinstance(self.session_pool_max_retries, int):
+        if not isinstance(self.session_pool_max_retries, int) or isinstance(
+            self.session_pool_max_retries, bool
+        ):
             raise TypeError(
                 f"session_pool_max_retries must be {int}, received {type(self.session_pool_max_retries)}"
             )
-        if not isinstance(self.session_pool_timeout, int):
+        if not isinstance(self.session_pool_timeout, int) or isinstance(
+            self.session_pool_timeout, bool
+        ):
             raise TypeError(
                 f"session_pool_timeout must be {int}, received {type(self.session_pool_timeout)}"
             )
@@ -56,6 +66,9 @@ class Timeout(BaseModel):
     query: Union[int, float] = Field(default=30, ge=0)
     insert: Union[int, float] = Field(default=90, ge=0)
     init: Union[int, float] = Field(default=2, ge=0)
+    stream: Union[int, float, None] = Field(
+        default=None, ge=0, description="Timeout for streaming operations."
+    )
 
 
 class Proxies(BaseModel):
@@ -64,6 +77,36 @@ class Proxies(BaseModel):
     http: Optional[str] = Field(default=None)
     https: Optional[str] = Field(default=None)
     grpc: Optional[str] = Field(default=None)
+
+
+class GrpcConfig(BaseModel):
+    """Configuration for the gRPC channel used by the Weaviate client. Use this to customize TLS/SSL settings for gRPC connections.
+
+    To provide your own `channel_options`, supply a list of tuples where each tuple contains the name of the gRPC channel option and its corresponding value.
+        [Reference](https://grpc.github.io/grpc/python/glossary.html#term-channel_arguments)
+
+    To provide your own `credentials`, use the `ssl_channel_credentials()` function from the `grpc` library to build a `ChannelCredentials` object.
+        [Reference](https://grpc.github.io/grpc/python/grpc.html#grpc.ssl_channel_credentials)
+
+    Example usage:
+    ```python
+    from grpc import ssl_channel_credentials
+    import weaviate.classes as wvc
+
+    conf = wvc.init.GrpcConfig(
+        channel_options=[
+            ("grpc.keepalive_time_ms", 10000),
+            ("grpc.keepalive_timeout_ms", 5000),
+        ],
+        credentials=ssl_channel_credentials(...),
+    )
+    ```
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    channel_options: Optional[ChannelArgumentType] = Field(default=None)
+    credentials: Optional[ChannelCredentials] = Field(default=None)
 
 
 class AdditionalConfig(BaseModel):
@@ -81,6 +124,7 @@ class AdditionalConfig(BaseModel):
     proxies: Union[str, Proxies, None] = Field(default=None)
     timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
+    grpc_config: Optional[GrpcConfig] = Field(default=None)
 
     @property
     def timeout(self) -> Timeout:

@@ -7,7 +7,7 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
     PropertiesMetrics,
 )
-from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
@@ -19,7 +19,7 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def over_all(
         self,
         *,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
@@ -29,7 +29,7 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def over_all(
         self,
         *,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Union[str, GroupByAggregate],
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
@@ -39,7 +39,7 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def over_all(
         self,
         *,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
@@ -48,7 +48,7 @@ class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def over_all(
         self,
         *,
-        filters: Optional[_Filters] = None,
+        filters: Optional[FilterReturn] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,

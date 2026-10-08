@@ -140,6 +140,9 @@ class WeaviateDBUserRoleNames(TypedDict):
     groups: List[str]
     active: bool
     dbUserType: str
+    createdAt: NotRequired[str]
+    lastUsedAt: NotRequired[str]
+    apiKeyFirstLetters: NotRequired[str]
 
 
 class _Action:
@@ -242,11 +245,22 @@ class NodesAction(str, _Action, Enum):
 
 
 class BackupsAction(str, _Action, Enum):
+    READ = "read_backups"
     MANAGE = "manage_backups"
 
     @staticmethod
     def values() -> List[str]:
         return [action.value for action in BackupsAction]
+
+
+class MCPAction(str, _Action, Enum):
+    CREATE = "create_mcp"
+    READ = "read_mcp"
+    UPDATE = "update_mcp"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in MCPAction]
 
 
 class ReplicateAction(str, _Action, Enum):
@@ -404,6 +418,16 @@ class _BackupsPermission(_Permission[BackupsAction]):
         ]
 
 
+class _MCPPermission(_Permission[MCPAction]):
+    def _to_weaviate(self) -> List[WeaviatePermission]:
+        return [
+            {
+                "action": action,
+            }
+            for action in self.actions
+        ]
+
+
 class _ClusterPermission(_Permission[ClusterAction]):
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
@@ -467,6 +491,10 @@ class BackupsPermissionOutput(_BackupsPermission):
     pass
 
 
+class MCPPermissionOutput(_MCPPermission):
+    pass
+
+
 class NodesPermissionOutput(_NodesPermission):
     pass
 
@@ -483,6 +511,7 @@ PermissionsOutputType = Union[
     RolesPermissionOutput,
     UsersPermissionOutput,
     BackupsPermissionOutput,
+    MCPPermissionOutput,
     NodesPermissionOutput,
     TenantsPermissionOutput,
     ReplicatePermissionOutput,
@@ -504,6 +533,7 @@ class Role(RoleBase):
     roles_permissions: List[RolesPermissionOutput]
     users_permissions: List[UsersPermissionOutput]
     backups_permissions: List[BackupsPermissionOutput]
+    mcp_permissions: List[MCPPermissionOutput]
     nodes_permissions: List[NodesPermissionOutput]
     tenants_permissions: List[TenantsPermissionOutput]
     replicate_permissions: List[ReplicatePermissionOutput]
@@ -519,6 +549,7 @@ class Role(RoleBase):
         permissions.extend(self.roles_permissions)
         permissions.extend(self.users_permissions)
         permissions.extend(self.backups_permissions)
+        permissions.extend(self.mcp_permissions)
         permissions.extend(self.nodes_permissions)
         permissions.extend(self.tenants_permissions)
         permissions.extend(self.replicate_permissions)
@@ -534,6 +565,7 @@ class Role(RoleBase):
         roles_permissions: List[RolesPermissionOutput] = []
         data_permissions: List[DataPermissionOutput] = []
         backups_permissions: List[BackupsPermissionOutput] = []
+        mcp_permissions: List[MCPPermissionOutput] = []
         nodes_permissions: List[NodesPermissionOutput] = []
         tenants_permissions: List[TenantsPermissionOutput] = []
         replicate_permissions: List[ReplicatePermissionOutput] = []
@@ -602,6 +634,10 @@ class Role(RoleBase):
                             actions={BackupsAction(permission["action"])},
                         )
                     )
+            elif permission["action"] in MCPAction.values():
+                mcp_permissions.append(
+                    MCPPermissionOutput(actions={MCPAction(permission["action"])})
+                )
             elif permission["action"] in NodesAction.values():
                 nodes = permission.get("nodes")
                 if nodes is not None:
@@ -655,6 +691,7 @@ class Role(RoleBase):
             groups_permissions=_join_permissions(groups_permissions),
             data_permissions=_join_permissions(data_permissions),
             backups_permissions=_join_permissions(backups_permissions),
+            mcp_permissions=_join_permissions(mcp_permissions),
             nodes_permissions=_join_permissions(nodes_permissions),
             tenants_permissions=_join_permissions(tenants_permissions),
             replicate_permissions=_join_permissions(replicate_permissions),
@@ -707,6 +744,7 @@ class Actions:
     Cluster = ClusterAction
     Nodes = NodesAction
     Backups = BackupsAction
+    MCP = MCPAction
     Tenants = TenantsAction
     Users = UsersAction
     Replicate = ReplicateAction
@@ -1003,7 +1041,7 @@ class Permissions:
 
     @staticmethod
     def backup(
-        *, collection: Union[str, Sequence[str]], manage: bool = False
+        *, collection: Union[str, Sequence[str]], read: bool = False, manage: bool = False
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(collection, str):
@@ -1011,11 +1049,28 @@ class Permissions:
         for c in collection:
             permission = _BackupsPermission(collection=c, actions=set())
 
+            if read:
+                permission.actions.add(BackupsAction.READ)
             if manage:
                 permission.actions.add(BackupsAction.MANAGE)
             if len(permission.actions) > 0:
                 permissions.append(permission)
         return permissions
+
+    @staticmethod
+    def mcp(
+        *, create: bool = False, read: bool = False, update: bool = False
+    ) -> PermissionsCreateType:
+        actions: Set[MCPAction] = set()
+        if create:
+            actions.add(MCPAction.CREATE)
+        if read:
+            actions.add(MCPAction.READ)
+        if update:
+            actions.add(MCPAction.UPDATE)
+        if len(actions) > 0:
+            return [_MCPPermission(actions=actions)]
+        return []
 
     @staticmethod
     def cluster(*, read: bool = False) -> PermissionsCreateType:

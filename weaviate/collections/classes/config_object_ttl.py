@@ -1,17 +1,19 @@
 import datetime
 from typing import Optional
 
+from typing_extensions import TypeAlias
+
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _ConfigUpdateModel
 
 
-class _ObjectTTLConfigCreate(_ConfigCreateModel):
+class ObjectTTLConfigCreate(_ConfigCreateModel):
     enabled: bool = True
     filterExpiredObjects: Optional[bool]
     deleteOn: Optional[str]
     defaultTtl: Optional[int]
 
 
-class _ObjectTTLConfigUpdate(_ConfigUpdateModel):
+class ObjectTTLConfigUpdate(_ConfigUpdateModel):
     enabled: bool
     filterExpiredObjects: Optional[bool] = None
     deleteOn: Optional[str] = None
@@ -25,7 +27,7 @@ class _ObjectTTL:
     def delete_by_update_time(
         time_to_live: int | datetime.timedelta,
         filter_expired_objects: Optional[bool] = None,
-    ) -> _ObjectTTLConfigCreate:
+    ) -> ObjectTTLConfigCreate:
         """Create an `ObjectTimeToLiveConfig` object to be used when defining the object time-to-live configuration of Weaviate.
 
         Args:
@@ -34,7 +36,7 @@ class _ObjectTTL:
         """
         if isinstance(time_to_live, datetime.timedelta):
             time_to_live = int(time_to_live.total_seconds())
-        return _ObjectTTLConfigCreate(
+        return ObjectTTLConfigCreate(
             deleteOn="_lastUpdateTimeUnix",
             filterExpiredObjects=filter_expired_objects,
             defaultTtl=time_to_live,
@@ -44,7 +46,7 @@ class _ObjectTTL:
     def delete_by_creation_time(
         time_to_live: int | datetime.timedelta,
         filter_expired_objects: Optional[bool] = None,
-    ) -> _ObjectTTLConfigCreate:
+    ) -> ObjectTTLConfigCreate:
         """Create an `ObjectTimeToLiveConfig` object to be used when defining the object time-to-live configuration of Weaviate.
 
         Args:
@@ -53,7 +55,7 @@ class _ObjectTTL:
         """
         if isinstance(time_to_live, datetime.timedelta):
             time_to_live = int(time_to_live.total_seconds())
-        return _ObjectTTLConfigCreate(
+        return ObjectTTLConfigCreate(
             deleteOn="_creationTimeUnix",
             filterExpiredObjects=filter_expired_objects,
             defaultTtl=time_to_live,
@@ -64,7 +66,7 @@ class _ObjectTTL:
         property_name: str,
         ttl_offset: Optional[int | datetime.timedelta] = None,
         filter_expired_objects: Optional[bool] = None,
-    ) -> _ObjectTTLConfigCreate:
+    ) -> ObjectTTLConfigCreate:
         """Create an Object ttl config for a custom date property.
 
         Args:
@@ -76,7 +78,7 @@ class _ObjectTTL:
             ttl_offset = int(ttl_offset.total_seconds())
         if ttl_offset is None:
             ttl_offset = 0
-        return _ObjectTTLConfigCreate(
+        return ObjectTTLConfigCreate(
             deleteOn=property_name,
             filterExpiredObjects=filter_expired_objects,
             defaultTtl=ttl_offset,
@@ -87,9 +89,9 @@ class _ObjectTTLUpdate:
     """Configuration class for Weaviate's object time-to-live (TTL) feature."""
 
     @staticmethod
-    def disable() -> _ObjectTTLConfigUpdate:
+    def disable() -> ObjectTTLConfigUpdate:
         """Create an `ObjectTimeToLiveConfig` object to disable the object time-to-live configuration of Weaviate."""
-        return _ObjectTTLConfigUpdate(
+        return ObjectTTLConfigUpdate(
             enabled=False,
         )
 
@@ -97,7 +99,7 @@ class _ObjectTTLUpdate:
     def delete_by_update_time(
         time_to_live: Optional[int | datetime.timedelta] = None,
         filter_expired_objects: Optional[bool] = None,
-    ) -> _ObjectTTLConfigUpdate:
+    ) -> ObjectTTLConfigUpdate:
         """Create an `ObjectTimeToLiveConfig` object to be used when defining the object time-to-live configuration of Weaviate.
 
         Args:
@@ -106,7 +108,7 @@ class _ObjectTTLUpdate:
         """
         if isinstance(time_to_live, datetime.timedelta):
             time_to_live = int(time_to_live.total_seconds())
-        return _ObjectTTLConfigUpdate(
+        return ObjectTTLConfigUpdate(
             enabled=True,
             deleteOn="_lastUpdateTimeUnix",
             filterExpiredObjects=filter_expired_objects,
@@ -117,7 +119,7 @@ class _ObjectTTLUpdate:
     def delete_by_creation_time(
         time_to_live: Optional[int | datetime.timedelta] = None,
         filter_expired_objects: Optional[bool] = None,
-    ) -> _ObjectTTLConfigUpdate:
+    ) -> ObjectTTLConfigUpdate:
         """Create an `ObjectTimeToLiveConfig` object to be used when defining the object time-to-live configuration of Weaviate.
 
         Args:
@@ -126,7 +128,7 @@ class _ObjectTTLUpdate:
         """
         if isinstance(time_to_live, datetime.timedelta):
             time_to_live = int(time_to_live.total_seconds())
-        return _ObjectTTLConfigUpdate(
+        return ObjectTTLConfigUpdate(
             enabled=True,
             deleteOn="_creationTimeUnix",
             filterExpiredObjects=filter_expired_objects,
@@ -138,7 +140,7 @@ class _ObjectTTLUpdate:
         property_name: Optional[str] = None,
         ttl_offset: Optional[int | datetime.timedelta] = None,
         filter_expired_objects: Optional[bool] = None,
-    ) -> _ObjectTTLConfigUpdate:
+    ) -> ObjectTTLConfigUpdate:
         """Create an Object ttl config for a custom date property.
 
         Args:
@@ -150,9 +152,14 @@ class _ObjectTTLUpdate:
             ttl_offset = int(ttl_offset.total_seconds())
         if ttl_offset is None:
             ttl_offset = 0
-        return _ObjectTTLConfigUpdate(
+        return ObjectTTLConfigUpdate(
             enabled=True,
             deleteOn=property_name,
             filterExpiredObjects=filter_expired_objects,
             defaultTtl=ttl_offset,
         )
+
+
+# BC for direct imports
+_ObjectTTLConfigCreate: TypeAlias = ObjectTTLConfigCreate
+_ObjectTTLConfigUpdate: TypeAlias = ObjectTTLConfigUpdate

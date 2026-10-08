@@ -1,19 +1,24 @@
 import datetime
-from typing import Any, Dict, Literal
+import json
+from typing import Any, Dict, List, Literal
 
 import grpc
 import pytest
 from pytest_httpserver import HTTPServer
+from werkzeug import Request, Response
 
 import weaviate
 import weaviate.classes as wvc
+from weaviate import __version__ as client_version
 from mock_tests.conftest import (
     MOCK_IP,
     MOCK_PORT,
     MOCK_PORT_GRPC,
+    MockMetadataCaptureWeaviateService,
     MockRetriesWeaviateService,
 )
 from weaviate.backup.backup import BackupStorage
+from weaviate.collections.classes.config_methods import _collection_config_from_json
 from weaviate.collections.classes.config import (
     BM25Config,
     CollectionConfig,
@@ -36,6 +41,7 @@ from weaviate.exceptions import (
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
     WeaviateStartUpError,
+    WeaviateUnsupportedFeatureError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -291,6 +297,18 @@ def test_year_zero(year_zero_collection: weaviate.collections.Collection) -> Non
         assert str(recwarn[0].message).startswith("Con004")
 
 
+def test_empty_date(empty_date_collection: weaviate.collections.Collection) -> None:
+    with pytest.warns(UserWarning) as recwarn:
+        objs = empty_date_collection.query.fetch_objects().objects
+        assert objs[0].properties["date"] is None
+        assert objs[0].properties["dates"] == [
+            None,
+            datetime.datetime(2023, 1, 15, 14, 30, 45, 123456, tzinfo=datetime.timezone.utc),
+        ]
+
+        assert str(recwarn[0].message).startswith("Con006")
+
+
 @pytest.mark.parametrize("output", ["minimal", "verbose"])
 def test_node_with_timeout(
     httpserver: HTTPServer, start_grpc_server: grpc.Server, output: Literal["minimal", "verbose"]
@@ -311,6 +329,59 @@ def test_node_with_timeout(
 
     nodes = client.cluster.nodes(output=output)
     assert nodes[0].status == "TIMEOUT"
+
+
+def test_cluster_statistics(httpserver: HTTPServer, start_grpc_server: grpc.Server) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.34"})
+    httpserver.expect_request("/v1/cluster/statistics").respond_with_json(
+        {
+            "statistics": [
+                {
+                    "candidates": {},
+                    "dbLoaded": True,
+                    "initialLastAppliedIndex": 119,
+                    "isVoter": True,
+                    "leaderAddress": "172.16.11.11:8300",
+                    "leaderId": "weaviate-0",
+                    "name": "weaviate-0",
+                    "open": True,
+                    "raft": {
+                        "appliedIndex": "144",
+                        "commitIndex": "144",
+                        "fsmPending": "0",
+                        "lastContact": "0",
+                        "lastLogIndex": "144",
+                        "lastLogTerm": "31",
+                        "latestConfiguration": [
+                            {"address": "172.16.11.11:8300", "id": "weaviate-0", "suffrage": 0}
+                        ],
+                        "latestConfigurationIndex": "0",
+                        "numPeers": "2",
+                        "state": "Leader",
+                        "term": "31",
+                    },
+                    "ready": True,
+                    "status": "HEALTHY",
+                }
+            ],
+            "synchronized": True,
+        }
+    )
+
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+    )
+    client.connect()
+
+    stats = client.cluster.statistics()
+    assert stats.synchronized is True
+    assert len(stats.statistics) == 1
+    assert stats.statistics[0].name == "weaviate-0"
+    assert stats.statistics[0].status == "HEALTHY"
+    assert stats.statistics[0].raft.state == "Leader"
 
 
 def test_backup_cancel_while_create_and_restore(
@@ -367,6 +438,52 @@ def test_backup_cancel_while_create_and_restore(
         )
 
 
+def test_backup_create_include_roles_users(
+    weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        bodies.append(request.get_json())
+        return Response(json.dumps({"status": "STARTED", "path": "path", "id": "id"}))
+
+    weaviate_no_auth_mock.expect_request(
+        "/v1/backups/filesystem", method="POST"
+    ).respond_with_handler(handler)
+
+    client.backup.create(backup_id="id", backend=BackupStorage.FILESYSTEM)
+    assert "includeRoles" not in bodies[0] and "includeUsers" not in bodies[0]
+
+    # the mock reports 1.36, below the 1.40 minimum
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        client.backup.create(backup_id="id", backend=BackupStorage.FILESYSTEM, include_roles="r")
+
+
+def test_backup_create_include_roles_users_sent(
+    httpserver: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.40.0"})
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        bodies.append(request.get_json())
+        return Response(json.dumps({"status": "STARTED", "path": "path", "id": "id"}))
+
+    httpserver.expect_request("/v1/backups/filesystem", method="POST").respond_with_handler(handler)
+
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    client.backup.create(
+        backup_id="id",
+        backend=BackupStorage.FILESYSTEM,
+        include_roles="r",
+        include_users=["u1", "u2"],
+    )
+    assert bodies[0]["includeRoles"] == ["r"]
+    assert bodies[0]["includeUsers"] == ["u1", "u2"]
+
+
 def test_grpc_retry_logic(
     retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
 ) -> None:
@@ -406,3 +523,166 @@ def test_grpc_forbidden_exception(forbidden: weaviate.collections.Collection) ->
 
     with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
         forbidden.data.insert_many([{"name": "test"}])
+
+
+def test_collection_exists(weaviate_mock: HTTPServer) -> None:
+    non_existing = "NonExistingCollection"
+    erroring = "ErroringCollection"
+    weaviate_mock.expect_request(f"/v1/schema/{non_existing}").respond_with_json(
+        response_json={"error": [{"message": "collection not found"}]}, status=404
+    )
+    weaviate_mock.expect_request(f"/v1/schema/{erroring}").respond_with_json(
+        response_json={"error": [{"message": "this is an error"}]}, status=500
+    )
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert not client.collections.exists(non_existing)
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+            client.collections.exists("")
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            client.collections.exists(erroring)
+            assert e.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_async_collection_exists(weaviate_mock: HTTPServer) -> None:
+    non_existing = "NonExistingCollection"
+    erroring = "ErroringCollection"
+    weaviate_mock.expect_request(f"/v1/schema/{non_existing}").respond_with_json(
+        response_json={"error": [{"message": "collection not found"}]}, status=404
+    )
+    weaviate_mock.expect_request(f"/v1/schema/{erroring}").respond_with_json(
+        response_json={"error": [{"message": "this is an error"}]}, status=500
+    )
+
+    async with weaviate.use_async_with_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert not await client.collections.use(non_existing).exists()
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            await client.collections.use(erroring).exists()
+        assert e.value.status_code == 500
+
+
+def test_delete_vector_index(weaviate_mock: HTTPServer) -> None:
+    # the collection name is capitalized by the client before it hits the path
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/vec/index", method="DELETE"
+    ).respond_with_json(response_json={}, status=200)
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/missing/index", method="DELETE"
+    ).respond_with_json(
+        response_json={"error": [{"message": "vector index missing not found"}]}, status=422
+    )
+    weaviate_mock.expect_request(
+        "/v1/schema/Test/vectors/disabled/index", method="DELETE"
+    ).respond_with_json(
+        response_json={
+            "error": [
+                {
+                    "message": "alter schema drop vector index endpoint is experimental and disabled by default"
+                }
+            ]
+        },
+        status=500,
+    )
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        assert client.collections.use("test").config.delete_vector_index("vec") is None
+
+        # a non-OK answer (e.g. unknown vector name) surfaces as UnexpectedStatusCodeError
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as e:
+            client.collections.use("test").config.delete_vector_index("missing")
+        assert e.value.status_code == 422
+
+        # a disabled experimental endpoint answers 500; the server message must reach the
+        # exception rather than being masked as a missing vector
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError) as disabled:
+            client.collections.use("test").config.delete_vector_index("disabled")
+        assert disabled.value.status_code == 500
+        assert "experimental and disabled by default" in disabled.value.message
+
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+            client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
+
+
+def test_create_from_dict_skips_dropped_vectors(weaviate_mock: HTTPServer) -> None:
+    """Entries with vectorIndexType "none" cannot be re-created and are stripped before the POST."""
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        body = request.get_json()
+        bodies.append(body)
+        return Response(json.dumps({"class": body["class"]}), content_type="application/json")
+
+    weaviate_mock.expect_request("/v1/schema", method="POST").respond_with_handler(handler)
+
+    hnsw_entry = {"vectorizer": {"none": {}}, "vectorIndexType": "hnsw", "vectorIndexConfig": {}}
+    dropped_entry = {"vectorizer": {"none": {}}, "vectorIndexType": "none"}
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        with pytest.warns(UserWarning, match=r"Col001.*dropped"):
+            client.collections.create_from_dict(
+                {
+                    "class": "TestDropped",
+                    "vectorConfig": {"dropped": dropped_entry, "kept": hnsw_entry},
+                }
+            )
+        assert bodies[-1]["vectorConfig"] == {"kept": hnsw_entry}
+
+        # a create whose vectorConfig would end up empty is rejected: the server would treat it
+        # as a legacy collection and apply its default vector index
+        requests_before = len(bodies)
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError, match="legacy"):
+            client.collections.create_from_dict(
+                {"class": "TestAllDropped", "vectorConfig": {"only": dropped_entry}}
+            )
+        assert len(bodies) == requests_before
+
+        # once the drops finished, the export carries no vectorConfig and no "none" markers at
+        # all; create_from_config must still reject it rather than post a legacy-style schema
+        cleaned_up_export = _collection_config_from_json(
+            {
+                "class": "TestAllDroppedCleanedUp",
+                "properties": [],
+                "invertedIndexConfig": {
+                    "bm25": {"b": 0.75, "k1": 1.2},
+                    "cleanupIntervalSeconds": 60,
+                    "stopwords": {"preset": "en", "additions": None, "removals": None},
+                },
+                "multiTenancyConfig": {"enabled": False},
+                "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
+                "shardingConfig": {
+                    "virtualPerPhysical": 128,
+                    "desiredCount": 1,
+                    "actualCount": 1,
+                    "desiredVirtualCount": 128,
+                    "actualVirtualCount": 128,
+                    "key": "_id",
+                    "strategy": "hash",
+                    "function": "murmur3",
+                },
+            }
+        )
+        with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError, match="legacy"):
+            client.collections.create_from_config(cleaned_up_export)
+        assert len(bodies) == requests_before
+
+
+def test_grpc_client_version_header(
+    metadata_capture_collection: tuple[
+        weaviate.collections.Collection, MockMetadataCaptureWeaviateService
+    ],
+) -> None:
+    collection, service = metadata_capture_collection
+    collection.query.fetch_objects()
+
+    assert "x-weaviate-client" in service.captured_metadata
+    expected = f"weaviate-client-python/{client_version}-sync"
+    assert service.captured_metadata["x-weaviate-client"] == expected

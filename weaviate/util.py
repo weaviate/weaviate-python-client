@@ -2,13 +2,15 @@
 
 import base64
 import datetime
+import functools
 import io
 import json
 import os
 import re
 import uuid as uuid_lib
+import warnings as _warnings
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import quote
 
 import httpx
@@ -30,6 +32,36 @@ MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
 )
 BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
+
+
+def docstring_deprecated(details: str = "", deprecated_in: str = "") -> Callable:
+    """Stdlib replacement for ``deprecation.deprecated``.
+
+    The ``deprecation`` package has not been maintained since 2019 and is
+    flagged as a security risk by several dependency scanners.  This helper
+    replicates the behaviour we need:
+
+    1. Prepend a ``.. deprecated::`` note to the function docstring.
+    2. Emit a :class:`DeprecationWarning` at call time.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args: object, **kwargs: object) -> object:
+            _warnings.warn(
+                f"{func.__qualname__} is deprecated since {deprecated_in}. {details}",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return func(*args, **kwargs)
+
+        docstring = func.__doc__ or ""
+        note = f".. deprecated:: {deprecated_in}\n   {details}\n\n" if deprecated_in else ""
+        wrapper.__doc__ = note + docstring
+
+        return wrapper  # type: ignore[return-value]
+
+    return decorator
 
 
 def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str:
@@ -575,6 +607,17 @@ class _ServerVersion:
                 f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
             )
 
+    def is_at_least_any(self, *minimums: Tuple[int, int, int]) -> bool:
+        """Check a minimum that was backported to several release branches.
+
+        Each entry is the first version on its own minor branch to carry the feature, in ascending
+        order; the server is checked against the newest branch that is not newer than itself.
+        """
+        for major, minor, patch in reversed(minimums):
+            if (self.major, self.minor) >= (major, minor):
+                return self >= _ServerVersion(major, minor, patch)
+        return False
+
     def check_is_at_least_1_25_0(self, feature: str) -> None:
         if not self >= _ServerVersion(1, 25, 0):
             raise WeaviateUnsupportedFeatureError(feature, str(self), "1.25.0")
@@ -640,7 +683,7 @@ def _get_valid_timeout_config(
     """
 
     def check_number(num: Union[NUMBER, Tuple[NUMBER, NUMBER], None]) -> bool:
-        return isinstance(num, float) or isinstance(num, int)
+        return isinstance(num, float) or (isinstance(num, int) and not isinstance(num, bool))
 
     if (isinstance(timeout_config, float) or isinstance(timeout_config, int)) and not isinstance(
         timeout_config, bool
@@ -718,7 +761,12 @@ def _datetime_to_string(value: TIME) -> str:
     return value.isoformat(sep="T", timespec="microseconds")
 
 
-def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+def _datetime_from_weaviate_str(string: str) -> Optional[datetime.datetime]:
+    # An unset date property arrives as null_value, never as "", so an empty string here
+    # can only be a malformed value from the server. Warn rather than drop it silently.
+    if not string:
+        _Warnings.datetime_empty_string()
+        return None
     if string[-1] != "Z":
         string = "".join(string.rsplit(":", 1))
 
