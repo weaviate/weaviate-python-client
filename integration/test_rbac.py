@@ -22,11 +22,14 @@ from weaviate.rbac.models import (
     TenantsPermissionOutput,
     UsersPermissionOutput,
     UserTypes,
+    _AliasPermission,
     _Permission,
 )
 
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
+# First release per branch that refuses an empty alias pattern on role create (422).
+_EMPTY_ALIAS_REJECTED_MIN_VERSIONS = ((1, 38, 19), (1, 39, 10), (1, 40, 0))
 
 
 @pytest.mark.parametrize(
@@ -508,6 +511,10 @@ def test_create_role(
             1, min_version, 0
         ):
             pytest.skip(f"This test requires Weaviate 1.{min_version}.0 or higher")
+        if client._connection._weaviate_version.is_at_least_any(
+            *_EMPTY_ALIAS_REJECTED_MIN_VERSIONS
+        ) and any(isinstance(p, _AliasPermission) and p.alias == "" for p in permissions):
+            pytest.skip("This server rejects an empty alias pattern")
 
         try:
             client.roles.delete(expected.name)

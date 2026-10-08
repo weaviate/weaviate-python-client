@@ -29,8 +29,9 @@ env:
   WEAVIATE_135: 1.35.23
   WEAVIATE_136: 1.36.23
   WEAVIATE_137: 1.37.14
-  WEAVIATE_138: 1.38.9
-  WEAVIATE_139: 1.39.0
+  WEAVIATE_138: 1.38.20
+  WEAVIATE_139: 1.39.10
+  WEAVIATE_140: 1.40.0
 
 jobs:
   lint-and-format:
@@ -150,7 +151,7 @@ jobs:
       - name: start weaviate
         run: |
           source ./ci/compose.sh
-          export WEAVIATE_VERSION=$WEAVIATE_139
+          export WEAVIATE_VERSION=$WEAVIATE_140
           docker compose -f ci/docker-compose-async.yml up -d
           wait "http://localhost:8090"
       - name: Run the e2e suite inside Pyodide under Node
@@ -223,11 +224,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_139, grpc: "1.59.0"},
-          { py: "3.11", weaviate: $WEAVIATE_139, grpc: "1.66.0"},
-          { py: "3.12", weaviate: $WEAVIATE_139, grpc: "1.70.0"},
-          { py: "3.13", weaviate: $WEAVIATE_139, grpc: "1.72.1"},
-          { py: "3.14", weaviate: $WEAVIATE_139, grpc: "1.76.0"}
+          { py: "3.10", weaviate: $WEAVIATE_140, grpc: "1.59.0"},
+          { py: "3.11", weaviate: $WEAVIATE_140, grpc: "1.66.0"},
+          { py: "3.12", weaviate: $WEAVIATE_140, grpc: "1.70.0"},
+          { py: "3.13", weaviate: $WEAVIATE_140, grpc: "1.72.1"},
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0"}
         ]
         optional_dependencies: [false]
     steps:
@@ -279,11 +280,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_139},
-          { py: "3.11", weaviate: $WEAVIATE_139},
-          { py: "3.12", weaviate: $WEAVIATE_139},
-          { py: "3.13", weaviate: $WEAVIATE_139},
-          { py: "3.14", weaviate: $WEAVIATE_139}
+          { py: "3.10", weaviate: $WEAVIATE_140},
+          { py: "3.11", weaviate: $WEAVIATE_140},
+          { py: "3.12", weaviate: $WEAVIATE_140},
+          { py: "3.13", weaviate: $WEAVIATE_140},
+          { py: "3.14", weaviate: $WEAVIATE_140}
         ]
         optional_dependencies: [false]
     steps:
@@ -385,7 +386,8 @@ jobs:
           $WEAVIATE_136,
           $WEAVIATE_137,
           $WEAVIATE_138,
-          $WEAVIATE_139
+          $WEAVIATE_139,
+          $WEAVIATE_140
         ]
     steps:
       - name: Checkout

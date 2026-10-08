@@ -881,7 +881,7 @@ def test_collection_update_shards(collection_factory: CollectionFactory) -> None
     collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
     for shard in collection.config.get_shards():
         if shard.per_node_status:
-            assert all(per_node == "READY" for per_node in shard.per_node_status)
+            assert all(per_node == "READY" for per_node in shard.per_node_status.values())
         assert shard.status == "READY"
 
     # all possibilites of calling the function
