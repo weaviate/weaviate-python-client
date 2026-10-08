@@ -1043,17 +1043,6 @@ class Permissions:
     def backup(
         *, collection: Union[str, Sequence[str]], read: bool = False, manage: bool = False
     ) -> PermissionsCreateType:
-        """Define backup permissions scoped to one or more collections.
-
-        Args:
-            collection: Collection name or names. Use ``"*"`` for all collections.
-            read: Allow listing backups and reading backup or restore status
-                without allowing create, restore, or cancel. Requires Weaviate 1.39+.
-            manage: Allow managing backups, including create, restore, and cancel.
-
-        Returns:
-            The requested backup permissions. Neither action is granted by default.
-        """
         permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
