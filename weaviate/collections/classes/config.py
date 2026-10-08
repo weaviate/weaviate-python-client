@@ -671,9 +671,11 @@ class Decisions(str, BaseEnum):
 
     Attributes:
         TYPESAFEAI: Weaviate module backed by TypeSafe AI's decision models (Jev).
+        OPENAI: Weaviate module backed by OpenAI's Decisions API.
     """
 
     TYPESAFEAI = "decisions-typesafeai"
+    OPENAI = "decisions-openai"
 
 
 class DecisionsOrder(str, BaseEnum):
@@ -686,6 +688,18 @@ class DecisionsOrder(str, BaseEnum):
 
     SEARCH = "search"
     PROBABILITY = "probability"
+
+
+class DecisionsQuestion(str, BaseEnum):
+    """What `decisions-openai` asks the model about every object of a `rerank`.
+
+    Attributes:
+        RELEVANCE: Whether the object answers the rerank query.
+        STATEMENT: The rerank query is a statement about the object that the model judges true or false.
+    """
+
+    RELEVANCE = "relevance"
+    STATEMENT = "statement"
 
 
 class DecisionsProvider(_ConfigCreateModel):
@@ -706,6 +720,22 @@ class _DecisionsTypeSafeAIConfig(DecisionsProvider):
     cache: Optional[bool]
     scoreLevels: Optional[List[str]]
     minScore: Optional[float]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _DecisionsOpenAIConfig(DecisionsProvider):
+    decisions: Union[Decisions, _EnumLikeStr] = Field(
+        default=Decisions.OPENAI, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    baseURL: Optional[AnyHttpUrl]
+    maxDocuments: Optional[int]
+    question: Optional[DecisionsQuestion]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -1721,6 +1751,33 @@ class _Decisions:
             cache=cache,
             scoreLevels=score_levels,
             minScore=min_score,
+        )
+
+    @staticmethod
+    def openai(
+        *,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        max_documents: Optional[int] = None,
+        question: Optional[DecisionsQuestion] = None,
+    ) -> DecisionsProvider:
+        """Create a `_DecisionsOpenAIConfig` object for use with the `decisions-openai` module.
+
+        Every argument defaults to `None`, which uses the server-defined default.
+
+        Args:
+            model: The OpenAI decision model, for example `gpt-6-luna`.
+            base_url: The base URL to send the requests to.
+            max_documents: The most objects one query may have judged. Every object is one request to the API.
+            question: With `rerank`, whether the model judges the relevance of the object to the query or the query as a statement about the object.
+        """
+        return _DecisionsOpenAIConfig(
+            model=model,
+            baseURL=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
+            maxDocuments=max_documents,
+            question=question,
         )
 
     @staticmethod
