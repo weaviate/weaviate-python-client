@@ -1,3 +1,4 @@
+import sys
 import warnings
 
 
@@ -11,12 +12,21 @@ warnings.filterwarnings(
 
 from packaging import version
 
-from importlib.metadata import version as metadata_version
+from importlib.metadata import PackageNotFoundError, version as metadata_version
 
 from weaviate.exceptions import WeaviateProtobufIncompatibility
 
-def get_version(pkg: str)-> version.Version:
-    return version.parse(metadata_version(pkg))
+# grpcio version assumed under Emscripten, where weaviate-client-web provides grpc; must be
+# >= 1.72.0, or the protobuf >= 6.30 check below raises.
+_GRPCIO_FALLBACK_VERSION = "1.72.1"
+
+def get_version(pkg: str) -> version.Version:
+    try:
+        return version.parse(metadata_version(pkg))
+    except PackageNotFoundError:
+        if pkg == "grpcio" and sys.platform == "emscripten":
+            return version.parse(_GRPCIO_FALLBACK_VERSION)
+        raise
 
 pb_version, grpc_version = get_version("protobuf"), get_version("grpcio")
 if pb_version >= version.parse("6.30.0"):
