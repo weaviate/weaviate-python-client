@@ -17,6 +17,7 @@ from weaviate.collections.classes.config import (
     _CollectionConfigUpdate,
     DecisionsOrder,
     DecisionsProvider,
+    DecisionsQuestion,
     _GenerativeProvider,
     _ReplicationConfig,
     _ReplicationConfigUpdate,
@@ -1435,6 +1436,26 @@ TEST_CONFIG_WITH_DECISIONS = [
         },
     ),
     (
+        Configure.Decisions.openai(),
+        {"decisions-openai": {}},
+    ),
+    (
+        Configure.Decisions.openai(
+            model="gpt-6-luna",
+            base_url="https://some.base.url/",
+            max_documents=50,
+            question=DecisionsQuestion.STATEMENT,
+        ),
+        {
+            "decisions-openai": {
+                "model": "gpt-6-luna",
+                "baseURL": "https://some.base.url/",
+                "maxDocuments": 50,
+                "question": "statement",
+            },
+        },
+    ),
+    (
         Configure.Decisions.custom("decisions-dummy"),
         {"decisions-dummy": {}},
     ),
@@ -1512,6 +1533,13 @@ def test_config_with_a_reranker_and_a_decisions_module() -> None:
                 decisions_config=Reconfigure.Decisions.typesafeai(),
             ),
             {"text2vec-contextionary": {}, "reranker-cohere": {}, "decisions-typesafeai": {}},
+        ),
+        (
+            {"decisions-typesafeai": {"cache": False}},
+            _CollectionConfigUpdate(
+                decisions_config=Reconfigure.Decisions.openai(question=DecisionsQuestion.STATEMENT)
+            ),
+            {"decisions-openai": {"question": "statement"}},
         ),
     ],
 )
