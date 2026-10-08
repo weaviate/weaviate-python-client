@@ -634,6 +634,11 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
             assert client.roles.has_permissions(permissions=required_permissions[0], role=role_name)
             assert client.roles.has_permissions(permissions=required_permissions[1], role=role_name)
             assert client.roles.has_permissions(permissions=required_permissions, role=role_name)
+            assert not client.roles.has_permissions(
+                permissions=required_permissions
+                + [Permissions.collections(collection="test", delete_collection=True)],
+                role=role_name,
+            )
         finally:
             client.roles.delete(role_name)
 
