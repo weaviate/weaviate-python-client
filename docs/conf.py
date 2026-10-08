@@ -92,6 +92,20 @@ suppress_warnings = [
     "autosectionlabel",
 ]
 
+# Suppress @typing.overload signature expansion: render only the implementation
+# signature, otherwise autodoc stacks every overload variant with full type hints.
+from sphinx.pycode import ModuleAnalyzer as _ModuleAnalyzer
+
+_orig_analyze = _ModuleAnalyzer.analyze
+
+
+def _analyze_without_overloads(self):
+    _orig_analyze(self)
+    self.overloads = {}
+
+
+_ModuleAnalyzer.analyze = _analyze_without_overloads
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for

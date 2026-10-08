@@ -104,3 +104,6 @@ class BackupListReturn(BaseModel):
     started_at: Optional[datetime] = Field(alias="startedAt", default=None)
     completed_at: Optional[datetime] = Field(alias="completedAt", default=None)
     size: float = Field(default=0)
+    # None when the backup is not incremental, and also when the server omits the
+    # field: it is only returned to callers Weaviate has confirmed as root.
+    incremental_base_backup_id: Optional[str] = Field(default=None)

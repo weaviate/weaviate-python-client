@@ -269,38 +269,50 @@ class _BaseExecutor(Generic[ConnectionType]):
         elif aggregation.HasField("int"):
             return AggregateInteger(
                 count=aggregation.int.count,
-                maximum=aggregation.int.maximum,
-                mean=aggregation.int.mean,
-                median=aggregation.int.median,
-                minimum=aggregation.int.minimum,
-                mode=aggregation.int.mode,
-                sum_=aggregation.int.sum,
+                maximum=aggregation.int.maximum if aggregation.int.HasField("maximum") else None,
+                mean=aggregation.int.mean if aggregation.int.HasField("mean") else None,
+                median=aggregation.int.median if aggregation.int.HasField("median") else None,
+                minimum=aggregation.int.minimum if aggregation.int.HasField("minimum") else None,
+                mode=aggregation.int.mode if aggregation.int.HasField("mode") else None,
+                sum_=aggregation.int.sum if aggregation.int.HasField("sum") else None,
             )
         elif aggregation.HasField("number"):
             return AggregateNumber(
                 count=aggregation.number.count,
-                maximum=aggregation.number.maximum,
-                mean=aggregation.number.mean,
-                median=aggregation.number.median,
-                minimum=aggregation.number.minimum,
-                mode=aggregation.number.mode,
-                sum_=aggregation.number.sum,
+                maximum=aggregation.number.maximum
+                if aggregation.number.HasField("maximum")
+                else None,
+                mean=aggregation.number.mean if aggregation.number.HasField("mean") else None,
+                median=aggregation.number.median if aggregation.number.HasField("median") else None,
+                minimum=aggregation.number.minimum
+                if aggregation.number.HasField("minimum")
+                else None,
+                mode=aggregation.number.mode if aggregation.number.HasField("mode") else None,
+                sum_=aggregation.number.sum if aggregation.number.HasField("sum") else None,
             )
         elif aggregation.HasField("boolean"):
             return AggregateBoolean(
                 count=aggregation.boolean.count,
-                percentage_false=aggregation.boolean.percentage_false,
-                percentage_true=aggregation.boolean.percentage_true,
-                total_false=aggregation.boolean.total_false,
-                total_true=aggregation.boolean.total_true,
+                percentage_false=aggregation.boolean.percentage_false
+                if aggregation.boolean.HasField("percentage_false")
+                else None,
+                percentage_true=aggregation.boolean.percentage_true
+                if aggregation.boolean.HasField("percentage_true")
+                else None,
+                total_false=aggregation.boolean.total_false
+                if aggregation.boolean.HasField("total_false")
+                else None,
+                total_true=aggregation.boolean.total_true
+                if aggregation.boolean.HasField("total_true")
+                else None,
             )
         elif aggregation.HasField("date"):
             return AggregateDate(
                 count=aggregation.date.count,
-                maximum=aggregation.date.maximum,
-                median=aggregation.date.median,
-                minimum=aggregation.date.minimum,
-                mode=aggregation.date.mode,
+                maximum=aggregation.date.maximum if aggregation.date.HasField("maximum") else None,
+                median=aggregation.date.median if aggregation.date.HasField("median") else None,
+                minimum=aggregation.date.minimum if aggregation.date.HasField("minimum") else None,
+                mode=aggregation.date.mode if aggregation.date.HasField("mode") else None,
             )
         elif aggregation.HasField("reference"):
             return AggregateReference(pointing_to=list(aggregation.reference.pointing_to))

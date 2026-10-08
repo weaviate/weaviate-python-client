@@ -163,6 +163,29 @@ def test_auto_capitalize_first_letter_by_ref_multi_target() -> None:
     assert target_collection_stored == "Test"
 
 
+def test_reuse_by_ref_builder_for_independent_filters() -> None:
+    ref = Filter.by_ref("hasCategory")
+
+    name_filter = ref.by_property("name").equal("Electronics")
+    rating_filter = ref.by_property("rating").greater_than(4)
+
+    assert name_filter.target.link_on == "hasCategory"
+    assert name_filter.target.target == "name"
+    assert rating_filter.target.link_on == "hasCategory"
+    assert rating_filter.target.target == "rating"
+    assert name_filter.target is not rating_filter.target
+
+    property_filter = ref.by_property("name")
+    first_value = property_filter.equal("Electronics")
+    second_value = property_filter.equal("Appliances")
+
+    assert first_value.target.link_on == "hasCategory"
+    assert first_value.target.target == "name"
+    assert second_value.target.link_on == "hasCategory"
+    assert second_value.target.target == "name"
+    assert first_value.target is not second_value.target
+
+
 @pytest.mark.parametrize(
     "operator,want",
     [

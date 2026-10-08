@@ -216,6 +216,9 @@ class BatchObjectReturn:
     uuids: Dict[int, uuid_package.UUID] = field(default_factory=dict)
     has_errors: bool = False
 
+    def __post_init__(self) -> None:
+        self.has_errors = self.has_errors or len(self.errors) > 0
+
     @property
     def all_responses(self) -> List[Union[uuid_package.UUID, ErrorObject]]:
         """@deprecated: A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
@@ -283,6 +286,9 @@ class BatchReferenceReturn:
     elapsed_seconds: float = 0.0
     errors: Dict[int, ErrorReference] = field(default_factory=dict)
     has_errors: bool = False
+
+    def __post_init__(self) -> None:
+        self.has_errors = self.has_errors or len(self.errors) > 0
 
     def __add__(self, other: "BatchReferenceReturn") -> "BatchReferenceReturn":
         self.elapsed_seconds += other.elapsed_seconds

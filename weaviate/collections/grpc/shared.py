@@ -18,6 +18,7 @@ from typing_extensions import TypeGuard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
     MMR,
+    BM25OperatorAndCross,
     BM25OperatorOptions,
     BM25OperatorOr,
     HybridFusion,
@@ -35,6 +36,7 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.proto.v1 import base_pb2, base_search_pb2
 from weaviate.types import NUMBER, UUID
@@ -48,6 +50,12 @@ from weaviate.validator import (
 
 UINT32_LEN = 4
 UINT64_LEN = 8
+
+# Cross-property AND was backported to the 1.37 and 1.38 branches after landing in 1.39.
+_BM25_AND_CROSS_MIN_VERSIONS = ((1, 37, 15), (1, 38, 8), (1, 39, 0))
+_BM25_AND_CROSS_MIN_VERSIONS_STR = " or ".join(
+    f"{major}.{minor}.{patch}" for major, minor, patch in _BM25_AND_CROSS_MIN_VERSIONS
+)
 
 
 class _BaseGRPC:
@@ -76,6 +84,30 @@ class _BaseGRPC:
             assert consistency_level.value == ConsistencyLevel.ALL
             return base_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_ALL
 
+    def _bm25_operator_to_grpc(
+        self, bm25_operator: Optional[BM25OperatorOptions]
+    ) -> Optional["base_search_pb2.SearchOperatorOptions"]:
+        if bm25_operator is None:
+            return None
+
+        if isinstance(
+            bm25_operator, BM25OperatorAndCross
+        ) and not self._weaviate_version.is_at_least_any(*_BM25_AND_CROSS_MIN_VERSIONS):
+            raise WeaviateUnsupportedFeatureError(
+                "BM25Operator.and_cross()",
+                str(self._weaviate_version),
+                _BM25_AND_CROSS_MIN_VERSIONS_STR,
+            )
+
+        return base_search_pb2.SearchOperatorOptions(
+            operator=bm25_operator.operator,
+            minimum_or_tokens_match=(
+                bm25_operator.minimum_should_match
+                if isinstance(bm25_operator, BM25OperatorOr)
+                else None
+            ),
+        )
+
     def _recompute_target_vector_to_grpc(
         self,
         target_vector: Optional[TargetVectorJoinType],
@@ -91,6 +123,16 @@ class _BaseGRPC:
         else:
             target_vector = target_vectors_tmp
         return self.__target_vector_to_grpc(target_vector)
+
+    @staticmethod
+    def __check_vector_keys(
+        vector: Dict[str, Any], targets: base_search_pb2.Targets, argument_name: str
+    ) -> None:
+        target_names = set(targets.target_vectors)
+        if target_names != vector.keys():
+            raise WeaviateInvalidInputError(
+                f"The {argument_name} keys {sorted(vector.keys())} must match the target vectors {sorted(target_names)}"
+            )
 
     def __target_vector_to_grpc(
         self, target_vector: Optional[TargetVectorJoinType]
@@ -123,6 +165,7 @@ class _BaseGRPC:
                 raise WeaviateInvalidInputError(
                     "The number of target vectors must be equal to the number of vectors."
                 )
+            self.__check_vector_keys(vector, targets, argument_name)
 
             vector_per_target: Dict[str, bytes] = {}
             for key, value in vector.items():
@@ -260,12 +303,9 @@ class _BaseGRPC:
             target_vectors.append(key)
 
         if isinstance(vector, dict):
-            if (
-                len(vector) == 0
-                or targets is None
-                or len(set(targets.target_vectors)) != len(vector)
-            ):
+            if len(vector) == 0 or targets is None:
                 raise invalid_nv_exception
+            self.__check_vector_keys(vector, targets, argument_name)
             for key, value in vector.items():
                 if _is_1d_vector(value):
                     add_1d_vector(value, key)
@@ -600,6 +640,7 @@ class _BaseGRPC:
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
+        diversity_selection: Optional[MMR] = None,
     ) -> Union[base_search_pb2.Hybrid, None]:
         if self._validate_arguments:
             _validate_input(
@@ -739,14 +780,8 @@ class _BaseGRPC:
                 vector_bytes=vector_bytes,
                 vector_distance=distance,
                 vectors=vectors,
-                bm25_search_operator=base_search_pb2.SearchOperatorOptions(
-                    operator=bm25_operator.operator,
-                    minimum_or_tokens_match=bm25_operator.minimum_should_match
-                    if isinstance(bm25_operator, BM25OperatorOr)
-                    else None,
-                )
-                if bm25_operator is not None
-                else None,
+                selection=self._diversity_selection_to_grpc(diversity_selection),
+                bm25_search_operator=self._bm25_operator_to_grpc(bm25_operator),
             )
             if query is not None or vector is not None
             else None
