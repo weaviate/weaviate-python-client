@@ -422,6 +422,25 @@ def test_collection_config_from_json_with_a_decisions_module() -> None:
     assert config.to_dict()["moduleConfig"] == schema["moduleConfig"]
 
 
+def test_collection_config_from_json_with_the_openai_decisions_module() -> None:
+    schema = _schema_with_vector_config(
+        {
+            "default": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hnsw",
+                "vectorIndexConfig": HNSW_CONFIG,
+            }
+        }
+    )
+    schema["moduleConfig"] = {"decisions-openai": {"model": "gpt-6-luna", "question": "statement"}}
+
+    config = _collection_config_from_json(schema)
+
+    assert config.decisions_config is not None
+    assert config.decisions_config.decisions == Decisions.OPENAI
+    assert config.decisions_config.model == {"model": "gpt-6-luna", "question": "statement"}
+
+
 def test_collection_config_from_json_with_an_unknown_decisions_module() -> None:
     schema = _schema_with_vector_config(
         {
