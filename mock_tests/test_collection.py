@@ -447,6 +447,30 @@ def test_backup_create_include_roles_users(
         client.backup.create(backup_id="id", backend=BackupStorage.FILESYSTEM, include_roles="r")
 
 
+def test_backup_create_include_roles_users_sent(
+    httpserver: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.40.0"})
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        bodies.append(request.get_json())
+        return Response(json.dumps({"status": "STARTED", "path": "path", "id": "id"}))
+
+    httpserver.expect_request("/v1/backups/filesystem", method="POST").respond_with_handler(handler)
+
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    client.backup.create(
+        backup_id="id",
+        backend=BackupStorage.FILESYSTEM,
+        include_roles="r",
+        include_users=["u1", "u2"],
+    )
+    assert bodies[0]["includeRoles"] == ["r"]
+    assert bodies[0]["includeUsers"] == ["u1", "u2"]
+
+
 def test_grpc_retry_logic(
     retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
 ) -> None:

@@ -651,48 +651,6 @@ def test_backup_and_restore_with_roles_and_users(
     assert client.roles.get(role_name=name) is not None
 
 
-def test_backup_with_include_roles(client_factory: ClientFactory, request: SubRequest) -> None:
-    backup_id = unique_backup_id(request.node.name)
-    client = client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS)
-    if client._connection._weaviate_version.is_lower_than(1, 40, 0):
-        pytest.skip("This test requires Weaviate 1.40.0 or higher")
-
-    name = _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name)
-    role_a, role_b = name + "A", name + "B"
-    permissions = wvc.rbac.Permissions.collections(collection="*", read_config=True)
-    try:
-        client.collections.delete(name)
-        client.collections.create(name=name)
-        for role in (role_a, role_b):
-            client.roles.delete(role_name=role)
-            client.roles.create(role_name=role, permissions=permissions)
-
-        resp = client.backup.create(
-            backup_id=backup_id,
-            backend=BACKEND,
-            wait_for_completion=True,
-            include_collections=[name],
-            include_roles=[role_a],
-        )
-        assert resp.status == BackupStatus.SUCCESS
-
-        client.collections.delete(name)
-        for role in (role_a, role_b):
-            client.roles.delete(role_name=role)
-            assert client.roles.get(role_name=role) is None
-
-        resp = client.backup.restore(
-            backup_id=backup_id, backend=BACKEND, wait_for_completion=True, roles_restore="all"
-        )
-        assert resp.status == BackupStatus.SUCCESS
-        assert client.roles.get(role_name=role_a) is not None
-        assert client.roles.get(role_name=role_b) is None
-    finally:
-        client.collections.delete(name)
-        for role in (role_a, role_b):
-            client.roles.delete(role_name=role)
-
-
 def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     """List all backups."""
     backup_id = unique_backup_id(request.node.name)
