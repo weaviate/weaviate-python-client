@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import (
     ReplicationConfig,
     ReplicationDeletionStrategy,
     ShardingConfig,
+    ShardStatus,
     StopwordsConfig,
     StopwordsPreset,
     VectorDistances,
@@ -561,6 +562,36 @@ def test_delete_vector_index(weaviate_mock: HTTPServer) -> None:
 
         with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
             client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
+
+
+def test_get_shards_parses_all_statuses(weaviate_mock: HTTPServer) -> None:
+    weaviate_mock.expect_request("/v1/schema/Test/shards", method="GET").respond_with_json(
+        response_json=[
+            {
+                "name": "shard1",
+                "status": "UNAVAILABLE",
+                "vectorQueueSize": 0,
+                "per_node_status": {"node1": "READY", "node2": "UNAVAILABLE"},
+            },
+            {"name": "shard2", "status": "RECOVERING", "vectorQueueSize": 3},
+        ],
+        status=200,
+    )
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        shards = client.collections.use("test").config.get_shards()
+
+    assert shards == [
+        ShardStatus(
+            name="shard1",
+            status="UNAVAILABLE",
+            vector_queue_size=0,
+            per_node_status={"node1": "READY", "node2": "UNAVAILABLE"},
+        ),
+        ShardStatus(name="shard2", status="RECOVERING", vector_queue_size=3, per_node_status=None),
+    ]
 
 
 def test_create_from_dict_skips_dropped_vectors(weaviate_mock: HTTPServer) -> None:
