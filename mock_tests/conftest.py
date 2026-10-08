@@ -242,6 +242,40 @@ def year_zero_collection(
 
 
 @pytest.fixture(scope="function")
+def empty_date_collection(
+    weaviate_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+) -> weaviate.collections.Collection:
+    class MockWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+        def Search(
+            self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
+        ) -> search_get_pb2.SearchReply:
+            # An empty date_value explicitly sets the oneof, so it passes the HasField guard;
+            # a repeated string has no per-element presence at all.
+            date_props: Mapping[str, properties_pb2.Value] = {
+                "date": properties_pb2.Value(date_value=""),
+                "dates": properties_pb2.Value(
+                    list_value=properties_pb2.ListValue(
+                        date_values=properties_pb2.DateValues(
+                            values=["", "2023-01-15T14:30:45.123456Z"]
+                        )
+                    )
+                ),
+            }
+            return search_get_pb2.SearchReply(
+                results=[
+                    search_get_pb2.SearchResult(
+                        properties=search_get_pb2.PropertiesResult(
+                            non_ref_props=properties_pb2.Properties(fields=date_props)
+                        )
+                    ),
+                ]
+            )
+
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
+    return weaviate_client.collections.use("EmptyDateCollection")
+
+
+@pytest.fixture(scope="function")
 def timeouts_collection(
     weaviate_timeouts_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
 ) -> weaviate.collections.Collection:

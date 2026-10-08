@@ -1,0 +1,8 @@
+{
+  "name": "weaviate-pyodide-e2e",
+  "private": true,
+  "description": "Runs the weaviate-client e2e suite inside Pyodide (WASM) under Node",
+  "dependencies": {
+    "pyodide": "314.0.4"
+  }
+}

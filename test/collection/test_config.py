@@ -22,6 +22,7 @@ from weaviate.collections.classes.config import (
     _VectorizerConfigCreate,
     _ReplicationConfigCreate,
     ReplicationDeletionStrategy,
+    VectorFilterStrategy,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.config_vectorizers import (
@@ -1202,6 +1203,62 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.digitalocean(
+            base_url="https://inference.do-ai.run",
+            model="llama-4-maverick",
+            temperature=0.5,
+            top_p=0.9,
+            max_tokens=100,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            stop=["STOP"],
+        ),
+        {
+            "generative-digitalocean": {
+                "baseURL": "https://inference.do-ai.run",
+                "model": "llama-4-maverick",
+                "temperature": 0.5,
+                "topP": 0.9,
+                "maxTokens": 100,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "stop": ["STOP"],
+            }
+        },
+    ),
+    (
+        Configure.Generative.digitalocean(),
+        {"generative-digitalocean": {}},
+    ),
+    (
+        Configure.Generative.meta(
+            base_url="https://api.meta.ai",
+            model="muse-spark-1.2",
+            temperature=0.5,
+            top_p=0.9,
+            max_tokens=100,
+            frequency_penalty=0.1,
+            presence_penalty=0.2,
+            reasoning_effort="xhigh",
+        ),
+        {
+            "generative-meta": {
+                "baseURL": "https://api.meta.ai",
+                "model": "muse-spark-1.2",
+                "temperature": 0.5,
+                "topP": 0.9,
+                "maxTokens": 100,
+                "frequencyPenalty": 0.1,
+                "presencePenalty": 0.2,
+                "reasoningEffort": "xhigh",
+            }
+        },
+    ),
+    (
+        Configure.Generative.meta(),
+        {"generative-meta": {}},
+    ),
+    (
         Configure.Generative.xai(
             model="grok-2-latest",
             max_tokens=100,
@@ -1617,6 +1674,33 @@ def test_vector_config_hnsw_rq() -> None:
     assert vi_dict["efConstruction"] == 128
     assert vi_dict["rq"]["bits"] == 8
     assert vi_dict["rq"]["rescoreLimit"] == 123
+
+
+def test_vector_config_hnsw_rq4c() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128,
+        quantizer=Configure.VectorIndex.Quantizer.rq(
+            bits=4, centering=True, rescore_limit=123, training_limit=5012
+        ),
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["rq"]["bits"] == 4
+    assert vi_dict["rq"]["centering"] is True
+    assert vi_dict["rq"]["rescoreLimit"] == 123
+    assert vi_dict["rq"]["trainingLimit"] == 5012
+
+
+def test_vector_config_hnsw_pathseer_filter_strategy() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        filter_strategy=VectorFilterStrategy.PATHSEER,
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["filterStrategy"] == "pathseer"
 
 
 def test_vector_config_flat_pq() -> None:
@@ -3250,6 +3334,36 @@ def test_replication_config_update_merge_with_missing_async_config() -> None:
     assert result["asyncConfig"]["maxWorkers"] == 12
     assert result["asyncConfig"]["propagationConcurrency"] == 4
     assert result["factor"] == 3
+
+
+@pytest.mark.parametrize(
+    "config_factory",
+    [Configure.replication, Reconfigure.replication],
+)
+@pytest.mark.parametrize("async_enabled", [True, False])
+def test_replication_async_enabled_emits_deprecation_warning(
+    config_factory: object, async_enabled: bool
+) -> None:
+    """`async_enabled` was removed from the server schema in v1.38 and must warn when passed.
+
+    Both booleans are covered: `False` was the explicit opt-out, so a future truthiness
+    check must not silently stop warning for it.
+    """
+    with pytest.warns(DeprecationWarning, match="Dep030"):
+        config_factory(async_enabled=async_enabled)  # type: ignore[operator]
+
+
+@pytest.mark.parametrize(
+    "config_factory",
+    [Configure.replication, Reconfigure.replication],
+)
+def test_replication_without_async_enabled_does_not_warn(config_factory: object) -> None:
+    """Omitting `async_enabled` must not emit the deprecation warning."""
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        config_factory(factor=3)  # type: ignore[operator]
 
 
 def test_nested_property_with_id_name_is_allowed() -> None:

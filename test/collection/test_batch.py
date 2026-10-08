@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 
+from weaviate.collections.batch.base import _RateLimitedBatching
 from weaviate.collections.batch.grpc_batch import _validate_props
 from weaviate.collections.classes.batch import (
     MAX_STORED_RESULTS,
@@ -33,6 +34,29 @@ def _error_reference(index: int) -> ErrorReference:
             index=index,
         ),
     )
+
+
+@pytest.mark.parametrize(
+    ("number_objects", "elapsed_time", "expected_sleep_time"),
+    [
+        (500, 0, 31),
+        (100, 0, 6.2),
+        (100, 2, 4.2),
+        (100, -62, 68.2),
+        (100, 7, 0),
+        (0, 0, 0),
+    ],
+)
+def test_rate_limited_batching_sleep_time_uses_previous_batch_size(
+    number_objects: int, elapsed_time: float, expected_sleep_time: float
+) -> None:
+    batching = _RateLimitedBatching(requests_per_minute=1000)
+
+    assert batching.get_sleep_time(
+        number_objects=number_objects,
+        elapsed_time=elapsed_time,
+        base_time=62,
+    ) == pytest.approx(expected_sleep_time)
 
 
 def test_batch_object_return_add() -> None:

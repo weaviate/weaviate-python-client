@@ -262,6 +262,18 @@ class _Warnings:
         )
 
     @staticmethod
+    def async_enabled_field_removed_server_side() -> None:
+        warnings.warn(
+            message="""Dep030: The `async_enabled` argument in `Configure.replication` / `Reconfigure.replication` is deprecated.
+            On Weaviate v1.38 and newer the `asyncEnabled` field no longer exists in the server schema: it is silently dropped,
+            and whether async replication runs is decided server-side, on by default for any collection with a replication
+            factor > 1 unless the `ASYNC_REPLICATION_DISABLED` runtime override is set.
+            On older servers the argument still takes effect, but it is deprecated and will be removed in a future release.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are using the datetime object {date} without a timezone. The timezone will be set to UTC.
@@ -278,6 +290,27 @@ class _Warnings:
             message=f"""Con004: Received a date {date} with year 0. The year 0 does not exist in the Gregorian calendar
             and cannot be parsed by the datetime library. The year will be set to {datetime.min}.
             See https://en.wikipedia.org/wiki/Year_zero for more information.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def datetime_empty_string() -> None:
+        warnings.warn(
+            message="""Con006: Received an empty date string from Weaviate. This indicates a malformed or corrupt
+            date value, as an unset property is returned as null and never reaches this path.
+            None will be returned.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def create_skips_vectors_without_index(vectors: list) -> None:
+        warnings.warn(
+            message=f"""Col001: The vector config(s) {vectors} have no vector index (their index was dropped
+            with `collection.config.delete_vector_index()`) and their data cannot be restored. The collection
+            will be created without these vectors; inserts and queries targeting them will fail until the
+            vectors are added again with `collection.config.add_vector()`.""",
             category=UserWarning,
             stacklevel=1,
         )
@@ -321,6 +354,19 @@ class _Warnings:
         warnings.warn(
             message="""Con005: Could not retrieve the maximum GRPC message size from the weaviate server. Using the default
             value of 10mb. If you need a larger message size, please update weaviate.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def grpc_endpoint_forced_to_grpc_web(requested: str, effective: str) -> None:
+        warnings.warn(
+            message=f"""Con006: The gRPC endpoint you gave ({requested}) was overridden with {effective}.
+
+            Under WebAssembly/Pyodide there is no socket and no grpcio wheel, so native gRPC cannot be used at all;
+            gRPC runs over grpc-web on the REST listener, which is the endpoint above. Pass gRPC arguments matching
+            the HTTP ones to silence this warning. A grpc-web transcoder on a separate endpoint is not reachable
+            through these helpers - build weaviate.connect.ConnectionParams yourself if you need one.""",
             category=UserWarning,
             stacklevel=1,
         )
