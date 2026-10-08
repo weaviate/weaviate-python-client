@@ -54,6 +54,27 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             None,
         ),
         (
+            Permissions.backup(collection="Test", read=True),
+            Role(
+                name="ReadBackups",
+                alias_permissions=[],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[
+                    BackupsPermissionOutput(collection="Test", actions={Actions.Backups.READ})
+                ],
+                mcp_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            ),
+            40,
+        ),
+        (
             Permissions.cluster(read=True),
             Role(
                 name="ReadCluster",
