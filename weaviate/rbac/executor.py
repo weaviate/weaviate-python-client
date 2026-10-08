@@ -340,7 +340,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         path = f"/authz/roles/{role}/has-permission"
 
         def resp(res: Response) -> bool:
-            return res.status_code == 200
+            # 200 means the check ran, the body is the answer
+            return res.status_code == 200 and res.json() is True
 
         return executor.execute(
             response_callback=resp,
