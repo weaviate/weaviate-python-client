@@ -10,6 +10,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Tuple,
     Type,
     Union,
     cast,
@@ -268,6 +269,114 @@ class Rerank(_WeaviateInput):
 
     prop: str
     query: Optional[str] = Field(default=None)
+
+
+class DecideQuestion(_WeaviateInput):
+    """A question for the collection's decisions module about every object a query returns.
+
+    Build one with `Decide.predicate`, `Decide.choice` or `Decide.score`. The answer comes back under `name`
+    in the `decisions` of each object.
+    """
+
+    name: str
+    prop: str
+    instructions: str
+
+
+class _DecidePredicate(DecideQuestion):
+    pass
+
+
+class _DecideChoice(DecideQuestion):
+    options: Dict[str, Optional[str]]
+
+
+class _DecideScore(DecideQuestion):
+    levels: List[Tuple[str, Optional[str]]]
+
+
+def _named(
+    values: Union[Sequence[str], Mapping[str, Optional[str]]], what: str
+) -> List[Tuple[str, Optional[str]]]:
+    items: List[Tuple[str, Optional[str]]]
+    if isinstance(values, Mapping):
+        items = [(str(name), description) for name, description in values.items()]
+    elif isinstance(values, str):
+        raise WeaviateInvalidInputError(
+            f"{what} must be a list of names or a mapping of names to descriptions, got a string"
+        )
+    else:
+        items = [(str(name), None) for name in values]
+    if len(items) < 2:
+        raise WeaviateInvalidInputError(f"{what} needs at least two entries, got {len(items)}")
+    return items
+
+
+class Decide:
+    """Use this factory class to build the questions of the `decide` argument of a query.
+
+    The collection's decisions module (`decisions_config`) answers every question for every object the query
+    returns. Each question is about one text property of the objects and has a name that identifies its answer.
+    """
+
+    @staticmethod
+    def predicate(name: str, *, prop: str, instructions: str) -> DecideQuestion:
+        """A yes/no question. The answer is the probability that `instructions` holds for the object.
+
+        Args:
+            name: The name of the answer, unique within the query.
+            prop: The text property the question is about.
+            instructions: The statement or question to evaluate, for example "the customer is angry".
+        """
+        return _DecidePredicate(name=name, prop=prop, instructions=instructions)
+
+    @staticmethod
+    def choice(
+        name: str,
+        *,
+        prop: str,
+        instructions: str,
+        options: Union[Sequence[str], Mapping[str, Optional[str]]],
+    ) -> DecideQuestion:
+        """Pick one of the options. The answer is the chosen option, a probability per option and a confidence.
+
+        Args:
+            name: The name of the answer, unique within the query.
+            prop: The text property the question is about.
+            instructions: What to decide, for example "which team should handle this ticket?".
+            options: The options, as names or as a mapping of names to descriptions. At least two.
+        """
+        return _DecideChoice(
+            name=name,
+            prop=prop,
+            instructions=instructions,
+            options=dict(_named(options, "options")),
+        )
+
+    @staticmethod
+    def score(
+        name: str,
+        *,
+        prop: str,
+        instructions: str,
+        levels: Union[Sequence[str], Mapping[str, Optional[str]]],
+    ) -> DecideQuestion:
+        """Rate the object on ordered levels, lowest first.
+
+        The answer is a position between the level indices (0 for the first level), a probability per level and a confidence.
+
+        Args:
+            name: The name of the answer, unique within the query.
+            prop: The text property the question is about.
+            instructions: What to rate, for example "how urgent is this ticket?".
+            levels: The levels from lowest to highest, as labels or as a mapping of labels to descriptions. At least two.
+        """
+        return _DecideScore(
+            name=name, prop=prop, instructions=instructions, levels=_named(levels, "levels")
+        )
+
+
+DECIDE = Union[DecideQuestion, Sequence[DecideQuestion]]
 
 
 @dataclass

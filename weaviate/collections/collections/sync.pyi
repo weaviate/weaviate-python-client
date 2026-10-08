@@ -5,6 +5,7 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    DecisionsProvider,
     GenerativeProvider,
     InvertedIndexConfigCreate,
     MultiTenancyConfigCreate,
@@ -42,6 +43,7 @@ class _Collections(_CollectionsBase[ConnectionSync]):
         references: Optional[List[ReferencePropertyBase]] = None,
         replication_config: Optional[ReplicationConfigCreate] = None,
         reranker_config: Optional[RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
         sharding_config: Optional[ShardingConfigCreate] = None,
         vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
@@ -69,6 +71,7 @@ class _Collections(_CollectionsBase[ConnectionSync]):
         references: Optional[List[ReferencePropertyBase]] = None,
         replication_config: Optional[ReplicationConfigCreate] = None,
         reranker_config: Optional[RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
         sharding_config: Optional[ShardingConfigCreate] = None,
         vector_index_config: VectorIndexConfigCreate,
         vectorizer_config: Optional[
@@ -96,6 +99,7 @@ class _Collections(_CollectionsBase[ConnectionSync]):
         references: Optional[List[ReferencePropertyBase]] = None,
         replication_config: Optional[ReplicationConfigCreate] = None,
         reranker_config: Optional[RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
         sharding_config: Optional[ShardingConfigCreate] = None,
         vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorizer_config: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]],

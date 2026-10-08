@@ -131,8 +131,38 @@ class _Object(Generic[P, R, M]):
 
 
 @dataclass
+class DecisionAnswer:
+    """The answer of the collection's decisions module to one `Decide` question for one object.
+
+    Attributes:
+        name: The name of the question.
+        refused: Whether the model declined to answer. The other fields are then `None`.
+        probability: The probability that a predicate holds.
+        choice: The option a choice question picked.
+        score: The position of a score question on its levels, between 0 and the number of levels minus 1.
+        probabilities: The probability of every option or level, keyed by its name, in the order of the question.
+        confidence: The confidence of a choice or score answer.
+    """
+
+    name: str
+    refused: bool = False
+    probability: Optional[float] = None
+    choice: Optional[str] = None
+    score: Optional[float] = None
+    probabilities: Optional[Dict[str, float]] = None
+    confidence: Optional[float] = None
+
+
+@dataclass
 class Object(Generic[P, R], _Object[P, R, MetadataReturn]):
-    """A single Weaviate object returned by a query within the `.query` namespace of a collection."""
+    """A single Weaviate object returned by a query within the `.query` namespace of a collection.
+
+    Attributes:
+        decisions: The answers to the `decide` questions of the query, keyed by question name. `None` when the
+            query asked none.
+    """
+
+    decisions: Optional[Dict[str, DecisionAnswer]] = None
 
 
 @dataclass

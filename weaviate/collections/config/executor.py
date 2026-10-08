@@ -20,6 +20,7 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    DecisionsProvider,
     GenerativeProvider,
     IndexName,
     InvertedIndexConfigUpdate,
@@ -177,6 +178,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         vector_config: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = None,
         generative_config: Optional[GenerativeProvider] = None,
         reranker_config: Optional[RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
     ) -> executor.Result[None]:
         """Update the configuration for this collection in Weaviate.
 
@@ -189,7 +191,9 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 Only `auto_tenant_creation` is supported.
             object_ttl_config: Configuration for object TTL settings. Use `Reconfigure.object_ttl` to generate one.
             replication_config: Configuration for the replication. Use `Reconfigure.replication` to generate one.
-            reranker_config: Configuration for the reranker. Use `Reconfigure.replication` to generate one.
+            reranker_config: Configuration for the reranker. Use `Reconfigure.Reranker` to generate one.
+            decisions_config: Configuration for the decisions module. Use `Reconfigure.Decisions` to generate one.
+                A collection has either a reranker or a decisions module; setting one replaces the other.
             vector_index_config (DEPRECATED use `vector_config`): Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
             vectorizer_config: Configurations for the vector index (or indices) of your collection.
                 Use `Reconfigure.vector_index` if using legacy vectorization and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
@@ -241,6 +245,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
                 multi_tenancy_config=multi_tenancy_config,
                 generative_config=generative_config,
                 reranker_config=reranker_config,
+                decisions_config=decisions_config,
                 vector_config=vector_config,
             )
         except ValidationError as e:

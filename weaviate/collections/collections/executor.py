@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    DecisionsProvider,
     GenerativeProvider,
     InvertedIndexConfigCreate,
     MultiTenancyConfigCreate,
@@ -198,6 +199,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         references: Optional[List[ReferencePropertyBase]] = None,
         replication_config: Optional[ReplicationConfigCreate] = None,
         reranker_config: Optional[RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
         sharding_config: Optional[ShardingConfigCreate] = None,
         vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
@@ -235,6 +237,8 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             properties: The properties of the objects in the collection.
             references: The references of the objects in the collection.
             replication_config: The configuration for Weaviate's replication strategy.
+            reranker_config: The configuration for Weaviate's reranker module.
+            decisions_config: The configuration for Weaviate's decisions module. A collection has either a reranker or a decisions module, not both.
             sharding_config: The configuration for Weaviate's sharding strategy.
             vector_index_config (DEPRECATED use `vector_config`): The configuration for Weaviate's default vector index.
             vectorizer_config (DEPRECATED use `vector_config`): The configuration for Weaviate's default vectorizer or a list of named vectorizers.
@@ -282,6 +286,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
                 object_ttl_config=object_ttl_config,
                 replication_config=replication_config,
                 reranker_config=reranker_config,
+                decisions_config=decisions_config,
                 sharding_config=sharding_config,
                 vectorizer_config=vectorizer_config,
                 vector_config=vector_config,

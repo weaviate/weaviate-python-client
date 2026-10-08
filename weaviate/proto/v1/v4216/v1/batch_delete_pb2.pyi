@@ -23,18 +23,20 @@ class BatchDeleteRequest(_message.Message):
     def __init__(self, collection: _Optional[str] = ..., filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., verbose: bool = ..., dry_run: bool = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., tenant: _Optional[str] = ...) -> None: ...
 
 class BatchDeleteReply(_message.Message):
-    __slots__ = ["took", "failed", "matches", "successful", "objects"]
+    __slots__ = ["took", "failed", "matches", "successful", "objects", "limit"]
     TOOK_FIELD_NUMBER: _ClassVar[int]
     FAILED_FIELD_NUMBER: _ClassVar[int]
     MATCHES_FIELD_NUMBER: _ClassVar[int]
     SUCCESSFUL_FIELD_NUMBER: _ClassVar[int]
     OBJECTS_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
     took: float
     failed: int
     matches: int
     successful: int
     objects: _containers.RepeatedCompositeFieldContainer[BatchDeleteObject]
-    def __init__(self, took: _Optional[float] = ..., failed: _Optional[int] = ..., matches: _Optional[int] = ..., successful: _Optional[int] = ..., objects: _Optional[_Iterable[_Union[BatchDeleteObject, _Mapping]]] = ...) -> None: ...
+    limit: int
+    def __init__(self, took: _Optional[float] = ..., failed: _Optional[int] = ..., matches: _Optional[int] = ..., successful: _Optional[int] = ..., objects: _Optional[_Iterable[_Union[BatchDeleteObject, _Mapping]]] = ..., limit: _Optional[int] = ...) -> None: ...
 
 class BatchDeleteObject(_message.Message):
     __slots__ = ["uuid", "successful", "error"]

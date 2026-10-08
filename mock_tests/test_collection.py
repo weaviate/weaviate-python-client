@@ -109,6 +109,7 @@ def test_missing_multi_tenancy_config(
         description="",
         generative_config=None,
         reranker_config=None,
+        decisions_config=None,
         vectorizer_config=None,
         vector_config=None,
         object_ttl_config=None,
