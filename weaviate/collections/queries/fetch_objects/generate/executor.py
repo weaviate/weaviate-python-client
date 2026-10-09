@@ -190,7 +190,7 @@ class _FetchObjectsGenerateExecutor(
             single_prompt: The prompt to use for RaG on each object individually.
             grouped_task: The prompt to use for RaG on the entire result set.
             grouped_properties: The properties to use in the RaG on the entire result set.
-            limit: The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
+            limit: The maximum number of results to return. If not specified or set to `0`, the server's default limit is used.
             offset: The offset to start from. If not specified, the retrieval begins from the first object in Weaviate.
             after: The UUID of the object to start from. If not specified, the retrieval begins from the first object in Weaviate.
             filters: The filters to apply to the retrieval.

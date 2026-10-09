@@ -422,7 +422,7 @@ class _NearVectorGenerateExecutor(
             near_vector: The vector to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
             certainty: The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             distance: The maximum distance to search. If not specified, the default distance specified by the server is used.
-            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            limit: The maximum number of results to return. If not specified or set to `0`, the server's default limit is used.
             offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
             auto_limit: The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             filters: The filters to apply to the search.

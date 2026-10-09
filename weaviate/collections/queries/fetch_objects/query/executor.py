@@ -147,7 +147,7 @@ class _FetchObjectsQueryExecutor(
         """Retrieve the objects in this collection without any search.
 
         Args:
-            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            limit: The maximum number of results to return. If not specified or set to `0`, the server's default limit is used.
             offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
             after: The UUID of the object to start from. If not specified, the retrieval begins from the first object in the server.
             filters: The filters to apply to the retrieval.
