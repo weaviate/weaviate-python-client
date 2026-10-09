@@ -32,6 +32,7 @@ This patch version includes:
         - Fix rate-limit spacing for partial batches
         - Accept a plain string API key in all sync and async connection helpers
         - Document ``vectorize_collection_name`` as having no effect on the ``multi2vec`` factories
+        - Always set ``original_uuid`` on failed batch objects, so the UUID you submitted is available on every batching mode
 
 Version 4.23.0
 --------------
