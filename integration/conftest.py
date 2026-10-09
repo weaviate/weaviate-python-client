@@ -34,6 +34,7 @@ from weaviate.collections.classes.config import (
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
     _RerankerProvider,
+    DecisionsProvider,
     _VectorConfigCreate,
     _VectorIndexConfigCreate,
     _VectorizerConfigCreate,
@@ -66,6 +67,7 @@ class CollectionFactory(Protocol):
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
         vector_config: Optional[
             Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
         ] = None,
@@ -141,6 +143,7 @@ def collection_factory(
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
         vector_config: Optional[
             Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
         ] = None,
@@ -176,6 +179,7 @@ def collection_factory(
                 replication_config=replication_config,
                 vector_index_config=vector_index_config,
                 reranker_config=reranker_config,
+                decisions_config=decisions_config,
                 vector_config=vector_config,
                 object_ttl_config=object_ttl,
             )
@@ -217,6 +221,7 @@ class AsyncCollectionFactory(Protocol):
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
     ) -> CollectionAsync[Any, Any]:
         """Typing for fixture."""
         ...
@@ -285,6 +290,7 @@ async def async_collection_factory(
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
     ) -> CollectionAsync[Any, Any]:
         try:
             nonlocal client_fixture, name_fixtures  # noqa: F824
@@ -308,6 +314,7 @@ async def async_collection_factory(
                 replication_config=replication_config,
                 vector_index_config=vector_index_config,
                 reranker_config=reranker_config,
+                decisions_config=decisions_config,
             )
             return collection
         except Exception as e:

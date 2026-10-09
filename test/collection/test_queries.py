@@ -107,6 +107,8 @@ async def test_bad_query_inputs(connection: ConnectionV4) -> None:
     await _test_query(lambda: query.bm25("hi", query_properties="wrong"))
     await _test_query(lambda: query.bm25("hi", auto_limit="wrong"))
     await _test_query(lambda: query.bm25("hi", rerank="wrong"))
+    await _test_query(lambda: query.bm25("hi", decide="wrong"))
+    await _test_query(lambda: query.bm25("hi", decide=["wrong"]))
 
     # hybrid
     await _test_query(lambda: query.hybrid(42))

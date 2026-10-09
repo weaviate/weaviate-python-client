@@ -1,7 +1,7 @@
 from typing import Generic, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.classes.filters import FilterReturn
-from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
+from weaviate.collections.classes.grpc import DECIDE, METADATA, PROPERTIES, REFERENCES, Sorting
 from weaviate.collections.classes.internal import (
     CrossReferences,
     QueryReturn,
@@ -28,6 +28,7 @@ class _FetchObjectsQueryAsync(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
+        decide: Optional[DECIDE] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -42,6 +43,7 @@ class _FetchObjectsQueryAsync(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
+        decide: Optional[DECIDE] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -56,6 +58,7 @@ class _FetchObjectsQueryAsync(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
+        decide: Optional[DECIDE] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -70,6 +73,7 @@ class _FetchObjectsQueryAsync(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
+        decide: Optional[DECIDE] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -84,6 +88,7 @@ class _FetchObjectsQueryAsync(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
+        decide: Optional[DECIDE] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -98,6 +103,7 @@ class _FetchObjectsQueryAsync(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
+        decide: Optional[DECIDE] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -112,6 +118,7 @@ class _FetchObjectsQueryAsync(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
+        decide: Optional[DECIDE] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,

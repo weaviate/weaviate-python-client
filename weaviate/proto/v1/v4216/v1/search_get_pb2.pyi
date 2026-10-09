@@ -1,6 +1,7 @@
 from weaviate.proto.v1.v4216.v1 import base_pb2 as _base_pb2
 from weaviate.proto.v1.v4216.v1 import base_search_pb2 as _base_search_pb2
 from weaviate.proto.v1.v4216.v1 import generative_pb2 as _generative_pb2
+from weaviate.proto.v1.v4216.v1 import decisions_pb2 as _decisions_pb2
 from weaviate.proto.v1.v4216.v1 import properties_pb2 as _properties_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -11,7 +12,7 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SearchRequest(_message.Message):
-    __slots__ = ["collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "boost", "uses_123_api", "uses_125_api", "uses_127_api"]
+    __slots__ = ["collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "decide", "boost", "uses_123_api", "uses_125_api", "uses_127_api"]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
@@ -37,6 +38,7 @@ class SearchRequest(_message.Message):
     NEAR_IMU_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     RERANK_FIELD_NUMBER: _ClassVar[int]
+    DECIDE_FIELD_NUMBER: _ClassVar[int]
     BOOST_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
     USES_125_API_FIELD_NUMBER: _ClassVar[int]
@@ -66,11 +68,12 @@ class SearchRequest(_message.Message):
     near_imu: _base_search_pb2.NearIMUSearch
     generative: _generative_pb2.GenerativeSearch
     rerank: Rerank
+    decide: _decisions_pb2.Decisions
     boost: Boost
     uses_123_api: bool
     uses_125_api: bool
     uses_127_api: bool
-    def __init__(self, collection: _Optional[str] = ..., tenant: _Optional[str] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., properties: _Optional[_Union[PropertiesRequest, _Mapping]] = ..., metadata: _Optional[_Union[MetadataRequest, _Mapping]] = ..., group_by: _Optional[_Union[GroupBy, _Mapping]] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ..., filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., hybrid_search: _Optional[_Union[_base_search_pb2.Hybrid, _Mapping]] = ..., bm25_search: _Optional[_Union[_base_search_pb2.BM25, _Mapping]] = ..., near_vector: _Optional[_Union[_base_search_pb2.NearVector, _Mapping]] = ..., near_object: _Optional[_Union[_base_search_pb2.NearObject, _Mapping]] = ..., near_text: _Optional[_Union[_base_search_pb2.NearTextSearch, _Mapping]] = ..., near_image: _Optional[_Union[_base_search_pb2.NearImageSearch, _Mapping]] = ..., near_audio: _Optional[_Union[_base_search_pb2.NearAudioSearch, _Mapping]] = ..., near_video: _Optional[_Union[_base_search_pb2.NearVideoSearch, _Mapping]] = ..., near_depth: _Optional[_Union[_base_search_pb2.NearDepthSearch, _Mapping]] = ..., near_thermal: _Optional[_Union[_base_search_pb2.NearThermalSearch, _Mapping]] = ..., near_imu: _Optional[_Union[_base_search_pb2.NearIMUSearch, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeSearch, _Mapping]] = ..., rerank: _Optional[_Union[Rerank, _Mapping]] = ..., boost: _Optional[_Union[Boost, _Mapping]] = ..., uses_123_api: bool = ..., uses_125_api: bool = ..., uses_127_api: bool = ...) -> None: ...
+    def __init__(self, collection: _Optional[str] = ..., tenant: _Optional[str] = ..., consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ..., properties: _Optional[_Union[PropertiesRequest, _Mapping]] = ..., metadata: _Optional[_Union[MetadataRequest, _Mapping]] = ..., group_by: _Optional[_Union[GroupBy, _Mapping]] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ..., filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., hybrid_search: _Optional[_Union[_base_search_pb2.Hybrid, _Mapping]] = ..., bm25_search: _Optional[_Union[_base_search_pb2.BM25, _Mapping]] = ..., near_vector: _Optional[_Union[_base_search_pb2.NearVector, _Mapping]] = ..., near_object: _Optional[_Union[_base_search_pb2.NearObject, _Mapping]] = ..., near_text: _Optional[_Union[_base_search_pb2.NearTextSearch, _Mapping]] = ..., near_image: _Optional[_Union[_base_search_pb2.NearImageSearch, _Mapping]] = ..., near_audio: _Optional[_Union[_base_search_pb2.NearAudioSearch, _Mapping]] = ..., near_video: _Optional[_Union[_base_search_pb2.NearVideoSearch, _Mapping]] = ..., near_depth: _Optional[_Union[_base_search_pb2.NearDepthSearch, _Mapping]] = ..., near_thermal: _Optional[_Union[_base_search_pb2.NearThermalSearch, _Mapping]] = ..., near_imu: _Optional[_Union[_base_search_pb2.NearIMUSearch, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeSearch, _Mapping]] = ..., rerank: _Optional[_Union[Rerank, _Mapping]] = ..., decide: _Optional[_Union[_decisions_pb2.Decisions, _Mapping]] = ..., boost: _Optional[_Union[Boost, _Mapping]] = ..., uses_123_api: bool = ..., uses_125_api: bool = ..., uses_127_api: bool = ...) -> None: ...
 
 class GroupBy(_message.Message):
     __slots__ = ["path", "number_of_groups", "objects_per_group"]
@@ -235,14 +238,16 @@ class GroupByResult(_message.Message):
     def __init__(self, name: _Optional[str] = ..., min_distance: _Optional[float] = ..., max_distance: _Optional[float] = ..., number_of_objects: _Optional[int] = ..., objects: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., rerank: _Optional[_Union[RerankReply, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeReply, _Mapping]] = ..., generative_result: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ...) -> None: ...
 
 class SearchResult(_message.Message):
-    __slots__ = ["properties", "metadata", "generative"]
+    __slots__ = ["properties", "metadata", "generative", "decisions"]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
+    DECISIONS_FIELD_NUMBER: _ClassVar[int]
     properties: PropertiesResult
     metadata: MetadataResult
     generative: _generative_pb2.GenerativeResult
-    def __init__(self, properties: _Optional[_Union[PropertiesResult, _Mapping]] = ..., metadata: _Optional[_Union[MetadataResult, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ...) -> None: ...
+    decisions: _decisions_pb2.DecisionResult
+    def __init__(self, properties: _Optional[_Union[PropertiesResult, _Mapping]] = ..., metadata: _Optional[_Union[MetadataResult, _Mapping]] = ..., generative: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ..., decisions: _Optional[_Union[_decisions_pb2.DecisionResult, _Mapping]] = ...) -> None: ...
 
 class MetadataResult(_message.Message):
     __slots__ = ["id", "vector", "creation_time_unix", "creation_time_unix_present", "last_update_time_unix", "last_update_time_unix_present", "distance", "distance_present", "certainty", "certainty_present", "score", "score_present", "explain_score", "explain_score_present", "is_consistent", "generative", "generative_present", "is_consistent_present", "vector_bytes", "id_as_bytes", "rerank_score", "rerank_score_present", "vectors"]

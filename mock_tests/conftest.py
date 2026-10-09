@@ -15,6 +15,7 @@ from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import (
     batch_delete_pb2,
     batch_pb2,
+    decisions_pb2,
     properties_pb2,
     search_get_pb2,
     tenants_pb2,
@@ -239,6 +240,86 @@ def year_zero_collection(
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
     return weaviate_client.collections.use("YearZeroCollection")
+
+
+class MockDecisionsWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    """Answers every search with one object carrying every kind of decision answer and records the request."""
+
+    captured_request: search_get_pb2.SearchRequest = search_get_pb2.SearchRequest()
+
+    def Search(
+        self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
+    ) -> search_get_pb2.SearchReply:
+        self.captured_request = request
+        text = properties_pb2.Value(text_value="the customer is angry about billing")
+        return search_get_pb2.SearchReply(
+            results=[
+                search_get_pb2.SearchResult(
+                    properties=search_get_pb2.PropertiesResult(
+                        non_ref_props=properties_pb2.Properties(fields={"text": text})
+                    ),
+                    decisions=decisions_pb2.DecisionResult(
+                        answers=[
+                            decisions_pb2.DecisionAnswer(
+                                name="angry",
+                                predicate=decisions_pb2.DecisionPredicateAnswer(probability=0.91),
+                            ),
+                            decisions_pb2.DecisionAnswer(
+                                name="team",
+                                choice=decisions_pb2.DecisionChoiceAnswer(
+                                    choice="billing",
+                                    probabilities=[
+                                        decisions_pb2.DecisionProbability(
+                                            value="billing", probability=0.8
+                                        ),
+                                        decisions_pb2.DecisionProbability(
+                                            value="support", probability=0.2
+                                        ),
+                                    ],
+                                    confidence=0.8,
+                                ),
+                            ),
+                            decisions_pb2.DecisionAnswer(
+                                name="severity",
+                                score=decisions_pb2.DecisionScoreAnswer(
+                                    score=2,
+                                    probabilities=[
+                                        decisions_pb2.DecisionProbability(
+                                            value="low", probability=0.1
+                                        ),
+                                        decisions_pb2.DecisionProbability(
+                                            value="medium", probability=0.3
+                                        ),
+                                        decisions_pb2.DecisionProbability(
+                                            value="high", probability=0.6
+                                        ),
+                                    ],
+                                    confidence=0.6,
+                                ),
+                            ),
+                            decisions_pb2.DecisionAnswer(
+                                name="refused",
+                                refusal=decisions_pb2.DecisionRefusal(),
+                            ),
+                        ]
+                    ),
+                ),
+                search_get_pb2.SearchResult(
+                    properties=search_get_pb2.PropertiesResult(
+                        non_ref_props=properties_pb2.Properties(fields={"text": text})
+                    ),
+                ),
+            ]
+        )
+
+
+@pytest.fixture(scope="function")
+def decisions_collection(
+    weaviate_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+) -> tuple[weaviate.collections.Collection, MockDecisionsWeaviateService]:
+    service = MockDecisionsWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return weaviate_client.collections.use("DecisionsCollection"), service
 
 
 @pytest.fixture(scope="function")
