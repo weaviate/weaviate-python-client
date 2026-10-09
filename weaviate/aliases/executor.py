@@ -1,6 +1,6 @@
 from typing import Dict, Generic, List, Optional, cast
 
-from httpx import Response
+from httpx2 import Response
 
 from weaviate.aliases.alias import AliasReturn, _WeaviateAlias
 from weaviate.connect import executor

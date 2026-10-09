@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import quote
 
-import httpx
+import httpx2
 import validators
 
 from weaviate.exceptions import (
@@ -725,7 +725,7 @@ def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
     return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
 
 
-def _decode_json_response_dict(response: httpx.Response, location: str) -> Optional[Dict[str, Any]]:
+def _decode_json_response_dict(response: httpx2.Response, location: str) -> Optional[Dict[str, Any]]:
     if response is None:
         return None
 
@@ -733,14 +733,14 @@ def _decode_json_response_dict(response: httpx.Response, location: str) -> Optio
         try:
             json_response = cast(Dict[str, Any], response.json())
             return json_response
-        except (httpx.DecodingError, json.decoder.JSONDecodeError):
+        except (httpx2.DecodingError, json.decoder.JSONDecodeError):
             raise ResponseCannotBeDecodedError(location, response)
 
     raise UnexpectedStatusCodeError(location, response)
 
 
 def _decode_json_response_list(
-    response: httpx.Response, location: str
+    response: httpx2.Response, location: str
 ) -> Optional[List[Dict[str, Any]]]:
     if response is None:
         return None
@@ -749,7 +749,7 @@ def _decode_json_response_list(
         try:
             json_response = response.json()
             return cast(list, json_response)
-        except (httpx.DecodingError, json.decoder.JSONDecodeError):
+        except (httpx2.DecodingError, json.decoder.JSONDecodeError):
             raise ResponseCannotBeDecodedError(location, response)
     raise UnexpectedStatusCodeError(location, response)
 

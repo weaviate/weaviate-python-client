@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from httpx import Response
+from httpx2 import Response
 
 from weaviate.collections.classes.batch import (
     BatchReference,

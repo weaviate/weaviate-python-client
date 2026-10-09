@@ -1,6 +1,6 @@
 from typing import Generic, Literal, Optional, overload
 
-from httpx import Response
+from httpx2 import Response
 
 from weaviate.cluster.models import (
     ReplicateOperation,

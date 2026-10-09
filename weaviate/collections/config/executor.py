@@ -13,7 +13,7 @@ from typing import (
     overload,
 )
 
-from httpx import Response
+from httpx2 import Response
 from pydantic_core import ValidationError
 from typing_extensions import deprecated
 
