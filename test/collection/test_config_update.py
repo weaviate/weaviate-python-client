@@ -1,7 +1,10 @@
+from typing import Optional
+
 import pytest
 
 from test.collection.schema import multi_vector_schema
 from weaviate.collections.classes.config import (
+    ObjectTTLConfigUpdate,
     Reconfigure,
     _CollectionConfigUpdate,
 )
@@ -160,6 +163,55 @@ def test_replication_async_config_reset_all_fields() -> None:
     )
     result = update.merge_with_existing(schema)
     assert result["asyncConfig"] == {}
+
+
+@pytest.mark.parametrize(
+    "stored,update,expected",
+    [
+        (
+            {
+                "enabled": True,
+                "deleteOn": "expiresAt",
+                "defaultTtl": 3600,
+                "filterExpiredObjects": False,
+            },
+            ObjectTTLConfigUpdate(enabled=True, filterExpiredObjects=True),
+            {
+                "enabled": True,
+                "deleteOn": "expiresAt",
+                "defaultTtl": 3600,
+                "filterExpiredObjects": True,
+            },
+        ),
+        (
+            None,
+            Reconfigure.ObjectTTL.delete_by_update_time(time_to_live=3600),
+            {"enabled": True, "deleteOn": "_lastUpdateTimeUnix", "defaultTtl": 3600},
+        ),
+        (
+            {
+                "enabled": True,
+                "deleteOn": "expiresAt",
+                "defaultTtl": 3600,
+                "filterExpiredObjects": False,
+            },
+            Reconfigure.ObjectTTL.disable(),
+            {
+                "enabled": False,
+                "deleteOn": "expiresAt",
+                "defaultTtl": 3600,
+                "filterExpiredObjects": False,
+            },
+        ),
+    ],
+)
+def test_object_ttl_update_merges_into_objectTtlConfig(
+    stored: Optional[dict], update: ObjectTTLConfigUpdate, expected: dict
+) -> None:
+    schema = {"class": "Test"} if stored is None else {"class": "Test", "objectTtlConfig": stored}
+    merged = _CollectionConfigUpdate(object_ttl_config=update).merge_with_existing(schema)
+    assert "objectTTLConfig" not in merged
+    assert merged["objectTtlConfig"] == expected
 
 
 def _hfresh_schema(rescore_limit: int = 20) -> dict:

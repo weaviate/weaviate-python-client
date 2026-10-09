@@ -1747,9 +1747,8 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
         if self.objectTtlConfig is not None:
             schema["objectTtlConfig"] = self.objectTtlConfig.merge_with_existing(
-                schema.get("objectTtlConfig") or schema.get("objectTTLConfig") or {}
+                schema.get("objectTtlConfig", {})
             )
-            schema.pop("objectTTLConfig", None)
         if self.vectorIndexConfig is not None:
             self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
