@@ -83,6 +83,41 @@ def test_collection_config_from_json_with_dropped_vector_index() -> None:
     assert as_dict["vectorConfig"]["kept"]["vectorIndexType"] == VectorIndexType.HNSW.value
 
 
+@pytest.mark.parametrize(
+    "multivector",
+    [
+        {"enabled": True, "aggregation": "maxSim"},
+        {
+            "enabled": True,
+            "aggregation": "maxSim",
+            "muvera": {"enabled": True, "ksim": 4, "dprojections": 16, "repetitions": 10},
+        },
+    ],
+)
+def test_collection_config_to_dict_keeps_multivector(multivector: Dict[str, Any]) -> None:
+    """A multi-vector index must round-trip in the shape the server accepts, or it is recreated as a regular index."""
+    schema = _schema_with_vector_config(
+        {
+            "colbert": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hnsw",
+                "vectorIndexConfig": {**HNSW_CONFIG, "multivector": multivector},
+            },
+            "regular": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hnsw",
+                "vectorIndexConfig": HNSW_CONFIG,
+            },
+        }
+    )
+
+    as_dict = _collection_config_from_json(schema).to_dict()
+
+    assert as_dict["vectorConfig"]["colbert"]["vectorIndexConfig"]["multivector"] == multivector
+    assert "multiVector" not in as_dict["vectorConfig"]["colbert"]["vectorIndexConfig"]
+    assert "multivector" not in as_dict["vectorConfig"]["regular"]["vectorIndexConfig"]
+
+
 def test_collection_config_from_json_missing_vector_index_config_raises() -> None:
     """A non-dropped vector missing its vectorIndexConfig must fail fast, not parse as None."""
     schema = _schema_with_vector_config(
