@@ -175,7 +175,7 @@ class _MetricsText(_MetricsBase):
             property=self.property_name,
             text=aggregate_pb2.AggregateRequest.Aggregation.Text(
                 count=self.count,
-                top_occurences=self.top_occurrences_count,
+                top_occurences=self.top_occurrences_count or self.top_occurrences_value,
                 top_occurences_limit=self.limit,
             ),
         )
