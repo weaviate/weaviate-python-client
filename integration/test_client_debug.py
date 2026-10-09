@@ -8,6 +8,12 @@ from integration.conftest import (
 )
 from weaviate.classes.config import DataType, Property
 from weaviate.classes.debug import DebugRESTObject
+from weaviate.exceptions import UnexpectedStatusCodeError
+
+# The /v1/tasks REST endpoint landed on weaviate-core's stable/v1.37 branch on 2026-06-29
+# but isn't in every Docker image this suite's version matrix pins yet, so older builds
+# still respond 501 "not yet implemented" rather than a real payload.
+_DISTRIBUTED_TASKS_NOT_IMPLEMENTED = 501
 
 
 def test_get_object_single_node(
@@ -63,3 +69,30 @@ def test_get_object_multi_node(
         debug_obj = client.debug.get_object_over_rest(collection.name, uuid, node_name=node_name)
         assert debug_obj is not None
         assert str(debug_obj.uuid) == str(uuid)
+
+
+def test_list_tasks(client_factory: ClientFactory) -> None:
+    client = client_factory()
+
+    try:
+        tasks = client.debug.list_tasks()
+    except UnexpectedStatusCodeError as e:
+        if e.status_code == _DISTRIBUTED_TASKS_NOT_IMPLEMENTED:
+            pytest.skip("distributed tasks endpoint not yet implemented on this server build")
+        raise
+
+    assert isinstance(tasks, dict)
+
+
+@pytest.mark.asyncio
+async def test_list_tasks_async(async_client_factory: AsyncClientFactory) -> None:
+    client = await async_client_factory()
+
+    try:
+        tasks = await client.debug.list_tasks()
+    except UnexpectedStatusCodeError as e:
+        if e.status_code == _DISTRIBUTED_TASKS_NOT_IMPLEMENTED:
+            pytest.skip("distributed tasks endpoint not yet implemented on this server build")
+        raise
+
+    assert isinstance(tasks, dict)
