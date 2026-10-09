@@ -1,6 +1,6 @@
 {
   "include": [
-    "weaviate", "integration"
+    "weaviate", "integration", "packages/web/src"
   ],
 
   "exclude": [
