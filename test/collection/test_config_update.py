@@ -1,4 +1,5 @@
-from typing import Optional
+from datetime import timedelta
+from typing import Optional, Union
 
 import pytest
 
@@ -9,6 +10,29 @@ from weaviate.collections.classes.config import (
     _CollectionConfigUpdate,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
+
+
+@pytest.mark.parametrize(
+    "offset,expected",
+    [(None, None), (0, 0), (timedelta(seconds=120), 120)],
+)
+def test_object_ttl_update_offset(
+    offset: Optional[Union[int, timedelta]], expected: Optional[int]
+) -> None:
+    update = Reconfigure.ObjectTTL.delete_by_date_property(
+        filter_expired_objects=True, ttl_offset=offset
+    )
+    assert update.defaultTtl == expected
+    merged = update.merge_with_existing(
+        {
+            "enabled": True,
+            "deleteOn": "expiresAt",
+            "defaultTtl": 3600,
+            "filterExpiredObjects": False,
+        }
+    )
+    assert merged["defaultTtl"] == (3600 if expected is None else expected)
+    assert merged["filterExpiredObjects"] is True
 
 
 @pytest.mark.parametrize(
