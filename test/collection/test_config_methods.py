@@ -1,8 +1,14 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pytest
 
-from weaviate.collections.classes.config import VectorIndexType, _VectorIndexConfigNone
+from weaviate.collections.classes.config import (
+    VectorIndexType,
+    _MultiVectorConfig,
+    _MuveraConfig,
+    _VectorIndexConfigHFresh,
+    _VectorIndexConfigNone,
+)
 from weaviate.exceptions import SchemaValidationError
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -81,6 +87,75 @@ def test_collection_config_from_json_with_dropped_vector_index() -> None:
     assert as_dict["vectorConfig"]["dropped"]["vectorIndexType"] == VectorIndexType.NONE.value
     assert "vectorIndexConfig" not in as_dict["vectorConfig"]["dropped"]
     assert as_dict["vectorConfig"]["kept"]["vectorIndexType"] == VectorIndexType.HNSW.value
+
+
+HFRESH_CONFIG = {
+    "distance": "cosine",
+    "maxPostingSizeKB": 48,
+    "replicas": 4,
+    "searchProbe": 256,
+    "rq": {"enabled": True, "bits": 1, "rescoreLimit": 350, "trainingLimit": 0},
+}
+
+
+@pytest.mark.parametrize(
+    "multivector,expected",
+    [
+        (
+            {
+                "enabled": True,
+                "aggregation": "",
+                "muvera": {"enabled": True, "ksim": 4, "dprojections": 16, "repetitions": 10},
+            },
+            _MultiVectorConfig(
+                aggregation="",
+                encoding=_MuveraConfig(enabled=True, ksim=4, dprojections=16, repetitions=10),
+            ),
+        ),
+        (
+            {
+                "enabled": True,
+                "aggregation": "",
+                "muvera": {"enabled": False, "ksim": 4, "dprojections": 16, "repetitions": 10},
+            },
+            _MultiVectorConfig(aggregation="", encoding=None),
+        ),
+        (
+            {
+                "enabled": False,
+                "aggregation": "",
+                "muvera": {"enabled": False, "ksim": 4, "dprojections": 16, "repetitions": 10},
+            },
+            None,
+        ),
+        # servers before 1.40 omit the multivector block for HFresh
+        (None, None),
+    ],
+)
+def test_collection_config_from_json_hfresh_multi_vector(
+    multivector: Optional[Dict[str, Any]], expected: Optional[_MultiVectorConfig]
+) -> None:
+    index_config = dict(HFRESH_CONFIG)
+    if multivector is not None:
+        index_config["multivector"] = multivector
+    schema = _schema_with_vector_config(
+        {
+            "mv": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hfresh",
+                "vectorIndexConfig": index_config,
+            }
+        }
+    )
+
+    config = _collection_config_from_json(schema)
+
+    assert config.vector_config is not None
+    vic = config.vector_config["mv"].vector_index_config
+    assert isinstance(vic, _VectorIndexConfigHFresh)
+    assert vic.multi_vector == expected
+    assert vic.max_posting_size_kb == 48
+    assert vic.search_probe == 256
 
 
 def test_collection_config_from_json_missing_vector_index_config_raises() -> None:

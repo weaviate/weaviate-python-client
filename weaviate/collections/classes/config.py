@@ -2407,7 +2407,16 @@ class _CollectionConfigSimple(_ConfigBase):
 
 CollectionConfigSimple = _CollectionConfigSimple
 
-ShardTypes = Literal["READONLY", "READY", "INDEXING"]
+ShardTypes = Literal[
+    "READONLY",
+    "READY",
+    "INDEXING",
+    "LOADING",
+    "LAZY_LOADING",
+    "SHUTDOWN",
+    "UNAVAILABLE",
+    "RECOVERING",
+]
 
 
 @dataclass
@@ -2415,7 +2424,7 @@ class _ShardStatus:
     name: str
     status: ShardTypes
     vector_queue_size: int
-    per_node_status: Optional[Dict[str, str]]
+    per_node_status: Optional[Dict[str, ShardTypes]]
 
 
 ShardStatus = _ShardStatus

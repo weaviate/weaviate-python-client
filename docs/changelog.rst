@@ -13,6 +13,9 @@ This minor version includes:
     - Backwards compatibility:
         - Every ``_``-prefixed spelling is still importable from the module that defines it, and is the same object as its public counterpart, so ``isinstance`` checks and existing imports of it are unaffected
         - A private spelling that was only ever reachable through a module that happened to import it — the executor modules, and a few of the ``config_*`` modules — is no longer reachable there. Import configuration types from ``weaviate.classes.config``, or from ``weaviate.collections.classes.config``
+    - Minor bug fixes and improvements:
+        - Fix ``collection.config.get()`` dropping the multi-vector and MUVERA settings of an HFresh vector index
+        - Add the ``LOADING``, ``LAZY_LOADING``, ``SHUTDOWN``, ``UNAVAILABLE`` and ``RECOVERING`` shard statuses to ``ShardTypes``, and type ``ShardStatus.per_node_status`` with it
 
 Version 4.23.1
 --------------
