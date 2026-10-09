@@ -2137,6 +2137,11 @@ class _VectorIndexConfig(_ConfigBase):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _RQConfig):
             out["rq"] = {**out.pop("quantizer"), "enabled": True}
+        if self.multi_vector is not None:
+            multi_vector = out.pop("multiVector")
+            out["multivector"] = {"enabled": True, "aggregation": multi_vector["aggregation"]}
+            if "encoding" in multi_vector:
+                out["multivector"]["muvera"] = multi_vector["encoding"]
         return out
 
 
