@@ -132,7 +132,7 @@ def first_version_is_lower(_version: str, _other: str) -> bool:
 
 _ASYNC_ONLY_MESSAGE = (
     "weaviate-client-web provides an asynchronous-only gRPC transport under "
-    "WebAssembly/Pyodide. Use an async client (weaviate.use_async_with_local / "
+    "Pyodide. Use an async client (weaviate.use_async_with_local / "
     "use_async_with_weaviate_cloud / use_async_with_custom, or WeaviateAsyncClient); "
     "the synchronous client is not supported in the browser."
 )

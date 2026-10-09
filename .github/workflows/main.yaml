@@ -106,7 +106,7 @@ jobs:
           path: coverage-${{ matrix.folder }}.xml
 
   pyodide-e2e:
-    name: Run Pyodide (WASM) Unit + e2e Tests
+    name: Run Pyodide Unit + e2e Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The interpreter comes from the pyodide pin in ci/pyodide-e2e/package.json.
@@ -128,19 +128,13 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - name: Build pure wheels (base client + grpc-web)
+      - name: Build weaviate-client and weaviate-client-web wheels
         run: |
           pip install build
           python -m build --wheel --outdir dist .
           python -m build --wheel --outdir dist packages/web
       - name: Assert both wheels carry the same version
-        # weaviate-client-web is versioned in lockstep with weaviate-client: both derive
-        # from the same git tag via setuptools_scm.
-        run: |
-          base=$(basename dist/weaviate_client-*.whl); base=${base#weaviate_client-}; base=${base%%-*}
-          web=$(basename dist/weaviate_client_web-*.whl); web=${web#weaviate_client_web-}; web=${web%%-*}
-          echo "weaviate-client=$base weaviate-client-web=$web"
-          test "$base" = "$web"
+        run: ci/assert-lockstep.sh dist
       - name: Run the unit suite inside Pyodide under Node
         # weaviate-client-web imports pyodide, so its unit tests run only here.
         # JSPI lets pytest run async tests.
@@ -354,7 +348,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         run: pip install -r requirements-test.txt -r requirements-devel.txt
-      - name: Build binary wheels (base client + grpc-web companion)
+      - name: Build weaviate-client and weaviate-client-web wheels
         run: |
           python -m build
           python -m build --wheel --outdir dist packages/web
@@ -428,7 +422,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         run: pip install -r requirements-devel.txt
-      - name: Build distributions (base client + grpc-web companion)
+      - name: Build distributions (weaviate-client sdist+wheel, weaviate-client-web wheel)
         # weaviate-client-web is wheel-only: its version comes from git tags, which an
         # sdist lacks.
         run: |
@@ -437,11 +431,7 @@ jobs:
       - name: Assert both packages carry the same version
         # weaviate-client-web pins weaviate-client==<own version>; a mismatch leaves the
         # [grpc-web] extra unresolvable.
-        run: |
-          base=$(basename dist/weaviate_client-*.whl); base=${base#weaviate_client-}; base=${base%%-*}
-          web=$(basename dist/weaviate_client_web-*.whl); web=${web#weaviate_client_web-}; web=${web%%-*}
-          echo "weaviate-client=$base weaviate-client-web=$web"
-          test "$base" = "$web"
+        run: ci/assert-lockstep.sh dist
       - name: Publish distributions 📦 to PyPI on new tags
         if: startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1

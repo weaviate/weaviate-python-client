@@ -50,10 +50,32 @@ def _encode_timeout(seconds: Optional[float]) -> Optional[str]:
     return None
 
 
+# gRPC spec: keys are lower-case [0-9a-z_.-], ASCII values are printable (0x20-0x7E).
+_METADATA_KEY_CHARS = frozenset("0123456789abcdefghijklmnopqrstuvwxyz_.-")
+
+
+def _is_legal_metadata(name: str, text: str) -> bool:
+    return (
+        bool(name)
+        and all(c in _METADATA_KEY_CHARS for c in name)
+        and all(" " <= c <= "~" for c in text)
+    )
+
+
+def _normalize_path_prefix(path_prefix: Optional[str]) -> str:
+    """One leading slash, no trailing or repeated slashes, no surrounding whitespace.
+
+    ``""`` (also for ``None`` or a blank value) means native gRPC paths.
+    """
+    segments = [part for part in (path_prefix or "").strip().split("/") if part]
+    return "/" + "/".join(segments) if segments else ""
+
+
 def _fold_metadata(headers: Dict[str, str], metadata: Any) -> None:
     """Fold gRPC call metadata (``[(key, value), ...]``) into fetch headers.
 
-    Binary ``-bin`` keys are base64-encoded as grpc-web requires.
+    Binary ``-bin`` keys are base64-encoded as grpc-web requires. Keys and values outside
+    the gRPC spec raise ``ValueError`` before any I/O, as native grpcio does.
     """
     if not metadata:
         return
@@ -64,8 +86,9 @@ def _fold_metadata(headers: Dict[str, str], metadata: Any) -> None:
             text = base64.b64encode(raw).decode("ascii")
         else:
             text = value if isinstance(value, str) else str(value)
-        # This path bypasses h11/grpcio's header validation, so keep their defence here.
-        if any(c in name or c in text for c in ("\r", "\n", "\0")):
+        # grpcio's metadata validation, redone here: fetch would reject some of these
+        # values synchronously, as a transport error.
+        if not _is_legal_metadata(name, text):
             raise ValueError(f"Illegal character in gRPC metadata {name!r}")
         headers[name] = text
 
@@ -125,7 +148,7 @@ class _UnsupportedStreamMultiCallable:
         # batch.dynamic()/fixed_size()/rate_limit() are sync-only, so not suggested here.
         raise RuntimeError(
             f"Bidirectional streaming RPC {self._path!r} (server-side batching / "
-            "BatchStream) is not supported over grpc-web/fetch. Use "
+            "BatchStream) is not supported over grpc-web. Use "
             "collection.data.insert_many() instead of batch.stream()."
         )
 
@@ -145,10 +168,11 @@ class GrpcWebChannel(AioChannel):
             raise ValueError("GrpcWebChannel requires a target (host:port)")
         scheme = "https" if secure else "http"
         self._base_url = f"{scheme}://{target}"
-        # Normalize to a single leading slash and no trailing slash; "" == native path.
-        cleaned = (path_prefix or "").strip("/")
-        self._path_prefix = f"/{cleaned}" if cleaned else ""
+        self._path_prefix = _normalize_path_prefix(path_prefix)
         self._sender: Sender = sender or get_sender()
+        # Until a first HTTP response arrives, a fetch rejection is most likely
+        # deterministic (CORS, wrong host/port) and must not enter the UNAVAILABLE retry loop.
+        self._got_response = False
 
     def unary_unary(
         self,
@@ -197,36 +221,35 @@ class GrpcWebChannel(AioChannel):
             timeout = None  # None / non-finite: no deadline, server- or client-side
         else:
             headers["grpc-timeout"] = grpc_timeout
+            if timeout is not None and timeout <= 0:
+                raise _deadline_exceeded(path, timeout)
 
         url = self._base_url + self._path_prefix + path
         framed = encode_message(payload)
 
-        # Send. Enforce a client-side deadline (the grpc-timeout header is server-side
-        # only; pyfetch ignores its timeout arg, so without this a stalled request could
-        # hang forever). Any transport/parse failure is surfaced as AioRpcError; the only
-        # non-gRPC error a caller can see is the ValueError from metadata validation
-        # above, raised before any I/O (as native grpcio does).
+        # The sender enforces the deadline; grpc-timeout binds only the server. Every failure
+        # below becomes AioRpcError (CancelledError propagates); only metadata validation
+        # above, before I/O, raises ValueError.
         try:
-            send = self._sender(url, headers, framed, timeout)
-            if timeout is not None:
-                status, resp_headers, body = await asyncio.wait_for(send, timeout)
-            else:
-                status, resp_headers, body = await send
+            status, resp_headers, body = await self._sender(url, headers, framed, timeout)
         except AioRpcError:
             raise
-        except asyncio.TimeoutError as exc:
-            raise AioRpcError(
-                code=StatusCode.DEADLINE_EXCEEDED,
-                details=f"grpc-web request to {path} timed out after {timeout}s",
-            ) from exc
-        except Exception as exc:  # network/transport failure -> retryable UNAVAILABLE
+        except (asyncio.TimeoutError, TimeoutError) as exc:
+            raise _deadline_exceeded(path, timeout) from exc
+        except Exception as exc:  # network/transport failure
             # str() of transport errors can be empty (e.g. httpx.ConnectError) — always
             # include the exception type so failures stay diagnosable
             detail = f"{type(exc).__name__}: {exc}" if str(exc) else repr(exc)
             details = f"grpc-web transport error for {path}: {detail}"
-            if not self._path_prefix and sys.platform == "emscripten":
-                details += " " + _no_path_prefix_hint()
-            raise AioRpcError(code=StatusCode.UNAVAILABLE, details=details) from exc
+            if sys.platform == "emscripten":
+                if not self._path_prefix:
+                    details += " " + _no_path_prefix_hint()
+                if isinstance(exc, OSError):  # how pyfetch reports every fetch rejection
+                    details += ". " + _cors_hint()
+            # retryable UNAVAILABLE only once this channel has reached the server
+            code = StatusCode.UNAVAILABLE if self._got_response else StatusCode.UNKNOWN
+            raise AioRpcError(code=code, details=details) from exc
+        self._got_response = True
 
         try:
             return self._handle_response(status, resp_headers, body, deserialize, url)
@@ -300,7 +323,7 @@ class GrpcWebChannel(AioChannel):
                 # grpc-message headers were stripped by CORS in the browser.
                 details += (
                     " and no grpc-status was visible. If this is a cross-origin browser "
-                    "request, configure the grpc-web proxy to send "
+                    "request, configure the server or proxy to send "
                     "'Access-Control-Expose-Headers: grpc-status, grpc-message' so "
                     "trailers-only error responses are readable."
                 )
@@ -309,6 +332,13 @@ class GrpcWebChannel(AioChannel):
 
 
 _BODY_EXCERPT_LIMIT = 200
+
+
+def _deadline_exceeded(path: str, timeout: Optional[float]) -> AioRpcError:
+    return AioRpcError(
+        code=StatusCode.DEADLINE_EXCEEDED,
+        details=f"grpc-web request to {path} timed out after {timeout}s",
+    )
 
 
 def _body_excerpt(body: bytes, limit: int = _BODY_EXCERPT_LIMIT) -> str:
@@ -332,13 +362,19 @@ def _no_path_prefix_hint() -> str:
     from weaviate.connect.base import GRPC_WEB_MIN_SERVER_VERSION, GRPC_WEB_SERVER_PATH_PREFIX
 
     return (
-        "(no grpc_path_prefix set — under WebAssembly the connect helpers route gRPC to "
+        "(no grpc_path_prefix set — under Pyodide the connect helpers route gRPC to "
         f"the REST endpoint under '{GRPC_WEB_SERVER_PATH_PREFIX}' by themselves, so use "
         "one of them; hand-built ConnectionParams must set "
         f"grpc_path_prefix='{GRPC_WEB_SERVER_PATH_PREFIX}' for Weaviate >= "
         f"{GRPC_WEB_MIN_SERVER_VERSION}, or point grpc_host/grpc_port at a grpc-web "
         "transcoder)"
     )
+
+
+def _cors_hint() -> str:
+    from weaviate.connect.base import GRPC_WEB_CORS_HINT  # lazy: see _no_path_prefix_hint
+
+    return GRPC_WEB_CORS_HINT
 
 
 def _frame_error_to_rpc(
@@ -365,6 +401,8 @@ def _non_grpc_web_error(
 
     Details start with "HTTP <status>", then the URL and a body excerpt.
     """
+    from weaviate.connect.base import GRPC_WEB_MIN_SERVER_VERSION, GRPC_WEB_SERVER_PATH_PREFIX
+
     truncated = isinstance(frame_error, TruncatedFrameError)
     what = "not a grpc-web response"
     if http_status == 200 and frame_error is not None:
@@ -380,16 +418,16 @@ def _non_grpc_web_error(
         # either cause is possible; the channel does not know the server version
         parts.append(
             "The grpc-web endpoint does not exist at that path: either this Weaviate "
-            "server predates 1.38.3, the first release to serve grpc-web natively, or "
-            "the configured grpc-web path prefix is wrong for the proxy in front of it. "
-            "Weaviate's native prefix is '/v1/grpc-web'."
+            f"server predates {GRPC_WEB_MIN_SERVER_VERSION}, the first release to serve "
+            "grpc-web, or the configured grpc-web path prefix is wrong. Weaviate's prefix "
+            f"is '{GRPC_WEB_SERVER_PATH_PREFIX}'."
         )
     elif http_status == 405:
         # a 405 comes only from an existing HTTP route: the prefix points at one
         parts.append(
             "An HTTP route answered instead of the grpc-web endpoint (method not "
-            "allowed): the configured grpc-web path prefix is wrong. Weaviate's native "
-            "prefix is '/v1/grpc-web'."
+            "allowed): the configured grpc-web path prefix is wrong. Weaviate's prefix "
+            f"is '{GRPC_WEB_SERVER_PATH_PREFIX}'."
         )
     elif http_status in (502, 503, 504):
         parts.append("Weaviate or the proxy in front of it is unavailable.")
@@ -402,7 +440,7 @@ def _non_grpc_web_error(
         parts.append(
             "Something other than a grpc-web endpoint answered — typically a proxy "
             "error page or a single-page-app catch-all route serving index.html. Check "
-            "the grpc-web path prefix (Weaviate's native prefix is '/v1/grpc-web')."
+            f"the grpc-web path prefix (Weaviate's prefix is '{GRPC_WEB_SERVER_PATH_PREFIX}')."
         )
     parts.append(f"Response body: {_body_excerpt(body)}")
 
