@@ -667,7 +667,7 @@ class Decisions(str, BaseEnum):
     """The available decisions modules in Weaviate.
 
     A decisions module answers typed questions about the objects a search returns (the `decide` argument of a
-    query, see `weaviate.classes.query.Decision`) and serves the `rerank` argument as a reranker does.
+    query, see `weaviate.classes.query.Decide`) and serves the `rerank` argument as a reranker does.
 
     Attributes:
         TYPESAFEAI: Weaviate module backed by TypeSafe AI's decision models (Jev).
@@ -679,7 +679,7 @@ class Decisions(str, BaseEnum):
 
 
 class DecisionsOrder(str, BaseEnum):
-    """How a decisions module orders the results of a `rerank`.
+    """How a decisions module orders the results of a `rerank`, unless the query's `Decide` says otherwise.
 
     Attributes:
         SEARCH: Keep the order of the search; the probability only decides which results are dropped.
@@ -1700,8 +1700,8 @@ class _Reranker:
 class _Decisions:
     """Use this factory class to create the correct object for the `decisions_config` argument in the `collections.create()` method.
 
-    A decisions module answers the `decide` questions of a query for every object returned, and serves the `rerank`
-    argument as a reranker does. A collection has at most one decisions module next to at most one reranker.
+    A decisions module answers the `decide` questions of a query for every object returned, and reranks by a
+    condition with `rerank=Decide(...)`. A collection has at most one decisions module next to at most one reranker.
     """
 
     @staticmethod
@@ -1721,8 +1721,8 @@ class _Decisions:
             model: The TypeSafe AI model, for example `jev-latest`.
             base_url: The base URL to send the requests to.
             max_documents: The most objects one query may have judged, at most 1000.
-            min_probability: With `rerank`, drop the results whose probability is below this value.
-            order: With `rerank`, keep the search order or sort by probability.
+            min_probability: With `rerank`, drop the results whose probability is below this value. A query's `Decide` overrides it.
+            order: With `rerank`, keep the search order or sort by probability. A query's `Decide` overrides it.
         """
         return _DecisionsTypeSafeAIConfig(
             model=model,
@@ -1752,9 +1752,9 @@ class _Decisions:
             model: The OpenAI decision model, for example `gpt-6-luna`.
             base_url: The base URL to send the requests to.
             max_documents: The most objects one query may have judged, at most 1000. Every object is one request to the API.
-            question: With `rerank`, whether the model judges the relevance of the object to the query or the query as a statement about the object.
-            min_probability: With `rerank`, drop the results whose probability is below this value.
-            order: With `rerank`, keep the search order or sort by probability.
+            question: With `rerank=Rerank(...)`, whether the model judges the relevance of the object to the query or the query as a statement about the object.
+            min_probability: With `rerank`, drop the results whose probability is below this value. A query's `Decide` overrides it.
+            order: With `rerank`, keep the search order or sort by probability. A query's `Decide` overrides it.
         """
         return _DecisionsOpenAIConfig(
             model=model,

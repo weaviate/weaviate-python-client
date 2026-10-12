@@ -271,6 +271,32 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+class DecideOrder(str, Enum):
+    """The order of the results a decision model reranks.
+
+    Attributes:
+        SEARCH: Keep the order of the search; the probability only decides which results are dropped.
+        PROBABILITY: Sort by the probability, highest first.
+    """
+
+    SEARCH = "search"
+    PROBABILITY = "probability"
+
+
+class Decide(Rerank):
+    """Rerank by a decision model.
+
+    The collection's decisions module answers `query` as a yes/no question about every candidate, the probability
+    is the rerank score, and the candidates below `min_probability` are dropped. Pass it as the `rerank` argument
+    of a query. The collection needs a decisions module (`decisions_config`); a reranker it may also have keeps
+    serving `rerank=Rerank(...)`. An argument left `None` takes the class setting of the module. The page can hold
+    fewer objects than `limit`: the decision model only removes candidates.
+    """
+
+    min_probability: Optional[float] = Field(default=None, ge=0, le=1)
+    order: Optional[DecideOrder] = Field(default=None)
+
+
 class DecideQuestion(_WeaviateInput):
     """A question for the collection's decisions module about every object a query returns.
 
@@ -322,7 +348,8 @@ class Decision:
 
     The collection's decisions module (`decisions_config`) answers every question for every object the query
     returns. Each question is about one text property of the objects and has a name that identifies its answer.
-    `decide` never drops or reorders an object.
+    `decide` never drops or reorders an object; to filter by a condition, pass `Decide(...)` as the `rerank`
+    argument instead.
     """
 
     @staticmethod
