@@ -56,7 +56,7 @@ from weaviate.collections.classes.types import GeoCoordinate, TReferences, _Phon
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect.v4 import ConnectionType
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2, generative_pb2, properties_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR
 from weaviate.util import (
@@ -86,16 +86,12 @@ class _BaseExecutor(Generic[ConnectionType]):
         self._references = references
         self._validate_arguments = validate_arguments
 
-        self.__uses_125_api = connection._weaviate_version.is_at_least(1, 25, 0)
-        self.__uses_127_api = connection._weaviate_version.is_at_least(1, 27, 0)
         self._query = _QueryGRPC(
             connection._weaviate_version,
             self._name,
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
-            uses_125_api=self.__uses_125_api,
-            uses_127_api=self.__uses_127_api,
         )
 
     def __retrieve_timestamp(
@@ -171,12 +167,6 @@ class _BaseExecutor(Generic[ConnectionType]):
             else:
                 vecs[vec.name] = _Unpack.single(vec.vector_bytes)
         return vecs
-
-    def __extract_generated_from_metadata(
-        self,
-        add_props: search_get_pb2.MetadataResult,
-    ) -> Optional[str]:
-        return add_props.generative if add_props.generative_present else None
 
     def __extract_generated_from_generative(
         self, generative: generative_pb2.GenerativeResult
@@ -389,11 +379,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             ),
             uuid=self.__extract_id_for_object(meta),
             vector=(self.__extract_vector_for_object(meta) if options.include_vector else {}),
-            generated=(
-                self.__extract_generated_from_generative(gen)
-                if self.__uses_127_api
-                else self.__extract_generated_from_metadata(meta)
-            ),
+            generated=self.__extract_generated_from_generative(gen),
             generative=self.__extract_generative_single_from_generative(gen),
         )
 
@@ -648,12 +634,6 @@ class _BaseExecutor(Generic[ConnectionType]):
             ret_md = cast(MetadataQuery, return_metadata)
         else:
             ret_md = MetadataQuery(**{str(prop): True for prop in return_metadata})
-
-        if ret_md is not None and ret_md.query_profile:
-            if self._connection._weaviate_version.is_lower_than(1, 36, 9):
-                raise WeaviateUnsupportedFeatureError(
-                    "Query profiling", str(self._connection._weaviate_version), "1.36.9"
-                )
 
         return _MetadataQuery.from_public(ret_md, include_vector)
 

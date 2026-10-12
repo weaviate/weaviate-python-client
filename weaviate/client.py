@@ -34,7 +34,7 @@ TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
     """The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
-    WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
+    WARNING: This client is only compatible with Weaviate v1.36.9 and higher!
 
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the
@@ -100,7 +100,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
 class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
     """The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
-    WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
+    WARNING: This client is only compatible with Weaviate v1.36.9 and higher!
 
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the

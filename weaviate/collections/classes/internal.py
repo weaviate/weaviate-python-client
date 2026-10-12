@@ -55,11 +55,10 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
-    WeaviateUnsupportedFeatureError,
 )
 from weaviate.proto.v1 import generative_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
-from weaviate.util import _ServerVersion, _to_beacons
+from weaviate.util import _to_beacons
 
 
 @dataclass
@@ -334,96 +333,74 @@ class _Generative:
         self.grouped_properties = grouped_properties
         self.generative_provider = generative_provider
 
-    def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
-        if server_version.is_lower_than(1, 27, 14):
-            if self.generative_provider is not None:
-                raise WeaviateUnsupportedFeatureError("Dynamic RAG", str(server_version), "1.27.14")
-
-            if isinstance(self.single, _SinglePrompt):
-                single_prompt: Optional[str] = self.single.prompt
-            else:
-                single_prompt = self.single
-
-            if isinstance(self.grouped, _GroupedTask):
-                grouped_task: Optional[str] = self.grouped.prompt
-                grouped_properties = self.grouped.non_blob_properties
-            else:
-                grouped_task = self.grouped
-                grouped_properties = self.grouped_properties
-
-            return generative_pb2.GenerativeSearch(
-                single_response_prompt=single_prompt,
-                grouped_response_task=grouped_task,
-                grouped_properties=grouped_properties,
-            )
-        else:
-            single: Optional[generative_pb2.GenerativeSearch.Single] = None
-            if isinstance(self.single, _SinglePrompt):
-                single = generative_pb2.GenerativeSearch.Single(
-                    prompt=self.single.prompt,
-                    queries=(
-                        [
-                            self.generative_provider._to_grpc(
-                                _GenerativeConfigRuntimeOptions(
-                                    self.single.metadata,
-                                    self.single.images,
-                                    self.single.image_properties,
-                                )
+    def to_grpc(self) -> generative_pb2.GenerativeSearch:
+        single: Optional[generative_pb2.GenerativeSearch.Single] = None
+        if isinstance(self.single, _SinglePrompt):
+            single = generative_pb2.GenerativeSearch.Single(
+                prompt=self.single.prompt,
+                queries=(
+                    [
+                        self.generative_provider._to_grpc(
+                            _GenerativeConfigRuntimeOptions(
+                                self.single.metadata,
+                                self.single.images,
+                                self.single.image_properties,
                             )
-                        ]
-                        if self.generative_provider is not None
-                        else None
-                    ),
-                    debug=self.single.debug,
-                )
-            if isinstance(self.single, str):
-                single = generative_pb2.GenerativeSearch.Single(
-                    prompt=self.single,
-                    queries=(
-                        [self.generative_provider._to_grpc(_GenerativeConfigRuntimeOptions())]
-                        if self.generative_provider is not None
-                        else None
-                    ),
-                )
-
-            grouped: Optional[generative_pb2.GenerativeSearch.Grouped] = None
-            if isinstance(self.grouped, _GroupedTask):
-                grouped = generative_pb2.GenerativeSearch.Grouped(
-                    task=self.grouped.prompt,
-                    properties=_to_text_array(self.grouped.non_blob_properties),
-                    queries=(
-                        [
-                            self.generative_provider._to_grpc(
-                                _GenerativeConfigRuntimeOptions(
-                                    self.grouped.metadata,
-                                    self.grouped.images,
-                                    self.grouped.image_properties,
-                                )
-                            )
-                        ]
-                        if self.generative_provider is not None
-                        else None
-                    ),
-                )
-            if isinstance(self.grouped, str):
-                grouped = generative_pb2.GenerativeSearch.Grouped(
-                    task=self.grouped,
-                    properties=(
-                        _to_text_array(self.grouped_properties)
-                        if self.grouped_properties is not None
-                        else None
-                    ),
-                    queries=(
-                        [self.generative_provider._to_grpc(_GenerativeConfigRuntimeOptions())]
-                        if self.generative_provider is not None
-                        else None
-                    ),
-                )
-
-            return generative_pb2.GenerativeSearch(
-                single=single,
-                grouped=grouped,
+                        )
+                    ]
+                    if self.generative_provider is not None
+                    else None
+                ),
+                debug=self.single.debug,
             )
+        if isinstance(self.single, str):
+            single = generative_pb2.GenerativeSearch.Single(
+                prompt=self.single,
+                queries=(
+                    [self.generative_provider._to_grpc(_GenerativeConfigRuntimeOptions())]
+                    if self.generative_provider is not None
+                    else None
+                ),
+            )
+
+        grouped: Optional[generative_pb2.GenerativeSearch.Grouped] = None
+        if isinstance(self.grouped, _GroupedTask):
+            grouped = generative_pb2.GenerativeSearch.Grouped(
+                task=self.grouped.prompt,
+                properties=_to_text_array(self.grouped.non_blob_properties),
+                queries=(
+                    [
+                        self.generative_provider._to_grpc(
+                            _GenerativeConfigRuntimeOptions(
+                                self.grouped.metadata,
+                                self.grouped.images,
+                                self.grouped.image_properties,
+                            )
+                        )
+                    ]
+                    if self.generative_provider is not None
+                    else None
+                ),
+            )
+        if isinstance(self.grouped, str):
+            grouped = generative_pb2.GenerativeSearch.Grouped(
+                task=self.grouped,
+                properties=(
+                    _to_text_array(self.grouped_properties)
+                    if self.grouped_properties is not None
+                    else None
+                ),
+                queries=(
+                    [self.generative_provider._to_grpc(_GenerativeConfigRuntimeOptions())]
+                    if self.generative_provider is not None
+                    else None
+                ),
+            )
+
+        return generative_pb2.GenerativeSearch(
+            single=single,
+            grouped=grouped,
+        )
 
 
 class _GroupBy:

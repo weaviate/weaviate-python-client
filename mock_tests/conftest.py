@@ -55,7 +55,7 @@ def ready_mock(httpserver: HTTPServer):
 
 @pytest.fixture(scope="function")
 def weaviate_mock(ready_mock: HTTPServer):
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.36"})
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.36.23"})
     ready_mock.expect_request("/v1/nodes").respond_with_json(
         {"nodes": [{"gitHash": "ABC", "status": "HEALTHY"}]}
     )
@@ -65,7 +65,7 @@ def weaviate_mock(ready_mock: HTTPServer):
 
 @pytest.fixture(scope="function")
 def weaviate_no_auth_mock(weaviate_mock: HTTPServer):
-    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.36"})
+    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.36.23"})
     weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
         Response(json.dumps({}), status=404)
     )

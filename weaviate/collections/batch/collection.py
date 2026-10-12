@@ -26,7 +26,7 @@ from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.types import Properties
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
 from weaviate.util import docstring_deprecated
 
@@ -201,9 +201,6 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         name: str,
         tenant: Optional[str],
         config: "_ConfigCollection",
-        batch_client: Union[
-            Type[_BatchCollection[Properties]], Type[_BatchCollectionSync[Properties]]
-        ],
     ) -> None:
         super().__init__(connection, consistency_level)
         self.__name = name
@@ -212,7 +209,6 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self._vectorizer_batching: Optional[bool] = None
         self.__executor = ThreadPoolExecutor()
         # define one executor per client with it shared between all child batch contexts
-        self.__batch_client = batch_client
 
     def __create_batch_and_reset(
         self,
@@ -312,10 +308,6 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             concurrency: The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate. If not provided, the default value is 1.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
-            raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
-            )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
             # if concurrency is not None
@@ -372,10 +364,6 @@ class _BatchCollectionWrapperAsync(Generic[Properties], _BatchWrapperAsync):
             concurrency: The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate. If not provided, the default value is 1.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
-            raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
-            )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
             # if concurrency is not None

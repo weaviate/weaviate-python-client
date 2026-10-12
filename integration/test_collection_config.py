@@ -64,7 +64,7 @@ def _expected_async_enabled(version: _ServerVersion, factor: int) -> bool:
     """
     if version.is_at_least(1, 38, 9):
         return factor > 1
-    return version.is_at_least(1, 26, 0)
+    return True
 
 
 @pytest.fixture(scope="module")
@@ -184,10 +184,7 @@ def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
-        assert config.vector_index_config.max_connections == 64
-    else:
-        assert config.vector_index_config.max_connections == 32
+    assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
@@ -241,10 +238,7 @@ def test_collection_config_defaults(collection_factory: CollectionFactory) -> No
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
-        assert config.vector_index_config.max_connections == 64
-    else:
-        assert config.vector_index_config.max_connections == 32
+    assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
@@ -360,31 +354,18 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
     assert config.multi_tenancy_config.enabled is True
-    if collection._connection._weaviate_version.is_at_least(1, 25, 2):
-        assert config.multi_tenancy_config.auto_tenant_activation is True
-    else:
-        assert config.multi_tenancy_config.auto_tenant_activation is False
-    if collection._connection._weaviate_version.is_at_least(1, 25, 1):
-        assert config.multi_tenancy_config.auto_tenant_creation is True
-    else:
-        assert config.multi_tenancy_config.auto_tenant_creation is False
+    assert config.multi_tenancy_config.auto_tenant_activation is True
+    assert config.multi_tenancy_config.auto_tenant_creation is True
 
     assert config.replication_config.factor == 1
     assert config.replication_config.async_enabled is _expected_async_enabled(
         collection._connection._weaviate_version, factor=1
     )
 
-    if collection._connection._weaviate_version.is_at_least(1, 24, 25):
-        assert (
-            config.replication_config.deletion_strategy
-            == wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT
-        )
-    else:
-        # default value if not present in schema
-        assert (
-            config.replication_config.deletion_strategy
-            == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
-        )
+    assert (
+        config.replication_config.deletion_strategy
+        == wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT
+    )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -405,13 +386,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.training_limit == 1000001
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 100000
-    if collection._connection._weaviate_version.is_at_least(1, 27, 0):
-        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
-    else:
-        # default value if not present in schema
-        assert (
-            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
-        )
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
@@ -438,12 +413,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.multi_tenancy_config.auto_tenant_creation is False
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
 
-    if collection._connection._weaviate_version.is_lower_than(1, 34, 0):
-        assert (
-            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
-        )
-    else:
-        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
 
     collection.config.update(
         description="Test",
@@ -478,12 +448,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     config = collection.config.get()
 
-    if collection._connection._weaviate_version.is_at_least(
-        1, 25, 2
-    ) or collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        assert config.description == "Test"
-    else:
-        assert config.description is None
+    assert config.description == "Test"
 
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.25
@@ -493,21 +458,11 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     assert config.replication_config.factor == 2
 
-    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
-        assert config.replication_config.async_enabled is True
-    else:
-        assert config.replication_config.async_enabled is False
-    if collection._connection._weaviate_version.is_at_least(1, 24, 25):
-        assert (
-            config.replication_config.deletion_strategy
-            == wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT
-        )
-    else:
-        # default value if not present in schema
-        assert (
-            config.replication_config.deletion_strategy
-            == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
-        )
+    assert config.replication_config.async_enabled is True
+    assert (
+        config.replication_config.deletion_strategy
+        == wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT
+    )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -519,10 +474,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
-        assert config.vector_index_config.max_connections == 64
-    else:
-        assert config.vector_index_config.max_connections == 32
+    assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer.bit_compression is False
     assert config.vector_index_config.quantizer.centroids == 128
     assert config.vector_index_config.quantizer.encoder.type_ == PQEncoderType.TILE
@@ -532,27 +484,15 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
-    if collection._connection._weaviate_version.is_at_least(1, 27, 0):
-        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
-    else:
-        # default value if not present in schema
-        assert (
-            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
-        )
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
     assert config.multi_tenancy_config.enabled is True
 
-    if collection._connection._weaviate_version.is_at_least(1, 25, 2):
-        assert config.multi_tenancy_config.auto_tenant_activation is True
-    else:
-        assert config.multi_tenancy_config.auto_tenant_activation is False
+    assert config.multi_tenancy_config.auto_tenant_activation is True
 
-    if collection._connection._weaviate_version.is_at_least(1, 25, 1):
-        assert config.multi_tenancy_config.auto_tenant_creation is True
-    else:
-        assert config.multi_tenancy_config.auto_tenant_creation is False
+    assert config.multi_tenancy_config.auto_tenant_creation is True
 
     collection.config.update(
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
@@ -565,12 +505,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     )
     config = collection.config.get()
 
-    if collection._connection._weaviate_version.is_at_least(
-        1, 25, 2
-    ) or collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        assert config.description == "Test"
-    else:
-        assert config.description is None
+    assert config.description == "Test"
 
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.25
@@ -584,10 +519,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
     )
 
-    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
-        assert config.replication_config.async_enabled is True
-    else:
-        assert config.replication_config.async_enabled is False
+    assert config.replication_config.async_enabled is True
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
@@ -598,10 +530,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
-        assert config.vector_index_config.max_connections == 64
-    else:
-        assert config.vector_index_config.max_connections == 32
+    assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
@@ -626,10 +555,6 @@ def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
 
 
 def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("SQ+HNSW is not supported in Weaviate versions lower than 1.26.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -645,10 +570,6 @@ def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
 
 
 def test_hnsw_with_rq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 32, 0):
-        pytest.skip("RQ+HNSW is not supported in Weaviate versions lower than 1.32.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -806,10 +727,6 @@ def test_update_flat_bq(collection_factory: CollectionFactory) -> None:
 
 
 def test_update_flat_rq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
-        pytest.skip("RQ in flat index is not supported in Weaviate versions lower than 1.34.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
@@ -947,10 +864,6 @@ def test_config_vector_index_flat_and_quantizer_bq(collection_factory: Collectio
 
 
 def test_config_vector_index_flat_and_quantizer_rq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
-        pytest.skip("RQ in flat index is not supported in Weaviate versions lower than 1.34.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
@@ -968,9 +881,6 @@ def test_config_vector_index_flat_and_quantizer_rq(collection_factory: Collectio
 
 
 def test_config_vector_index_hnsw_and_quantizer_rq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 32, 0):
-        pytest.skip("RQ in HNSW index is not supported in Weaviate versions lower than 1.32.0")
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=234,
@@ -1237,20 +1147,13 @@ def test_config_skip_vector_index(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
-        assert config.vector_index_config.max_connections == 64
-    else:
-        assert config.vector_index_config.max_connections == 32
+    assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
 
 def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy", ports=(8090, 50061))
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
-        pytest.skip("Dynamic index is not supported in Weaviate versions lower than 1.25.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.dynamic(
             distance_metric=VectorDistances.COSINE,
@@ -1315,10 +1218,6 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
 
 
 def test_dynamic_collection_rq(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy", ports=(8090, 50061))
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
-        pytest.skip("Dynamic index with RQ is not supported in Weaviate versions lower than 1.34.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.dynamic(
             distance_metric=VectorDistances.COSINE,
@@ -1444,14 +1343,13 @@ def test_create_custom_generative(collection_factory: CollectionFactory) -> None
     assert config.generative_config.generative == "generative-anyscale"
     assert config.generative_config.model == {"temperature": 0.5}
 
-    if collection._connection._weaviate_version.is_at_least(1, 25, 24):
-        collection.config.update(
-            generative_config=Reconfigure.Generative.custom("generative-dummy"),
-        )
-        config = collection.config.get()
-        assert config.generative_config is not None
-        assert isinstance(config.generative_config.generative, str)
-        assert config.generative_config.generative == "generative-dummy"
+    collection.config.update(
+        generative_config=Reconfigure.Generative.custom("generative-dummy"),
+    )
+    config = collection.config.get()
+    assert config.generative_config is not None
+    assert isinstance(config.generative_config.generative, str)
+    assert config.generative_config.generative == "generative-dummy"
 
 
 def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
@@ -1473,14 +1371,13 @@ def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
     assert config.reranker_config.reranker == "reranker-cohere"
     assert config.reranker_config.model == {"model": "rerank-english-v2.0"}
 
-    if collection._connection._weaviate_version.is_at_least(1, 25, 24):
-        collection.config.update(
-            reranker_config=Reconfigure.Reranker.custom("reranker-dummy"),
-        )
-        config = collection.config.get()
-        assert config.reranker_config is not None
-        assert isinstance(config.reranker_config.reranker, str)
-        assert config.reranker_config.reranker == "reranker-dummy"
+    collection.config.update(
+        reranker_config=Reconfigure.Reranker.custom("reranker-dummy"),
+    )
+    config = collection.config.get()
+    assert config.reranker_config is not None
+    assert isinstance(config.reranker_config.reranker, str)
+    assert config.reranker_config.reranker == "reranker-dummy"
 
 
 def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None:
@@ -1639,10 +1536,6 @@ def test_vectors_export_and_import_dict(
 
 @pytest.mark.parametrize("index_range_filters", [True, False])
 def test_range_filters(collection_factory: CollectionFactory, index_range_filters: bool) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("range filters are not supported in Weaviate versions lower than 1.26.0")
-
     collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.INT, index_range_filters=index_range_filters)
@@ -1662,10 +1555,6 @@ def test_range_filters(collection_factory: CollectionFactory, index_range_filter
 def test_replication_config(
     collection_factory: CollectionFactory, deletion_strategy: wvc.config.ReplicationDeletionStrategy
 ) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 25):
-        pytest.skip("deletion strategy is supported in Weaviate versions lower than 1.24, 25")
-
     collection = collection_factory(
         replication_config=wvc.config.Configure.replication(deletion_strategy=deletion_strategy),
     )
@@ -1684,10 +1573,6 @@ def test_replication_config_without_async_config(collection_factory: CollectionF
 
 
 def test_replication_config_with_async_config(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
-        pytest.skip("async replication config requires Weaviate >= 1.34.18")
-
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
@@ -1721,10 +1606,6 @@ def test_replication_config_async_config_preserved_when_disabling_async_replicat
     `config.update()` is a read-modify-write PUT of the whole collection, so dropping `asyncConfig`
     from the merged payload would silently reset the tuning to server defaults.
     """
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
-        pytest.skip("async replication config requires Weaviate >= 1.34.18")
-
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
@@ -1756,10 +1637,6 @@ def test_replication_config_async_config_preserved_when_disabling_async_replicat
 
 
 def test_replication_config_remove_async_config(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
-        pytest.skip("async replication config requires Weaviate >= 1.34.18")
-
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
@@ -1790,10 +1667,6 @@ def test_replication_config_remove_async_config(collection_factory: CollectionFa
 def test_replication_config_unset_single_async_field(
     collection_factory: CollectionFactory,
 ) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
-        pytest.skip("async replication config requires Weaviate >= 1.36.0")
-
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
@@ -1833,10 +1706,6 @@ def test_replication_config_add_async_config_to_existing_collection(
     This covers the case where the existing schema has no asyncConfig key
     and merge_with_existing must handle the missing field gracefully.
     """
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
-        pytest.skip("async replication config requires Weaviate >= 1.34.18")
-
     # Create without async_config
     collection = collection_factory(
         replication_config=Configure.replication(factor=1, async_enabled=True),
@@ -1869,11 +1738,6 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
         ],
     )
 
-    if collection._connection._weaviate_version.is_lower_than(1, 27, 0):
-        pytest.skip(
-            "Property descriptions are not supported in currently released Weaviate versions lower than 1.27.0"
-        )
-
     config = collection.config.get()
     assert config.properties[0].description is None
     assert config.properties[1].description is None
@@ -1886,33 +1750,17 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
             }
         )
 
-    def is_supported():
-        ver = collection._connection._weaviate_version
-        return (
-            (ver.is_at_least(1, 27, 15) and ver.is_lower_than(1, 28, 0))
-            or (ver.is_at_least(1, 28, 9) and ver.is_lower_than(1, 29, 0))
-            or (ver.is_at_least(1, 29, 1))
-        )
+    update()
 
-    if is_supported():
-        update()
-
-        config = collection.config.get()
-        descriptions = [p.description for p in config.properties]
-        assert "Age of the person" in descriptions
-        assert "Name of the person" in descriptions
-    else:
-        with pytest.raises(UnexpectedStatusCodeError):
-            update()
+    config = collection.config.get()
+    descriptions = [p.description for p in config.properties]
+    assert "Age of the person" in descriptions
+    assert "Name of the person" in descriptions
 
 
 def test_config_multi_vector_enabled(
     collection_factory: CollectionFactory,
 ) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
-    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
-        pytest.skip("Multi vector is not supported in Weaviate versions lower than 1.29.0")
-
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -1927,10 +1775,7 @@ def test_config_multi_vector_enabled(
     assert config.vector_config is not None
     conf = config.vector_config["vec"].vector_index_config
     assert isinstance(conf, _VectorIndexConfigHNSW)
-    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
-        assert conf.multi_vector is None
-    else:
-        assert conf.multi_vector is not None
+    assert conf.multi_vector is not None
 
 
 def test_config_multi_vector_disabled(
@@ -1956,10 +1801,6 @@ def test_config_multi_vector_disabled(
 def test_config_muvera_enabled(
     collection_factory: CollectionFactory,
 ) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
-    if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):
-        pytest.skip("Muvera is not supported in Weaviate versions lower than 1.31.0")
-
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -1975,20 +1816,13 @@ def test_config_muvera_enabled(
     assert config.vector_config is not None
     conf = config.vector_config["vec"].vector_index_config
     assert isinstance(conf, _VectorIndexConfigHNSW)
-    if collection._connection._weaviate_version.is_lower_than(1, 31, 0):
-        assert conf.multi_vector is None
-    else:
-        assert conf.multi_vector is not None
-        assert conf.multi_vector.encoding is not None
+    assert conf.multi_vector is not None
+    assert conf.multi_vector.encoding is not None
 
 
 def test_config_muvera_disabled(
     collection_factory: CollectionFactory,
 ) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
-    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
-        pytest.skip("Multivector is not supported in Weaviate versions lower than 1.29.0")
-
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -2019,10 +1853,6 @@ def test_config_add_vector(
     collection_factory: CollectionFactory,
     existing_vectors: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None],
 ) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):
-        pytest.skip("Adding vectors is not supported in Weaviate versions lower than 1.31.0")
-
     collection = collection_factory(
         vectorizer_config=existing_vectors,
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -2105,10 +1935,6 @@ def test_collection_config_create_with_deprecated_syntax(
 
 
 def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 32, 4):
-        pytest.skip("uncompressed is not supported in Weaviate versions lower than 1.32.4")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -2124,10 +1950,6 @@ def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None
 
 
 def test_object_ttl_creation(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
-        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
-
     collection = collection_factory(
         object_ttl=Configure.ObjectTTL.delete_by_creation_time(
             time_to_live=datetime.timedelta(days=30),
@@ -2143,10 +1965,6 @@ def test_object_ttl_creation(collection_factory: CollectionFactory) -> None:
 
 
 def test_object_ttl_update_time(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
-        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
-
     collection = collection_factory(
         object_ttl=Configure.ObjectTTL.delete_by_update_time(
             time_to_live=datetime.timedelta(days=30),
@@ -2163,10 +1981,6 @@ def test_object_ttl_update_time(collection_factory: CollectionFactory) -> None:
 
 
 def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
-        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
-
     collection = collection_factory(
         properties=[wvc.config.Property(name="customDate", data_type=DataType.DATE)],
         object_ttl=Configure.ObjectTTL.delete_by_date_property(
@@ -2183,10 +1997,6 @@ def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
 
 
 def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
-        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="customDate", data_type=DataType.DATE),
@@ -2240,10 +2050,6 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
 
 
 def test_object_ttl_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
-        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
-
     collection = collection_factory(
         object_ttl=Configure.ObjectTTL.delete_by_creation_time(
             time_to_live=datetime.timedelta(seconds=60),
@@ -2269,10 +2075,6 @@ def test_delete_property_index(
     index_name: IndexName, collection_factory: CollectionFactory
 ) -> None:
     """Test delete index works for each index type."""
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
-        pytest.skip("delete property index not supported before 1.36.0")
-
     if index_name == "filterable" or index_name == "searchable":
         _data_type = DataType.TEXT
         _index_range_filters = False

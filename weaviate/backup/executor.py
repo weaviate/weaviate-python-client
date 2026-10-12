@@ -137,12 +137,6 @@ class _BackupExecutor(Generic[ConnectionType]):
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCreate dynamic backup location",
-                    str(self._connection._weaviate_version),
-                    "1.27.2",
-                )
             if "config" not in payload:
                 payload["config"] = {}
             payload["config"].update(backup_location._to_dict())
@@ -242,13 +236,6 @@ class _BackupExecutor(Generic[ConnectionType]):
         path = f"/backups/{backend.value}/{backup_id}"
         params: Dict[str, str] = {}
         if backup_location is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCreateStatus dynamic backup location",
-                    str(self._connection._weaviate_version),
-                    "1.27.2",
-                )
-
             params.update(backup_location._to_dict())
 
         def resp(res: Response) -> BackupStatusReturn:
@@ -324,13 +311,6 @@ class _BackupExecutor(Generic[ConnectionType]):
             configPayload = config._to_dict()
 
         if backup_location is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigRestore dynamic backup location",
-                    str(self._connection._weaviate_version),
-                    "1.27.2",
-                )
-
             if "config" not in payload:
                 payload["config"] = {}
             configPayload.update(backup_location._to_dict())
@@ -441,12 +421,6 @@ class _BackupExecutor(Generic[ConnectionType]):
 
         params: Dict[str, str] = {}
         if backup_location is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigRestore status dynamic backup location",
-                    str(self._connection._weaviate_version),
-                    "1.27.2",
-                )
             params.update(backup_location._to_dict())
 
         def resp(res: Response) -> BackupStatusReturn:
@@ -493,12 +467,6 @@ class _BackupExecutor(Generic[ConnectionType]):
         params: Dict[str, str] = {}
 
         if backup_location is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
-                raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCancel dynamic backup location",
-                    str(self._connection._weaviate_version),
-                    "1.27.2",
-                )
             params.update(backup_location._to_dict())
 
         def resp(res: Response) -> bool:

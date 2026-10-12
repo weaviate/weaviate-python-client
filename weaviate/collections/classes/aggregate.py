@@ -141,9 +141,6 @@ class _MetricsBase(BaseModel):
     property_name: str
     count: bool
 
-    def to_gql(self) -> str:
-        raise NotImplementedError
-
     def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
         raise NotImplementedError
 
@@ -152,23 +149,6 @@ class _MetricsText(_MetricsBase):
     top_occurrences_count: bool
     top_occurrences_value: bool
     limit: Optional[int]
-
-    def to_gql(self) -> str:
-        limit = f"(limit: {self.limit})" if self.limit is not None else ""
-        body = " ".join(
-            [
-                "count" if self.count else "",
-                (
-                    "topOccurrences" + limit + " {"
-                    if self.top_occurrences_count or self.top_occurrences_value
-                    else ""
-                ),
-                "occurs" if self.top_occurrences_count else "",
-                "value" if self.top_occurrences_value else "",
-                "}" if self.top_occurrences_count or self.top_occurrences_value else "",
-            ]
-        )
-        return f"{self.property_name} {{ {body} }}"
 
     def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
         return aggregate_pb2.AggregateRequest.Aggregation(
@@ -188,20 +168,6 @@ class _MetricsNum(_MetricsBase):
     minimum: bool
     mode: bool
     sum_: bool
-
-    def to_gql(self) -> str:
-        body = " ".join(
-            [
-                "count" if self.count else "",
-                "maximum" if self.maximum else "",
-                "mean" if self.mean else "",
-                "median" if self.median else "",
-                "minimum" if self.minimum else "",
-                "mode" if self.mode else "",
-                "sum" if self.sum_ else "",
-            ]
-        )
-        return f"{self.property_name} {{ {body} }}"
 
 
 class _MetricsInteger(_MetricsNum):
@@ -242,18 +208,6 @@ class _MetricsBoolean(_MetricsBase):
     total_false: bool
     total_true: bool
 
-    def to_gql(self) -> str:
-        body = " ".join(
-            [
-                "count" if self.count else "",
-                "percentageFalse" if self.percentage_false else "",
-                "percentageTrue" if self.percentage_true else "",
-                "totalFalse" if self.total_false else "",
-                "totalTrue" if self.total_true else "",
-            ]
-        )
-        return f"{self.property_name} {{ {body} }}"
-
     def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
         return aggregate_pb2.AggregateRequest.Aggregation(
             property=self.property_name,
@@ -273,18 +227,6 @@ class _MetricsDate(_MetricsBase):
     minimum: bool
     mode: bool
 
-    def to_gql(self) -> str:
-        body = " ".join(
-            [
-                "count" if self.count else "",
-                "maximum" if self.maximum else "",
-                "median" if self.median else "",
-                "minimum" if self.minimum else "",
-                "mode" if self.mode else "",
-            ]
-        )
-        return f"{self.property_name} {{ {body} }}"
-
     def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
         return aggregate_pb2.AggregateRequest.Aggregation(
             property=self.property_name,
@@ -301,14 +243,6 @@ class _MetricsDate(_MetricsBase):
 class _MetricsReference(BaseModel):
     property_name: str
     pointing_to: bool
-
-    def to_gql(self) -> str:
-        body = " ".join(
-            [
-                "pointingTo" if self.pointing_to else "",
-            ]
-        )
-        return f"{self.property_name} {{ {body} }}"
 
     def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
         return aggregate_pb2.AggregateRequest.Aggregation(

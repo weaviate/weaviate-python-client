@@ -27,7 +27,7 @@ from weaviate.collections.classes.internal import ReferenceInput, ReferenceInput
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateUnsupportedFeatureError
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
 from weaviate.util import docstring_deprecated
 
@@ -287,10 +287,6 @@ class _BatchClientWrapper(_BatchWrapper):
             concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
             consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
-            raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
-            )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
             # if concurrency is not None
@@ -346,10 +342,6 @@ class _BatchClientWrapperAsync(_BatchWrapperAsync):
             concurrency: The number of concurrent streams to use when sending batches. If not provided, the default will be one.
             consistency_level: The consistency level to be used when inserting data. If not provided, the default value is `None`.
         """
-        if self._connection._weaviate_version.is_lower_than(1, 36, 0):
-            raise WeaviateUnsupportedFeatureError(
-                "Server-side batching", str(self._connection._weaviate_version), "1.36.0"
-            )
         self._batch_mode = _ServerSideBatching(
             # concurrency=concurrency
             # if concurrency is not None

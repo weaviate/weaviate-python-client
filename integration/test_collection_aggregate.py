@@ -28,8 +28,6 @@ from weaviate.collections.classes.grpc import Move
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
-    WeaviateQueryError,
-    WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import file_encoder_b64
 
@@ -239,26 +237,10 @@ def test_over_all_with_filters_ref(collection_factory: CollectionFactory) -> Non
         filters=Filter.by_ref("ref").by_property("text").equal("one"),
         return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
-        with pytest.raises(WeaviateInvalidInputError):
-            query()
-    else:
-        res = query()
-        assert isinstance(res.properties["text"], AggregateText)
-        assert res.properties["text"].count == 1
-        assert res.properties["text"].top_occurrences[0].value == "two"
-
-
-def test_wrong_aggregation(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
-    if collection._connection._weaviate_version.is_at_least(1, 29, 0):
-        pytest.skip("GQL is only used for versions 1.28.4 and lower")
-    with pytest.raises(WeaviateQueryError) as e:
-        collection.aggregate.over_all(total_count=False)
-    assert (
-        e.value.message
-        == "The query that you sent had no body so GraphQL was unable to parse it. You must provide at least one option to the aggregation method in order to build a valid query."
-    )
+    res = query()
+    assert isinstance(res.properties["text"], AggregateText)
+    assert res.properties["text"].count == 1
+    assert res.properties["text"].top_occurrences[0].value == "two"
 
 
 @pytest.mark.parametrize(
@@ -405,11 +387,6 @@ def test_hybrid_aggregation_group_by(
         total_count=True,
         object_limit=2,  # has no effect due to alpha=0
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            querier()
-        return
-
     res = querier()
     assert res.groups[0].grouped_by.prop == "text"
     assert res.groups[0].grouped_by.value == "some text"
@@ -443,11 +420,6 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
         object_limit=2,  # has no effect due to alpha=0
         target_vector="all",
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            querier()
-        return
-
     res = querier()
     assert res.groups[0].grouped_by.prop == "text"
     assert res.groups[0].grouped_by.value == "some text"
@@ -693,19 +665,13 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     groups = res.groups
     assert len(groups) == 2
     assert groups[0].grouped_by.prop == "int"
-    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
-        assert groups[0].grouped_by.value == "1" or groups[1].grouped_by.value == "1"
-    else:
-        assert groups[0].grouped_by.value == 1 or groups[1].grouped_by.value == 1
+    assert groups[0].grouped_by.value == 1 or groups[1].grouped_by.value == 1
     assert isinstance(groups[0].properties["text"], AggregateText)
     assert groups[0].properties["text"].count == 1
     assert isinstance(groups[0].properties["int"], AggregateInteger)
     assert groups[0].properties["int"].count == 1
     assert groups[1].grouped_by.prop == "int"
-    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
-        assert groups[1].grouped_by.value == "2" or groups[0].grouped_by.value == "2"
-    else:
-        assert groups[1].grouped_by.value == 2 or groups[0].grouped_by.value == 2
+    assert groups[1].grouped_by.value == 2 or groups[0].grouped_by.value == 2
     assert isinstance(groups[1].properties["text"], AggregateText)
     assert groups[1].properties["text"].count == 1
     assert isinstance(groups[1].properties["int"], AggregateInteger)
@@ -869,9 +835,6 @@ def test_hybrid_bm25_operators(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
-    if collection._connection._weaviate_version.is_lower_than(1, 31, 0):
-        pytest.skip("bm25 operators are only supported in versions higher than 1.31.0")
-
     collection.data.insert({"name": "banana one"})
     collection.data.insert({"name": "banana two"})
     collection.data.insert({"name": "banana three"})
@@ -902,9 +865,6 @@ def test_aggregate_empty_result_none_values(collection_factory: CollectionFactor
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_null_state=True),
     )
-
-    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
-        pytest.skip("gRPC aggregates are only supported in versions 1.29.0 and higher")
 
     # Insert one object with bucket=0
     collection.data.insert({"bucket": 0, "intVal": 123, "numberVal": 456.78})
