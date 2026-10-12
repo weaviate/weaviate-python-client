@@ -14,6 +14,9 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     _AsyncReplicationConfig,
     _CollectionConfigCreate,
+    _CollectionConfigUpdate,
+    DecisionsOrder,
+    DecisionsProvider,
     _GenerativeProvider,
     _ReplicationConfig,
     _ReplicationConfigUpdate,
@@ -1406,6 +1409,117 @@ TEST_CONFIG_WITH_RERANKER = [
         },
     ),
 ]
+
+
+TEST_CONFIG_WITH_DECISIONS = [
+    (
+        Configure.Decisions.typesafeai(),
+        {"decisions-typesafeai": {}},
+    ),
+    (
+        Configure.Decisions.typesafeai(
+            model="jev-latest",
+            base_url="https://some.base.url/",
+            max_documents=150,
+            min_probability=0.5,
+            order=DecisionsOrder.PROBABILITY,
+        ),
+        {
+            "decisions-typesafeai": {
+                "model": "jev-latest",
+                "baseURL": "https://some.base.url/",
+                "maxDocuments": 150,
+                "minProbability": 0.5,
+                "order": "probability",
+            },
+        },
+    ),
+    (
+        Configure.Decisions.custom("decisions-dummy"),
+        {"decisions-dummy": {}},
+    ),
+    (
+        Configure.Decisions.custom("decisions-other", {"model": "x"}),
+        {"decisions-other": {"model": "x"}},
+    ),
+]
+
+
+@pytest.mark.parametrize("decisions_config,expected_mc", TEST_CONFIG_WITH_DECISIONS)
+def test_config_with_decisions(
+    decisions_config: DecisionsProvider,
+    expected_mc: dict,
+) -> None:
+    config = _CollectionConfigCreate(name="test", decisions_config=decisions_config)
+    assert config._to_dict() == {
+        **DEFAULTS,
+        "class": "Test",
+        "moduleConfig": expected_mc,
+    }
+
+
+def test_config_with_a_reranker_and_a_decisions_module() -> None:
+    config = _CollectionConfigCreate(
+        name="test",
+        reranker_config=Configure.Reranker.cohere(),
+        decisions_config=Configure.Decisions.typesafeai(),
+    )
+    assert config._to_dict()["moduleConfig"] == {
+        "reranker-cohere": {},
+        "decisions-typesafeai": {},
+    }
+
+
+@pytest.mark.parametrize(
+    "existing,update,expected",
+    [
+        (
+            {"reranker-cohere": {"model": "m"}, "text2vec-contextionary": {}},
+            _CollectionConfigUpdate(
+                decisions_config=Reconfigure.Decisions.typesafeai(min_probability=0.5)
+            ),
+            {
+                "reranker-cohere": {"model": "m"},
+                "decisions-typesafeai": {"minProbability": 0.5},
+                "text2vec-contextionary": {},
+            },
+        ),
+        (
+            {"decisions-typesafeai": {"minProbability": 0.5}, "text2vec-contextionary": {}},
+            _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.cohere()),
+            {
+                "decisions-typesafeai": {"minProbability": 0.5},
+                "reranker-cohere": {},
+                "text2vec-contextionary": {},
+            },
+        ),
+        (
+            {"reranker-cohere": {}, "decisions-typesafeai": {"minProbability": 0.5}},
+            _CollectionConfigUpdate(
+                decisions_config=Reconfigure.Decisions.custom("decisions-dummy")
+            ),
+            {"reranker-cohere": {}, "decisions-dummy": {}},
+        ),
+        (
+            {"reranker-cohere": {}, "decisions-typesafeai": {"minProbability": 0.5}},
+            _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.custom("reranker-dummy")),
+            {"reranker-dummy": {}, "decisions-typesafeai": {"minProbability": 0.5}},
+        ),
+        (
+            {"text2vec-contextionary": {}},
+            _CollectionConfigUpdate(
+                reranker_config=Reconfigure.Reranker.cohere(),
+                decisions_config=Reconfigure.Decisions.typesafeai(),
+            ),
+            {"text2vec-contextionary": {}, "reranker-cohere": {}, "decisions-typesafeai": {}},
+        ),
+    ],
+)
+def test_config_update_replaces_a_module_of_its_own_kind(
+    existing: dict, update: _CollectionConfigUpdate, expected: dict
+) -> None:
+    schema = {"class": "Test", "moduleConfig": existing}
+    assert update.merge_with_existing(schema)["moduleConfig"] == expected
 
 
 @pytest.mark.parametrize("reranker_config,expected_mc", TEST_CONFIG_WITH_RERANKER)

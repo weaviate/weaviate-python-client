@@ -2,6 +2,7 @@ from typing import Any, Generic, List, Literal, Optional, Type, Union, cast, ove
 
 from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import (
+    DECIDE,
     METADATA,
     PROPERTIES,
     REFERENCES,
@@ -49,6 +50,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -69,6 +71,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -89,6 +92,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -109,6 +113,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -129,6 +134,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -149,6 +155,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -171,6 +178,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -191,6 +199,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -211,6 +220,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -231,6 +241,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -251,6 +262,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -271,6 +283,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -291,6 +304,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -312,6 +326,7 @@ class _BM25QueryExecutor(
         filters: Optional[FilterReturn] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
+        decide: Optional[DECIDE] = None,
         boost: Optional[BoostReturn] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -331,6 +346,7 @@ class _BM25QueryExecutor(
             filters: The filters to apply to the search.
             group_by: How the results should be grouped by a specific property.
             rerank: How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            decide: Questions for the collection's decisions module to answer about every object returned, built with `Decide`. NOTE: A `decisions-*` module must be configured for this functionality to work.
             boost: A `Boost` that re-scores the search candidates to promote or demote objects without removing them.
             include_vector: Whether to include the vector in the results. If not specified, this is set to False.
             return_metadata: The metadata to return for each object, defaults to `None`.
@@ -379,6 +395,7 @@ class _BM25QueryExecutor(
             filters=filters,
             group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
+            decide=decide,
             boost=boost,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),

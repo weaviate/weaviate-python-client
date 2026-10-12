@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
     DataType,
+    Decisions,
     GenerativeSearches,
     PQEncoderDistribution,
     PQEncoderType,
@@ -19,6 +20,7 @@ from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
+    _DecisionsConfig,
     _GenerativeConfig,
     _InvertedIndexConfig,
     _MultiTenancyConfig,
@@ -52,6 +54,17 @@ from weaviate.exceptions import SchemaValidationError
 
 def _is_primitive(d_type: str) -> bool:
     return d_type[0][0].lower() == d_type[0][0]
+
+
+def __get_decisions_config(schema: Dict[str, Any]) -> Optional[_DecisionsConfig]:
+    modules = [key for key in schema.get("moduleConfig", {}).keys() if key.startswith("decisions-")]
+    if len(modules) != 1:
+        return None
+    try:
+        decisions: Union[Decisions, str] = Decisions(modules[0])
+    except ValueError:
+        decisions = modules[0]
+    return _DecisionsConfig(model=schema["moduleConfig"][modules[0]], decisions=decisions)
 
 
 def __get_rerank_config(schema: Dict[str, Any]) -> Optional[_RerankerConfig]:
@@ -360,6 +373,7 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
             _references_from_config(schema) if schema.get("properties") is not None else []
         ),
         reranker_config=__get_rerank_config(schema),
+        decisions_config=__get_decisions_config(schema),
         vectorizer_config=__get_vectorizer_config(schema),
         vectorizer=__get_vectorizer(schema),
         vector_config=__get_vector_config(schema, simple=True),
@@ -438,6 +452,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             ),
         ),
         reranker_config=__get_rerank_config(schema),
+        decisions_config=__get_decisions_config(schema),
         sharding_config=(
             None
             if schema.get("multiTenancyConfig", {}).get("enabled", False)

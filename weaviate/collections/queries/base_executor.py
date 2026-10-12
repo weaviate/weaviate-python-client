@@ -27,6 +27,7 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
+    DecisionAnswer,
     GenerativeGroup,
     GenerativeGroupByReturn,
     GenerativeGrouped,
@@ -57,7 +58,13 @@ from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
-from weaviate.proto.v1 import base_pb2, generative_pb2, properties_pb2, search_get_pb2
+from weaviate.proto.v1 import (
+    base_pb2,
+    decisions_pb2,
+    generative_pb2,
+    properties_pb2,
+    search_get_pb2,
+)
 from weaviate.types import INCLUDE_VECTOR
 from weaviate.util import (
     _datetime_from_weaviate_str,
@@ -340,13 +347,45 @@ class _BaseExecutor(Generic[ConnectionType]):
             for ref_prop in properties.ref_props
         }
 
+    def __parse_decisions(
+        self, decisions: Optional[decisions_pb2.DecisionResult]
+    ) -> Optional[Dict[str, DecisionAnswer]]:
+        if decisions is None:
+            return None
+        out: Dict[str, DecisionAnswer] = {}
+        for answer in decisions.answers:
+            kind = answer.WhichOneof("kind")
+            if kind == "predicate":
+                out[answer.name] = DecisionAnswer(
+                    name=answer.name, probability=answer.predicate.probability
+                )
+            elif kind == "choice":
+                out[answer.name] = DecisionAnswer(
+                    name=answer.name,
+                    choice=answer.choice.choice,
+                    probabilities={p.value: p.probability for p in answer.choice.probabilities},
+                    confidence=answer.choice.confidence,
+                )
+            elif kind == "score":
+                out[answer.name] = DecisionAnswer(
+                    name=answer.name,
+                    score=answer.score.score,
+                    probabilities={p.value: p.probability for p in answer.score.probabilities},
+                    confidence=answer.score.confidence,
+                )
+            else:
+                out[answer.name] = DecisionAnswer(name=answer.name, refused=True)
+        return out
+
     def __result_to_query_object(
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
         options: _QueryOptions,
+        decisions: Optional[decisions_pb2.DecisionResult] = None,
     ) -> Object[Any, Any]:
         return Object(
+            decisions=self.__parse_decisions(decisions),
             collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
@@ -485,7 +524,12 @@ class _BaseExecutor(Generic[ConnectionType]):
     ) -> QueryReturn[WeaviateProperties, CrossReferences]:
         return QueryReturn(
             objects=[
-                self.__result_to_query_object(obj.properties, obj.metadata, options)
+                self.__result_to_query_object(
+                    obj.properties,
+                    obj.metadata,
+                    options,
+                    obj.decisions if obj.HasField("decisions") else None,
+                )
                 for obj in res.results
             ],
             query_profile=self.__extract_query_profile(res),

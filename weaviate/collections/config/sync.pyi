@@ -5,6 +5,7 @@ from typing_extensions import deprecated
 from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
+    DecisionsProvider,
     GenerativeProvider,
     IndexName,
     InvertedIndexConfigUpdate,
@@ -68,6 +69,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
         vector_config: Optional[Union[VectorConfigUpdate, List[VectorConfigUpdate]]] = None,
         generative_config: Optional[GenerativeProvider] = None,
         reranker_config: Optional[RerankerProvider] = None,
+        decisions_config: Optional[DecisionsProvider] = None,
     ) -> None: ...
     def get_shards(self) -> List[ShardStatus]: ...
     def update_shards(

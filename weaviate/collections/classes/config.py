@@ -663,6 +663,61 @@ class RerankerProvider(_ConfigCreateModel):
     reranker: Union[Rerankers, _EnumLikeStr]
 
 
+class Decisions(str, BaseEnum):
+    """The available decisions modules in Weaviate.
+
+    A decisions module answers typed questions about the objects a search returns (the `decide` argument of a
+    query, see `weaviate.classes.query.Decision`) and serves the `rerank` argument as a reranker does.
+
+    Attributes:
+        TYPESAFEAI: Weaviate module backed by TypeSafe AI's decision models (Jev).
+    """
+
+    TYPESAFEAI = "decisions-typesafeai"
+
+
+class DecisionsOrder(str, BaseEnum):
+    """How `decisions-typesafeai` orders the results of a `rerank`.
+
+    Attributes:
+        SEARCH: Keep the order of the search; the probability only decides which results are dropped.
+        PROBABILITY: Sort by the probability, highest first.
+    """
+
+    SEARCH = "search"
+    PROBABILITY = "probability"
+
+
+class DecisionsProvider(_ConfigCreateModel):
+    decisions: Union[Decisions, _EnumLikeStr]
+
+
+class _DecisionsTypeSafeAIConfig(DecisionsProvider):
+    decisions: Union[Decisions, _EnumLikeStr] = Field(
+        default=Decisions.TYPESAFEAI, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    baseURL: Optional[AnyHttpUrl]
+    maxDocuments: Optional[int]
+    minProbability: Optional[float]
+    order: Optional[DecisionsOrder]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _DecisionsCustomConfig(DecisionsProvider):
+    module_config: Optional[Dict[str, Any]]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        if self.module_config is None:
+            return {}
+        return self.module_config
+
+
 RerankerCohereModel = Literal["rerank-english-v2.0", "rerank-multilingual-v2.0"]
 
 
@@ -1610,6 +1665,58 @@ class _Reranker:
         return _RerankerContextualAIConfig(model=model, instruction=instruction, topN=top_n)
 
 
+class _Decisions:
+    """Use this factory class to create the correct object for the `decisions_config` argument in the `collections.create()` method.
+
+    A decisions module answers the `decide` questions of a query for every object returned, and serves the `rerank`
+    argument as a reranker does. A collection has at most one decisions module next to at most one reranker.
+    """
+
+    @staticmethod
+    def typesafeai(
+        *,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        max_documents: Optional[int] = None,
+        min_probability: Optional[float] = None,
+        order: Optional[DecisionsOrder] = None,
+    ) -> DecisionsProvider:
+        """Create a `_DecisionsTypeSafeAIConfig` object for use with the `decisions-typesafeai` module.
+
+        Every argument defaults to `None`, which uses the server-defined default.
+
+        Args:
+            model: The TypeSafe AI model, for example `jev-latest`.
+            base_url: The base URL to send the requests to.
+            max_documents: The most objects one query may have judged, at most 1000.
+            min_probability: With `rerank`, drop the results whose probability is below this value.
+            order: With `rerank`, keep the search order or sort by probability.
+        """
+        return _DecisionsTypeSafeAIConfig(
+            model=model,
+            baseURL=TypeAdapter(AnyHttpUrl).validate_python(base_url)
+            if base_url is not None
+            else None,
+            maxDocuments=max_documents,
+            minProbability=min_probability,
+            order=order,
+        )
+
+    @staticmethod
+    def custom(
+        module_name: str, module_config: Optional[Dict[str, Any]] = None
+    ) -> DecisionsProvider:
+        """Create a `_DecisionsCustomConfig` object for use with a decisions module the client does not know.
+
+        Args:
+            module_name: The name of the module to use, REQUIRED.
+            module_config: The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
+        """
+        return _DecisionsCustomConfig(
+            decisions=_EnumLikeStr(module_name), module_config=module_config
+        )
+
+
 class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
     property_descriptions: Optional[Dict[str, str]] = Field(default=None)
@@ -1636,6 +1743,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     )
     generativeConfig: Optional[GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[RerankerProvider] = Field(default=None, alias="reranker_config")
+    decisionsConfig: Optional[DecisionsProvider] = Field(default=None, alias="decisions_config")
 
     @field_validator("vectorConfig", mode="before")
     def mutual_exclusivity(
@@ -1775,6 +1883,19 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 schema,
                 self.rerankerConfig.reranker.value,
                 self.rerankerConfig._to_dict(),
+            )
+        if self.decisionsConfig is not None:
+            # a collection has one decisions module next to its reranker: replace the module of this kind only
+            if "moduleConfig" in schema:
+                schema["moduleConfig"] = {
+                    k: v
+                    for k, v in schema["moduleConfig"].items()
+                    if not k.startswith("decisions-")
+                }
+            self.__add_to_module_config(
+                schema,
+                self.decisionsConfig.decisions.value,
+                self.decisionsConfig._to_dict(),
             )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, VectorIndexConfigUpdate):
@@ -2263,6 +2384,15 @@ RerankerConfig = _RerankerConfig
 
 
 @dataclass
+class _DecisionsConfig(_ConfigBase):
+    model: Dict[str, Any]
+    decisions: Union[Decisions, str]
+
+
+DecisionsConfig = _DecisionsConfig
+
+
+@dataclass
 class _NamedVectorizerConfig(_ConfigBase):
     vectorizer: Union[Vectorizers, str]
     model: Dict[str, Any]
@@ -2337,6 +2467,7 @@ class _CollectionConfig(_ConfigBase):
     references: List[ReferencePropertyConfig]
     replication_config: ReplicationConfig
     reranker_config: Optional[RerankerConfig]
+    decisions_config: Optional[DecisionsConfig]
     sharding_config: Optional[ShardingConfig]
     vector_index_config: Union[
         VectorIndexConfigHNSW,
@@ -2358,6 +2489,7 @@ class _CollectionConfig(_ConfigBase):
             ("generativeConfig", "generative"),
             ("vectorizerConfig", "vectorizer"),
             ("rerankerConfig", "reranker"),
+            ("decisionsConfig", "decisions"),
         ]:
             if name[0] not in out:
                 continue
@@ -2404,6 +2536,7 @@ class _CollectionConfigSimple(_ConfigBase):
     properties: List[PropertyConfig]
     references: List[ReferencePropertyConfig]
     reranker_config: Optional[RerankerConfig]
+    decisions_config: Optional[DecisionsConfig]
     vectorizer_config: Optional[VectorizerConfig]
     vectorizer: Optional[Union[Vectorizers, str]]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
@@ -2627,6 +2760,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     )
     generativeSearch: Optional[GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[RerankerProvider] = Field(default=None, alias="reranker_config")
+    decisionsConfig: Optional[DecisionsProvider] = Field(default=None, alias="decisions_config")
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
@@ -2705,6 +2839,8 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
             elif isinstance(val, RerankerProvider):
                 self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
+            elif isinstance(val, DecisionsProvider):
+                self.__add_to_module_config(ret_dict, val.decisions.value, val._to_dict())
             elif isinstance(val, _VectorizerConfigCreate):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizers.NONE:
@@ -2906,6 +3042,7 @@ class Configure:
 
     Generative = _Generative
     Reranker = _Reranker
+    Decisions = _Decisions
     Vectorizer = _Vectorizer
     VectorIndex = _VectorIndex
     NamedVectors = _NamedVectors
@@ -3258,6 +3395,7 @@ class Reconfigure:
     VectorIndex = _VectorIndexUpdate
     Generative = _Generative  # config is the same for create and update
     Reranker = _Reranker  # config is the same for create and update
+    Decisions = _Decisions  # config is the same for create and update
     ObjectTTL = _ObjectTTLUpdate
     Replication = _ReplicationUpdate
 
