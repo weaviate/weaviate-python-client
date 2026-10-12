@@ -274,7 +274,7 @@ class Rerank(_WeaviateInput):
 class DecideQuestion(_WeaviateInput):
     """A question for the collection's decisions module about every object a query returns.
 
-    Build one with `Decide.predicate`, `Decide.choice` or `Decide.score`. The answer comes back under `name`
+    Build one with `Decision.predicate`, `Decision.choice` or `Decision.score`. The answer comes back under `name`
     in the `decisions` of each object.
     """
 
@@ -312,11 +312,12 @@ def _named(
     return items
 
 
-class Decide:
+class Decision:
     """Use this factory class to build the questions of the `decide` argument of a query.
 
     The collection's decisions module (`decisions_config`) answers every question for every object the query
     returns. Each question is about one text property of the objects and has a name that identifies its answer.
+    `decide` never drops or reorders an object.
     """
 
     @staticmethod

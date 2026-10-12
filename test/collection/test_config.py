@@ -33,7 +33,7 @@ from weaviate.collections.classes.config_vectorizers import (
     VectorDistances,
 )
 from weaviate.collections.classes.config_vectors import _VectorConfigCreate
-from weaviate.exceptions import WeaviateInsertInvalidPropertyError, WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInsertInvalidPropertyError
 
 DEFAULTS = {
     "vectorConfig": {
@@ -1421,26 +1421,16 @@ TEST_CONFIG_WITH_DECISIONS = [
             model="jev-latest",
             base_url="https://some.base.url/",
             max_documents=150,
-            batch_size=5,
             min_probability=0.5,
             order=DecisionsOrder.PROBABILITY,
-            fetch_depth=40,
-            cache=False,
-            score_levels=["low", "high"],
-            min_score=1,
         ),
         {
             "decisions-typesafeai": {
                 "model": "jev-latest",
                 "baseURL": "https://some.base.url/",
                 "maxDocuments": 150,
-                "batchSize": 5,
                 "minProbability": 0.5,
                 "order": "probability",
-                "fetchDepth": 40,
-                "cache": False,
-                "scoreLevels": ["low", "high"],
-                "minScore": 1,
             },
         },
     ),
@@ -1468,18 +1458,16 @@ def test_config_with_decisions(
     }
 
 
-def test_config_with_reranker_and_decisions_is_rejected() -> None:
-    with pytest.raises(WeaviateInvalidInputError):
-        _CollectionConfigCreate(
-            name="test",
-            reranker_config=Configure.Reranker.cohere(),
-            decisions_config=Configure.Decisions.typesafeai(),
-        )
-    with pytest.raises(WeaviateInvalidInputError):
-        _CollectionConfigUpdate(
-            reranker_config=Configure.Reranker.cohere(),
-            decisions_config=Configure.Decisions.typesafeai(),
-        )
+def test_config_with_a_reranker_and_a_decisions_module() -> None:
+    config = _CollectionConfigCreate(
+        name="test",
+        reranker_config=Configure.Reranker.cohere(),
+        decisions_config=Configure.Decisions.typesafeai(),
+    )
+    assert config._to_dict()["moduleConfig"] == {
+        "reranker-cohere": {},
+        "decisions-typesafeai": {},
+    }
 
 
 @pytest.mark.parametrize(
@@ -1487,24 +1475,47 @@ def test_config_with_reranker_and_decisions_is_rejected() -> None:
     [
         (
             {"reranker-cohere": {"model": "m"}, "text2vec-contextionary": {}},
-            _CollectionConfigUpdate(decisions_config=Reconfigure.Decisions.typesafeai(cache=False)),
-            {"decisions-typesafeai": {"cache": False}, "text2vec-contextionary": {}},
+            _CollectionConfigUpdate(
+                decisions_config=Reconfigure.Decisions.typesafeai(min_probability=0.5)
+            ),
+            {
+                "reranker-cohere": {"model": "m"},
+                "decisions-typesafeai": {"minProbability": 0.5},
+                "text2vec-contextionary": {},
+            },
         ),
         (
-            {"decisions-typesafeai": {"cache": False}, "text2vec-contextionary": {}},
+            {"decisions-typesafeai": {"minProbability": 0.5}, "text2vec-contextionary": {}},
             _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.cohere()),
-            {"reranker-cohere": {}, "text2vec-contextionary": {}},
+            {
+                "decisions-typesafeai": {"minProbability": 0.5},
+                "reranker-cohere": {},
+                "text2vec-contextionary": {},
+            },
         ),
         (
-            {"decisions-typesafeai": {"cache": False}},
+            {"reranker-cohere": {}, "decisions-typesafeai": {"minProbability": 0.5}},
             _CollectionConfigUpdate(
                 decisions_config=Reconfigure.Decisions.custom("decisions-dummy")
             ),
-            {"decisions-dummy": {}},
+            {"reranker-cohere": {}, "decisions-dummy": {}},
+        ),
+        (
+            {"reranker-cohere": {}, "decisions-typesafeai": {"minProbability": 0.5}},
+            _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.custom("reranker-dummy")),
+            {"reranker-dummy": {}, "decisions-typesafeai": {"minProbability": 0.5}},
+        ),
+        (
+            {"text2vec-contextionary": {}},
+            _CollectionConfigUpdate(
+                reranker_config=Reconfigure.Reranker.cohere(),
+                decisions_config=Reconfigure.Decisions.typesafeai(),
+            ),
+            {"text2vec-contextionary": {}, "reranker-cohere": {}, "decisions-typesafeai": {}},
         ),
     ],
 )
-def test_config_update_replaces_the_rerank_provider(
+def test_config_update_replaces_a_module_of_its_own_kind(
     existing: dict, update: _CollectionConfigUpdate, expected: dict
 ) -> None:
     schema = {"class": "Test", "moduleConfig": existing}

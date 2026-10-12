@@ -2,25 +2,25 @@ import pytest
 
 import weaviate
 from mock_tests.conftest import MockDecisionsWeaviateService
-from weaviate.classes.query import Decide
+from weaviate.classes.query import Decision
 from weaviate.collections.classes.internal import DecisionAnswer
 from weaviate.exceptions import WeaviateInvalidInputError
 
 QUESTIONS = [
-    Decide.predicate("angry", prop="text", instructions="Is the customer angry?"),
-    Decide.choice(
+    Decision.predicate("angry", prop="text", instructions="Is the customer angry?"),
+    Decision.choice(
         "team",
         prop="text",
         instructions="Which team should handle this?",
         options={"billing": "money and invoices", "support": None},
     ),
-    Decide.score(
+    Decision.score(
         "severity",
         prop="text",
         instructions="How severe is the complaint?",
         levels=["low", "medium", "high"],
     ),
-    Decide.predicate("refused", prop="text", instructions="refuse"),
+    Decision.predicate("refused", prop="text", instructions="refuse"),
 ]
 
 
@@ -93,10 +93,10 @@ def test_no_decide_sends_no_questions(
 @pytest.mark.parametrize(
     "build",
     [
-        lambda: Decide.choice("t", prop="p", instructions="i", options={"only": None}),
-        lambda: Decide.choice("t", prop="p", instructions="i", options="ab"),  # type: ignore[arg-type]
-        lambda: Decide.score("t", prop="p", instructions="i", levels=["only"]),
-        lambda: Decide.score("t", prop="p", instructions="i", levels="ab"),  # type: ignore[arg-type]
+        lambda: Decision.choice("t", prop="p", instructions="i", options={"only": None}),
+        lambda: Decision.choice("t", prop="p", instructions="i", options="ab"),  # type: ignore[arg-type]
+        lambda: Decision.score("t", prop="p", instructions="i", levels=["only"]),
+        lambda: Decision.score("t", prop="p", instructions="i", levels="ab"),  # type: ignore[arg-type]
     ],
 )
 def test_questions_need_at_least_two_named_answers(build) -> None:

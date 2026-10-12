@@ -409,7 +409,9 @@ def test_collection_config_from_json_with_a_decisions_module() -> None:
             }
         }
     )
-    schema["moduleConfig"] = {"decisions-typesafeai": {"cache": False, "order": "probability"}}
+    schema["moduleConfig"] = {
+        "decisions-typesafeai": {"minProbability": 0.5, "order": "probability"}
+    }
 
     config = _collection_config_from_json(schema)
     simple = _collection_config_simple_from_json(schema)
@@ -418,7 +420,7 @@ def test_collection_config_from_json_with_a_decisions_module() -> None:
         assert parsed.reranker_config is None
         assert parsed.decisions_config is not None
         assert parsed.decisions_config.decisions == Decisions.TYPESAFEAI
-        assert parsed.decisions_config.model == {"cache": False, "order": "probability"}
+        assert parsed.decisions_config.model == {"minProbability": 0.5, "order": "probability"}
     assert config.to_dict()["moduleConfig"] == schema["moduleConfig"]
 
 

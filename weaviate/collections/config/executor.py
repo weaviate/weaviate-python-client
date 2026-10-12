@@ -193,7 +193,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             replication_config: Configuration for the replication. Use `Reconfigure.replication` to generate one.
             reranker_config: Configuration for the reranker. Use `Reconfigure.Reranker` to generate one.
             decisions_config: Configuration for the decisions module. Use `Reconfigure.Decisions` to generate one.
-                A collection has either a reranker or a decisions module; setting one replaces the other.
+                It replaces the collection's decisions module and leaves its reranker as it is.
             vector_index_config (DEPRECATED use `vector_config`): Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
             vectorizer_config: Configurations for the vector index (or indices) of your collection.
                 Use `Reconfigure.vector_index` if using legacy vectorization and `Reconfigure.NamedVectors` if you have many named vectors to generate them.

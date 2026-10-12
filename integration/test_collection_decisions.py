@@ -33,18 +33,20 @@ def test_decisions_config_round_trip(collection_factory: CollectionFactory) -> N
     assert config.decisions_config.decisions == "decisions-dummy"
 
     collection.config.update(
-        decisions_config=wvc.config.Reconfigure.Decisions.typesafeai(cache=False)
+        decisions_config=wvc.config.Reconfigure.Decisions.typesafeai(min_probability=0.5)
     )
     config = collection.config.get()
     assert config.decisions_config is not None
     assert config.decisions_config.decisions == Decisions.TYPESAFEAI
-    assert config.decisions_config.model == {"cache": False}
+    assert config.decisions_config.model == {"minProbability": 0.5}
 
+    # A reranker joins the decisions module; an update replaces a module of its own kind only.
     collection.config.update(
         reranker_config=wvc.config.Reconfigure.Reranker.custom("reranker-dummy")
     )
     config = collection.config.get()
-    assert config.decisions_config is None
+    assert config.decisions_config is not None
+    assert config.decisions_config.decisions == Decisions.TYPESAFEAI
     assert config.reranker_config is not None
     assert config.reranker_config.reranker == "reranker-dummy"
 
@@ -55,14 +57,14 @@ def test_decide_with_every_kind_of_question(collection_factory: CollectionFactor
         [{"text": "the customer is angry about billing"}, {"text": "all good, thanks"}]
     )
     questions = [
-        wvc.query.Decide.predicate("angry", prop="text", instructions="customer angry"),
-        wvc.query.Decide.choice(
+        wvc.query.Decision.predicate("angry", prop="text", instructions="customer angry"),
+        wvc.query.Decision.choice(
             "team", prop="text", instructions="which team", options={"billing": None, "other": None}
         ),
-        wvc.query.Decide.score(
+        wvc.query.Decision.score(
             "length", prop="text", instructions="how long", levels=["short", "medium", "long"]
         ),
-        wvc.query.Decide.predicate("no", prop="text", instructions="refuse"),
+        wvc.query.Decision.predicate("no", prop="text", instructions="refuse"),
     ]
 
     for query in (
@@ -94,24 +96,6 @@ def test_decide_with_every_kind_of_question(collection_factory: CollectionFactor
     assert list(objs[0].decisions) == ["angry"]
 
 
-def test_decide_and_rerank_together(collection_factory: CollectionFactory) -> None:
-    collection = _collection(collection_factory)
-    collection.data.insert_many([{"text": "short"}, {"text": "a much longer document"}])
-
-    objs = collection.query.bm25(
-        "short document",
-        rerank=wvc.query.Rerank(prop="text", query="anything"),
-        decide=wvc.query.Decide.predicate("long", prop="text", instructions="longer"),
-    ).objects
-
-    assert [o.properties["text"] for o in objs] == ["a much longer document", "short"]
-    assert [o.metadata.rerank_score for o in objs] == [
-        float(len("a much longer document")),
-        float(len("short")),
-    ]
-    assert [o.decisions["long"].probability for o in objs if o.decisions] == [1.0, 0.0]
-
-
 def test_decide_is_rejected_with_group_by(collection_factory: CollectionFactory) -> None:
     collection = _collection(collection_factory)
     collection.data.insert({"text": "x"})
@@ -120,7 +104,7 @@ def test_decide_is_rejected_with_group_by(collection_factory: CollectionFactory)
         collection.query.bm25(
             "x",
             group_by=wvc.query.GroupBy(prop="text", objects_per_group=1, number_of_groups=1),
-            decide=wvc.query.Decide.predicate("q", prop="text", instructions="i"),
+            decide=wvc.query.Decision.predicate("q", prop="text", instructions="i"),
         )
 
 
@@ -135,5 +119,5 @@ def test_decide_without_a_decisions_module(collection_factory: CollectionFactory
 
     with pytest.raises(WeaviateQueryError):
         collection.query.bm25(
-            "x", decide=wvc.query.Decide.predicate("q", prop="text", instructions="i")
+            "x", decide=wvc.query.Decision.predicate("q", prop="text", instructions="i")
         )

@@ -7,8 +7,8 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.grpc import (
     Boost,
     BoostReturn,
-    Decide,
     DecideQuestion,
+    Decision,
     Diversity,
     GroupBy,
     HybridFusion,
@@ -44,7 +44,7 @@ __all__ = [
     "NearVector",
     "Boost",
     "BoostReturn",
-    "Decide",
+    "Decision",
     "DecideQuestion",
     "Rerank",
     "Sort",

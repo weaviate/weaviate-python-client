@@ -667,7 +667,7 @@ class Decisions(str, BaseEnum):
     """The available decisions modules in Weaviate.
 
     A decisions module answers typed questions about the objects a search returns (the `decide` argument of a
-    query, see `weaviate.classes.query.Decide`) and serves the `rerank` argument as a reranker does.
+    query, see `weaviate.classes.query.Decision`) and serves the `rerank` argument as a reranker does.
 
     Attributes:
         TYPESAFEAI: Weaviate module backed by TypeSafe AI's decision models (Jev).
@@ -699,13 +699,8 @@ class _DecisionsTypeSafeAIConfig(DecisionsProvider):
     model: Optional[str]
     baseURL: Optional[AnyHttpUrl]
     maxDocuments: Optional[int]
-    batchSize: Optional[int]
     minProbability: Optional[float]
     order: Optional[DecisionsOrder]
-    fetchDepth: Optional[int]
-    cache: Optional[bool]
-    scoreLevels: Optional[List[str]]
-    minScore: Optional[float]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -1674,8 +1669,7 @@ class _Decisions:
     """Use this factory class to create the correct object for the `decisions_config` argument in the `collections.create()` method.
 
     A decisions module answers the `decide` questions of a query for every object returned, and serves the `rerank`
-    argument as a reranker does. A collection has one module that serves `rerank`, so pass either `decisions_config`
-    or `reranker_config`, not both.
+    argument as a reranker does. A collection has at most one decisions module next to at most one reranker.
     """
 
     @staticmethod
@@ -1684,13 +1678,8 @@ class _Decisions:
         model: Optional[str] = None,
         base_url: Optional[str] = None,
         max_documents: Optional[int] = None,
-        batch_size: Optional[int] = None,
         min_probability: Optional[float] = None,
         order: Optional[DecisionsOrder] = None,
-        fetch_depth: Optional[int] = None,
-        cache: Optional[bool] = None,
-        score_levels: Optional[List[str]] = None,
-        min_score: Optional[float] = None,
     ) -> DecisionsProvider:
         """Create a `_DecisionsTypeSafeAIConfig` object for use with the `decisions-typesafeai` module.
 
@@ -1699,14 +1688,9 @@ class _Decisions:
         Args:
             model: The TypeSafe AI model, for example `jev-latest`.
             base_url: The base URL to send the requests to.
-            max_documents: The most objects one query may have judged.
-            batch_size: How many objects share one request to the API, 1 to 25.
+            max_documents: The most objects one query may have judged, at most 1000.
             min_probability: With `rerank`, drop the results whose probability is below this value.
             order: With `rerank`, keep the search order or sort by probability.
-            fetch_depth: With `rerank`, how many candidates to judge before the page is cut.
-            cache: Whether the module keeps its answers in memory, so that a repeated question is not sent again.
-            score_levels: With `rerank`, read the rerank query as a question of degree and score it on these levels, lowest first.
-            min_score: With `score_levels`, drop the results whose score is below this value.
         """
         return _DecisionsTypeSafeAIConfig(
             model=model,
@@ -1714,13 +1698,8 @@ class _Decisions:
             if base_url is not None
             else None,
             maxDocuments=max_documents,
-            batchSize=batch_size,
             minProbability=min_probability,
             order=order,
-            fetchDepth=fetch_depth,
-            cache=cache,
-            scoreLevels=score_levels,
-            minScore=min_score,
         )
 
     @staticmethod
@@ -1765,14 +1744,6 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     generativeConfig: Optional[GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[RerankerProvider] = Field(default=None, alias="reranker_config")
     decisionsConfig: Optional[DecisionsProvider] = Field(default=None, alias="decisions_config")
-
-    @model_validator(mode="after")
-    def _one_rerank_provider(self) -> "_CollectionConfigUpdate":
-        if self.rerankerConfig is not None and self.decisionsConfig is not None:
-            raise WeaviateInvalidInputError(
-                "Pass either reranker_config or decisions_config, not both: a collection has one module that serves rerank."
-            )
-        return self
 
     @field_validator("vectorConfig", mode="before")
     def mutual_exclusivity(
@@ -1902,21 +1873,25 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 self.generativeConfig.generative.value,
                 self.generativeConfig._to_dict(),
             )
-        if self.rerankerConfig is not None or self.decisionsConfig is not None:
-            # a reranker and a decisions module both serve rerank: clear whichever the collection has
+        if self.rerankerConfig is not None:
+            # clear any existing reranker config
             if "moduleConfig" in schema:
                 schema["moduleConfig"] = {
-                    k: v
-                    for k, v in schema["moduleConfig"].items()
-                    if "reranker" not in k and not k.startswith("decisions-")
+                    k: v for k, v in schema["moduleConfig"].items() if "reranker" not in k
                 }
-        if self.rerankerConfig is not None:
             self.__add_to_module_config(
                 schema,
                 self.rerankerConfig.reranker.value,
                 self.rerankerConfig._to_dict(),
             )
         if self.decisionsConfig is not None:
+            # a collection has one decisions module next to its reranker: replace the module of this kind only
+            if "moduleConfig" in schema:
+                schema["moduleConfig"] = {
+                    k: v
+                    for k, v in schema["moduleConfig"].items()
+                    if not k.startswith("decisions-")
+                }
             self.__add_to_module_config(
                 schema,
                 self.decisionsConfig.decisions.value,
@@ -2784,10 +2759,6 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
-        if self.rerankerConfig is not None and self.decisionsConfig is not None:
-            raise WeaviateInvalidInputError(
-                "Pass either reranker_config or decisions_config, not both: a collection has one module that serves rerank."
-            )
 
     @field_validator("properties", mode="after")
     @classmethod

@@ -238,7 +238,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             references: The references of the objects in the collection.
             replication_config: The configuration for Weaviate's replication strategy.
             reranker_config: The configuration for Weaviate's reranker module.
-            decisions_config: The configuration for Weaviate's decisions module. A collection has either a reranker or a decisions module, not both.
+            decisions_config: The configuration for Weaviate's decisions module. A collection has at most one, next to at most one reranker.
             sharding_config: The configuration for Weaviate's sharding strategy.
             vector_index_config (DEPRECATED use `vector_config`): The configuration for Weaviate's default vector index.
             vectorizer_config (DEPRECATED use `vector_config`): The configuration for Weaviate's default vectorizer or a list of named vectorizers.
