@@ -1445,6 +1445,8 @@ TEST_CONFIG_WITH_DECISIONS = [
             base_url="https://some.base.url/",
             max_documents=50,
             question=DecisionsQuestion.STATEMENT,
+            min_probability=0.6,
+            order=DecisionsOrder.SEARCH,
         ),
         {
             "decisions-openai": {
@@ -1452,6 +1454,8 @@ TEST_CONFIG_WITH_DECISIONS = [
                 "baseURL": "https://some.base.url/",
                 "maxDocuments": 50,
                 "question": "statement",
+                "minProbability": 0.6,
+                "order": "search",
             },
         },
     ),
@@ -1527,19 +1531,19 @@ def test_config_with_a_reranker_and_a_decisions_module() -> None:
             {"reranker-dummy": {}, "decisions-typesafeai": {"minProbability": 0.5}},
         ),
         (
-            {"text2vec-contextionary": {}},
-            _CollectionConfigUpdate(
-                reranker_config=Reconfigure.Reranker.cohere(),
-                decisions_config=Reconfigure.Decisions.typesafeai(),
-            ),
-            {"text2vec-contextionary": {}, "reranker-cohere": {}, "decisions-typesafeai": {}},
-        ),
-        (
-            {"decisions-typesafeai": {"cache": False}},
+            {"decisions-typesafeai": {"minProbability": 0.5}},
             _CollectionConfigUpdate(
                 decisions_config=Reconfigure.Decisions.openai(question=DecisionsQuestion.STATEMENT)
             ),
             {"decisions-openai": {"question": "statement"}},
+        ),
+        (
+            {"text2vec-contextionary": {}},
+            _CollectionConfigUpdate(
+                reranker_config=Reconfigure.Reranker.cohere(),
+                decisions_config=Reconfigure.Decisions.openai(),
+            ),
+            {"text2vec-contextionary": {}, "reranker-cohere": {}, "decisions-openai": {}},
         ),
     ],
 )

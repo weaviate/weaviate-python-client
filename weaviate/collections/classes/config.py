@@ -679,7 +679,7 @@ class Decisions(str, BaseEnum):
 
 
 class DecisionsOrder(str, BaseEnum):
-    """How `decisions-typesafeai` orders the results of a `rerank`.
+    """How a decisions module orders the results of a `rerank`.
 
     Attributes:
         SEARCH: Keep the order of the search; the probability only decides which results are dropped.
@@ -731,6 +731,8 @@ class _DecisionsOpenAIConfig(DecisionsProvider):
     baseURL: Optional[AnyHttpUrl]
     maxDocuments: Optional[int]
     question: Optional[DecisionsQuestion]
+    minProbability: Optional[float]
+    order: Optional[DecisionsOrder]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -1739,6 +1741,8 @@ class _Decisions:
         base_url: Optional[str] = None,
         max_documents: Optional[int] = None,
         question: Optional[DecisionsQuestion] = None,
+        min_probability: Optional[float] = None,
+        order: Optional[DecisionsOrder] = None,
     ) -> DecisionsProvider:
         """Create a `_DecisionsOpenAIConfig` object for use with the `decisions-openai` module.
 
@@ -1747,8 +1751,10 @@ class _Decisions:
         Args:
             model: The OpenAI decision model, for example `gpt-6-luna`.
             base_url: The base URL to send the requests to.
-            max_documents: The most objects one query may have judged. Every object is one request to the API.
+            max_documents: The most objects one query may have judged, at most 1000. Every object is one request to the API.
             question: With `rerank`, whether the model judges the relevance of the object to the query or the query as a statement about the object.
+            min_probability: With `rerank`, drop the results whose probability is below this value.
+            order: With `rerank`, keep the search order or sort by probability.
         """
         return _DecisionsOpenAIConfig(
             model=model,
@@ -1757,6 +1763,8 @@ class _Decisions:
             else None,
             maxDocuments=max_documents,
             question=question,
+            minProbability=min_probability,
+            order=order,
         )
 
     @staticmethod

@@ -43,14 +43,16 @@ def test_decisions_openai(collection_factory: CollectionFactory) -> None:
         "refund arrived",
         rerank=wvc.query.Rerank(prop="text", query="The customer is unhappy"),
         decide=[
-            wvc.query.Decide.predicate("angry", prop="text", instructions="Is the customer angry?"),
-            wvc.query.Decide.choice(
+            wvc.query.Decision.predicate(
+                "angry", prop="text", instructions="Is the customer angry?"
+            ),
+            wvc.query.Decision.choice(
                 "team",
                 prop="text",
                 instructions="Which team should handle this message?",
                 options={"billing": "refunds, invoices and payments", "none": "no action needed"},
             ),
-            wvc.query.Decide.score(
+            wvc.query.Decision.score(
                 "urgency",
                 prop="text",
                 instructions="How urgent is this message?",
