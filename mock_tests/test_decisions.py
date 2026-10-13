@@ -157,3 +157,8 @@ def test_rerank_by_a_decision_is_sent(
 def test_rerank_by_a_decision_needs_a_probability(min_probability: float) -> None:
     with pytest.raises(ValidationError):
         Decide(prop="text", query="angry", min_probability=min_probability)
+
+
+def test_rerank_by_a_decision_needs_a_query() -> None:
+    with pytest.raises(ValidationError):
+        Decide(prop="text")  # type: ignore[call-arg]

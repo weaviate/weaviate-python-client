@@ -16,7 +16,7 @@ from typing import (
     cast,
 )
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 from typing_extensions import ClassVar, TypeAlias, TypeGuard, TypeVar
 
 from weaviate.collections.classes.filters import FilterReturn
@@ -295,6 +295,15 @@ class Decide(Rerank):
 
     min_probability: Optional[float] = Field(default=None, ge=0, le=1)
     order: Optional[DecideOrder] = Field(default=None)
+
+    @model_validator(mode="after")
+    def _needs_a_query(self) -> "Decide":
+        # A plain Rerank may leave the query to the reranker; a decision has
+        # nothing to judge without one, and the server would only fail after
+        # the search.
+        if self.query is None:
+            raise ValueError("Decide needs the query the model judges")
+        return self
 
 
 class DecideQuestion(_WeaviateInput):
