@@ -428,9 +428,15 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
 def test_add_ten_thousand_data_objects(
     client_factory: ClientFactory,
     batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+    request: SubRequest,
 ) -> None:
     """Test adding ten thousand data objects."""
     client, name = client_factory()
+    if (
+        request.node.callspec.id == "test_add_ten_thousand_data_objects_stream"
+        and client._connection._weaviate_version.is_lower_than(1, 36, 0)
+    ):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 
@@ -476,6 +482,8 @@ def test_add_one_hundred_objects_and_references_between_all(
 ) -> None:
     """Test adding one hundred objects and references between all of them."""
     client, name = client_factory()
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100
     uuids: List[UUID] = []
     with client.batch.stream() as batch:
@@ -628,9 +636,15 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
 def test_add_one_object_and_a_self_reference(
     client_factory: ClientFactory,
     batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+    request: SubRequest,
 ) -> None:
     """Test adding one object and a self reference."""
     client, name = client_factory()
+    if (
+        request.node.callspec.id == "test_add_one_object_and_a_self_reference_stream"
+        and client._connection._weaviate_version.is_lower_than(1, 36, 0)
+    ):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     with batching_method(client) as batch:
         uuid = batch.add_object(collection=name, properties={})
         batch.add_reference(
@@ -747,6 +761,29 @@ def test_uuids_keys_and_original_index(client_factory: ClientFactory) -> None:
     )
 
 
+def test_batching_error_logs(
+    client_factory: ClientFactory, caplog: pytest.LogCaptureFixture
+) -> None:
+    client, name = client_factory()
+    if client._connection._weaviate_version.is_at_least(
+        1, 32, 1
+    ):  # TODO: change to 1.33.0 when released
+        pytest.skip(
+            "Batching error logs do not get emitted by the new server-side batching functionality."
+        )
+    with client.batch.fixed_size() as batch:
+        for obj in [{"name": i} for i in range(100)]:
+            batch.add_object(properties=obj, collection=name)
+    assert (
+        ("Failed to send" in caplog.text)
+        and ("objects in a batch of" in caplog.text)
+        and (
+            "Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects."
+            in caplog.text
+        )
+    )  # number of objects sent per batch is not fixed for less than 100 objects
+
+
 def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
     """Test that batch waits until the to object is created."""
     client, _ = client_factory()
@@ -788,6 +825,8 @@ async def test_add_one_hundred_thousand_objects_async_client(
 ) -> None:
     """Test adding one hundred thousand data objects."""
     client, name = await async_client_factory()
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 
@@ -817,6 +856,8 @@ def test_add_one_hundred_thousand_objects_sync_client(
 ) -> None:
     """Test adding one hundred thousand data objects."""
     client, name = client_factory()
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 

@@ -541,6 +541,8 @@ def test_cancel_backup_restore(
 ) -> None:
     """Cancel backup restore without waiting."""
     backup_id = unique_backup_id(request.node.name)
+    if client._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Cancel restores is only supported from 1.36.0")
 
     backup_location: Optional[wvc.backup.BackupLocationType] = None
     if dynamic_backup_location:
@@ -663,6 +665,8 @@ def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> No
 def test_list_backup_ascending_order(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     """List all backups in ascending order."""
     backup_id = unique_backup_id(request.node.name)
+    if client._connection._weaviate_version.is_lower_than(1, 33, 2):
+        pytest.skip("List backups sorting is only supported from 1.33.2")
 
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED

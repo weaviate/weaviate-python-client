@@ -1,6 +1,7 @@
 import re
 from typing import Any
 
+import pytest
 
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import DataType, Property
@@ -33,6 +34,8 @@ def _create_and_populate(collection_factory: CollectionFactory) -> Collection[An
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
     )
+    if collection._connection._weaviate_version.is_lower_than(1, 36, 9):
+        pytest.skip("Query profiling requires Weaviate >= 1.36.9")
     collection.data.insert_many(
         [
             DataObject(properties={"text": "hello world"}, vector=[1.0, 0.0, 0.0]),

@@ -277,6 +277,8 @@ async def test_batch_one_hundred_thousand_objects_async_collection(
 ) -> None:
     """Test adding one hundred thousand data objects."""
     col = await batch_collection_async()
+    if col._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 
@@ -302,6 +304,8 @@ async def test_ingest_one_hundred_thousand_data_objects_async(
     batch_collection_async: BatchCollectionAsync,
 ) -> None:
     col = await batch_collection_async()
+    if col._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 
@@ -322,6 +326,8 @@ def test_ingest_one_hundred_thousand_data_objects(
     batch_collection: BatchCollection,
 ) -> None:
     col = batch_collection()
+    if col._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Server-side batching not supported in Weaviate < 1.36.0")
     nr_objects = 100000
     import time
 

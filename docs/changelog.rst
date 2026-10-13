@@ -4,7 +4,7 @@ Changelog
 Version 4.24.0
 --------------
 This minor version includes:
-    - Remove support for Weaviate versions < 1.36.9. Connecting to an older server now raises ``WeaviateStartUpError`` even with ``skip_init_checks=True``. Please update your Weaviate instances
+    - Remove support for Weaviate versions < 1.32.0. Connecting to an older server now raises ``WeaviateStartUpError`` even with ``skip_init_checks=True``. Please update your Weaviate instances
     - Remove the legacy GraphQL aggregation path together with the ``weaviate.gql`` and ``weaviate.error_msgs`` modules, ``weaviate.util.is_weaviate_too_old`` and ``weaviate.util.MINIMUM_NO_WARNING_VERSION``, and the ``weaviate.AdditionalProperties`` and ``weaviate.LinkTo`` attributes (which already pointed at names that did not exist). Aggregations always use gRPC now. ``client.graphql_raw_query()`` is unchanged
     - Public names for the collection configuration types, so a helper that passes one around no longer has to import a private class:
         - Every non-deprecated type accepted by ``collections.create()`` and ``collections.config.update()`` now has a public name exported from ``weaviate.classes.config``, among them ``VectorConfigCreate``, ``VectorConfigUpdate``, ``InvertedIndexConfigCreate``, ``ReplicationConfigUpdate``, ``ObjectTTLConfigCreate``, ``GenerativeProvider`` and ``RerankerProvider``

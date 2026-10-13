@@ -56,7 +56,7 @@ from weaviate.collections.classes.types import GeoCoordinate, TReferences, _Phon
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect.v4 import ConnectionType
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import base_pb2, generative_pb2, properties_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR
 from weaviate.util import (
@@ -634,6 +634,12 @@ class _BaseExecutor(Generic[ConnectionType]):
             ret_md = cast(MetadataQuery, return_metadata)
         else:
             ret_md = MetadataQuery(**{str(prop): True for prop in return_metadata})
+
+        if ret_md is not None and ret_md.query_profile:
+            if self._connection._weaviate_version.is_lower_than(1, 36, 9):
+                raise WeaviateUnsupportedFeatureError(
+                    "Query profiling", str(self._connection._weaviate_version), "1.36.9"
+                )
 
         return _MetadataQuery.from_public(ret_md, include_vector)
 

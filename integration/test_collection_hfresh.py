@@ -1,3 +1,4 @@
+import pytest
 import weaviate
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
@@ -11,6 +12,10 @@ from weaviate.collections.classes.config import (
 
 
 def test_collection_config_hfresh(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Hfresh index is not supported in Weaviate versions lower than 1.36.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hfresh(
             distance_metric=VectorDistances.COSINE,
@@ -31,6 +36,10 @@ def test_collection_config_hfresh(collection_factory: CollectionFactory) -> None
 
 
 def test_collection_named_vectors_hfresh(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Hfresh index is not supported in Weaviate versions lower than 1.36.0")
+
     collection = collection_factory(
         vector_config=[
             Configure.Vectors.self_provided(
@@ -60,6 +69,10 @@ def test_collection_named_vectors_hfresh(collection_factory: CollectionFactory) 
 
 
 def test_collection_update_hfresh(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Hfresh index is not supported in Weaviate versions lower than 1.36.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hfresh(
             distance_metric=VectorDistances.COSINE,
@@ -85,6 +98,10 @@ def test_collection_update_hfresh(collection_factory: CollectionFactory) -> None
 
 
 def test_collection_hfresh_export_and_reimport(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("Hfresh index is not supported in Weaviate versions lower than 1.36.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hfresh(
             distance_metric=VectorDistances.COSINE,

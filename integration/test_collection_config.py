@@ -413,7 +413,12 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.multi_tenancy_config.auto_tenant_creation is False
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
 
-    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
+    if collection._connection._weaviate_version.is_lower_than(1, 34, 0):
+        assert (
+            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        )
+    else:
+        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
 
     collection.config.update(
         description="Test",
@@ -727,6 +732,10 @@ def test_update_flat_bq(collection_factory: CollectionFactory) -> None:
 
 
 def test_update_flat_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("RQ in flat index is not supported in Weaviate versions lower than 1.34.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
@@ -864,6 +873,10 @@ def test_config_vector_index_flat_and_quantizer_bq(collection_factory: Collectio
 
 
 def test_config_vector_index_flat_and_quantizer_rq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("RQ in flat index is not supported in Weaviate versions lower than 1.34.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
@@ -1218,6 +1231,10 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
 
 
 def test_dynamic_collection_rq(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy", ports=(8090, 50061))
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 0):
+        pytest.skip("Dynamic index with RQ is not supported in Weaviate versions lower than 1.34.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.dynamic(
             distance_metric=VectorDistances.COSINE,
@@ -1573,6 +1590,10 @@ def test_replication_config_without_async_config(collection_factory: CollectionF
 
 
 def test_replication_config_with_async_config(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
@@ -1606,6 +1627,10 @@ def test_replication_config_async_config_preserved_when_disabling_async_replicat
     `config.update()` is a read-modify-write PUT of the whole collection, so dropping `asyncConfig`
     from the merged payload would silently reset the tuning to server defaults.
     """
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
@@ -1637,6 +1662,10 @@ def test_replication_config_async_config_preserved_when_disabling_async_replicat
 
 
 def test_replication_config_remove_async_config(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
@@ -1667,6 +1696,10 @@ def test_replication_config_remove_async_config(collection_factory: CollectionFa
 def test_replication_config_unset_single_async_field(
     collection_factory: CollectionFactory,
 ) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("async replication config requires Weaviate >= 1.36.0")
+
     collection = collection_factory(
         replication_config=Configure.replication(
             factor=1,
@@ -1706,6 +1739,10 @@ def test_replication_config_add_async_config_to_existing_collection(
     This covers the case where the existing schema has no asyncConfig key
     and merge_with_existing must handle the missing field gracefully.
     """
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
+        pytest.skip("async replication config requires Weaviate >= 1.34.18")
+
     # Create without async_config
     collection = collection_factory(
         replication_config=Configure.replication(factor=1, async_enabled=True),
@@ -1935,6 +1972,10 @@ def test_collection_config_create_with_deprecated_syntax(
 
 
 def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 32, 4):
+        pytest.skip("uncompressed is not supported in Weaviate versions lower than 1.32.4")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -1950,6 +1991,10 @@ def test_uncompressed_quantitizer(collection_factory: CollectionFactory) -> None
 
 
 def test_object_ttl_creation(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
     collection = collection_factory(
         object_ttl=Configure.ObjectTTL.delete_by_creation_time(
             time_to_live=datetime.timedelta(days=30),
@@ -1965,6 +2010,10 @@ def test_object_ttl_creation(collection_factory: CollectionFactory) -> None:
 
 
 def test_object_ttl_update_time(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
     collection = collection_factory(
         object_ttl=Configure.ObjectTTL.delete_by_update_time(
             time_to_live=datetime.timedelta(days=30),
@@ -1981,6 +2030,10 @@ def test_object_ttl_update_time(collection_factory: CollectionFactory) -> None:
 
 
 def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
     collection = collection_factory(
         properties=[wvc.config.Property(name="customDate", data_type=DataType.DATE)],
         object_ttl=Configure.ObjectTTL.delete_by_date_property(
@@ -1997,6 +2050,10 @@ def test_object_ttl_custom(collection_factory: CollectionFactory) -> None:
 
 
 def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="customDate", data_type=DataType.DATE),
@@ -2050,6 +2107,10 @@ def test_object_ttl_update(collection_factory: CollectionFactory) -> None:
 
 
 def test_object_ttl_roundtrip_from_dict(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 35, 0):
+        pytest.skip("object ttl is not supported in Weaviate versions lower than 1.35.0")
+
     collection = collection_factory(
         object_ttl=Configure.ObjectTTL.delete_by_creation_time(
             time_to_live=datetime.timedelta(seconds=60),
@@ -2075,6 +2136,10 @@ def test_delete_property_index(
     index_name: IndexName, collection_factory: CollectionFactory
 ) -> None:
     """Test delete index works for each index type."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 36, 0):
+        pytest.skip("delete property index not supported before 1.36.0")
+
     if index_name == "filterable" or index_name == "searchable":
         _data_type = DataType.TEXT
         _index_range_filters = False

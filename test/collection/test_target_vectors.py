@@ -12,7 +12,7 @@ from weaviate.util import _ServerVersion
 
 def _query() -> _QueryGRPC:
     return _QueryGRPC(
-        weaviate_version=_ServerVersion.from_string("1.36.9"),
+        weaviate_version=_ServerVersion.from_string("1.32.0"),
         name="Documents",
         tenant=None,
         consistency_level=None,

@@ -18,6 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  WEAVIATE_132: 1.32.27
+  WEAVIATE_133: 1.33.18
+  WEAVIATE_134: 1.34.20
+  WEAVIATE_135: 1.35.23
   WEAVIATE_136: 1.36.23
   WEAVIATE_137: 1.37.14
   WEAVIATE_138: 1.38.9
@@ -364,6 +368,10 @@ jobs:
       fail-fast: false
       matrix:
         version: [
+          $WEAVIATE_132,
+          $WEAVIATE_133,
+          $WEAVIATE_134,
+          $WEAVIATE_135,
           $WEAVIATE_136,
           $WEAVIATE_137,
           $WEAVIATE_138,

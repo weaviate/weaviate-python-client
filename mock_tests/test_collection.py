@@ -71,7 +71,7 @@ def test_insufficient_permissions(
     weaviate_mock.check_assertions()
 
 
-@pytest.mark.parametrize("version,supported", [("1.36.8", False), ("1.36.9", True)])
+@pytest.mark.parametrize("version,supported", [("1.31.0", False), ("1.32.0", True)])
 def test_min_version(
     ready_mock: HTTPServer, start_grpc_server: grpc.Server, version: str, supported: bool
 ) -> None:
@@ -87,12 +87,12 @@ def test_min_version(
             weaviate.connect_to_local(
                 port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
             )
-        assert "1.36.9 or higher" in e.value.message
+        assert "1.32.0 or higher" in e.value.message
     ready_mock.check_assertions()
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("version,supported", [("1.36.8", False), ("1.36.9", True)])
+@pytest.mark.parametrize("version,supported", [("1.31.0", False), ("1.32.0", True)])
 async def test_min_version_async(
     ready_mock: HTTPServer, start_grpc_server: grpc.Server, version: str, supported: bool
 ) -> None:
@@ -107,7 +107,7 @@ async def test_min_version_async(
         else:
             with pytest.raises(WeaviateStartUpError) as e:
                 await client.connect()
-            assert "1.36.9 or higher" in e.value.message
+            assert "1.32.0 or higher" in e.value.message
     finally:
         await client.close()
     ready_mock.check_assertions()
