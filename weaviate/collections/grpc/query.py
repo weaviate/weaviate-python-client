@@ -520,6 +520,9 @@ class _QueryGRPC(_BaseGRPC):
 
         return_properties_parsed = self.__parse_return_properties(return_properties)
 
+        if decide is not None and group_by is not None:
+            raise WeaviateInvalidInputError("decide is not supported with group_by")
+
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
             uses_125_api=self.__uses_125_api,
@@ -595,12 +598,12 @@ class _QueryGRPC(_BaseGRPC):
             return None
         questions = [decide] if isinstance(decide, DecideQuestion) else list(decide)
         if len(questions) == 0:
-            return None
+            raise WeaviateInvalidInputError("decide needs at least one question")
         out = []
         for question in questions:
             if not isinstance(question, DecideQuestion):
                 raise WeaviateInvalidInputError(
-                    f"decide must hold DecideQuestion objects built with Decide, got {type(question).__name__}"
+                    f"decide must hold DecideQuestion objects built with Decision, got {type(question).__name__}"
                 )
             message = decisions_pb2.DecisionQuestion(
                 name=question.name, property=question.prop, instructions=question.instructions

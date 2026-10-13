@@ -309,6 +309,11 @@ def _named(
         items = [(str(name), None) for name in values]
     if len(items) < 2:
         raise WeaviateInvalidInputError(f"{what} needs at least two entries, got {len(items)}")
+    seen = set()
+    for name, _ in items:
+        if name in seen:
+            raise WeaviateInvalidInputError(f"{what} must be distinct, {name!r} is listed twice")
+        seen.add(name)
     return items
 
 

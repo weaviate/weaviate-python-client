@@ -2,7 +2,7 @@ import pytest
 
 import weaviate.classes as wvc
 from weaviate.collections.classes.config import Decisions
-from weaviate.exceptions import WeaviateQueryError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 
 from .conftest import CollectionFactory
 
@@ -100,7 +100,8 @@ def test_decide_is_rejected_with_group_by(collection_factory: CollectionFactory)
     collection = _collection(collection_factory)
     collection.data.insert({"text": "x"})
 
-    with pytest.raises(WeaviateQueryError):
+    # The client refuses it before the request, as the server would.
+    with pytest.raises(WeaviateInvalidInputError):
         collection.query.bm25(
             "x",
             group_by=wvc.query.GroupBy(prop="text", objects_per_group=1, number_of_groups=1),

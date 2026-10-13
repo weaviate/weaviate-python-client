@@ -2,9 +2,10 @@ import pytest
 
 import weaviate
 from mock_tests.conftest import MockDecisionsWeaviateService
-from weaviate.classes.query import Decision
+from weaviate.classes.query import Decision, GroupBy
 from weaviate.collections.classes.internal import DecisionAnswer
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.proto.v1 import search_get_pb2
 
 QUESTIONS = [
     Decision.predicate("angry", prop="text", instructions="Is the customer angry?"),
@@ -97,8 +98,27 @@ def test_no_decide_sends_no_questions(
         lambda: Decision.choice("t", prop="p", instructions="i", options="ab"),  # type: ignore[arg-type]
         lambda: Decision.score("t", prop="p", instructions="i", levels=["only"]),
         lambda: Decision.score("t", prop="p", instructions="i", levels="ab"),  # type: ignore[arg-type]
+        lambda: Decision.choice("t", prop="p", instructions="i", options=["a", "a"]),
+        lambda: Decision.score("t", prop="p", instructions="i", levels=["a", "a"]),
     ],
 )
 def test_questions_need_at_least_two_named_answers(build) -> None:
     with pytest.raises(WeaviateInvalidInputError):
         build()
+
+
+def test_decide_is_rejected_before_the_request(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+    service.captured_request = search_get_pb2.SearchRequest()
+
+    with pytest.raises(WeaviateInvalidInputError, match="at least one question"):
+        collection.query.bm25("billing", decide=[])
+    with pytest.raises(WeaviateInvalidInputError, match="group_by"):
+        collection.query.bm25(
+            "billing",
+            group_by=GroupBy(prop="text", objects_per_group=1, number_of_groups=1),
+            decide=QUESTIONS[0],
+        )
+    assert service.captured_request.collection == "", "nothing was sent"

@@ -160,7 +160,7 @@ class _FetchObjectsQueryExecutor(
             after: The UUID of the object to start from. If not specified, the retrieval begins from the first object in the server.
             filters: The filters to apply to the retrieval.
             sort: The sorting to apply to the retrieval.
-            decide: Questions for the collection's decisions module to answer about every object returned, built with `Decide`. NOTE: A `decisions-*` module must be configured for this functionality to work.
+            decide: Questions for the collection's decisions module to answer about every object returned, built with `Decision`. NOTE: A `decisions-*` module must be configured for this functionality to work.
             include_vector: Whether to include the vector in the results. If not specified, this is set to False.
             return_metadata: The metadata to return for each object, defaults to `None`.
             return_properties: The properties to return for each object.
