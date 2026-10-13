@@ -1,9 +1,9 @@
 # Weaviate Python Client
 
-<img src="https://raw.githubusercontent.com/weaviate/weaviate/19de0956c69b66c5552447e84d016f4fe29d12c9/docs/assets/weaviate-logo.png" alt="Weaviate logo" width="180" align="right">
+<img src="https://weaviate.io/img/site/weaviate-logo-light.png" alt="Weaviate logo" width="180" align="right">
 
 [![PyPI version](https://img.shields.io/pypi/v/weaviate-client)](https://pypi.org/project/weaviate-client/)
-[![Python versions](https://img.shields.io/pypi/pyversions/weaviate-client)](https://pypi.org/project/weaviate-client/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/weaviate-client/)
 [![CI](https://github.com/weaviate/weaviate-python-client/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/weaviate/weaviate-python-client/actions/workflows/main.yaml)
 [![Documentation Status](https://app.readthedocs.org/projects/weaviate-python-client/badge/?version=latest)](https://weaviate-python-client.readthedocs.io/en/latest/)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](https://github.com/weaviate/weaviate-python-client/blob/main/LICENSE)
@@ -123,8 +123,8 @@ The client checks the server version when it connects and raises an error if the
 ## Contributing
 
 Contributions are welcome.
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request.
+Read [CONTRIBUTING.md](https://github.com/weaviate/weaviate-python-client/blob/main/CONTRIBUTING.md) before you open a pull request.
 
 ## License
 
-BSD 3-Clause. See [LICENSE](LICENSE).
+BSD 3-Clause. See [LICENSE](https://github.com/weaviate/weaviate-python-client/blob/main/LICENSE).
