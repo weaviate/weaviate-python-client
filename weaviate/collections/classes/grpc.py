@@ -301,7 +301,7 @@ class Decide(Rerank):
         # A plain Rerank may leave the query to the reranker; a decision has
         # nothing to judge without one, and the server would only fail after
         # the search.
-        if self.query is None:
+        if not self.query or not self.query.strip():
             raise ValueError("Decide needs the query the model judges")
         return self
 

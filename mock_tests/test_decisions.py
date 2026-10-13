@@ -159,6 +159,7 @@ def test_rerank_by_a_decision_needs_a_probability(min_probability: float) -> Non
         Decide(prop="text", query="angry", min_probability=min_probability)
 
 
-def test_rerank_by_a_decision_needs_a_query() -> None:
+@pytest.mark.parametrize("query", [None, "", "   "])
+def test_rerank_by_a_decision_needs_a_query(query) -> None:
     with pytest.raises(ValidationError):
-        Decide(prop="text")  # type: ignore[call-arg]
+        Decide(prop="text", query=query)
