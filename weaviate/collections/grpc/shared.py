@@ -653,9 +653,7 @@ class _BaseGRPC:
             else:
                 vector_bytes = vector_bytes_tmp
 
-        use_alpha_param = self._weaviate_version.is_at_least(
-            1, 36, 6
-        )  # TODO: change to 1.36.7 once it's released
+        use_alpha_param = self._weaviate_version.is_at_least(1, 36, 7)
         return (
             base_search_pb2.Hybrid(
                 properties=properties,

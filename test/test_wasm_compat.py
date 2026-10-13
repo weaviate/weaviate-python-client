@@ -51,7 +51,7 @@ def _connection(prefix=None) -> _ConnectionBase:
     conn = object.__new__(_ConnectionBase)
     conn._client = None
     conn._grpc_channel = None
-    conn._weaviate_version = _ServerVersion.from_string("1.36.23")
+    conn._weaviate_version = _ServerVersion.from_string("1.36.0")
     conn._connection_params = ConnectionParams.from_url(
         "http://localhost:8080",
         grpc_port=8080 if prefix else 50051,
@@ -82,7 +82,7 @@ def test_grpc_web_404_names_the_two_real_causes_and_drops_firewall_advice() -> N
     assert "HTTP 404 for /grpc-web/grpc.health.v1.Health/Check" in msg  # ... and details
     assert "/grpc-web" in msg  # the prefix that was actually used
     assert "1.38.3" in msg  # candidate 1: server too old ...
-    assert "v1.36.23" in msg  # ... shown against the observed server version
+    assert "v1.36.0" in msg  # ... shown against the observed server version
     assert "/v1/grpc-web" in msg  # candidate 2: wrong prefix
 
 
