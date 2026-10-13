@@ -16,7 +16,7 @@ This minor version includes:
         - Add the ``read_backups`` permission through ``Permissions.backup(read=True)`` and ``Actions.Backups.READ``
         - Add ``include_roles`` and ``include_users`` to ``backup.create()``, which are only sent when set and require Weaviate 1.40
         - Read the HFresh multi-vector and MUVERA settings back from the server in ``collection.config.get()``
-        - Change the default Weaviate version of embedded instances to 1.40.0
+        - Change the default Weaviate version of embedded instances to 1.40.1
     - Add support for the new ``generative-meta`` module through ``Configure.Generative.meta()`` and ``GenerativeConfig.meta()``
     - Add public names for the collection configuration types, so a helper that passes one around no longer has to import a private class:
         - Every non-deprecated type accepted by ``collections.create()`` and ``collections.config.update()`` now has a public name exported from ``weaviate.classes.config``, among them ``VectorConfigCreate``, ``VectorConfigUpdate``, ``InvertedIndexConfigCreate``, ``ReplicationConfigUpdate``, ``ObjectTTLConfigCreate``, ``GenerativeProvider`` and ``RerankerProvider``
