@@ -79,15 +79,16 @@ Weaviate Cloud: browser use requires **Allow all CORS origins** in the cluster's
 in the Weaviate Cloud console (takes a few minutes to apply). Until it applies, the client
 fails at its first REST call with a `Failed to fetch` connection error.
 
-`use_async_with_custom()` still requires `grpc_host`/`grpc_port`/`grpc_secure` — Python
-cannot drop required parameters on one platform the way TypeScript drops them from a
-type. Pass the HTTP values; anything else is overridden with them and warned about
-(`Con006`), so a browser client never silently points somewhere it cannot reach.
+`use_async_with_custom()` still requires `grpc_host`/`grpc_port`/`grpc_secure`. Under
+Pyodide they are ignored: gRPC always uses the REST endpoint, and values that differ from
+the HTTP ones are reported in a `Con006` warning. Code that also runs on CPython should
+keep its native gRPC values (there, the same host and port for both is an error) and may
+ignore that warning.
 
 ```python
 client = weaviate.use_async_with_custom(
     http_host="localhost", http_port=8080, http_secure=False,
-    grpc_host="localhost", grpc_port=8080, grpc_secure=False,   # = the HTTP endpoint
+    grpc_host="localhost", grpc_port=50051, grpc_secure=False,  # CPython; ignored under Pyodide
 )
 ```
 
@@ -106,7 +107,7 @@ Importing `weaviate_client_web` before `weaviate` is equivalent.
 | Bulk insert: `collection.data.insert_many()`              | unary gRPC      | Yes, the bulk path under Pyodide |
 | `batch.stream()` / `batch.experimental()` (BatchStream)  | bidi streaming  | No: grpc-web has no bidirectional streaming; raises at once, use `insert_many()` |
 | `batch.dynamic()` / `fixed_size()` / `rate_limit()`      | sync-client API | No: sync client only |
-| Embedded Weaviate (`use_async_with_embedded`)            | subprocess      | No: raises "not supported under WebAssembly/Pyodide" |
+| Embedded Weaviate (`use_async_with_embedded`)            | subprocess      | No: raises "not supported under Pyodide" |
 | Synchronous client                                       | —               | No: async only |
 
 ## Configuration not honored in the browser
@@ -145,7 +146,9 @@ a bad API key) are reported as `INTERNAL: grpc-web response contained no message
 instead of the real error.
 
 In the browser a CORS-blocked request is indistinguishable from a network failure
-(`TypeError: Failed to fetch`), and is retried as UNAVAILABLE.
+(`TypeError: Failed to fetch`); the error text names CORS as one possible cause. On a
+channel that has not yet received any response such a failure is reported as `UNKNOWN`
+and fails at once; after the first response it is `UNAVAILABLE` and retried.
 
 ## Testing
 

@@ -138,9 +138,8 @@ class _BatchBaseAsync:
             # fail early: over grpc-web the BatchStream RPC would fail inside the background
             # tasks, which shows up as silently dropped objects or a flush() that never ends
             raise WeaviateBatchStreamError(
-                "batch.stream() requires bidirectional gRPC streaming, which is not "
-                "possible over grpc-web/fetch (WebAssembly/Pyodide). Use "
-                "collection.data.insert_many() instead."
+                "batch.stream() needs bidirectional gRPC streaming, which grpc-web does "
+                "not support (Pyodide). Use collection.data.insert_many() instead"
             )
         self.__number_of_nodes = await self.__cluster.get_number_of_nodes()
 

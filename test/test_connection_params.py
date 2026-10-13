@@ -50,6 +50,9 @@ def test_from_url_same_host_port_allowed_with_prefix() -> None:
         ("/grpc-web", "/grpc-web"),
         ("grpc-web/", "/grpc-web"),
         ("/a/b/", "/a/b"),
+        ("  ", ""),  # blank means native gRPC, not a whitespace path
+        (" /grpc-web ", "/grpc-web"),
+        ("//a//b/", "/a/b"),
     ],
 )
 def test_path_prefix_normalization(raw, expected) -> None:
@@ -123,8 +126,9 @@ def test_async_client_construction_rejects_prefix_without_shim(monkeypatch) -> N
     from weaviate import WeaviateAsyncClient
 
     monkeypatch.delattr(base_mod.grpc, "__weaviate_client_web_shim__", raising=False)
-    with pytest.raises(WeaviateInvalidInputError, match="weaviate-client-web"):
+    with pytest.raises(WeaviateInvalidInputError, match="weaviate-client-web") as excinfo:
         WeaviateAsyncClient(_grpc_web_params())
+    assert str(excinfo.value).endswith("use native gRPC instead.")  # one period, not two
 
 
 def test_async_client_construction_allows_prefix_with_shim(monkeypatch) -> None:
@@ -138,8 +142,13 @@ def test_async_client_construction_allows_prefix_with_shim(monkeypatch) -> None:
 def test_sync_client_construction_rejects_grpc_web_prefix() -> None:
     from weaviate import WeaviateClient
 
-    with pytest.raises(WeaviateInvalidInputError, match="async"):
+    with pytest.raises(WeaviateInvalidInputError, match="async") as excinfo:
         WeaviateClient(_grpc_web_params())
+    msg = str(excinfo.value)
+    # use_async_with_custom() has no grpc_path_prefix; point at what does
+    assert "WeaviateAsyncClient(ConnectionParams.from_params(" in msg
+    assert "grpc_path_prefix=" in msg
+    assert "use_async_with_custom" not in msg
 
 
 @pytest.mark.parametrize(
@@ -178,7 +187,7 @@ def test_sync_client_construction_rejects_grpc_web_prefix() -> None:
         ),
     ],
 )
-def test_helper_params_off_emscripten_are_unchanged(call, expected) -> None:
+def test_helper_params_off_emscripten_use_native_grpc(call, expected) -> None:
     # off Emscripten the helpers use native gRPC: grpc_path_prefix stays None
     import weaviate
 

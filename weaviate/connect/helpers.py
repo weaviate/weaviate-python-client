@@ -41,9 +41,7 @@ def _webify(
     replaced caller endpoint raises warning Con006.
     """
     if sys.platform != "emscripten":
-        # grpc_path_prefix=None is passed explicitly so the constructor call (and pydantic's
-        # error output for it) looks exactly as it did before grpc-web existed
-        return ConnectionParams(http=http, grpc=grpc, grpc_path_prefix=None)
+        return ConnectionParams(http=http, grpc=grpc)
 
     web_grpc = ProtocolParams(host=http.host, port=http.port, secure=http.secure)
     if grpc_chosen_by_caller and web_grpc != grpc:
@@ -417,7 +415,11 @@ def use_async_with_weaviate_cloud(
     in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
 
     Under Pyodide, gRPC runs over grpc-web on the cluster's REST endpoint (443) instead of
-    the ``grpc-`` host.
+    the ``grpc-`` host. Browser use requires "Allow all CORS origins" in the cluster's
+    settings in the Weaviate Cloud console; until it applies, the first REST call fails
+    with a "Failed to fetch" connection error.
+    ``AdditionalConfig`` ``proxies`` / ``trust_env`` and ``GrpcConfig.channel_options`` have no
+    effect under Pyodide: the browser's fetch makes every request.
 
     Args:
         cluster_url: The WCD cluster URL or hostname to connect to. Usually in the form: rAnD0mD1g1t5.something.weaviate.cloud
@@ -471,7 +473,7 @@ def use_async_with_weaviate_cloud(
 def use_async_with_local(
     host: str = "localhost",
     port: int = 8080,
-    grpc_port: int = 50051,
+    grpc_port: int = _LOCAL_GRPC_PORT_DEFAULT,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
@@ -485,6 +487,8 @@ def use_async_with_local(
 
     Under Pyodide, gRPC runs over grpc-web on the REST endpoint; a non-default
     ``grpc_port`` is ignored with a warning.
+    ``AdditionalConfig`` ``proxies`` / ``trust_env`` and ``GrpcConfig.channel_options`` have no
+    effect under Pyodide: the browser's fetch makes every request.
 
     Args:
         host: The host to use for the underlying REST and GraphQL API calls.
@@ -641,6 +645,8 @@ def use_async_with_custom(
     Under Pyodide, gRPC runs over grpc-web on the REST endpoint: ``grpc_host``,
     ``grpc_port`` and ``grpc_secure`` are replaced by the HTTP values, with a warning if
     they differ.
+    ``AdditionalConfig`` ``proxies`` / ``trust_env`` and ``GrpcConfig.channel_options`` have no
+    effect under Pyodide: the browser's fetch makes every request.
 
     Args:
         http_host: The host to use for the underlying REST and GraphQL API calls.

@@ -4,16 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "weaviate-client-web"
-description = "grpc-web / WASM (Pyodide) transport for the Weaviate Python client"
+description = "grpc-web and fetch transports for the Weaviate Python client under Pyodide"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
 authors = [{ name = "Weaviate", email = "hello@weaviate.io" }]
 keywords = ["weaviate", "grpc-web", "pyodide", "wasm", "emscripten"]
-# Version comes from the repository's git tags via setuptools_scm (root below), so every
-# build carries the same version as weaviate-client; CI asserts the built wheels match.
-# Dependencies are computed in setup.py: the weaviate-client requirement is pinned to
-# that same version at build time, so mismatched pairs cannot resolve at install time.
+# version: git tags (setuptools_scm); dependencies: setup.py (lockstep weaviate-client pin)
 dynamic = ["version", "dependencies"]
 
 [project.urls]
