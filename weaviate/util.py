@@ -21,16 +21,12 @@ from weaviate.exceptions import (
     SchemaValidationError,
     UnexpectedStatusCodeError,
     WeaviateInvalidInputError,
-    WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import BLOB_INPUT, NUMBER, TIME, UUIDS
 from weaviate.warnings import _Warnings
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
-MINIMUM_NO_WARNING_VERSION = (
-    "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
-)
 BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
 
 
@@ -500,22 +496,6 @@ def strip_newlines(s: str) -> str:
     return s.replace("\n", " ")
 
 
-def _sanitize_str(value: str) -> str:
-    """Ensures string is sanitized for GraphQL.
-
-    Args:
-        value: The value to be converted.
-
-    Returns:
-        The sanitized string.
-    """
-    value = strip_newlines(value)
-    value = re.sub(
-        r'(?<!\\)((?:\\{2})*)"', r"\1\"", value
-    )  # only replaces unescaped double quotes without permitting query injection
-    return f'"{value}"'
-
-
 def parse_version_string(ver_str: str) -> tuple:
     """Parse a version string into a float.
 
@@ -617,32 +597,6 @@ class _ServerVersion:
             if (self.major, self.minor) >= (major, minor):
                 return self >= _ServerVersion(major, minor, patch)
         return False
-
-    def check_is_at_least_1_25_0(self, feature: str) -> None:
-        if not self >= _ServerVersion(1, 25, 0):
-            raise WeaviateUnsupportedFeatureError(feature, str(self), "1.25.0")
-
-    def check_is_at_least_1_32_0(self, feature: str) -> None:
-        if not self >= _ServerVersion(1, 32, 0):
-            raise WeaviateUnsupportedFeatureError(feature, str(self), "1.32.0")
-
-    @property
-    def supports_tenants_get_grpc(self) -> bool:
-        return self >= _ServerVersion(1, 25, 0)
-
-
-def is_weaviate_too_old(current_version_str: str) -> bool:
-    """Check if the user should be gently nudged to upgrade their Weaviate server version.
-
-    Args:
-        current_version_str: The version of the Weaviate server that the client is connected to. (e.g. "v1.18.2" or "1.18.0")
-
-    Returns:
-        True if the user should be nudged to upgrade.
-    """
-    current_version = parse_version_string(current_version_str)
-    minimum_version = parse_version_string(MINIMUM_NO_WARNING_VERSION)
-    return minimum_version > current_version
 
 
 def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str) -> bool:

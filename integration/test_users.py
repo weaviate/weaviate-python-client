@@ -16,8 +16,6 @@ def _unique_user_id(name: str) -> str:
 
 def test_own_user(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         user = client.users.get_my_user()
         assert len(user.roles) > 0
         assert user.user_id == "admin-user"
@@ -25,16 +23,12 @@ def test_own_user(client_factory: ClientFactory) -> None:
 
 def test_get_user_roles_deprecated(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         roles = client.users.get_assigned_roles("admin-user")
         assert len(roles) > 0
 
 
 def test_get_user_roles_db(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
         roles_base = client.users.db.get_assigned_roles(user_id="admin-user")
         names = list(roles_base.keys())
         assert len(roles_base) > 0
@@ -47,8 +41,6 @@ def test_get_user_roles_db(client_factory: ClientFactory) -> None:
 
 def test_get_user_roles_oidc(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
         roles_base = client.users.oidc.get_assigned_roles(user_id="admin-user")
         names = list(roles_base.keys())
         assert len(roles_base) > 0
@@ -61,16 +53,12 @@ def test_get_user_roles_oidc(client_factory: ClientFactory) -> None:
 
 def test_get_user_with_no_roles(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("custom-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         user = client.users.get_my_user()
         assert len(user.roles) == 0
 
 
 def test_get_static_db_user(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
         user = client.users.db.get(user_id="admin-user")
         assert len(user.role_names) > 0
         assert user.user_id == "admin-user"
@@ -80,9 +68,6 @@ def test_get_static_db_user(client_factory: ClientFactory) -> None:
 
 def test_create_user_and_get(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=(RBAC_PORTS), auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         user_id = _unique_user_id(request.node.name)
         api_key = client.users.db.create(user_id=user_id)
         with weaviate.connect_to_local(
@@ -99,9 +84,6 @@ def test_create_user_and_get(client_factory: ClientFactory, request: SubRequest)
 
 def test_delete_user(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         user_id = _unique_user_id(request.node.name)
         client.users.db.create(user_id=user_id)
         assert client.users.db.delete(user_id=user_id)
@@ -111,9 +93,6 @@ def test_delete_user(client_factory: ClientFactory, request: SubRequest) -> None
 
 def test_rotate_user_key(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         user_id = _unique_user_id(request.node.name)
         api_key = client.users.db.create(user_id=user_id)
         with weaviate.connect_to_local(
@@ -134,9 +113,6 @@ def test_rotate_user_key(client_factory: ClientFactory, request: SubRequest) -> 
 
 def test_de_activate(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         user_id = _unique_user_id(request.node.name)
         client.users.db.create(user_id=user_id)
 
@@ -158,9 +134,6 @@ def test_de_activate(client_factory: ClientFactory, request: SubRequest) -> None
 
 def test_deactivate_and_revoke(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         user_id = _unique_user_id(request.node.name)
         api_key_old = client.users.db.create(user_id=user_id)
         assert client.users.db.deactivate(user_id=user_id, revoke_key=True)
@@ -194,8 +167,6 @@ def test_deactivate_and_revoke(client_factory: ClientFactory, request: SubReques
 
 def test_deprecated_syntax(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
         user_id = _unique_user_id(request.node.name)
         client.users.db.create(user_id=user_id)
         roles = client.users.db.get_assigned_roles(user_id=user_id)
@@ -205,9 +176,6 @@ def test_deprecated_syntax(client_factory: ClientFactory, request: SubRequest) -
 
 def test_list_all_users(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         for i in range(5):
             client.users.db.delete(user_id=f"list-all-user-{i}")
             client.users.db.create(user_id=f"list-all-user-{i}")
@@ -223,9 +191,6 @@ def test_get_user_created_at_and_api_key_first_letters(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         user_id = _unique_user_id(request.node.name)
         client.users.db.create(user_id=user_id)
         try:
@@ -242,9 +207,6 @@ def test_get_user_include_last_used_time(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         user_id = _unique_user_id(request.node.name)
         api_key = client.users.db.create(user_id=user_id)
         try:
@@ -273,9 +235,6 @@ def test_list_all_include_last_used_time(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         user_id = _unique_user_id(request.node.name)
         api_key = client.users.db.create(user_id=user_id)
         try:

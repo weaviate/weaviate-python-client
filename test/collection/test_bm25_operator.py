@@ -16,8 +16,6 @@ def _builder(version: str = "1.39.0") -> _QueryGRPC:
         tenant=None,
         consistency_level=None,
         validate_arguments=True,
-        uses_125_api=True,
-        uses_127_api=True,
     )
 
 

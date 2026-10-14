@@ -1,6 +1,6 @@
 import asyncio
 from math import ceil
-from typing import Any, Dict, Generic, List, Optional, Sequence, Union
+from typing import Dict, Generic, List, Optional, Sequence, Union
 
 from httpx import Response
 
@@ -148,28 +148,6 @@ class _TenantsExecutor(Generic[ConnectionType]):
             ),
         )
 
-    def __get_with_rest(
-        self,
-    ) -> executor.Result[Dict[str, TenantOutputType]]:
-        path = "/schema/" + self._name + "/tenants"
-
-        def resp(res: Response) -> Dict[str, TenantOutputType]:
-            tenant_resp: List[Dict[str, Any]] = res.json()
-            for tenant in tenant_resp:
-                tenant["activityStatusInternal"] = tenant["activityStatus"]
-                del tenant["activityStatus"]
-            return {tenant["name"]: TenantOutput(**tenant) for tenant in tenant_resp}
-
-        return executor.execute(
-            response_callback=resp,
-            method=self._connection.get,
-            path=path,
-            error_msg=f"Could not get collection tenants for {self._name}",
-            status_codes=_ExpectedStatusCodes(
-                ok_in=200, error=f"Get collection tenants for {self._name}"
-            ),
-        )
-
     def __get_with_grpc(
         self, *, tenants: Optional[Sequence[TenantInputType]] = None
     ) -> executor.Result[Dict[str, TenantOutputType]]:
@@ -269,18 +247,7 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-
-        def resp(res: Dict[str, TenantOutputType]) -> Dict[str, TenantOutputType]:
-            return res
-
-        return executor.execute(
-            response_callback=resp,
-            method=(
-                self.__get_with_grpc
-                if self._connection._weaviate_version.supports_tenants_get_grpc
-                else self.__get_with_rest
-            ),
-        )
+        return self.__get_with_grpc()
 
     def get_by_names(
         self, tenants: Sequence[TenantInputType]
@@ -298,7 +265,6 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-        self._connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_names' method")
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(
@@ -323,27 +289,14 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-        self._connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_name' method")
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(expected=[Union[str, Tenant]], name="tenant", value=tenant)
             )
         tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
-        if self._connection._weaviate_version.is_lower_than(1, 28, 0):
-            # For Weaviate versions < 1.28.0, we need to use the gRPC API
-            # such versions don't have RBAC so the filtering issue doesn't exist therein
-            def resp_grpc(res: Dict[str, TenantOutputType]) -> Optional[TenantOutputType]:
-                return res.get(tenant_name)
 
-            return executor.execute(
-                response_callback=resp_grpc,
-                method=self.__get_with_grpc,
-                tenants=[tenant_name],
-            )
-
-        # For Weaviate versions >= 1.28.0, we need to use the REST API
-        # as the gRPC API filters out tenants that are not accessible to the user
-        # due to RBAC requirements
+        # Use REST rather than gRPC, as the gRPC API filters out tenants that the user
+        # cannot access due to RBAC
         def resp_rest(res: Response) -> Optional[TenantOutputType]:
             if res.status_code == 404:
                 return None
@@ -446,7 +399,6 @@ class _TenantsExecutor(Generic[ConnectionType]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
-        self._connection._weaviate_version.check_is_at_least_1_25_0("The 'exists' method")
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(

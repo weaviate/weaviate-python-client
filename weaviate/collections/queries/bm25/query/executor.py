@@ -347,7 +347,6 @@ class _BM25QueryExecutor(
 
         Raises:
             weaviate.exceptions.WeaviateQueryError: If the network connection to Weaviate fails.
-            weaviate.exceptions.WeaviateNotImplementedError: If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
 
         def resp(

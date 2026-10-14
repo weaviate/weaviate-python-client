@@ -21,7 +21,6 @@ from weaviate.collections.classes.generative import (
 from weaviate.collections.classes.grpc import GroupBy, Rerank
 from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import generative_pb2
-from weaviate.util import _ServerVersion
 
 
 @pytest.mark.parametrize("parameter,answer", [("text", "yes"), ("content", "no")])
@@ -594,9 +593,6 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         ports=(8086, 50057),
         headers={"X-Cohere-Api-Key": api_key},
     )
-    if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
-        pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")
-
     insert = collection.data.insert_many(
         [{"text": "This is a test"}, {"text": "This is another test"}]
     )
@@ -705,41 +701,37 @@ def test_near_text_generate_with_dynamic_rag(
         ),
     )
 
-    if collection._connection._weaviate_version.is_lower_than(1, 30, 0):
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            res = query()
+    res = query()
+    # deprecated usage
+    assert res.generated == "bananas melons"
+    assert res.objects[0].generated is not None
+    assert res.objects[1].generated is not None
+
+    assert res.generative is not None
+    assert res.generative.text == "bananas melons"
+
+    if isinstance(grouped, _GroupedTask):
+        assert isinstance(res.generative.metadata, generative_pb2.GenerativeOpenAIMetadata)
     else:
-        res = query()
-        # deprecated usage
-        assert res.generated == "bananas melons"
-        assert res.objects[0].generated is not None
-        assert res.objects[1].generated is not None
+        assert res.generative.metadata is None
 
-        assert res.generative is not None
-        assert res.generative.text == "bananas melons"
+    g0 = res.objects[0].generative
+    g1 = res.objects[1].generative
 
-        if isinstance(grouped, _GroupedTask):
-            assert isinstance(res.generative.metadata, generative_pb2.GenerativeOpenAIMetadata)
-        else:
-            assert res.generative.metadata is None
+    assert g0 is not None
+    assert g0.text is not None
+    assert g1 is not None
+    assert g1.text is not None
 
-        g0 = res.objects[0].generative
-        g1 = res.objects[1].generative
-
-        assert g0 is not None
-        assert g0.text is not None
-        assert g1 is not None
-        assert g1.text is not None
-
-        if isinstance(single, _SinglePrompt):
-            assert g0.debug is not None
-            assert isinstance(g0.metadata, generative_pb2.GenerativeOpenAIMetadata)
-            assert g1.debug is not None
-            assert isinstance(g1.metadata, generative_pb2.GenerativeOpenAIMetadata)
-        else:
-            assert g0.debug is None
-            assert g0.metadata is None
-            assert g1.metadata is None
+    if isinstance(single, _SinglePrompt):
+        assert g0.debug is not None
+        assert isinstance(g0.metadata, generative_pb2.GenerativeOpenAIMetadata)
+        assert g1.debug is not None
+        assert isinstance(g1.metadata, generative_pb2.GenerativeOpenAIMetadata)
+    else:
+        assert g0.debug is None
+        assert g0.metadata is None
+        assert g1.metadata is None
 
 
 @pytest.mark.parametrize("parameter,answer", [("text", "yes"), ("content", "no")])
@@ -768,8 +760,6 @@ def test_contextualai_generative_search_single(
         headers={"X-Contextual-Api-Key": api_key},
         ports=(8086, 50057),
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
-        pytest.skip("Generative search requires Weaviate 1.23.1 or higher")
 
     collection.data.insert_many(
         [
@@ -811,8 +801,6 @@ def test_contextualai_generative_with_knowledge_parameter(
         headers={"X-Contextual-Api-Key": api_key},
         ports=(8086, 50057),
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
-        pytest.skip("Generative search requires Weaviate 1.23.1 or higher")
 
     collection.data.insert_many(
         [
@@ -856,9 +844,6 @@ def test_contextualai_generative_and_rerank_combined(collection_factory: Collect
         headers={"X-Contextual-Api-Key": contextual_api_key},
         ports=(8086, 50057),
     )
-    if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
-        pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")
-
     insert = collection.data.insert_many(
         [{"text": "This is a test"}, {"text": "This is another test"}]
     )

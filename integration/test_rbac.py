@@ -370,7 +370,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 ],
                 groups_permissions=[],
             ),
-            32,
+            None,
         ),
         (
             Permissions.alias(alias="", collection="*", read=True, delete=True),
@@ -395,7 +395,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 replicate_permissions=[],
                 groups_permissions=[],
             ),
-            32,  # Minimum version for alias permissions
+            None,
         ),
         (
             Permissions.alias(alias="*", collection="*", read=True, delete=True),
@@ -420,7 +420,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 replicate_permissions=[],
                 groups_permissions=[],
             ),
-            32,  # Minimum version for alias permissions
+            None,
         ),
         (
             Permissions.alias(alias="myCAR", collection="*", read=True, delete=True),
@@ -445,7 +445,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 replicate_permissions=[],
                 groups_permissions=[],
             ),
-            32,  # Minimum version for alias permissions
+            None,
         ),
         (
             Permissions.mcp(create=True, read=True, update=True),
@@ -512,7 +512,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                     )
                 ],
             ),
-            32,  # Minimum version for group permissions
+            None,
         ),
     ],
 )
@@ -523,8 +523,6 @@ def test_create_role(
     min_version: Optional[int],
 ) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         if min_version is not None and client._connection._weaviate_version.is_lower_than(
             1, min_version, 0
         ):
@@ -545,8 +543,6 @@ def test_create_role(
 
 def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         role_name = "ExistingRolePermissionsAdd"
         client.roles.delete(role_name)
         try:
@@ -584,8 +580,6 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
 
 def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         role_name = "ExistingRolePermissionsRemove"
         client.roles.delete(role_name)
         try:
@@ -622,8 +616,6 @@ def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None
 
 def test_multiple_permissions(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         role_name = "MultiplePermissions"
         try:
             required_permissions = [
@@ -667,8 +659,6 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
 @pytest.mark.parametrize("scope", [RoleScope.ALL, RoleScope.MATCH])
 def test_role_scope(client_factory: ClientFactory, scope: RoleScope, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 4):
-            pytest.skip("This test requires Weaviate 1.28.4 or higher")
         role_name = _sanitize_collection_name(request.node.name) + "_scope"
         try:
             client.roles.delete(role_name)
@@ -687,8 +677,6 @@ def test_role_scope(client_factory: ClientFactory, scope: RoleScope, request: Su
 
 def test_get_assigned_users(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         client.users.assign_roles(user_id="admin-user", role_names="viewer")
         assigned_users = client.roles.get_assigned_user_ids("viewer")
         assert len(assigned_users) == 1
@@ -697,9 +685,6 @@ def test_get_assigned_users(client_factory: ClientFactory) -> None:
 
 def test_get_assigned_users_db(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         names = _sanitize_collection_name(request.node.name)
         client.roles.delete(names)
         client.roles.create(
@@ -721,9 +706,6 @@ def test_get_assigned_users_db(client_factory: ClientFactory, request: SubReques
 
 def test_get_assigned_oidc_db(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-            pytest.skip("This test requires Weaviate 1.30.0 or higher")
-
         names = _sanitize_collection_name(request.node.name)
         client.roles.delete(names)
         client.roles.create(
@@ -742,8 +724,6 @@ def test_get_assigned_oidc_db(client_factory: ClientFactory, request: SubRequest
 
 def test_permission_output_as_input(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         role_name = "PermissionOutputAsInput"
         try:
             client.roles.create(
@@ -771,8 +751,6 @@ def test_permission_output_as_input(client_factory: ClientFactory) -> None:
 
 def test_permission_joining(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         role_name = "PermissionJoining"
         try:
             client.roles.create(

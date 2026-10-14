@@ -402,9 +402,6 @@ def test_backup_and_restore_with_dynamic_location(
     conf_restore: Optional[wvc.backup.BackupConfigRestore] = None
     backup_location: Optional[wvc.backup.BackupLocationType] = None
     if dynamic_backup_location:
-        if client._connection._weaviate_version.is_lower_than(1, 27, 2):
-            pytest.skip("Cancel backups is only supported from 1.27.2")
-
         backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
 
     article = client.collections.use("Article")
@@ -451,9 +448,6 @@ def test_backup_and_restore_with_dynamic_location(
 def test_backup_and_restore_with_collection_and_config_1_24_x(
     client: weaviate.WeaviateClient, request: SubRequest
 ) -> None:
-    if client._connection._weaviate_version.is_lower_than(1, 25, 0):
-        pytest.skip("Backup config is only supported from Weaviate 1.25.0")
-
     backup_id = unique_backup_id(request.node.name)
 
     article = client.collections.use("Article")
@@ -505,14 +499,9 @@ def test_cancel_backup_create(
 ) -> None:
     """Cancel backup create without waiting."""
     backup_id = unique_backup_id(request.node.name)
-    if client._connection._weaviate_version.is_lower_than(1, 24, 25):
-        pytest.skip("Cancel backups is only supported from 1.24.25")
 
     backup_location: Optional[wvc.backup.BackupLocationType] = None
     if dynamic_backup_location:
-        if client._connection._weaviate_version.is_lower_than(1, 27, 2):
-            pytest.skip("Cancel backups is only supported from 1.27.2")
-
         backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
 
     resp = client.backup.create(
@@ -609,8 +598,6 @@ def test_backup_and_restore_with_roles_and_users(
 ) -> None:
     backup_id = unique_backup_id(request.node.name)
     client = client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS)
-    if client._connection._weaviate_version.is_lower_than(1, 30, 10):
-        pytest.skip("User and roles are only supported from Weaviate 1.30.10")
 
     name = _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name)
     client.collections.delete(name)
@@ -654,8 +641,6 @@ def test_backup_and_restore_with_roles_and_users(
 def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     """List all backups."""
     backup_id = unique_backup_id(request.node.name)
-    if client._connection._weaviate_version.is_lower_than(1, 30, 0):
-        pytest.skip("List backups is only supported from 1.30.0")
 
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED
@@ -706,9 +691,6 @@ def test_list_backup_ascending_order(client: weaviate.WeaviateClient, request: S
 
 @pytest.fixture
 def artist_alias(client: weaviate.WeaviateClient) -> Generator[str, None, None]:
-    if client._connection._weaviate_version.is_lower_than(1, 32, 0):
-        pytest.skip("overwriteAlias is only supported from 1.33.0 onwards")
-
     client.alias.create(target_collection="Article", alias_name="Literature")
     yield "Literature"
     client.alias.delete(alias_name="Literature")
