@@ -110,6 +110,15 @@ OpenAiReasoningEffort: TypeAlias = Literal[
     "high",
 ]
 
+MetaReasoningEffort: TypeAlias = Literal[
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+]
+
 IndexName: TypeAlias = Literal[
     "searchable",
     "filterable",
@@ -217,6 +226,7 @@ class GenerativeSearches(str, BaseEnum):
         DEEPSEEK: Weaviate module backed by DeepSeek generative models.
         DIGITALOCEAN: Weaviate module backed by DigitalOcean generative models.
         FRIENDLIAI: Weaviate module backed by FriendliAI generative models.
+        META: Weaviate module backed by Meta generative models.
         MISTRAL: Weaviate module backed by Mistral generative models.
         NVIDIA: Weaviate module backed by NVIDIA generative models.
         OLLAMA: Weaviate module backed by generative models deployed on Ollama infrastructure.
@@ -234,6 +244,7 @@ class GenerativeSearches(str, BaseEnum):
     DIGITALOCEAN = "generative-digitalocean"
     DUMMY = "generative-dummy"
     FRIENDLIAI = "generative-friendliai"
+    META = "generative-meta"
     MISTRAL = "generative-mistral"
     NVIDIA = "generative-nvidia"
     OLLAMA = "generative-ollama"
@@ -471,6 +482,20 @@ class _GenerativeDigitalOcean(GenerativeProvider):
     frequencyPenalty: Optional[float]
     presencePenalty: Optional[float]
     stop: Optional[List[str]]
+
+
+class _GenerativeMeta(GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.META, frozen=True, exclude=True
+    )
+    baseURL: Optional[str]
+    model: Optional[str]
+    temperature: Optional[float]
+    topP: Optional[float]
+    maxTokens: Optional[int]
+    frequencyPenalty: Optional[float]
+    presencePenalty: Optional[float]
+    reasoningEffort: Optional[str]
 
 
 class _GenerativeMistral(GenerativeProvider):
@@ -875,6 +900,41 @@ class _Generative:
         """
         return _GenerativeFriendliai(
             model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
+
+    @staticmethod
+    def meta(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        reasoning_effort: Optional[Union[MetaReasoningEffort, str]] = None,
+    ) -> GenerativeProvider:
+        """Create a `_GenerativeMeta` object for use when performing AI generation using the `generative-meta` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            reasoning_effort: The reasoning effort to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeMeta(
+            baseURL=base_url,
+            model=model,
+            temperature=temperature,
+            topP=top_p,
+            maxTokens=max_tokens,
+            frequencyPenalty=frequency_penalty,
+            presencePenalty=presence_penalty,
+            reasoningEffort=reasoning_effort,
         )
 
     @staticmethod
@@ -1556,7 +1616,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     invertedIndexConfig: Optional[InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
     )
-    objectTTLConfig: Optional[ObjectTTLConfigUpdate] = Field(
+    objectTtlConfig: Optional[ObjectTTLConfigUpdate] = Field(
         default=None, alias="object_ttl_config"
     )
     replicationConfig: Optional[ReplicationConfigUpdate] = Field(
@@ -1685,9 +1745,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             schema["multiTenancyConfig"] = self.multiTenancyConfig.merge_with_existing(
                 schema["multiTenancyConfig"]
             )
-        if self.objectTTLConfig is not None:
-            schema["objectTTLConfig"] = self.objectTTLConfig.merge_with_existing(
-                schema.get("objectTTLConfig", {})
+        if self.objectTtlConfig is not None:
+            schema["objectTtlConfig"] = self.objectTtlConfig.merge_with_existing(
+                schema.get("objectTtlConfig", {})
             )
         if self.vectorIndexConfig is not None:
             self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
@@ -2077,6 +2137,11 @@ class _VectorIndexConfig(_ConfigBase):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _RQConfig):
             out["rq"] = {**out.pop("quantizer"), "enabled": True}
+        if self.multi_vector is not None:
+            multi_vector = out.pop("multiVector")
+            out["multivector"] = {"enabled": True, "aggregation": multi_vector["aggregation"]}
+            if "encoding" in multi_vector:
+                out["multivector"]["muvera"] = multi_vector["encoding"]
         return out
 
 
@@ -2347,7 +2412,16 @@ class _CollectionConfigSimple(_ConfigBase):
 
 CollectionConfigSimple = _CollectionConfigSimple
 
-ShardTypes = Literal["READONLY", "READY", "INDEXING"]
+ShardTypes = Literal[
+    "READONLY",
+    "READY",
+    "INDEXING",
+    "LOADING",
+    "LAZY_LOADING",
+    "SHUTDOWN",
+    "UNAVAILABLE",
+    "RECOVERING",
+]
 
 
 @dataclass
@@ -2355,7 +2429,7 @@ class _ShardStatus:
     name: str
     status: ShardTypes
     vector_queue_size: int
-    per_node_status: Optional[Dict[str, str]]
+    per_node_status: Optional[Dict[str, ShardTypes]]
 
 
 ShardStatus = _ShardStatus

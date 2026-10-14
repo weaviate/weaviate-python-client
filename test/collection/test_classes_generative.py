@@ -343,6 +343,37 @@ def test_generative_parameters_images_parsing(
             ),
         ),
         (
+            GenerativeConfig.meta(
+                base_url="https://api.meta.ai",
+                model="muse-spark-1.2",
+                temperature=0.5,
+                top_p=0.9,
+                max_tokens=100,
+                frequency_penalty=0.1,
+                presence_penalty=0.2,
+                reasoning_effort="xhigh",
+            )._to_grpc(
+                _GenerativeConfigRuntimeOptions(
+                    return_metadata=True, images=[LOGO_ENCODED], image_properties=["image"]
+                )
+            ),
+            generative_pb2.GenerativeProvider(
+                return_metadata=True,
+                meta=generative_pb2.GenerativeMeta(
+                    base_url="https://api.meta.ai",
+                    model="muse-spark-1.2",
+                    temperature=0.5,
+                    top_p=0.9,
+                    max_tokens=100,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.2,
+                    reasoning_effort=generative_pb2.GenerativeMeta.ReasoningEffort.REASONING_EFFORT_XHIGH,
+                    images=base_pb2.TextArray(values=[LOGO_ENCODED]),
+                    image_properties=base_pb2.TextArray(values=["image"]),
+                ),
+            ),
+        ),
+        (
             GenerativeConfig.mistral(
                 base_url="http://localhost:8080",
                 max_tokens=100,

@@ -166,6 +166,7 @@ GenerativeMetadata = Union[
     generative_pb2.GenerativeDummyMetadata,
     generative_pb2.GenerativeFriendliAIMetadata,
     generative_pb2.GenerativeGoogleMetadata,
+    generative_pb2.GenerativeMetaMetadata,
     generative_pb2.GenerativeMistralMetadata,
     generative_pb2.GenerativeNvidiaMetadata,
     generative_pb2.GenerativeOllamaMetadata,

@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import (
     ReplicationConfig,
     ReplicationDeletionStrategy,
     ShardingConfig,
+    ShardStatus,
     StopwordsConfig,
     StopwordsPreset,
     VectorDistances,
@@ -41,6 +42,7 @@ from weaviate.exceptions import (
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
     WeaviateStartUpError,
+    WeaviateUnsupportedFeatureError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -437,6 +439,52 @@ def test_backup_cancel_while_create_and_restore(
         )
 
 
+def test_backup_create_include_roles_users(
+    weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        bodies.append(request.get_json())
+        return Response(json.dumps({"status": "STARTED", "path": "path", "id": "id"}))
+
+    weaviate_no_auth_mock.expect_request(
+        "/v1/backups/filesystem", method="POST"
+    ).respond_with_handler(handler)
+
+    client.backup.create(backup_id="id", backend=BackupStorage.FILESYSTEM)
+    assert "includeRoles" not in bodies[0] and "includeUsers" not in bodies[0]
+
+    # the mock reports 1.36, below the 1.40 minimum
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        client.backup.create(backup_id="id", backend=BackupStorage.FILESYSTEM, include_roles="r")
+
+
+def test_backup_create_include_roles_users_sent(
+    httpserver: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.40.0"})
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        bodies.append(request.get_json())
+        return Response(json.dumps({"status": "STARTED", "path": "path", "id": "id"}))
+
+    httpserver.expect_request("/v1/backups/filesystem", method="POST").respond_with_handler(handler)
+
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    client.backup.create(
+        backup_id="id",
+        backend=BackupStorage.FILESYSTEM,
+        include_roles="r",
+        include_users=["u1", "u2"],
+    )
+    assert bodies[0]["includeRoles"] == ["r"]
+    assert bodies[0]["includeUsers"] == ["u1", "u2"]
+
+
 def test_grpc_retry_logic(
     retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
 ) -> None:
@@ -561,6 +609,36 @@ def test_delete_vector_index(weaviate_mock: HTTPServer) -> None:
 
         with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
             client.collections.use("test").config.delete_vector_index(42)  # type: ignore[arg-type]
+
+
+def test_get_shards_parses_all_statuses(weaviate_mock: HTTPServer) -> None:
+    weaviate_mock.expect_request("/v1/schema/Test/shards", method="GET").respond_with_json(
+        response_json=[
+            {
+                "name": "shard1",
+                "status": "UNAVAILABLE",
+                "vectorQueueSize": 0,
+                "per_node_status": {"node1": "READY", "node2": "UNAVAILABLE"},
+            },
+            {"name": "shard2", "status": "RECOVERING", "vectorQueueSize": 3},
+        ],
+        status=200,
+    )
+
+    with weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    ) as client:
+        shards = client.collections.use("test").config.get_shards()
+
+    assert shards == [
+        ShardStatus(
+            name="shard1",
+            status="UNAVAILABLE",
+            vector_queue_size=0,
+            per_node_status={"node1": "READY", "node2": "UNAVAILABLE"},
+        ),
+        ShardStatus(name="shard2", status="RECOVERING", vector_queue_size=3, per_node_status=None),
+    ]
 
 
 def test_create_from_dict_skips_dropped_vectors(weaviate_mock: HTTPServer) -> None:

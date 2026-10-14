@@ -247,6 +247,7 @@ class NodesAction(str, _Action, Enum):
 
 
 class BackupsAction(str, _Action, Enum):
+    READ = "read_backups"
     MANAGE = "manage_backups"
 
     @staticmethod
@@ -1054,6 +1055,7 @@ class Permissions:
         collection: Union[str, Sequence[str], None] = None,
         role: Union[str, Sequence[str], None] = None,
         user: Union[str, Sequence[str], None] = None,
+        read: bool = False,
         manage: bool = False,
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
@@ -1069,16 +1071,30 @@ class Permissions:
 
         for c in collection or []:
             p = _BackupsPermission(collection=c, actions=set())
-            p.actions.add(BackupsAction.MANAGE)
-            permissions.append(p)
+            if read:
+                p.actions.add(BackupsAction.READ)
+            if manage:
+                p.actions.add(BackupsAction.MANAGE)
+            if len(p.actions) > 0:
+                permissions.append(p)
+
         for r in role or []:
             p = _BackupsPermission(role=r, actions=set())
-            p.actions.add(BackupsAction.MANAGE)
-            permissions.append(p)
+            if read:
+                p.actions.add(BackupsAction.READ)
+            if manage:
+                p.actions.add(BackupsAction.MANAGE)
+            if len(p.actions) > 0:
+                permissions.append(p)
+
         for u in user or []:
             p = _BackupsPermission(user=u, actions=set())
-            p.actions.add(BackupsAction.MANAGE)
-            permissions.append(p)
+            if read:
+                p.actions.add(BackupsAction.READ)
+            if manage:
+                p.actions.add(BackupsAction.MANAGE)
+            if len(p.actions) > 0:
+                permissions.append(p)
 
         return permissions
 
