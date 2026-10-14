@@ -1,8 +1,9 @@
 import pytest
+from pydantic import ValidationError
 
 import weaviate
 from mock_tests.conftest import MockDecisionsWeaviateService
-from weaviate.classes.query import Decision, GroupBy
+from weaviate.classes.query import Decision, GroupBy, Rerank, DecisionsOrder
 from weaviate.collections.classes.internal import DecisionAnswer
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import search_get_pb2
@@ -122,3 +123,63 @@ def test_decide_is_rejected_before_the_request(
             decide=QUESTIONS[0],
         )
     assert service.captured_request.collection == "", "nothing was sent"
+
+
+def test_rerank_by_a_decision_is_sent(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+
+    collection.query.bm25(
+        "billing",
+        rerank=Rerank.decide(
+            prop="text", query="angry", min_probability=0.6, order=DecisionsOrder.PROBABILITY
+        ),
+    )
+    sent = service.captured_request.rerank
+    assert sent.property == "text"
+    assert sent.query == "angry"
+    assert sent.decision.min_probability == 0.6
+    assert sent.decision.order == search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY
+
+    # Unset options are left unset, so the class settings apply.
+    collection.query.bm25("billing", rerank=Rerank.decide(prop="text", query="angry"))
+    sent = service.captured_request.rerank
+    assert sent.HasField("decision")
+    assert not sent.decision.HasField("min_probability")
+    assert not sent.decision.HasField("order")
+
+    collection.query.bm25("billing", rerank=Rerank(prop="text", query="angry"))
+    assert not service.captured_request.rerank.HasField("decision")
+
+
+@pytest.mark.parametrize("min_probability", [-0.1, 1.1])
+def test_rerank_by_a_decision_needs_a_probability(min_probability: float) -> None:
+    with pytest.raises(ValidationError):
+        Rerank.decide(prop="text", query="angry", min_probability=min_probability)
+
+
+@pytest.mark.parametrize("query", [None, "", "   "])
+def test_rerank_by_a_decision_needs_a_query(query) -> None:
+    with pytest.raises(WeaviateInvalidInputError, match="Rerank.decide needs the query"):
+        Rerank.decide(prop="text", query=query)
+
+
+@pytest.mark.parametrize("order", ["PROBABILITY", "random", 2])
+def test_rerank_by_a_decision_names_a_bad_order(order) -> None:
+    with pytest.raises(WeaviateInvalidInputError, match="order must be one of"):
+        Rerank.decide(prop="text", query="angry", order=order)
+
+
+def test_rerank_by_a_decision_takes_the_order_as_a_string(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+    order = "probability"
+
+    collection.query.bm25("billing", rerank=Rerank.decide(prop="text", query="angry", order=order))
+
+    assert (
+        service.captured_request.rerank.decision.order
+        == search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY
+    )

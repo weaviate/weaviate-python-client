@@ -3,7 +3,7 @@ import os
 import pytest
 
 import weaviate.classes as wvc
-from weaviate.collections.classes.config import Decisions, DecisionsQuestion
+from weaviate.collections.classes.config import Decisions
 
 from .conftest import CollectionFactory
 
@@ -14,9 +14,7 @@ def test_decisions_openai(collection_factory: CollectionFactory) -> None:
         pytest.skip("No OpenAI API key found.")
 
     collection = collection_factory(
-        decisions_config=wvc.config.Configure.Decisions.openai(
-            question=DecisionsQuestion.STATEMENT, max_documents=10
-        ),
+        decisions_config=wvc.config.Configure.Decisions.openai(max_documents=10),
         vectorizer_config=wvc.config.Configure.Vectorizer.none(),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         headers={"X-OpenAI-Api-Key": api_key},
@@ -27,7 +25,6 @@ def test_decisions_openai(collection_factory: CollectionFactory) -> None:
     config = collection.config.get()
     assert config.decisions_config is not None
     assert config.decisions_config.decisions == Decisions.OPENAI
-    assert config.decisions_config.model["question"] == "statement"
     assert config.decisions_config.model["maxDocuments"] == 10
 
     collection.data.insert_many(

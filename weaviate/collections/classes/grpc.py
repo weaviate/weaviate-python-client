@@ -264,14 +264,74 @@ class Sort:
         return _Sorting().by_update_time(ascending=ascending)
 
 
+class DecisionsOrder(str, BaseEnum):
+    """The order of the results a decisions module reranks.
+
+    The class default of `decisions_config` and the override of `Rerank.decide` take the same enum;
+    `Rerank.decide` also accepts the value, `"search"` or `"probability"`.
+
+    Attributes:
+        SEARCH: Keep the order of the search; the probability only decides which results are dropped.
+        PROBABILITY: Sort by the probability, highest first.
+    """
+
+    SEARCH = "search"
+    PROBABILITY = "probability"
+
+
 class Rerank(_WeaviateInput):
-    """Define how the query's rerank operation should be performed."""
+    """Define how the query's rerank operation should be performed.
+
+    `Rerank(prop, query)` goes to the collection's reranker, or to its decisions module as a relevance question
+    when the collection has no reranker; `Rerank.decide(...)` goes to the decisions module.
+    """
 
     prop: str
     query: Optional[str] = Field(default=None)
 
+    @staticmethod
+    def decide(
+        prop: str,
+        query: str,
+        *,
+        min_probability: Optional[float] = None,
+        order: Optional[DecisionsOrder] = None,
+    ) -> "Rerank":
+        """Rerank by a decision model.
 
-class DecideQuestion(_WeaviateInput):
+        The collection's decisions module answers `query` as a yes/no question about every candidate, the
+        probability is the rerank score, and the candidates below `min_probability` are dropped. The collection
+        needs a decisions module (`decisions_config`); a reranker it may also have keeps serving `Rerank(...)`.
+        An argument left `None` takes the class setting of the module. The page can hold fewer objects than
+        `limit`: the decision model only removes candidates.
+
+        Args:
+            prop: The property the model judges.
+            query: The statement the model judges about every candidate.
+            min_probability: Drop the candidates whose probability is below it, between 0 and 1.
+            order: Keep the search order or sort by probability, a `DecisionsOrder` or its value.
+        """
+        # A plain Rerank may leave the query to the reranker; a decision has
+        # nothing to judge without one, and the server would only fail after
+        # the search.
+        if not query or not query.strip():
+            raise WeaviateInvalidInputError("Rerank.decide needs the query the model judges")
+        if order is not None and not isinstance(order, DecisionsOrder):
+            try:
+                order = DecisionsOrder(order)
+            except ValueError:
+                raise WeaviateInvalidInputError(
+                    f"order must be one of {[o.value for o in DecisionsOrder]}, got {order!r}"
+                ) from None
+        return _RerankDecide(prop=prop, query=query, min_probability=min_probability, order=order)
+
+
+class _RerankDecide(Rerank):
+    min_probability: Optional[float] = Field(default=None, ge=0, le=1)
+    order: Optional[DecisionsOrder] = Field(default=None)
+
+
+class DecisionQuestion(_WeaviateInput):
     """A question for the collection's decisions module about every object a query returns.
 
     Build one with `Decision.predicate`, `Decision.choice` or `Decision.score`. The answer comes back under `name`
@@ -283,15 +343,15 @@ class DecideQuestion(_WeaviateInput):
     instructions: str
 
 
-class _DecidePredicate(DecideQuestion):
+class _DecisionPredicate(DecisionQuestion):
     pass
 
 
-class _DecideChoice(DecideQuestion):
+class _DecisionChoice(DecisionQuestion):
     options: Dict[str, Optional[str]]
 
 
-class _DecideScore(DecideQuestion):
+class _DecisionScore(DecisionQuestion):
     levels: List[Tuple[str, Optional[str]]]
 
 
@@ -322,11 +382,12 @@ class Decision:
 
     The collection's decisions module (`decisions_config`) answers every question for every object the query
     returns. Each question is about one text property of the objects and has a name that identifies its answer.
-    `decide` never drops or reorders an object.
+    `decide` never drops or reorders an object; to filter by a condition, pass `Rerank.decide(...)` as the `rerank`
+    argument instead.
     """
 
     @staticmethod
-    def predicate(name: str, *, prop: str, instructions: str) -> DecideQuestion:
+    def predicate(name: str, *, prop: str, instructions: str) -> DecisionQuestion:
         """A yes/no question. The answer is the probability that `instructions` holds for the object.
 
         Args:
@@ -334,7 +395,7 @@ class Decision:
             prop: The text property the question is about.
             instructions: The statement or question to evaluate, for example "the customer is angry".
         """
-        return _DecidePredicate(name=name, prop=prop, instructions=instructions)
+        return _DecisionPredicate(name=name, prop=prop, instructions=instructions)
 
     @staticmethod
     def choice(
@@ -343,7 +404,7 @@ class Decision:
         prop: str,
         instructions: str,
         options: Union[Sequence[str], Mapping[str, Optional[str]]],
-    ) -> DecideQuestion:
+    ) -> DecisionQuestion:
         """Pick one of the options. The answer is the chosen option, a probability per option and a confidence.
 
         Args:
@@ -352,7 +413,7 @@ class Decision:
             instructions: What to decide, for example "which team should handle this ticket?".
             options: The options, as names or as a mapping of names to descriptions. At least two.
         """
-        return _DecideChoice(
+        return _DecisionChoice(
             name=name,
             prop=prop,
             instructions=instructions,
@@ -366,7 +427,7 @@ class Decision:
         prop: str,
         instructions: str,
         levels: Union[Sequence[str], Mapping[str, Optional[str]]],
-    ) -> DecideQuestion:
+    ) -> DecisionQuestion:
         """Rate the object on ordered levels, lowest first.
 
         The answer is a position between the level indices (0 for the first level), a probability per level and a confidence.
@@ -377,12 +438,12 @@ class Decision:
             instructions: What to rate, for example "how urgent is this ticket?".
             levels: The levels from lowest to highest, as labels or as a mapping of labels to descriptions. At least two.
         """
-        return _DecideScore(
+        return _DecisionScore(
             name=name, prop=prop, instructions=instructions, levels=_named(levels, "levels")
         )
 
 
-DECIDE = Union[DecideQuestion, Sequence[DecideQuestion]]
+DECIDE = Union[DecisionQuestion, Sequence[DecisionQuestion]]
 
 
 @dataclass

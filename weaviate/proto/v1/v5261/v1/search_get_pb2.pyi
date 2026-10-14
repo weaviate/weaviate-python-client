@@ -11,6 +11,15 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class RerankOrder(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    RERANK_ORDER_UNSPECIFIED: _ClassVar[RerankOrder]
+    RERANK_ORDER_SEARCH: _ClassVar[RerankOrder]
+    RERANK_ORDER_PROBABILITY: _ClassVar[RerankOrder]
+RERANK_ORDER_UNSPECIFIED: RerankOrder
+RERANK_ORDER_SEARCH: RerankOrder
+RERANK_ORDER_PROBABILITY: RerankOrder
+
 class SearchRequest(_message.Message):
     __slots__ = ("collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "decide", "boost", "uses_123_api", "uses_125_api", "uses_127_api")
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -154,12 +163,22 @@ class RefPropertiesRequest(_message.Message):
     def __init__(self, reference_property: _Optional[str] = ..., properties: _Optional[_Union[PropertiesRequest, _Mapping]] = ..., metadata: _Optional[_Union[MetadataRequest, _Mapping]] = ..., target_collection: _Optional[str] = ...) -> None: ...
 
 class Rerank(_message.Message):
-    __slots__ = ("property", "query")
+    __slots__ = ("property", "query", "decision")
     PROPERTY_FIELD_NUMBER: _ClassVar[int]
     QUERY_FIELD_NUMBER: _ClassVar[int]
+    DECISION_FIELD_NUMBER: _ClassVar[int]
     property: str
     query: str
-    def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
+    decision: RerankDecision
+    def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ..., decision: _Optional[_Union[RerankDecision, _Mapping]] = ...) -> None: ...
+
+class RerankDecision(_message.Message):
+    __slots__ = ("min_probability", "order")
+    MIN_PROBABILITY_FIELD_NUMBER: _ClassVar[int]
+    ORDER_FIELD_NUMBER: _ClassVar[int]
+    min_probability: float
+    order: RerankOrder
+    def __init__(self, min_probability: _Optional[float] = ..., order: _Optional[_Union[RerankOrder, str]] = ...) -> None: ...
 
 class SearchReply(_message.Message):
     __slots__ = ("took", "results", "generative_grouped_result", "group_by_results", "generative_grouped_results", "query_profile")
