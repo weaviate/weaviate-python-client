@@ -161,5 +161,19 @@ def test_rerank_by_a_decision_needs_a_probability(min_probability: float) -> Non
 
 @pytest.mark.parametrize("query", [None, "", "   "])
 def test_rerank_by_a_decision_needs_a_query(query) -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(WeaviateInvalidInputError, match="Rerank.decide needs the query"):
         Rerank.decide(prop="text", query=query)
+
+
+def test_rerank_by_a_decision_takes_the_order_as_a_string(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+    order = "probability"
+
+    collection.query.bm25("billing", rerank=Rerank.decide(prop="text", query="angry", order=order))
+
+    assert (
+        service.captured_request.rerank.decision.order
+        == search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY
+    )

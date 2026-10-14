@@ -16,7 +16,7 @@ from typing import (
     cast,
 )
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field
 from typing_extensions import ClassVar, TypeAlias, TypeGuard, TypeVar
 
 from weaviate.collections.classes.filters import FilterReturn
@@ -264,7 +264,7 @@ class Sort:
         return _Sorting().by_update_time(ascending=ascending)
 
 
-class RerankOrder(str, Enum):
+class RerankOrder(str, BaseEnum):
     """The order of the results a decision model reranks.
 
     Attributes:
@@ -279,7 +279,8 @@ class RerankOrder(str, Enum):
 class Rerank(_WeaviateInput):
     """Define how the query's rerank operation should be performed.
 
-    `Rerank(prop, query)` goes to the collection's reranker; `Rerank.decide(...)` to its decisions module.
+    `Rerank(prop, query)` goes to the collection's reranker, or to its decisions module as a relevance question
+    when the collection has no reranker; `Rerank.decide(...)` goes to the decisions module.
     """
 
     prop: str
@@ -307,21 +308,17 @@ class Rerank(_WeaviateInput):
             min_probability: Drop the candidates whose probability is below it, between 0 and 1.
             order: Keep the search order or sort by probability.
         """
+        # A plain Rerank may leave the query to the reranker; a decision has
+        # nothing to judge without one, and the server would only fail after
+        # the search.
+        if not query or not query.strip():
+            raise WeaviateInvalidInputError("Rerank.decide needs the query the model judges")
         return _RerankDecide(prop=prop, query=query, min_probability=min_probability, order=order)
 
 
 class _RerankDecide(Rerank):
     min_probability: Optional[float] = Field(default=None, ge=0, le=1)
     order: Optional[RerankOrder] = Field(default=None)
-
-    @model_validator(mode="after")
-    def _needs_a_query(self) -> "_RerankDecide":
-        # A plain Rerank may leave the query to the reranker; a decision has
-        # nothing to judge without one, and the server would only fail after
-        # the search.
-        if not self.query or not self.query.strip():
-            raise ValueError("Rerank.decide needs the query the model judges")
-        return self
 
 
 class DecideQuestion(_WeaviateInput):
