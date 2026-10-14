@@ -161,6 +161,32 @@ def test_embedded_startup_with_blocked_grpc_port(tmp_path_factory: pytest.TempPa
         client.close()
 
 
+def test_embedded_startup_with_data_from_other_port(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    data_path = tmp_path_factory.mktemp("data")
+    binary_path = tmp_path_factory.mktemp("bin")
+    client = weaviate.connect_to_embedded(
+        port=8180,
+        grpc_port=50180,
+        environment_variables={"DISABLE_TELEMETRY": "true"},
+        persistence_data_path=data_path,
+        binary_path=binary_path,
+    )
+    client.close()
+
+    # The Raft state saved on port 8180 does not list the node on port 8181 as a voter,
+    # so the new node never elects a leader and the readiness check times out.
+    with pytest.raises(weaviate.exceptions.WeaviateStartUpError, match="persistence_data_path"):
+        weaviate.connect_to_embedded(
+            port=8181,
+            grpc_port=50181,
+            environment_variables={"DISABLE_TELEMETRY": "true"},
+            persistence_data_path=data_path,
+            binary_path=binary_path,
+        )
+
+
 def test_embedded_create_restore_backup(tmp_path_factory: pytest.TempPathFactory) -> None:
     num_objects = 10
     collection_name = "BackedUp"
