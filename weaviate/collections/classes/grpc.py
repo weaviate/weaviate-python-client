@@ -267,7 +267,8 @@ class Sort:
 class DecisionsOrder(str, BaseEnum):
     """The order of the results a decisions module reranks.
 
-    The class default of `decisions_config` and the override of `Rerank.decide` take the same enum.
+    The class default of `decisions_config` and the override of `Rerank.decide` take the same enum;
+    `Rerank.decide` also accepts the value, `"search"` or `"probability"`.
 
     Attributes:
         SEARCH: Keep the order of the search; the probability only decides which results are dropped.
@@ -308,13 +309,20 @@ class Rerank(_WeaviateInput):
             prop: The property the model judges.
             query: The statement the model judges about every candidate.
             min_probability: Drop the candidates whose probability is below it, between 0 and 1.
-            order: Keep the search order or sort by probability.
+            order: Keep the search order or sort by probability, a `DecisionsOrder` or its value.
         """
         # A plain Rerank may leave the query to the reranker; a decision has
         # nothing to judge without one, and the server would only fail after
         # the search.
         if not query or not query.strip():
             raise WeaviateInvalidInputError("Rerank.decide needs the query the model judges")
+        if order is not None and not isinstance(order, DecisionsOrder):
+            try:
+                order = DecisionsOrder(order)
+            except ValueError:
+                raise WeaviateInvalidInputError(
+                    f"order must be one of {[o.value for o in DecisionsOrder]}, got {order!r}"
+                ) from None
         return _RerankDecide(prop=prop, query=query, min_probability=min_probability, order=order)
 
 

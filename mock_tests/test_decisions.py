@@ -165,6 +165,12 @@ def test_rerank_by_a_decision_needs_a_query(query) -> None:
         Rerank.decide(prop="text", query=query)
 
 
+@pytest.mark.parametrize("order", ["PROBABILITY", "random", 2])
+def test_rerank_by_a_decision_names_a_bad_order(order) -> None:
+    with pytest.raises(WeaviateInvalidInputError, match="order must be one of"):
+        Rerank.decide(prop="text", query="angry", order=order)
+
+
 def test_rerank_by_a_decision_takes_the_order_as_a_string(
     decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
 ) -> None:
