@@ -4,6 +4,9 @@ Changelog
 Version 4.24.0
 --------------
 This minor version includes:
+    - Support for new 1.40 features:
+        - Add ``dedupe_replicas`` and ``dedupe_convergence_timeout_seconds`` to ``BackupConfigCreate``, so shards of replicated collections that are provably in sync are archived by a single replica instead of every replica
+    - Add ``node_mapping`` to ``backup.restore()`` to map the node names stored in a backup to the node names of the cluster being restored to, which a deduplicated backup needs when the names differ
     - Public names for the collection configuration types, so a helper that passes one around no longer has to import a private class:
         - Every non-deprecated type accepted by ``collections.create()`` and ``collections.config.update()`` now has a public name exported from ``weaviate.classes.config``, among them ``VectorConfigCreate``, ``VectorConfigUpdate``, ``InvertedIndexConfigCreate``, ``ReplicationConfigUpdate``, ``ObjectTTLConfigCreate``, ``GenerativeProvider`` and ``RerankerProvider``
         - The types behind the deprecated ``vectorizer_config`` argument and the ``Configure.NamedVectors`` factories are deliberately left private, so that the signatures keep pointing at ``vector_config`` and ``Configure.Vectors``

@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 from weaviate.backup.backup import (
     BackupConfigCreate,
@@ -45,6 +45,7 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
         overwrite_alias: bool = False,
+        node_mapping: Optional[Dict[str, str]] = None,
     ) -> BackupReturn: ...
     def get_restore_status(
         self,

@@ -73,6 +73,35 @@ class BackupConfigCreate(_BackupConfigBase):
     CompressionLevel: Optional[BackupCompressionLevel] = Field(
         default=None, alias="compression_level"
     )
+    dedupeReplicas: Optional[bool] = Field(
+        default=None,
+        alias="dedupe_replicas",
+        description=(
+            "If True, shards of replicated collections that are provably in sync (via async-replication "
+            "checkpoints) are archived by a single replica instead of every replica, and a restore copies "
+            "them back to all replicas. Shards that cannot be proven in sync fall back to being archived "
+            "by every replica. Requires async replication on replicated collections, a cluster where every "
+            "node supports this option, and ``BACKUP_DEDUPE_ENABLED=true`` on the cluster, otherwise the "
+            "request is rejected with 422. A backup where at least one shard was deduplicated can only be "
+            "restored by versions that support this option, and its restore can block the restore request "
+            "for up to two minutes; size the client's ``insert`` timeout accordingly. "
+            "Requires Weaviate 1.40.0."
+        ),
+    )
+    dedupeConvergenceTimeoutSeconds: Optional[int] = Field(
+        default=None,
+        alias="dedupe_convergence_timeout_seconds",
+        description=(
+            "How long (1-600 seconds, server default 60) the coordinator waits for replica convergence proof "
+            "before shards fall back to being archived by every replica. Only used when ``dedupe_replicas`` is "
+            "True. The wait happens synchronously inside the backup creation request, which blocks for roughly "
+            "10 seconds plus up to this timeout; size the client's ``insert`` timeout accordingly. "
+            "Requires Weaviate 1.40.0."
+        ),
+    )
+
+    def _uses_dedupe(self) -> bool:
+        return self.dedupeReplicas is not None or self.dedupeConvergenceTimeoutSeconds is not None
 
 
 class BackupConfigRestore(_BackupConfigBase):

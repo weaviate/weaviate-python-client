@@ -66,7 +66,8 @@ class _BackupExecutor(Generic[ConnectionType]):
             incremental_base_backup_id: The identifier name of the base backup for an incremental backup. Files that are identical
                 to the base backup will not be included in the incremental backup and restored from the base. By default None.
             wait_for_completion: Whether to wait until the backup is done. By default False.
-            config: The configuration of the backup creation. By default None.
+            config: The configuration of the backup creation. Its `dedupe_replicas` and
+                `dedupe_convergence_timeout_seconds` options require Weaviate 1.40.0. By default None.
             backup_location: The dynamic location of a backup. By default None.
             include_roles: Roles to include. Accepts `*` and `?` wildcards. None backs up all roles, an empty list backs up
                 none. Requires Weaviate 1.40.0. By default None.
@@ -109,6 +110,17 @@ class _BackupExecutor(Generic[ConnectionType]):
         ) and self._connection._weaviate_version.is_lower_than(1, 40, 0):
             raise WeaviateUnsupportedFeatureError(
                 "Backup include_roles/include_users",
+                str(self._connection._weaviate_version),
+                "1.40.0",
+            )
+
+        if (
+            config is not None
+            and config._uses_dedupe()
+            and self._connection._weaviate_version.is_lower_than(1, 40, 0)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "BackupConfigCreate dedupe_replicas/dedupe_convergence_timeout_seconds",
                 str(self._connection._weaviate_version),
                 "1.40.0",
             )
@@ -278,6 +290,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
         overwrite_alias: bool = False,
+        node_mapping: Optional[Dict[str, str]] = None,
     ) -> executor.Result[BackupReturn]:
         """Restore a backup of all/per collection Weaviate objects.
 
@@ -289,10 +302,18 @@ class _BackupExecutor(Generic[ConnectionType]):
                 `exclude_collections` can be set. By default None.
             exclude_collections: The collection/list of collections to be excluded in the backup restore.
                 Either `include_collections` or `exclude_collections` can be set. By default None.
+            roles_restore: How roles should be restored, either "noRestore" or "all". None leaves the server default
+                ("noRestore"). By default None.
+            users_restore: How dynamic DB users should be restored, either "noRestore" or "all". None leaves the server
+                default ("noRestore"). By default None.
             wait_for_completion: Whether to wait until the backup restore is done.
             config: The configuration of the backup restoration. By default None.
             backup_location: The dynamic location of a backup. By default None.
             overwrite_alias: Allows ovewriting the collection alias if there is a conflict.
+            node_mapping: Maps node names stored in the backup to the node names of the cluster being restored to,
+                e.g. `{"weaviate-0": "node-a"}`. Useful when restoring to a different environment. A backup created
+                with `dedupe_replicas` needs every replica node of its archived sharding state to be resolvable on
+                the restoring cluster, either by name or through this mapping. By default None.
 
         Returns:
             A `BackupReturn` object that contains the backup restore response.
@@ -319,6 +340,8 @@ class _BackupExecutor(Generic[ConnectionType]):
             "exclude": exclude_collections,
             "overwriteAlias": overwrite_alias,
         }
+        if node_mapping is not None:
+            payload["node_mapping"] = node_mapping
         configPayload = {}
         if config is not None:
             configPayload = config._to_dict()

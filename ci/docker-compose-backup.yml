@@ -22,6 +22,7 @@ services:
       AUTHENTICATION_APIKEY_USERS: "admin-user,custom-user"
       AUTHORIZATION_ADMIN_USERS: "admin-user"
       BACKUP_FILESYSTEM_PATH: "/tmp/backups"
+      BACKUP_DEDUPE_ENABLED: "true"
       PERSISTENCE_DATA_PATH: "./data-weaviate-0"
       CLUSTER_IN_LOCALHOST: "true"
       CLUSTER_GOSSIP_BIND_PORT: "7100"

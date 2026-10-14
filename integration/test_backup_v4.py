@@ -782,6 +782,55 @@ def test_incremental_backup(client: weaviate.WeaviateClient, request: SubRequest
     assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
 
 
+def test_backup_and_restore_with_dedupe_replicas(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
+    """Create a backup with dedupe_replicas and restore it.
+
+    The CI cluster is a single node, so no shard is actually deduplicated and the backup is
+    written in the legacy format; this checks that the server accepts the option (needs
+    BACKUP_DEDUPE_ENABLED=true) and that the backup restores.
+    """
+    if client._connection._weaviate_version.is_lower_than(1, 40, 0):
+        pytest.skip("dedupe_replicas is only supported from Weaviate 1.40.0")
+
+    backup_id = unique_backup_id(request.node.name)
+
+    create = client.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+        config=BackupConfigCreate(dedupe_replicas=True, dedupe_convergence_timeout_seconds=5),
+    )
+    assert create.status == BackupStatus.SUCCESS
+
+    client.collections.delete("Article")
+
+    restore = client.backup.restore(
+        backup_id=backup_id,
+        backend=BACKEND,
+        include_collections=["Article"],
+        wait_for_completion=True,
+    )
+    assert restore.status == BackupStatus.SUCCESS
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
+
+
+def test_backup_create_dedupe_replicas_unsupported_version(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
+    if not client._connection._weaviate_version.is_lower_than(1, 40, 0):
+        pytest.skip("dedupe_replicas is supported from Weaviate 1.40.0")
+
+    with pytest.raises(weaviate.exceptions.WeaviateUnsupportedFeatureError):
+        client.backup.create(
+            backup_id=unique_backup_id(request.node.name),
+            backend=BACKEND,
+            config=BackupConfigCreate(dedupe_replicas=True),
+        )
+
+
 # This test has been disabled temporarily until the behaviour of this scenario is clarified.
 # It worked in version 1.33.0-rc.1, but broken in version 1.33.0+
 # def test_overwrite_alias_false(

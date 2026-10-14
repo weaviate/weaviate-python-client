@@ -485,6 +485,98 @@ def test_backup_create_include_roles_users_sent(
     assert bodies[0]["includeUsers"] == ["u1", "u2"]
 
 
+def test_backup_create_dedupe_replicas_unsupported(
+    weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        bodies.append(request.get_json())
+        return Response(json.dumps({"status": "STARTED", "path": "path", "id": "id"}))
+
+    weaviate_no_auth_mock.expect_request(
+        "/v1/backups/filesystem", method="POST"
+    ).respond_with_handler(handler)
+
+    # a config without the dedupe options is still accepted below 1.40
+    client.backup.create(
+        backup_id="id",
+        backend=BackupStorage.FILESYSTEM,
+        config=wvc.backup.BackupConfigCreate(cpu_percentage=60),
+    )
+    assert bodies[0]["config"] == {"CPUPercentage": 60}
+
+    # the mock reports 1.36, below the 1.40 minimum
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        client.backup.create(
+            backup_id="id",
+            backend=BackupStorage.FILESYSTEM,
+            config=wvc.backup.BackupConfigCreate(dedupe_replicas=True),
+        )
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        client.backup.create(
+            backup_id="id",
+            backend=BackupStorage.FILESYSTEM,
+            config=wvc.backup.BackupConfigCreate(dedupe_convergence_timeout_seconds=30),
+        )
+    assert len(bodies) == 1
+
+
+def test_backup_create_dedupe_replicas_sent(
+    httpserver: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.40.0"})
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        bodies.append(request.get_json())
+        return Response(json.dumps({"status": "STARTED", "path": "path", "id": "id"}))
+
+    httpserver.expect_request("/v1/backups/filesystem", method="POST").respond_with_handler(handler)
+
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    client.backup.create(
+        backup_id="id",
+        backend=BackupStorage.FILESYSTEM,
+        config=wvc.backup.BackupConfigCreate(
+            dedupe_replicas=True, dedupe_convergence_timeout_seconds=45
+        ),
+        backup_location=wvc.backup.BackupLocation.FileSystem(path="/tmp/backups"),
+    )
+    assert bodies[0]["config"] == {
+        "dedupeReplicas": True,
+        "dedupeConvergenceTimeoutSeconds": 45,
+        "path": "/tmp/backups",
+    }
+
+
+def test_backup_restore_node_mapping_sent(
+    weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    bodies: List[Dict[str, Any]] = []
+
+    def handler(request: Request) -> Response:
+        bodies.append(request.get_json())
+        return Response(json.dumps({"status": "STARTED", "path": "path", "id": "id"}))
+
+    weaviate_no_auth_mock.expect_request(
+        "/v1/backups/filesystem/id/restore", method="POST"
+    ).respond_with_handler(handler)
+
+    client.backup.restore(backup_id="id", backend=BackupStorage.FILESYSTEM)
+    assert "node_mapping" not in bodies[0]
+
+    client.backup.restore(
+        backup_id="id",
+        backend=BackupStorage.FILESYSTEM,
+        node_mapping={"weaviate-0": "node-a", "weaviate-1": "node-b"},
+    )
+    assert bodies[1]["node_mapping"] == {"weaviate-0": "node-a", "weaviate-1": "node-b"}
+
+
 def test_grpc_retry_logic(
     retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
 ) -> None:

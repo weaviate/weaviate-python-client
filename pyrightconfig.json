@@ -9,6 +9,9 @@
 
   "stubPath": ".",
 
+  "venvPath": ".",
+  "venv": ".venv",
+
   "reportUnusedVariable": true,
   "reportMissingTypeStubs": false,
   "reportGeneralTypeIssues": false,
