@@ -257,9 +257,10 @@ def test_decide_without_a_decisions_module(collection_factory: CollectionFactory
 PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC"
 
 
-def test_decide_about_an_image_property(collection_factory: CollectionFactory) -> None:
+def test_decide_and_rerank_about_an_image_property(collection_factory: CollectionFactory) -> None:
     # decisions-dummy judges a blob as the text of its base64, so the answer is a
-    # probability of 0 for an object with a photo and a refusal when the photo is empty.
+    # probability of 0 for an object with a photo and a refusal for an object without
+    # one. A refused candidate stays in a rerank with a score of 0.
     collection = collection_factory(
         decisions_config=wvc.config.Configure.Decisions.custom("decisions-dummy"),
         vectorizer_config=wvc.config.Configure.Vectorizer.none(),
