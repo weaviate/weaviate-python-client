@@ -134,7 +134,7 @@ def test_rerank_by_a_decision(collection_factory: CollectionFactory) -> None:
             prop="text",
             query="good thanks customer",
             min_probability=0.3,
-            order=wvc.query.RerankOrder.PROBABILITY,
+            order=wvc.query.DecisionsOrder.PROBABILITY,
         ),
     ).objects
     assert _texts(objs) == [CALM, ANGRY]

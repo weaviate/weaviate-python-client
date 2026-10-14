@@ -25,20 +25,20 @@ from weaviate.collections.classes.grpc import (
     REFERENCE,
     REFERENCES,
     BM25OperatorOptions,
-    DecideQuestion,
+    DecisionQuestion,
+    DecisionsOrder,
     HybridFusion,
     HybridVectorType,
     Move,
     NearVectorInputType,
     QueryNested,
     Rerank,
-    RerankOrder,
     TargetVectorJoinType,
     _Boost,
     _BoostCurve,
     _BoostModifier,
-    _DecideChoice,
-    _DecideScore,
+    _DecisionChoice,
+    _DecisionScore,
     _MetadataQuery,
     _QueryReference,
     _QueryReferenceMultiTarget,
@@ -478,7 +478,7 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([_MetadataQuery, None], "metadata", metadata),
                     _ValidateArgument([_Generative, None], "generative", generative),
                     _ValidateArgument([Rerank, None], "rerank", rerank),
-                    _ValidateArgument([DecideQuestion, Sequence, None], "decide", decide),
+                    _ValidateArgument([DecisionQuestion, Sequence, None], "decide", decide),
                     _ValidateArgument([int, None], "autocut", autocut),
                     _ValidateArgument([_GroupBy, None], "group_by", group_by),
                     _ValidateArgument(
@@ -600,8 +600,8 @@ class _QueryGRPC(_BaseGRPC):
                 decision.min_probability = rerank.min_probability
             if rerank.order is not None:
                 decision.order = {
-                    RerankOrder.SEARCH: search_get_pb2.RerankOrder.RERANK_ORDER_SEARCH,
-                    RerankOrder.PROBABILITY: search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY,
+                    DecisionsOrder.SEARCH: search_get_pb2.RerankOrder.RERANK_ORDER_SEARCH,
+                    DecisionsOrder.PROBABILITY: search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY,
                 }[rerank.order]
             out.decision.CopyFrom(decision)
         return out
@@ -610,19 +610,19 @@ class _QueryGRPC(_BaseGRPC):
     def __decide_to_grpc(decide: Optional[DECIDE]) -> Optional[decisions_pb2.Decisions]:
         if decide is None:
             return None
-        questions = [decide] if isinstance(decide, DecideQuestion) else list(decide)
+        questions = [decide] if isinstance(decide, DecisionQuestion) else list(decide)
         if len(questions) == 0:
             raise WeaviateInvalidInputError("decide needs at least one question")
         out = []
         for question in questions:
-            if not isinstance(question, DecideQuestion):
+            if not isinstance(question, DecisionQuestion):
                 raise WeaviateInvalidInputError(
-                    f"decide must hold DecideQuestion objects built with Decision, got {type(question).__name__}"
+                    f"decide must hold DecisionQuestion objects built with Decision, got {type(question).__name__}"
                 )
             message = decisions_pb2.DecisionQuestion(
                 name=question.name, property=question.prop, instructions=question.instructions
             )
-            if isinstance(question, _DecideChoice):
+            if isinstance(question, _DecisionChoice):
                 message.choice.CopyFrom(
                     decisions_pb2.DecisionChoice(
                         options=[
@@ -631,7 +631,7 @@ class _QueryGRPC(_BaseGRPC):
                         ]
                     )
                 )
-            elif isinstance(question, _DecideScore):
+            elif isinstance(question, _DecisionScore):
                 message.score.CopyFrom(
                     decisions_pb2.DecisionScore(
                         levels=[

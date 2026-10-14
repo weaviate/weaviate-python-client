@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 import weaviate
 from mock_tests.conftest import MockDecisionsWeaviateService
-from weaviate.classes.query import Decision, GroupBy, Rerank, RerankOrder
+from weaviate.classes.query import Decision, GroupBy, Rerank, DecisionsOrder
 from weaviate.collections.classes.internal import DecisionAnswer
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import search_get_pb2
@@ -133,7 +133,7 @@ def test_rerank_by_a_decision_is_sent(
     collection.query.bm25(
         "billing",
         rerank=Rerank.decide(
-            prop="text", query="angry", min_probability=0.6, order=RerankOrder.PROBABILITY
+            prop="text", query="angry", min_probability=0.6, order=DecisionsOrder.PROBABILITY
         ),
     )
     sent = service.captured_request.rerank
