@@ -983,7 +983,10 @@ class ConnectionSync(_ConnectionBase):
             except WeaviateStartUpError as e:
                 self.embedded_db.stop()
                 self._connected = False
-                raise e
+                hint = self.embedded_db.existing_data_hint()
+                if hint is None:
+                    raise e
+                raise WeaviateStartUpError(f"{e.message} {hint}") from e
 
         # do it after all other init checks so as not to break all the tests
         if self._weaviate_version.is_lower_than(1, 27, patch=0):
@@ -1187,7 +1190,10 @@ class ConnectionAsync(_ConnectionBase):
             except WeaviateStartUpError as e:
                 self.embedded_db.stop()
                 self._connected = False
-                raise e
+                hint = self.embedded_db.existing_data_hint()
+                if hint is None:
+                    raise e
+                raise WeaviateStartUpError(f"{e.message} {hint}") from e
 
         # do it after all other init checks so as not to break all the tests
         if self._weaviate_version.is_lower_than(1, 27, 0):
