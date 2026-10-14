@@ -25,8 +25,6 @@ from weaviate.collections.classes.grpc import (
     REFERENCE,
     REFERENCES,
     BM25OperatorOptions,
-    Decide,
-    DecideOrder,
     DecideQuestion,
     HybridFusion,
     HybridVectorType,
@@ -34,6 +32,7 @@ from weaviate.collections.classes.grpc import (
     NearVectorInputType,
     QueryNested,
     Rerank,
+    RerankOrder,
     TargetVectorJoinType,
     _Boost,
     _BoostCurve,
@@ -43,6 +42,7 @@ from weaviate.collections.classes.grpc import (
     _MetadataQuery,
     _QueryReference,
     _QueryReferenceMultiTarget,
+    _RerankDecide,
     _Sorting,
 )
 from weaviate.collections.classes.internal import (
@@ -593,15 +593,15 @@ class _QueryGRPC(_BaseGRPC):
     @staticmethod
     def __rerank_to_grpc(rerank: Rerank) -> search_get_pb2.Rerank:
         out = search_get_pb2.Rerank(property=rerank.prop, query=rerank.query)
-        if isinstance(rerank, Decide):
+        if isinstance(rerank, _RerankDecide):
             # An unset field is left unset, so the class setting applies.
             decision = search_get_pb2.RerankDecision()
             if rerank.min_probability is not None:
                 decision.min_probability = rerank.min_probability
             if rerank.order is not None:
                 decision.order = {
-                    DecideOrder.SEARCH: search_get_pb2.RerankOrder.RERANK_ORDER_SEARCH,
-                    DecideOrder.PROBABILITY: search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY,
+                    RerankOrder.SEARCH: search_get_pb2.RerankOrder.RERANK_ORDER_SEARCH,
+                    RerankOrder.PROBABILITY: search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY,
                 }[rerank.order]
             out.decision.CopyFrom(decision)
         return out

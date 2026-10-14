@@ -132,7 +132,7 @@ class _Object(Generic[P, R, M]):
 
 @dataclass
 class DecisionAnswer:
-    """The answer of the collection's decisions module to one `Decide` question for one object.
+    """The answer of the collection's decisions module to one `decide` question for one object.
 
     Attributes:
         name: The name of the question.

@@ -115,13 +115,14 @@ def test_rerank_by_a_decision(collection_factory: CollectionFactory) -> None:
 
     # The class settings are the defaults: search order, nothing dropped.
     objs = collection.query.bm25(
-        SEARCH, rerank=wvc.query.Decide(prop="text", query="customer angry")
+        SEARCH, rerank=wvc.query.Rerank.decide(prop="text", query="customer angry")
     ).objects
     assert {o.properties["text"]: o.metadata.rerank_score for o in objs} == {ANGRY: 1.0, CALM: 0.0}
 
     # A threshold drops the candidates below it.
     objs = collection.query.bm25(
-        SEARCH, rerank=wvc.query.Decide(prop="text", query="customer angry", min_probability=0.6)
+        SEARCH,
+        rerank=wvc.query.Rerank.decide(prop="text", query="customer angry", min_probability=0.6),
     ).objects
     assert _texts(objs) == [ANGRY]
     assert objs[0].metadata.rerank_score == 1.0
@@ -129,11 +130,11 @@ def test_rerank_by_a_decision(collection_factory: CollectionFactory) -> None:
     # "all good, thanks" matches two of three words, the angry text one.
     objs = collection.query.bm25(
         SEARCH,
-        rerank=wvc.query.Decide(
+        rerank=wvc.query.Rerank.decide(
             prop="text",
             query="good thanks customer",
             min_probability=0.3,
-            order=wvc.query.DecideOrder.PROBABILITY,
+            order=wvc.query.RerankOrder.PROBABILITY,
         ),
     ).objects
     assert _texts(objs) == [CALM, ANGRY]
@@ -160,14 +161,16 @@ def test_rerank_by_a_decision_takes_the_class_settings(
     collection.data.insert_many([{"text": ANGRY}, {"text": CALM}])
 
     objs = collection.query.bm25(
-        SEARCH, rerank=wvc.query.Decide(prop="text", query="good thanks customer")
+        SEARCH, rerank=wvc.query.Rerank.decide(prop="text", query="good thanks customer")
     ).objects
     assert objs == [], "no text has every word"
 
     # The request overrides the threshold; the class order still applies.
     objs = collection.query.bm25(
         SEARCH,
-        rerank=wvc.query.Decide(prop="text", query="good thanks customer", min_probability=0.3),
+        rerank=wvc.query.Rerank.decide(
+            prop="text", query="good thanks customer", min_probability=0.3
+        ),
     ).objects
     assert _texts(objs) == [CALM, ANGRY]
 
@@ -186,7 +189,7 @@ def test_rerank_by_a_decision_without_a_decisions_module(
 
     # The server rejects it before the search.
     with pytest.raises(WeaviateQueryError, match="no decisions module"):
-        collection.query.bm25("x", rerank=wvc.query.Decide(prop="text", query="x"))
+        collection.query.bm25("x", rerank=wvc.query.Rerank.decide(prop="text", query="x"))
 
 
 def test_a_reranker_and_a_decisions_module_on_one_collection(
@@ -216,7 +219,7 @@ def test_a_reranker_and_a_decisions_module_on_one_collection(
     # A decision goes to the decisions module: the probability is the score.
     objs = collection.query.bm25(
         "billing good",
-        rerank=wvc.query.Decide(prop="text", query="customer angry", min_probability=0.6),
+        rerank=wvc.query.Rerank.decide(prop="text", query="customer angry", min_probability=0.6),
     ).objects
     assert _texts(objs) == [ANGRY]
     assert objs[0].metadata.rerank_score == 1.0

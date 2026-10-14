@@ -264,14 +264,7 @@ class Sort:
         return _Sorting().by_update_time(ascending=ascending)
 
 
-class Rerank(_WeaviateInput):
-    """Define how the query's rerank operation should be performed."""
-
-    prop: str
-    query: Optional[str] = Field(default=None)
-
-
-class DecideOrder(str, Enum):
+class RerankOrder(str, Enum):
     """The order of the results a decision model reranks.
 
     Attributes:
@@ -283,26 +276,51 @@ class DecideOrder(str, Enum):
     PROBABILITY = "probability"
 
 
-class Decide(Rerank):
-    """Rerank by a decision model.
+class Rerank(_WeaviateInput):
+    """Define how the query's rerank operation should be performed.
 
-    The collection's decisions module answers `query` as a yes/no question about every candidate, the probability
-    is the rerank score, and the candidates below `min_probability` are dropped. Pass it as the `rerank` argument
-    of a query. The collection needs a decisions module (`decisions_config`); a reranker it may also have keeps
-    serving `rerank=Rerank(...)`. An argument left `None` takes the class setting of the module. The page can hold
-    fewer objects than `limit`: the decision model only removes candidates.
+    `Rerank(prop, query)` goes to the collection's reranker; `Rerank.decide(...)` to its decisions module.
     """
 
+    prop: str
+    query: Optional[str] = Field(default=None)
+
+    @staticmethod
+    def decide(
+        prop: str,
+        query: str,
+        *,
+        min_probability: Optional[float] = None,
+        order: Optional[RerankOrder] = None,
+    ) -> "Rerank":
+        """Rerank by a decision model.
+
+        The collection's decisions module answers `query` as a yes/no question about every candidate, the
+        probability is the rerank score, and the candidates below `min_probability` are dropped. The collection
+        needs a decisions module (`decisions_config`); a reranker it may also have keeps serving `Rerank(...)`.
+        An argument left `None` takes the class setting of the module. The page can hold fewer objects than
+        `limit`: the decision model only removes candidates.
+
+        Args:
+            prop: The property the model judges.
+            query: The statement the model judges about every candidate.
+            min_probability: Drop the candidates whose probability is below it, between 0 and 1.
+            order: Keep the search order or sort by probability.
+        """
+        return _RerankDecide(prop=prop, query=query, min_probability=min_probability, order=order)
+
+
+class _RerankDecide(Rerank):
     min_probability: Optional[float] = Field(default=None, ge=0, le=1)
-    order: Optional[DecideOrder] = Field(default=None)
+    order: Optional[RerankOrder] = Field(default=None)
 
     @model_validator(mode="after")
-    def _needs_a_query(self) -> "Decide":
+    def _needs_a_query(self) -> "_RerankDecide":
         # A plain Rerank may leave the query to the reranker; a decision has
         # nothing to judge without one, and the server would only fail after
         # the search.
         if not self.query or not self.query.strip():
-            raise ValueError("Decide needs the query the model judges")
+            raise ValueError("Rerank.decide needs the query the model judges")
         return self
 
 
@@ -357,7 +375,7 @@ class Decision:
 
     The collection's decisions module (`decisions_config`) answers every question for every object the query
     returns. Each question is about one text property of the objects and has a name that identifies its answer.
-    `decide` never drops or reorders an object; to filter by a condition, pass `Decide(...)` as the `rerank`
+    `decide` never drops or reorders an object; to filter by a condition, pass `Rerank.decide(...)` as the `rerank`
     argument instead.
     """
 
