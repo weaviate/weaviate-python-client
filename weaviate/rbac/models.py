@@ -76,7 +76,9 @@ class PermissionNodes(TypedDict):
 
 
 class PermissionBackup(TypedDict):
-    collection: str
+    collection: Optional[str]
+    role: Optional[str]
+    user: Optional[str]
 
 
 class PermissionReplicate(TypedDict):
@@ -403,14 +405,20 @@ class _GroupsPermission(_Permission[GroupAction]):
 
 
 class _BackupsPermission(_Permission[BackupsAction]):
-    collection: str
+    collection: str = ""
+    role: Optional[str] = None
+    user: Optional[str] = None
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
             {
                 "action": action,
                 "backups": {
-                    "collection": _capitalize_first_letter(self.collection),
+                    "collection": _capitalize_first_letter(self.collection)
+                    if self.collection != ""
+                    else None,
+                    "role": self.role,
+                    "user": self.user,
                 },
             }
             for action in self.actions
@@ -629,7 +637,9 @@ class Role(RoleBase):
                 if backups is not None:
                     backups_permissions.append(
                         BackupsPermissionOutput(
-                            collection=backups["collection"],
+                            collection=c if (c := backups.get("collection", None)) else "",
+                            role=backups.get("role", None),
+                            user=backups.get("user", None),
                             actions={BackupsAction(permission["action"])},
                         )
                     )
@@ -1040,18 +1050,36 @@ class Permissions:
 
     @staticmethod
     def backup(
-        *, collection: Union[str, Sequence[str]], manage: bool = False
+        *,
+        collection: Union[str, Sequence[str], None] = None,
+        role: Union[str, Sequence[str], None] = None,
+        user: Union[str, Sequence[str], None] = None,
+        manage: bool = False,
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
+        if not manage:
+            return []
+
         if isinstance(collection, str):
             collection = [collection]
-        for c in collection:
-            permission = _BackupsPermission(collection=c, actions=set())
+        if isinstance(role, str):
+            role = [role]
+        if isinstance(user, str):
+            user = [user]
 
-            if manage:
-                permission.actions.add(BackupsAction.MANAGE)
-            if len(permission.actions) > 0:
-                permissions.append(permission)
+        for c in collection or []:
+            p = _BackupsPermission(collection=c, actions=set())
+            p.actions.add(BackupsAction.MANAGE)
+            permissions.append(p)
+        for r in role or []:
+            p = _BackupsPermission(role=r, actions=set())
+            p.actions.add(BackupsAction.MANAGE)
+            permissions.append(p)
+        for u in user or []:
+            p = _BackupsPermission(user=u, actions=set())
+            p.actions.add(BackupsAction.MANAGE)
+            permissions.append(p)
+
         return permissions
 
     @staticmethod
