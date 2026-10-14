@@ -532,10 +532,11 @@ class _BatchBase:
     def __dynamic_batching(self) -> None:
         status = self.__cluster.get_nodes_status()
         if "batchStats" not in status[0] or "queueLength" not in status[0]["batchStats"]:
-            # async indexing - just send a lot
-            self.__batching_mode = _FixedSizeBatching(1000, 10)
-            self.__recommended_num_objects = 1000
-            self.__concurrent_requests = 10
+            # async indexing - just send a lot, but never override a configured rate limit (#1542)
+            if not isinstance(self.__batching_mode, _RateLimitedBatching):
+                self.__batching_mode = _FixedSizeBatching(1000, 10)
+                self.__recommended_num_objects = 1000
+                self.__concurrent_requests = 10
             return
 
         rate: int = status[0]["batchStats"]["ratePerSecond"]

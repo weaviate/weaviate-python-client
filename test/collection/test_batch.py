@@ -1,8 +1,18 @@
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import MagicMock
 
 import pytest
 
-from weaviate.collections.batch.base import _RateLimitedBatching
+from weaviate.collections.batch.base import (
+    _BatchBase,
+    _BatchDataWrapper,
+    _DynamicBatching,
+    _FixedSizeBatching,
+    _RateLimitedBatching,
+)
+from weaviate.collections.batch.client import _BatchClientWrapper
+from weaviate.collections.batch.collection import _BatchCollection, _BatchCollectionWrapper
 from weaviate.collections.batch.grpc_batch import _validate_props
 from weaviate.collections.classes.batch import (
     MAX_STORED_RESULTS,
@@ -14,6 +24,7 @@ from weaviate.collections.classes.batch import (
     ErrorReference,
 )
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError
+from weaviate.util import _ServerVersion
 
 
 def _error_object(index: int) -> ErrorObject:
@@ -141,3 +152,99 @@ def test_validate_props_raises_for_top_level_vector() -> None:
 def test_validate_props_raises_for_nested_vector() -> None:
     with pytest.raises(WeaviateInsertInvalidPropertyError):
         _validate_props({"vector": [0.1, 0.2]}, nested=True)
+
+
+def _batch_connection_mock() -> MagicMock:
+    connection = MagicMock()
+    connection._weaviate_version = _ServerVersion.from_string("1.36.0")
+    connection._grpc_max_msg_size = None
+    return connection
+
+
+def test_client_batch_dynamic_does_not_discard_configured_rate_limit() -> None:
+    wrapper = _BatchClientWrapper(
+        connection=_batch_connection_mock(),
+        config=MagicMock(),
+        consistency_level=None,
+    )
+    wrapper._vectorizer_batching = True
+    wrapper.rate_limit(requests_per_minute=100)
+    assert isinstance(wrapper._batch_mode, _RateLimitedBatching)
+
+    ctx = wrapper.dynamic()
+
+    assert isinstance(wrapper._batch_mode, _RateLimitedBatching)
+    assert wrapper._batch_mode.requests_per_minute == 100
+    inner_batch = ctx._ContextManagerSync__current_batch
+    assert isinstance(inner_batch._BatchBase__batching_mode, _RateLimitedBatching)
+    assert inner_batch._BatchBase__batching_mode.requests_per_minute == 100
+    assert inner_batch._BatchBase__recommended_num_objects == 100
+    assert inner_batch._BatchBase__concurrent_requests == 1
+
+
+def test_collection_batch_dynamic_does_not_discard_configured_rate_limit() -> None:
+    wrapper = _BatchCollectionWrapper(
+        connection=_batch_connection_mock(),
+        consistency_level=None,
+        name="Foo",
+        tenant=None,
+        config=MagicMock(),
+        batch_client=_BatchCollection,
+    )
+    wrapper._vectorizer_batching = False
+    wrapper.rate_limit(requests_per_minute=100)
+    assert isinstance(wrapper._batch_mode, _RateLimitedBatching)
+
+    ctx = wrapper.dynamic()
+
+    assert isinstance(wrapper._batch_mode, _RateLimitedBatching)
+    assert wrapper._batch_mode.requests_per_minute == 100
+    inner_batch = ctx._ContextManagerSync__current_batch
+    assert isinstance(inner_batch._BatchBase__batching_mode, _RateLimitedBatching)
+    assert inner_batch._BatchBase__batching_mode.requests_per_minute == 100
+    assert inner_batch._BatchBase__recommended_num_objects == 100
+    assert inner_batch._BatchBase__concurrent_requests == 1
+
+
+def test_async_indexing_fallback_does_not_override_rate_limited_mode() -> None:
+    batch = _BatchBase(
+        connection=_batch_connection_mock(),
+        consistency_level=None,
+        results=_BatchDataWrapper(),
+        batch_mode=_RateLimitedBatching(requests_per_minute=100),
+        executor=ThreadPoolExecutor(),
+        vectorizer_batching=False,
+    )
+    cluster = MagicMock()
+    # a node without "batchStats" is the async-indexing response shape
+    cluster.get_nodes_status.return_value = [{}]
+    batch._BatchBase__cluster = cluster
+
+    batch._BatchBase__dynamic_batching()
+
+    assert isinstance(batch._BatchBase__batching_mode, _RateLimitedBatching)
+    assert batch._BatchBase__batching_mode.requests_per_minute == 100
+    assert batch._BatchBase__recommended_num_objects == 100
+    assert batch._BatchBase__concurrent_requests == 1
+
+
+def test_async_indexing_fallback_still_replaces_plain_dynamic_mode() -> None:
+    batch = _BatchBase(
+        connection=_batch_connection_mock(),
+        consistency_level=None,
+        results=_BatchDataWrapper(),
+        batch_mode=_DynamicBatching(),
+        executor=ThreadPoolExecutor(),
+        vectorizer_batching=False,
+    )
+    cluster = MagicMock()
+    cluster.get_nodes_status.return_value = [{}]
+    batch._BatchBase__cluster = cluster
+
+    batch._BatchBase__dynamic_batching()
+
+    assert isinstance(batch._BatchBase__batching_mode, _FixedSizeBatching)
+    assert batch._BatchBase__batching_mode.batch_size == 1000
+    assert batch._BatchBase__batching_mode.concurrent_requests == 10
+    assert batch._BatchBase__recommended_num_objects == 1000
+    assert batch._BatchBase__concurrent_requests == 10

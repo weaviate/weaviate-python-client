@@ -15,7 +15,6 @@ from weaviate.collections.batch.base import (
 from weaviate.collections.batch.batch_wrapper import (
     BatchClientProtocol,
     BatchClientProtocolAsync,
-    _BatchMode,
     _BatchWrapper,
     _BatchWrapperAsync,
     _ContextManagerAsync,
@@ -217,7 +216,9 @@ class _BatchClientWrapper(_BatchWrapper):
         Args:
             consistency_level: The consistency level to be used to send batches. If not provided, the default value is `None`.
         """
-        self._batch_mode: _BatchMode = _DynamicBatching()
+        # a previously configured rate limit must not be silently discarded (#1542)
+        if not isinstance(self._batch_mode, _RateLimitedBatching):
+            self._batch_mode = _DynamicBatching()
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset(_BatchClient)
 

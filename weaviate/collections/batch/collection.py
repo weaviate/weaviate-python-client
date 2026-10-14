@@ -257,7 +257,9 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
         When you exit the context manager, the final batch will be sent automatically.
         """
-        self._batch_mode: _BatchMode = _DynamicBatching()
+        # a previously configured rate limit must not be silently discarded (#1542)
+        if not isinstance(self._batch_mode, _RateLimitedBatching):
+            self._batch_mode = _DynamicBatching()
         return self.__create_batch_and_reset(_BatchCollection)
 
     def fixed_size(
