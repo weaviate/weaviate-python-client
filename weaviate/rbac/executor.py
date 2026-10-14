@@ -2,7 +2,7 @@ import asyncio
 import json
 from typing import Dict, Generic, List, Optional, Sequence, Union, cast
 
-from httpx import Response
+from httpx2 import Response
 from typing_extensions import deprecated
 
 from weaviate.connect import executor
