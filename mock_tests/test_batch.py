@@ -1,9 +1,12 @@
-from typing import AsyncGenerator, Generator, List
+import asyncio
+from typing import AsyncGenerator, Generator, List, Optional
 
 import grpc
 import pytest
 import pytest_asyncio
 import weaviate
+from weaviate.collections.batch.async_ import _BgTasks
+from weaviate.collections.batch.base import _BgThreads
 from weaviate.proto.v1 import batch_pb2, weaviate_pb2_grpc
 from .conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, mock_class, HTTPServer
 
@@ -160,3 +163,61 @@ def test_ssb_stream_reports_has_errors(
             batch.add_object({"name": f"Object {i}"})
     assert len(failed_object_stream.batch.failed_objects) == 2
     assert failed_object_stream.batch.results.objs.has_errors
+
+
+def _interrupt_the_join(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Turn the join at the end of a `stream()` block into a Ctrl-C.
+
+    `_ContextManagerSync.__exit__` waits for the background threads before it hands the errors
+    over, so a Ctrl-C arriving during that wait is what issue #1300 is about. The real join
+    runs first, so the stream itself still completes and the expected error count is exact.
+    """
+    real_join = _BgThreads.join
+
+    def join(threads: _BgThreads, timeout: Optional[float] = None) -> None:
+        real_join(threads, timeout)
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(_BgThreads, "join", join)
+
+
+def _cancel_the_gather(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The async equivalent: a notebook interrupt reaches an awaiting cell as a cancellation."""
+    real_gather = _BgTasks.gather
+
+    async def gather(tasks: _BgTasks, timeout: Optional[float] = None) -> None:
+        await real_gather(tasks, timeout)
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(_BgTasks, "gather", gather)
+
+
+def test_ssb_stream_keeps_errors_reachable_after_an_interrupt(
+    failed_object_stream: weaviate.collections.Collection,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _interrupt_the_join(monkeypatch)
+
+    with pytest.raises(KeyboardInterrupt):
+        with failed_object_stream.batch.stream() as batch:
+            for i in range(4):
+                batch.add_object({"name": f"Object {i}"})
+
+    assert len(failed_object_stream.batch.failed_objects) == 2
+    assert failed_object_stream.batch.results.objs.has_errors
+
+
+@pytest.mark.asyncio
+async def test_ssb_stream_keeps_errors_reachable_after_an_interrupt_async(
+    failed_object_stream_async: weaviate.collections.CollectionAsync,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _cancel_the_gather(monkeypatch)
+
+    with pytest.raises(asyncio.CancelledError):
+        async with failed_object_stream_async.batch.stream() as batch:
+            for i in range(4):
+                await batch.add_object({"name": f"Object {i}"})
+
+    assert len(failed_object_stream_async.batch.failed_objects) == 2
+    assert failed_object_stream_async.batch.results.objs.has_errors
