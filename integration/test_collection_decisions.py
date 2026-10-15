@@ -251,3 +251,41 @@ def test_decide_without_a_decisions_module(collection_factory: CollectionFactory
         collection.query.bm25(
             "x", decide=wvc.query.Decision.predicate("q", prop="text", instructions="i")
         )
+
+
+# A 1x1 PNG, as a blob property holds it.
+PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC"
+
+
+def test_decide_and_rerank_about_an_image_property(collection_factory: CollectionFactory) -> None:
+    # decisions-dummy judges a blob as the text of its base64, so the answer is a
+    # probability of 0 for an object with a photo and a refusal for an object without
+    # one. A refused candidate stays in a rerank with a score of 0.
+    collection = collection_factory(
+        decisions_config=wvc.config.Configure.Decisions.custom("decisions-dummy"),
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+        properties=[
+            wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="photo", data_type=wvc.config.DataType.BLOB),
+        ],
+    )
+    if "decisions-dummy" not in collection._connection.get_meta()["modules"]:
+        pytest.skip("the server has no decisions-dummy module")
+    collection.data.insert_many([{"text": "photo here", "photo": PNG}, {"text": "nothing here"}])
+
+    objs = collection.query.bm25(
+        "here",
+        decide=wvc.query.Decision.predicate("damaged", prop="photo", instructions="damaged"),
+    ).objects
+
+    by_text = {o.properties["text"]: o.decisions["damaged"] for o in objs if o.decisions}
+    assert by_text["photo here"].probability == 0.0
+    assert by_text["nothing here"].refused
+
+    objs = collection.query.bm25(
+        "here", rerank=wvc.query.Rerank.decide(prop="photo", query="damaged")
+    ).objects
+    assert {o.properties["text"]: o.metadata.rerank_score for o in objs} == {
+        "photo here": 0.0,
+        "nothing here": 0.0,
+    }
