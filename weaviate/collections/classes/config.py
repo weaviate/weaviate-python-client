@@ -690,6 +690,7 @@ class _DecisionsTypeSafeAIConfig(DecisionsProvider):
     model: Optional[str]
     baseURL: Optional[AnyHttpUrl]
     maxDocuments: Optional[int]
+    images: Optional[bool]
     minProbability: Optional[float]
     order: Optional[DecisionsOrder]
 
@@ -1686,6 +1687,7 @@ class _Decisions:
         model: Optional[str] = None,
         base_url: Optional[str] = None,
         max_documents: Optional[int] = None,
+        images: Optional[bool] = None,
         min_probability: Optional[float] = None,
         order: Optional[DecisionsOrder] = None,
     ) -> DecisionsProvider:
@@ -1697,6 +1699,9 @@ class _Decisions:
             model: The TypeSafe AI model, for example `jev-latest`.
             base_url: The base URL to send the requests to.
             max_documents: The most objects one query may have judged, at most 1000.
+            images: Whether questions and `Rerank.decide` may be about a `blob` property, sent as an image. Off by
+                default: image input is an experimental feature of the TypeSafe AI API (PNG or JPEG, 280 to 1568
+                pixels per side) that the module switches on per request when the collection opts in.
             min_probability: With `rerank`, drop the results whose probability is below this value. A query's `Rerank.decide` overrides it.
             order: With `rerank`, keep the search order or sort by probability. A query's `Rerank.decide` overrides it.
         """
@@ -1706,6 +1711,7 @@ class _Decisions:
             if base_url is not None
             else None,
             maxDocuments=max_documents,
+            images=images,
             minProbability=min_probability,
             order=order,
         )
