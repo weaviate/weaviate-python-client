@@ -205,12 +205,16 @@ class _BaseExecutor(Generic[ConnectionType]):
             return metadata.cohere
         if metadata.HasField("databricks"):
             return metadata.databricks
+        if metadata.HasField("digitalocean"):
+            return metadata.digitalocean
         if metadata.HasField("dummy"):
             return metadata.dummy
         if metadata.HasField("friendliai"):
             return metadata.friendliai
         if metadata.HasField("google"):
             return metadata.google
+        if metadata.HasField("meta"):
+            return metadata.meta
         if metadata.HasField("mistral"):
             return metadata.mistral
         if metadata.HasField("nvidia"):

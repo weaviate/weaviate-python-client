@@ -26,7 +26,7 @@
 #     _PropertyConfig,
 #     Property,
 #     ReferenceProperty,
-#     _ReferencePropertyMultiTarget,
+#     ReferencePropertyMultiTarget,
 #     DataType,
 # )
 # from weaviate.collections.classes.types import T
@@ -153,7 +153,7 @@
 #     @staticmethod
 #     def type_to_properties(
 #         model: Type["BaseProperty"],
-#     ) -> List[Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]]:
+#     ) -> List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]:
 #         types = get_type_hints(model)
 
 #         non_optional_types = {
@@ -163,7 +163,7 @@
 #         }
 
 #         non_ref_fields = model.get_non_ref_fields(model)
-#         properties: List[Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]] = []
+#         properties: List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]] = []
 #         for name in non_ref_fields:
 #             data_type = [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]]
 #             prop: Dict[str, Any] = {}

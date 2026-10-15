@@ -93,9 +93,16 @@ class _BatchWrapper:
 
         res = _decode_json_response_list(response, "Get shards' status")
         assert res is not None
+
         return [
-            (cast(str, shard.get("status")) == "READY")
-            & (cast(int, shard.get("vectorQueueSize")) == 0)
+            (
+                all(
+                    status == "READY"
+                    for status in cast(dict[str, str], shard["per_node_status"]).values()
+                )
+                if "per_node_status" in shard
+                else cast(str, shard["status"]) == "READY"
+            )
             for shard in res
         ]
 
@@ -195,8 +202,14 @@ class _BatchWrapperAsync:
         res = _decode_json_response_list(response, "Get shards' status")
         assert res is not None
         return [
-            (cast(str, shard.get("status")) == "READY")
-            & (cast(int, shard.get("vectorQueueSize")) == 0)
+            (
+                all(
+                    status == "READY"
+                    for status in cast(dict[str, str], shard["per_node_status"]).values()
+                )
+                if "per_node_status" in shard
+                else cast(str, shard["status"]) == "READY"
+            )
             for shard in res
         ]
 
@@ -385,7 +398,7 @@ class BatchClientProtocolAsync(Protocol):
         ...
 
 
-class BatchCollectionProtocol(Generic[Properties], Protocol[Properties]):
+class BatchCollectionProtocol(Protocol[Properties]):
     def add_object(
         self,
         properties: Optional[Properties] = None,
@@ -441,7 +454,7 @@ class BatchCollectionProtocol(Generic[Properties], Protocol[Properties]):
         ...
 
 
-class BatchCollectionProtocolAsync(Generic[Properties], Protocol[Properties]):
+class BatchCollectionProtocolAsync(Protocol[Properties]):
     async def add_object(
         self,
         properties: Optional[Properties] = None,

@@ -7,6 +7,7 @@ from weaviate.collections.classes.config import (
     VectorDistances,
     VectorIndexType,
     Vectorizers,
+    _MuveraConfig,
     _VectorIndexConfigHFresh,
 )
 
@@ -122,3 +123,32 @@ def test_collection_hfresh_export_and_reimport(collection_factory: CollectionFac
         assert config == new
         assert config.to_dict() == new.to_dict()
         client.collections.delete(name)
+
+
+def test_collection_hfresh_multi_vector_muvera(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 40, 0):
+        pytest.skip("Multi-vector HFresh is not supported in Weaviate versions lower than 1.40.0")
+
+    collection = collection_factory(
+        vector_config=[
+            Configure.MultiVectors.self_provided(
+                name="colbert",
+                encoding=Configure.VectorIndex.MultiVector.Encoding.muvera(
+                    ksim=4, dprojections=16, repetitions=10
+                ),
+                vector_index_config=Configure.VectorIndex.hfresh(),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+
+    assert config.vector_config is not None
+    index_config = config.vector_config["colbert"].vector_index_config
+    assert isinstance(index_config, _VectorIndexConfigHFresh)
+    assert index_config.multi_vector is not None
+    assert isinstance(index_config.multi_vector.encoding, _MuveraConfig)
+    assert index_config.multi_vector.encoding.ksim == 4
+    assert index_config.multi_vector.encoding.dprojections == 16
+    assert index_config.multi_vector.encoding.repetitions == 10

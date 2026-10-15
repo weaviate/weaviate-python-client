@@ -1047,7 +1047,7 @@ def test_delete_property_index_string_deprecation_warning(
     ).respond_with_json({}, status=200)
 
     config = client_139.collections.use(COLLECTION).config
-    with pytest.warns(DeprecationWarning, match="Dep030"):
+    with pytest.warns(DeprecationWarning, match="Dep031"):
         assert config.delete_property_index("name", "searchable") is True
 
     # the InvertedIndexType form is the supported path and must not warn

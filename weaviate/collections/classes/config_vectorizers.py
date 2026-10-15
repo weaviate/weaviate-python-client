@@ -110,6 +110,7 @@ class Vectorizers(str, Enum):
         MULTI2VEC_BIND: Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         MULTI2VEC_VOYAGEAI: Weaviate module backed by a Voyage AI multimodal embedding models.
         MULTI2VEC_NVIDIA: Weaviate module backed by NVIDIA multimodal embedding models.
+        MULTI2VEC_TWELVELABS: Weaviate module backed by TwelveLabs multimodal embedding models.
         REF2VEC_CENTROID: Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
     """
 
@@ -144,6 +145,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
     MULTI2VEC_NVIDIA = "multi2vec-nvidia"
+    MULTI2VEC_TWELVELABS = "multi2vec-twelvelabs"
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
@@ -619,6 +621,20 @@ class _Multi2VecNvidiaConfig(_Multi2VecBase):
         return ret_dict
 
 
+class _Multi2VecTwelvelabsConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_TWELVELABS, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
 class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.REF2VEC_CENTROID, frozen=True, exclude=True
@@ -682,7 +698,7 @@ class _Vectorizer:
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
             inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `image_fields` or `text_fields` are not `None` or a `list`.
@@ -729,7 +745,7 @@ class _Vectorizer:
             text_fields: The text fields to use in vectorization.
             thermal_fields: The thermal fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If any of the `*_fields` are not `None` or a `list`.
@@ -910,7 +926,7 @@ class _Vectorizer:
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
@@ -1315,7 +1331,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1358,7 +1374,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             video_fields: The video fields to use in vectorization.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
@@ -1453,7 +1469,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
             image_fields: The image fields to use in vectorization.

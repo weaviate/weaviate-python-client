@@ -1,5 +1,6 @@
 import datetime
-from typing import Generator, List, Optional, Union
+import time
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -12,6 +13,7 @@ from integration.conftest import (
     OpenAICollection,
     _sanitize_collection_name,
 )
+from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
@@ -22,6 +24,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
+    _VectorIndexConfigNone,
     _VectorIndexConfigHNSWUpdate,
     Configure,
     Reconfigure,
@@ -38,6 +41,7 @@ from weaviate.collections.classes.config import (
     Rerankers,
     _RerankerProvider,
     Tokenization,
+    _NamedVectorConfig,
     _NamedVectorConfigCreate,
     _VectorizerConfigCreate,
     IndexName,
@@ -60,11 +64,11 @@ from weaviate.util import _ServerVersion
 def _expected_async_enabled(version: _ServerVersion, factor: int) -> bool:
     """Whether the server reports async replication as enabled for a collection.
 
-    Up to 1.38 the server stores whatever `async_enabled` the collection was created with. From
-    1.39 it ignores that and derives the field as `factor > 1 and not globally disabled` instead,
+    Up to 1.38.9 the server stores whatever `async_enabled` the collection was created with. From
+    1.38.9 it ignores that and derives the field as `factor > 1 and not globally disabled` instead,
     so a collection with a single replica always reports `False`.
     """
-    if version.is_at_least(1, 39, 0):
+    if version.is_at_least(1, 38, 9):
         return factor > 1
     return version.is_at_least(1, 26, 0)
 
@@ -668,6 +672,82 @@ def test_hnsw_with_rq(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.rescore_limit == 20
 
 
+def test_hnsw_with_rq4c(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 39, 2):
+        pytest.skip("RQ centering is not supported in Weaviate versions lower than 1.39.2")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.rq(
+                bits=4, centering=True, rescore_limit=20, training_limit=5000
+            ),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer is not None
+    assert config.vector_index_config.quantizer.bits == 4
+    assert config.vector_index_config.quantizer.centering is True
+    assert config.vector_index_config.quantizer.rescore_limit == 20
+    assert config.vector_index_config.quantizer.training_limit == 5000
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            quantizer=Reconfigure.VectorIndex.Quantizer.rq(rescore_limit=50, training_limit=10000),
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _RQConfig)
+    assert config.vector_index_config.quantizer.bits == 4
+    assert config.vector_index_config.quantizer.centering is True
+    assert config.vector_index_config.quantizer.rescore_limit == 50
+    assert config.vector_index_config.quantizer.training_limit == 10000
+
+
+def test_hnsw_with_pathseer_filter_strategy(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 40, 0):
+        pytest.skip(
+            "pathseer filter strategy is not supported in Weaviate versions lower than 1.40.0"
+        )
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.PATHSEER,
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.PATHSEER
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.ACORN,
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.PATHSEER,
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.PATHSEER
+
+
 @pytest.mark.parametrize(
     "vector_index_config",
     [
@@ -793,8 +873,9 @@ def test_collection_config_get_shards(collection_factory: CollectionFactory) -> 
     )
     shards = collection.config.get_shards()
     assert len(shards)
+    if shards[0].per_node_status:
+        assert all(status == "READY" for status in shards[0].per_node_status.values())
     assert shards[0].status == "READY"
-    assert shards[0].vector_queue_size == 0
 
 
 def test_collection_update_shards(collection_factory: CollectionFactory) -> None:
@@ -804,7 +885,10 @@ def test_collection_update_shards(collection_factory: CollectionFactory) -> None
     )
 
     collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
-    assert all(shard.status == "READY" for shard in collection.config.get_shards())
+    for shard in collection.config.get_shards():
+        if shard.per_node_status:
+            assert all(per_node == "READY" for per_node in shard.per_node_status)
+        assert shard.status == "READY"
 
     # all possibilites of calling the function
     updated_shards = collection.config.update_shards(status="READONLY", shard_names="tenant1")
@@ -842,11 +926,10 @@ def test_collection_config_get_shards_multi_tenancy(collection_factory: Collecti
     shards = collection.config.get_shards()
     assert len(shards) == 2
 
-    assert shards[0].status == "READY"
-    assert shards[0].vector_queue_size == 0
-
-    assert shards[1].status == "READY"
-    assert shards[1].vector_queue_size == 0
+    for shard in shards:
+        if shard.per_node_status:
+            assert all(status == "READY" for status in shard.per_node_status.values())
+        assert shard.status == "READY"
 
     assert "tenant1" in [shard.name for shard in shards]
     assert "tenant2" in [shard.name for shard in shards]
@@ -1636,9 +1719,14 @@ def test_replication_config_with_async_config(collection_factory: CollectionFact
         assert ac.alive_nodes_checking_frequency is None
 
 
-def test_replication_config_remove_async_config_by_disabling_async_replication(
+def test_replication_config_async_config_preserved_when_disabling_async_replication(
     collection_factory: CollectionFactory,
 ) -> None:
+    """Disabling `async_enabled` must leave the collection's async replication tuning intact.
+
+    `config.update()` is a read-modify-write PUT of the whole collection, so dropping `asyncConfig`
+    from the merged payload would silently reset the tuning to server defaults.
+    """
     collection_dummy = collection_factory("dummy")
     if collection_dummy._connection._weaviate_version.is_lower_than(1, 34, 18):
         pytest.skip("async replication config requires Weaviate >= 1.34.18")
@@ -1663,8 +1751,14 @@ def test_replication_config_remove_async_config_by_disabling_async_replication(
         ),
     )
     config = collection.config.get()
+    # False on both sides of the v1.38 compatibility shim: older servers store the
+    # `asyncEnabled` we just sent, newer ones derive it as `factor > 1 and not globally
+    # disabled` — and this collection has factor=1.
     assert config.replication_config.async_enabled is False
-    assert config.replication_config.async_config is None
+    ac = config.replication_config.async_config
+    assert ac is not None
+    assert ac.propagation_concurrency == 4
+    assert ac.hashtree_height == 20
 
 
 def test_replication_config_remove_async_config(collection_factory: CollectionFactory) -> None:
@@ -2994,3 +3088,60 @@ async def test_property_reindex_async(async_collection_factory: AsyncCollectionF
 
     task = await collection.config.cancel_property_index_task("name", InvertedIndexType.SEARCHABLE)
     assert task.status == InvertedIndexTaskStatus.NO_OP
+
+
+def _vector_config_without_index(
+    collection: Collection[Any, Any], vector_name: str, timeout: float = 30
+) -> Dict[str, _NamedVectorConfig]:
+    """Poll the collection config until `vector_name` no longer has an index.
+
+    The drop is applied asynchronously, a 200 from the endpoint only means that Weaviate accepted
+    the request. It then becomes visible in two steps: the vector first stays in the schema with a
+    `vector_index_config` of `_VectorIndexConfigNone`, and once the index is gone from disk the
+    entry is removed from the schema altogether. Both shapes must parse, so accept either.
+    """
+    start = time.time()
+    while True:
+        vector_config = collection.config.get().vector_config
+        assert vector_config is not None
+        if vector_name not in vector_config or isinstance(
+            vector_config[vector_name].vector_index_config, _VectorIndexConfigNone
+        ):
+            return vector_config
+        if time.time() - start > timeout:
+            pytest.fail(f"vector index of {vector_name} was not dropped within {timeout}s")
+        time.sleep(0.2)
+
+
+def test_delete_vector_index(collection_factory: CollectionFactory) -> None:
+    """Test that dropping the index of a named vector leaves the rest of the collection usable."""
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 39, 0):
+        pytest.skip("delete vector index not supported before 1.39.0")
+
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vector_config=[
+            Configure.Vectors.self_provided(name="dropped"),
+            Configure.Vectors.self_provided(name="kept"),
+        ],
+    )
+    collection.data.insert(
+        properties={"name": "banana"},
+        vector={"dropped": [1, 2], "kept": [3, 4]},
+    )
+
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert not isinstance(
+        config.vector_config["dropped"].vector_index_config, _VectorIndexConfigNone
+    )
+
+    assert collection.config.delete_vector_index("dropped") is None
+
+    vector_config = _vector_config_without_index(collection, "dropped")
+    # vectors that were not dropped keep their index
+    assert not isinstance(vector_config["kept"].vector_index_config, _VectorIndexConfigNone)
+
+    # searching the vector that still has an index keeps working
+    assert len(collection.query.near_vector([3, 4], target_vector="kept").objects) == 1

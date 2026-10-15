@@ -1,6 +1,11 @@
 from typing import Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.classes.filters import FilterReturn
+from weaviate.collections.classes.generative import (
+    GenerativeConfigRuntime,
+    GroupedTask,
+    SinglePrompt,
+)
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -8,9 +13,6 @@ from weaviate.collections.classes.internal import (
     GenerativeReturnType,
     ReturnProperties,
     ReturnReferences,
-    _GenerativeConfigRuntime,
-    _GroupedTask,
-    _SinglePrompt,
 )
 from weaviate.collections.classes.types import Properties, References, TProperties, TReferences
 from weaviate.connect.v4 import ConnectionSync
@@ -26,10 +28,10 @@ class _FetchObjectsGenerate(
     def fetch_objects(
         self,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
+        single_prompt: Union[str, SinglePrompt, None] = None,
+        grouped_task: Union[str, GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_provider: Optional[GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -44,10 +46,10 @@ class _FetchObjectsGenerate(
     def fetch_objects(
         self,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
+        single_prompt: Union[str, SinglePrompt, None] = None,
+        grouped_task: Union[str, GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_provider: Optional[GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -62,10 +64,10 @@ class _FetchObjectsGenerate(
     def fetch_objects(
         self,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
+        single_prompt: Union[str, SinglePrompt, None] = None,
+        grouped_task: Union[str, GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_provider: Optional[GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -80,10 +82,10 @@ class _FetchObjectsGenerate(
     def fetch_objects(
         self,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
+        single_prompt: Union[str, SinglePrompt, None] = None,
+        grouped_task: Union[str, GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_provider: Optional[GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -98,10 +100,10 @@ class _FetchObjectsGenerate(
     def fetch_objects(
         self,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
+        single_prompt: Union[str, SinglePrompt, None] = None,
+        grouped_task: Union[str, GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_provider: Optional[GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -116,10 +118,10 @@ class _FetchObjectsGenerate(
     def fetch_objects(
         self,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
+        single_prompt: Union[str, SinglePrompt, None] = None,
+        grouped_task: Union[str, GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_provider: Optional[GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -134,10 +136,10 @@ class _FetchObjectsGenerate(
     def fetch_objects(
         self,
         *,
-        single_prompt: Union[str, _SinglePrompt, None] = None,
-        grouped_task: Union[str, _GroupedTask, None] = None,
+        single_prompt: Union[str, SinglePrompt, None] = None,
+        grouped_task: Union[str, GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_provider: Optional[GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,

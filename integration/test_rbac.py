@@ -54,6 +54,27 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             None,
         ),
         (
+            Permissions.backup(collection="Test", read=True),
+            Role(
+                name="ReadBackups",
+                alias_permissions=[],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[
+                    BackupsPermissionOutput(collection="Test", actions={Actions.Backups.READ})
+                ],
+                mcp_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            ),
+            40,
+        ),
+        (
             Permissions.cluster(read=True),
             Role(
                 name="ReadCluster",
@@ -634,6 +655,11 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
             assert client.roles.has_permissions(permissions=required_permissions[0], role=role_name)
             assert client.roles.has_permissions(permissions=required_permissions[1], role=role_name)
             assert client.roles.has_permissions(permissions=required_permissions, role=role_name)
+            assert not client.roles.has_permissions(
+                permissions=required_permissions
+                + [Permissions.collections(collection="test", delete_collection=True)],
+                role=role_name,
+            )
         finally:
             client.roles.delete(role_name)
 

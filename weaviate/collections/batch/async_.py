@@ -37,6 +37,7 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
 )
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.connect.base import _grpc_web_shim_active
 from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync
 from weaviate.exceptions import (
@@ -133,6 +134,14 @@ class _BatchBaseAsync:
         return self.__bg_tasks is not None and self.__bg_tasks.all_alive()
 
     async def _start(self):
+        if _grpc_web_shim_active():
+            # fail early: over grpc-web the BatchStream RPC would fail inside the background
+            # tasks, which shows up as silently dropped objects or a flush() that never ends
+            raise WeaviateBatchStreamError(
+                "batch.stream() requires bidirectional gRPC streaming, which is not "
+                "possible over grpc-web/fetch (WebAssembly/Pyodide). Use "
+                "collection.data.insert_many() instead."
+            )
         self.__number_of_nodes = await self.__cluster.get_number_of_nodes()
 
         async def loop_wrapper() -> None:
@@ -225,7 +234,7 @@ class _BatchBaseAsync:
                     # wait for more objects to be added up to the batch size
                     await asyncio.sleep(refresh_time)
                     if time.time() - start >= 1 and (
-                        len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
+                        len_o == len(self.__batch_objects) and len_r == len(self.__batch_references)
                     ):
                         # no new objects were added in the last second, exit the loop
                         break

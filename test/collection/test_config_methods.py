@@ -1,9 +1,271 @@
+from typing import Any, Dict, Optional
+
+import pytest
+
+from weaviate.collections.classes.config import (
+    VectorIndexType,
+    _MultiVectorConfig,
+    _MuveraConfig,
+    _VectorIndexConfigHFresh,
+    _VectorIndexConfigNone,
+)
+from weaviate.exceptions import SchemaValidationError
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
+    _collection_config_simple_from_json,
     _collection_configs_simple_from_json,
     _nested_properties_from_config,
     _properties_from_config,
 )
+
+HNSW_CONFIG = {
+    "skip": False,
+    "cleanupIntervalSeconds": 300,
+    "maxConnections": 64,
+    "efConstruction": 128,
+    "ef": -1,
+    "dynamicEfMin": 100,
+    "dynamicEfMax": 500,
+    "dynamicEfFactor": 8,
+    "vectorCacheMaxObjects": 1000000000000,
+    "flatSearchCutoff": 40000,
+    "distance": "cosine",
+}
+
+
+def _schema_with_vector_config(vector_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Build a minimal collection schema, as returned by Weaviate, around the given vectorConfig."""
+    return {
+        "class": "TestCollection",
+        "vectorConfig": vector_config,
+        "properties": [],
+        "invertedIndexConfig": {
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "cleanupIntervalSeconds": 60,
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+        },
+        "multiTenancyConfig": {"enabled": False},
+        "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
+        "shardingConfig": {
+            "virtualPerPhysical": 128,
+            "desiredCount": 1,
+            "actualCount": 1,
+            "desiredVirtualCount": 128,
+            "actualVirtualCount": 128,
+            "key": "_id",
+            "strategy": "hash",
+            "function": "murmur3",
+        },
+    }
+
+
+def test_collection_config_from_json_with_dropped_vector_index() -> None:
+    """A vector whose index was dropped is returned without a vectorIndexConfig."""
+    # Shape returned by Weaviate after `collection.config.delete_vector_index("dropped")`:
+    # the entry stays in the schema, `vectorIndexType` becomes "none" and `vectorIndexConfig`
+    # is omitted entirely.
+    schema = _schema_with_vector_config(
+        {
+            "dropped": {"vectorizer": {"none": {}}, "vectorIndexType": "none"},
+            "kept": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hnsw",
+                "vectorIndexConfig": HNSW_CONFIG,
+            },
+        }
+    )
+
+    config = _collection_config_from_json(schema)
+
+    assert config.vector_config is not None
+    assert isinstance(config.vector_config["dropped"].vector_index_config, _VectorIndexConfigNone)
+    assert config.vector_config["dropped"].vector_index_config.vector_index_type() == "none"
+    assert not isinstance(config.vector_config["kept"].vector_index_config, _VectorIndexConfigNone)
+
+    # The dropped vector must round-trip back to the "none" index type the server reported.
+    as_dict = config.to_dict()
+    assert as_dict["vectorConfig"]["dropped"]["vectorIndexType"] == VectorIndexType.NONE.value
+    assert "vectorIndexConfig" not in as_dict["vectorConfig"]["dropped"]
+    assert as_dict["vectorConfig"]["kept"]["vectorIndexType"] == VectorIndexType.HNSW.value
+
+
+@pytest.mark.parametrize(
+    "multivector",
+    [
+        {"enabled": True, "aggregation": "maxSim"},
+        {
+            "enabled": True,
+            "aggregation": "maxSim",
+            "muvera": {"enabled": True, "ksim": 4, "dprojections": 16, "repetitions": 10},
+        },
+    ],
+)
+def test_collection_config_to_dict_keeps_multivector(multivector: Dict[str, Any]) -> None:
+    """A multi-vector index must round-trip in the shape the server accepts, or it is recreated as a regular index."""
+    schema = _schema_with_vector_config(
+        {
+            "colbert": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hnsw",
+                "vectorIndexConfig": {**HNSW_CONFIG, "multivector": multivector},
+            },
+            "regular": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hnsw",
+                "vectorIndexConfig": HNSW_CONFIG,
+            },
+        }
+    )
+
+    as_dict = _collection_config_from_json(schema).to_dict()
+
+    assert as_dict["vectorConfig"]["colbert"]["vectorIndexConfig"]["multivector"] == multivector
+    assert "multiVector" not in as_dict["vectorConfig"]["colbert"]["vectorIndexConfig"]
+    assert "multivector" not in as_dict["vectorConfig"]["regular"]["vectorIndexConfig"]
+
+
+HFRESH_CONFIG = {
+    "distance": "cosine",
+    "maxPostingSizeKB": 48,
+    "replicas": 4,
+    "searchProbe": 256,
+    "rq": {"enabled": True, "bits": 1, "rescoreLimit": 350, "trainingLimit": 0},
+}
+
+
+@pytest.mark.parametrize(
+    "multivector,expected",
+    [
+        (
+            {
+                "enabled": True,
+                "aggregation": "",
+                "muvera": {"enabled": True, "ksim": 4, "dprojections": 16, "repetitions": 10},
+            },
+            _MultiVectorConfig(
+                aggregation="",
+                encoding=_MuveraConfig(enabled=True, ksim=4, dprojections=16, repetitions=10),
+            ),
+        ),
+        (
+            {
+                "enabled": True,
+                "aggregation": "",
+                "muvera": {"enabled": False, "ksim": 4, "dprojections": 16, "repetitions": 10},
+            },
+            _MultiVectorConfig(aggregation="", encoding=None),
+        ),
+        (
+            {
+                "enabled": False,
+                "aggregation": "",
+                "muvera": {"enabled": False, "ksim": 4, "dprojections": 16, "repetitions": 10},
+            },
+            None,
+        ),
+        # servers before 1.40 omit the multivector block for HFresh
+        (None, None),
+    ],
+)
+def test_collection_config_from_json_hfresh_multi_vector(
+    multivector: Optional[Dict[str, Any]], expected: Optional[_MultiVectorConfig]
+) -> None:
+    index_config = dict(HFRESH_CONFIG)
+    if multivector is not None:
+        index_config["multivector"] = multivector
+    schema = _schema_with_vector_config(
+        {
+            "mv": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hfresh",
+                "vectorIndexConfig": index_config,
+            }
+        }
+    )
+
+    config = _collection_config_from_json(schema)
+
+    assert config.vector_config is not None
+    vic = config.vector_config["mv"].vector_index_config
+    assert isinstance(vic, _VectorIndexConfigHFresh)
+    assert vic.multi_vector == expected
+    assert vic.max_posting_size_kb == 48
+    assert vic.search_probe == 256
+
+
+def test_collection_config_from_json_missing_vector_index_config_raises() -> None:
+    """A non-dropped vector missing its vectorIndexConfig must fail fast, not parse as None."""
+    schema = _schema_with_vector_config(
+        {"broken": {"vectorizer": {"none": {}}, "vectorIndexType": "hnsw"}}
+    )
+
+    with pytest.raises(SchemaValidationError, match="broken"):
+        _collection_config_from_json(schema)
+
+
+def test_collection_config_from_json_unknown_vector_index_type_raises() -> None:
+    """An index type the client does not know is reported as such, not as a missing config."""
+    # `vectorIndexConfig` is present and populated; only the type is unknown to this client.
+    schema = _schema_with_vector_config(
+        {
+            "future": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "spann",
+                "vectorIndexConfig": {"distance": "cosine", "searchListSize": 100},
+            }
+        }
+    )
+
+    with pytest.raises(SchemaValidationError, match="unknown vectorIndexType"):
+        _collection_config_from_json(schema)
+
+
+def _schema_without_any_vector() -> Dict[str, Any]:
+    """Schema of a named-vector collection whose vectors were all dropped.
+
+    Once the drops finalize the server removes every `vectorConfig` entry, so the block is
+    omitted, and a named-vector collection never has a top-level `vectorizer`, `vectorIndexType`
+    or `vectorIndexConfig`. (A legacy single-vector collection cannot reach this shape: the server
+    rejects dropping its index, so it always keeps a top-level `vectorizer`.)
+    """
+    return {
+        "class": "TestCollection",
+        "properties": [],
+        "invertedIndexConfig": {
+            "bm25": {"b": 0.75, "k1": 1.2},
+            "cleanupIntervalSeconds": 60,
+            "stopwords": {"preset": "en", "additions": None, "removals": None},
+        },
+        "multiTenancyConfig": {"enabled": False},
+        "replicationConfig": {"factor": 1, "deletionStrategy": "NoAutomatedResolution"},
+        "shardingConfig": {
+            "virtualPerPhysical": 128,
+            "desiredCount": 1,
+            "actualCount": 1,
+            "desiredVirtualCount": 128,
+            "actualVirtualCount": 128,
+            "key": "_id",
+            "strategy": "hash",
+            "function": "murmur3",
+        },
+    }
+
+
+def test_collection_config_from_json_all_vectors_dropped() -> None:
+    """A collection whose vectors were all dropped has no top-level vectorizer."""
+    config = _collection_config_from_json(_schema_without_any_vector())
+
+    assert config.vectorizer is None
+    assert config.vector_index_type is None
+    assert config.vector_config is None
+
+
+def test_collection_config_simple_from_json_all_vectors_dropped() -> None:
+    """`collections.list_all()` must not choke on a collection whose vectors were all dropped."""
+    config = _collection_config_simple_from_json(_schema_without_any_vector())
+
+    assert config.vectorizer is None
+    assert config.vector_config is None
 
 
 def test_collection_config_simple_from_json_with_none_vectorizer_config() -> None:
