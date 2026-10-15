@@ -1,4 +1,5 @@
 from weaviate.collections.classes.config import (
+    BM25Algorithm,
     Configure,
     ConsistencyLevel,
     DataType,
@@ -7,6 +8,7 @@ from weaviate.collections.classes.config import (
     IndexName,
     InvertedIndexConfigCreate,
     InvertedIndexConfigUpdate,
+    InvertedIndexType,
     MultiTenancyConfigCreate,
     MultiTenancyConfigUpdate,
     PQEncoderDistribution,
@@ -59,6 +61,7 @@ from weaviate.collections.classes.config_vectors import (
 from weaviate.connect.integrations import Integrations
 
 __all__ = [
+    "BM25Algorithm",
     "Configure",
     "ConsistencyLevel",
     "DataType",
@@ -68,6 +71,7 @@ __all__ = [
     "Integrations",
     "InvertedIndexConfigCreate",
     "InvertedIndexConfigUpdate",
+    "InvertedIndexType",
     "Multi2VecField",
     "MultiTenancyConfigCreate",
     "MultiTenancyConfigUpdate",
