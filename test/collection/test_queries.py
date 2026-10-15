@@ -2,9 +2,11 @@ from typing import Awaitable
 
 import pytest
 
+from weaviate.collections.collection import CollectionAsync
 from weaviate.collections.query import _QueryCollectionAsync
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.util import _ServerVersion
 
 # TODO: re-enable tests once string syntax is re-enabled in the API
 
@@ -130,3 +132,14 @@ async def test_bad_query_inputs(connection: ConnectionV4) -> None:
 
     # near image
     await _test_query(lambda: query.near_image(42))
+
+
+def test_async_collection_query_uses_current_connection_version(connection: ConnectionV4) -> None:
+    collection = CollectionAsync(connection, "dummy", True)
+
+    connection._weaviate_version = _ServerVersion.from_string("1.32.5")
+
+    request = collection.query._query.get()
+
+    assert request.uses_125_api
+    assert request.uses_127_api
