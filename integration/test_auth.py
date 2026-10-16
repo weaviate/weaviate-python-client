@@ -140,8 +140,7 @@ def test_client_with_authentication_with_anon_weaviate() -> None:
 
 
 def _request_with_429_backoff(send: Callable[[], httpx.Response]) -> httpx.Response:
-    """Send an httpx request, retrying with backoff while it returns 429.
-    """
+    """Send an httpx request, retrying with backoff while it returns 429."""
     response = send()
     for delay in (2, 4, 8):
         if response.status_code != 429:
