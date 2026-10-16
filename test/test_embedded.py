@@ -5,15 +5,15 @@ import pytest
 from weaviate import embedded
 
 
-def test_cluster_ports_are_distinct_consecutive_pairs() -> None:
-    gossip, data, raft, raft_rpc = embedded._get_cluster_ports()
+def test_server_ports_are_distinct_with_consecutive_cluster_pairs() -> None:
+    gossip, data, raft, raft_rpc, profiling = embedded._get_server_ports()
 
     assert data == gossip + 1
     assert raft_rpc == raft + 1
-    assert len({gossip, data, raft, raft_rpc}) == 4
+    assert len({gossip, data, raft, raft_rpc, profiling}) == 5
 
 
-def test_cluster_ports_skip_gossip_port_when_next_port_is_taken(
+def test_server_ports_skip_gossip_port_when_next_port_is_taken(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     real_hold_port = embedded._hold_port
@@ -27,7 +27,7 @@ def test_cluster_ports_skip_gossip_port_when_next_port_is_taken(
 
     monkeypatch.setattr(embedded, "_hold_port", hold_port_with_first_data_port_taken)
 
-    gossip, data, _, _ = embedded._get_cluster_ports()
+    gossip, data, _, _, _ = embedded._get_server_ports()
 
     rejected_gossip = calls[1] - 1
     assert gossip != rejected_gossip

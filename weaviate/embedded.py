@@ -73,17 +73,18 @@ def _hold_consecutive_ports(held: ExitStack) -> Tuple[int, int]:
     raise WeaviateStartUpError("Could not find two consecutive free ports for Weaviate")
 
 
-def _get_cluster_ports() -> Tuple[int, int, int, int]:
-    """Return free gossip, data, Raft, and Raft internal RPC ports for one embedded instance.
+def _get_server_ports() -> Tuple[int, int, int, int, int]:
+    """Return free gossip, data, Raft, Raft internal RPC, and profiling ports for one instance.
 
     The Weaviate server requires data = gossip + 1 and, in a local cluster, Raft internal RPC =
-    Raft + 1. All four ports are distinct and were free when chosen, but are released before
+    Raft + 1. All five ports are distinct and were free when chosen, but are released before
     returning.
     """
     with ExitStack() as held:
         gossip_port, data_port = _hold_consecutive_ports(held)
         raft_port, raft_internal_rpc_port = _hold_consecutive_ports(held)
-        return gossip_port, data_port, raft_port, raft_internal_rpc_port
+        profiling_port = _hold_port(held)
+        return gossip_port, data_port, raft_port, raft_internal_rpc_port, profiling_port
 
 
 class _EmbeddedBase:
@@ -249,13 +250,19 @@ class _EmbeddedBase:
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
-        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
-        # Weaviate exits at startup if any cluster port is taken, so every port is checked rather
+        # Weaviate exits at startup if any of its ports is taken, so every port is checked rather
         # than assumed free because it follows a random one. Distinct ports also keep the Raft
         # port off the data port, which breaks backups. With CLUSTER_IN_LOCALHOST, the server
         # ignores RAFT_INTERNAL_RPC_PORT when dialing and uses the Raft port + 1
-        # (cluster/resolver/rpc.go), so _get_cluster_ports() returns that pair.
-        gossip_bind_port, data_bind_port, raft_port, raft_internal_rpc_port = _get_cluster_ports()
+        # (cluster/resolver/rpc.go), so _get_server_ports() returns that pair.
+        (
+            gossip_bind_port,
+            data_bind_port,
+            raft_port,
+            raft_internal_rpc_port,
+            profiling_port,
+        ) = _get_server_ports()
+        my_env.setdefault("PROFILING_PORT", str(profiling_port))
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(gossip_bind_port))
         my_env.setdefault("CLUSTER_DATA_BIND_PORT", str(data_bind_port))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
