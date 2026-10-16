@@ -1,7 +1,7 @@
 import os
 import time
 import warnings
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import grpc
 import httpx
@@ -139,6 +139,21 @@ def test_client_with_authentication_with_anon_weaviate() -> None:
         assert any(str(warn.message).startswith("Auth001") for warn in recwarn.list)
 
 
+def _request_with_429_backoff(send: Callable[[], httpx.Response]) -> httpx.Response:
+    """Send a request to the identity provider, backing off while it answers 429.
+
+    The CI jobs for each Python version request tokens for the same user at the same time, and
+    the provider answers 429 when they exceed its rate limit. Back off instead of failing.
+    """
+    response = send()
+    for delay in (2, 4, 8):
+        if response.status_code != 429:
+            break
+        time.sleep(delay)
+        response = send()
+    return response
+
+
 def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
     # get an access token with WCS user and pw.
     weaviate_open_id_config = httpx.get("http://" + url + "/v1/.well-known/openid-configuration")
@@ -147,7 +162,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
     href = response_json["href"]
 
     # Get the token issuer's OIDC configuration
-    response_auth = httpx.get(href)
+    response_auth = _request_with_429_backoff(lambda: httpx.get(href))
 
     # Construct the POST request to send to 'token_endpoint'
     auth_body = {
@@ -158,14 +173,9 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
         "scope": "openid offline_access",
     }
     token_endpoint = response_auth.json()["token_endpoint"]
-    response_post = httpx.post(url=token_endpoint, data=auth_body)
-    # The CI jobs for each Python version request tokens for the same user at the same time, and
-    # the provider answers 429 when they exceed its rate limit. Back off instead of failing.
-    for delay in (2, 4, 8):
-        if response_post.status_code != 429:
-            break
-        time.sleep(delay)
-        response_post = httpx.post(url=token_endpoint, data=auth_body)
+    response_post = _request_with_429_backoff(
+        lambda: httpx.post(url=token_endpoint, data=auth_body)
+    )
     resp_typed = util._decode_json_response_dict(response_post, "test")
     assert resp_typed is not None
     return resp_typed
