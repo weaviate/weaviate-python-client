@@ -139,15 +139,18 @@ def test_client_with_authentication_with_anon_weaviate() -> None:
         assert any(str(warn.message).startswith("Auth001") for warn in recwarn.list)
 
 
-def _request_with_429_backoff(send: Callable[[], httpx.Response]) -> httpx.Response:
-    """Send an httpx request, retrying with backoff while it returns 429."""
-    response = send()
+def _request_with_backoff(send: Callable[[], httpx.Response]) -> httpx.Response:
+    """Send an httpx request, retrying with backoff for errors, or 429."""
     for delay in (2, 4, 8):
+        try:
+            response = send()
+        except httpx.TransportError:
+            time.sleep(delay)
+            continue
         if response.status_code != 429:
-            break
+            return response
         time.sleep(delay)
-        response = send()
-    return response
+    return send()
 
 
 def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
@@ -159,7 +162,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 
     # Get the token issuer's OIDC configuration
     # Try with backoff; may fail due to rate limit errors in CICD pipeline
-    response_auth = _request_with_429_backoff(lambda: httpx.get(href))
+    response_auth = _request_with_backoff(lambda: httpx.get(href))
 
     # Construct the POST request to send to 'token_endpoint'
     auth_body = {
@@ -170,7 +173,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
         "scope": "openid offline_access",
     }
     token_endpoint = response_auth.json()["token_endpoint"]
-    response_post = _request_with_429_backoff(
+    response_post = _request_with_backoff(
         lambda: httpx.post(url=token_endpoint, data=auth_body)
     )
     resp_typed = util._decode_json_response_dict(response_post, "test")
