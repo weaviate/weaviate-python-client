@@ -5,10 +5,11 @@ import pytest
 from weaviate import embedded
 
 
-def test_cluster_ports_are_distinct_with_data_after_gossip() -> None:
+def test_cluster_ports_are_distinct_consecutive_pairs() -> None:
     gossip, data, raft, raft_rpc = embedded._get_cluster_ports()
 
     assert data == gossip + 1
+    assert raft_rpc == raft + 1
     assert len({gossip, data, raft, raft_rpc}) == 4
 
 

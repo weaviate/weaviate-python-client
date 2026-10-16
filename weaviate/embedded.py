@@ -61,24 +61,29 @@ def _hold_port(held: ExitStack, port: int = 0) -> int:
     return int(sock.getsockname()[1])
 
 
+def _hold_consecutive_ports(held: ExitStack) -> Tuple[int, int]:
+    """Bind a free port and the port after it on sockets that stay open until `held` closes."""
+    for _ in range(100):
+        first_port = _hold_port(held)
+        try:
+            return first_port, _hold_port(held, first_port + 1)
+        except (OSError, OverflowError):
+            # The rejected first port stays held, so the OS offers a different one next.
+            continue
+    raise WeaviateStartUpError("Could not find two consecutive free ports for Weaviate")
+
+
 def _get_cluster_ports() -> Tuple[int, int, int, int]:
     """Return free gossip, data, Raft, and Raft internal RPC ports for one embedded instance.
 
-    The data port is the gossip port + 1, which the Weaviate server requires. All four ports are
-    distinct and were free when chosen, but are released before returning.
+    The Weaviate server requires data = gossip + 1 and, in a local cluster, Raft internal RPC =
+    Raft + 1. All four ports are distinct and were free when chosen, but are released before
+    returning.
     """
     with ExitStack() as held:
-        for _ in range(100):
-            gossip_port = _hold_port(held)
-            try:
-                data_port = _hold_port(held, gossip_port + 1)
-                break
-            except (OSError, OverflowError):
-                # The rejected gossip port stays held, so the OS offers a different one next.
-                continue
-        else:
-            raise WeaviateStartUpError("Could not find two consecutive free ports for Weaviate")
-        return gossip_port, data_port, _hold_port(held), _hold_port(held)
+        gossip_port, data_port = _hold_consecutive_ports(held)
+        raft_port, raft_internal_rpc_port = _hold_consecutive_ports(held)
+        return gossip_port, data_port, raft_port, raft_internal_rpc_port
 
 
 class _EmbeddedBase:
@@ -247,7 +252,9 @@ class _EmbeddedBase:
         my_env.setdefault("PROFILING_PORT", str(get_random_port()))
         # Weaviate exits at startup if any cluster port is taken, so every port is checked rather
         # than assumed free because it follows a random one. Distinct ports also keep the Raft
-        # port off the data port, which breaks backups.
+        # port off the data port, which breaks backups. With CLUSTER_IN_LOCALHOST, the server
+        # ignores RAFT_INTERNAL_RPC_PORT when dialing and uses the Raft port + 1
+        # (cluster/resolver/rpc.go), so _get_cluster_ports() returns that pair.
         gossip_bind_port, data_bind_port, raft_port, raft_internal_rpc_port = _get_cluster_ports()
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(gossip_bind_port))
         my_env.setdefault("CLUSTER_DATA_BIND_PORT", str(data_bind_port))
