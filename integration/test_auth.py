@@ -1,4 +1,5 @@
 import os
+import time
 import warnings
 from typing import Dict, Optional
 
@@ -156,7 +157,15 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
         "password": pw,
         "scope": "openid offline_access",
     }
-    response_post = httpx.post(url=response_auth.json()["token_endpoint"], data=auth_body)
+    token_endpoint = response_auth.json()["token_endpoint"]
+    response_post = httpx.post(url=token_endpoint, data=auth_body)
+    # The CI jobs for each Python version request tokens for the same user at the same time, and
+    # the provider answers 429 when they exceed its rate limit. Back off instead of failing.
+    for delay in (2, 4, 8):
+        if response_post.status_code != 429:
+            break
+        time.sleep(delay)
+        response_post = httpx.post(url=token_endpoint, data=auth_body)
     resp_typed = util._decode_json_response_dict(response_post, "test")
     assert resp_typed is not None
     return resp_typed
