@@ -35,7 +35,7 @@ class ReplicateOperationStatus:
         return cls(
             state=ReplicateOperationState(data["state"]),
             errors=[
-                error["message"] if isinstance(error, dict) else error
+                error.get("message", "") if isinstance(error, dict) else error
                 for error in data["errors"] or []
             ],
         )
