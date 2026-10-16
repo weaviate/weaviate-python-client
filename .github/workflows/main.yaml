@@ -30,7 +30,7 @@ env:
   WEAVIATE_136: 1.36.23
   WEAVIATE_137: 1.37.14
   WEAVIATE_138: 1.38.9
-  WEAVIATE_139: 1.39.12
+  WEAVIATE_139: 1.39.0
 
 jobs:
   lint-and-format:
