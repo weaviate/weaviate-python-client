@@ -173,9 +173,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
         "scope": "openid offline_access",
     }
     token_endpoint = response_auth.json()["token_endpoint"]
-    response_post = _request_with_backoff(
-        lambda: httpx.post(url=token_endpoint, data=auth_body)
-    )
+    response_post = _request_with_backoff(lambda: httpx.post(url=token_endpoint, data=auth_body))
     resp_typed = util._decode_json_response_dict(response_post, "test")
     assert resp_typed is not None
     return resp_typed
