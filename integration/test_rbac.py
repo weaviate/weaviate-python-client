@@ -531,9 +531,10 @@ def test_create_role_with_empty_alias(client_factory: ClientFactory) -> None:
             client.roles.delete(role_name)
 
             # Weaviate PR #13324 applies the collection-name rule to alias patterns, so these
-            # releases reject an empty alias; older servers store it as "*".
+            # releases reject an empty alias; older servers store it as "*". Match only "alias"
+            # so a rewording of the server's message does not fail the test.
             if version.is_at_least_any((1, 38, 19), (1, 39, 10), (1, 40, 0)):
-                with pytest.raises(UnexpectedStatusCodeError, match="is not a valid alias name"):
+                with pytest.raises(UnexpectedStatusCodeError, match="alias"):
                     client.roles.create(role_name=role_name, permissions=permissions)
                 return
 
