@@ -12,6 +12,7 @@ import urllib.request
 import warnings
 import zipfile
 from abc import abstractmethod
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -51,6 +52,33 @@ def get_random_port() -> int:
     port_num = int(sock.getsockname()[1])
     sock.close()
     return port_num
+
+
+def _hold_port(held: ExitStack, port: int = 0) -> int:
+    """Bind `port` (0 lets the OS choose) on a socket that stays open until `held` closes."""
+    sock = held.enter_context(socket.socket())
+    sock.bind(("", port))
+    return int(sock.getsockname()[1])
+
+
+def _get_cluster_ports() -> Tuple[int, int, int, int]:
+    """Return free gossip, data, Raft, and Raft internal RPC ports for one embedded instance.
+
+    The data port is the gossip port + 1, which the Weaviate server requires. All four ports are
+    distinct and were free when chosen, but are released before returning.
+    """
+    with ExitStack() as held:
+        for _ in range(100):
+            gossip_port = _hold_port(held)
+            try:
+                data_port = _hold_port(held, gossip_port + 1)
+                break
+            except (OSError, OverflowError):
+                # The rejected gossip port stays held, so the OS offers a different one next.
+                continue
+        else:
+            raise WeaviateStartUpError("Could not find two consecutive free ports for Weaviate")
+        return gossip_port, data_port, _hold_port(held), _hold_port(held)
 
 
 class _EmbeddedBase:
@@ -217,29 +245,15 @@ class _EmbeddedBase:
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
         my_env.setdefault("PROFILING_PORT", str(get_random_port()))
-        # Limitation with weaviate server requires setting
-        # data_bind_port to gossip_bind_port + 1
-        gossip_bind_port = get_random_port()
-        data_bind_port = gossip_bind_port + 1
+        # Weaviate exits at startup if any cluster port is taken, so every port is checked rather
+        # than assumed free because it follows a random one. Distinct ports also keep the Raft
+        # port off the data port, which breaks backups.
+        gossip_bind_port, data_bind_port, raft_port, raft_internal_rpc_port = _get_cluster_ports()
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(gossip_bind_port))
         my_env.setdefault("CLUSTER_DATA_BIND_PORT", str(data_bind_port))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
         my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
         my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
-
-        # Each call to `get_random_port()` will likely result in
-        # a port 1 higher than the last time it was called. With
-        # this, we end up with raft_port == gossip_bind_port + 1,
-        # which is the same as data_bind_port. This kind of
-        # configuration leads to failed cross cluster communication.
-        # Although the current version of embedded does not support
-        # multi-node instances, the backup process communication
-        # passes through the internal cluster server, and will fail.
-        #
-        # So we here we ensure that raft_port never collides with
-        # data_bind_port.
-        raft_port = data_bind_port + 1
-        raft_internal_rpc_port = raft_port + 1
         my_env.setdefault("RAFT_PORT", str(raft_port))
         my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(raft_internal_rpc_port))
 
