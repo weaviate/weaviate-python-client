@@ -701,7 +701,10 @@ class Where(Filter):
                 if self.value_type in ["valueBooleanArray", "valueBooleanList"]:
                     _check_is_list(self.value, self.value_type)
                 if isinstance(self.value, list):
-                    gql += f"{_render_list(self.value)}}}"
+                    # Render each boolean as a lowercase GraphQL literal, matching
+                    # the single-value branch above; str(True) would emit "True",
+                    # which is not a valid GraphQL boolean and breaks parsing.
+                    gql += f"{_render_list([_bool_to_str(v) for v in self.value])}}}"
                 else:
                     gql += f"{_bool_to_str(self.value)}}}"
             elif self.value_type in ["valueDateArray", "valueDateList"]:
