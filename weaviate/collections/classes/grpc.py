@@ -279,11 +279,91 @@ class DecisionsOrder(str, BaseEnum):
     PROBABILITY = "probability"
 
 
+class _DecisionsConfigRuntime(_WeaviateInput):
+    """A decisions module and its options for one query, built with `DecisionsConfig`."""
+
+    module: str
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    max_documents: Optional[int] = Field(default=None, ge=1)
+    images: Optional[bool] = None
+    settings: Optional[Dict[str, Any]] = None
+
+
+DecisionsConfigRuntime = _DecisionsConfigRuntime
+
+
+class DecisionsConfig:
+    """Use this factory class to name the decisions module of one query and its options.
+
+    Pass the result as `provider=` of `Rerank.decide(...)` or as `annotate_provider=` of a query. The module needs
+    no `decisions_config` on the collection. An argument left `None` is not sent, so the collection's setting for
+    that module applies, then the module's default. As for `generative_provider`, an option set here overrides
+    the collection's setting, up to the module's ceiling.
+    """
+
+    @staticmethod
+    def typesafeai(
+        *,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        max_documents: Optional[int] = None,
+        images: Optional[bool] = None,
+    ) -> DecisionsConfigRuntime:
+        """The `decisions-typesafeai` module (Jev) for this query.
+
+        Args:
+            model: The model, `jev-latest` by default.
+            base_url: The base URL of the API.
+            max_documents: The most objects one query may send to the model, up to 1000.
+            images: Judge `blob` properties as images, the API's experimental image input.
+        """
+        return _DecisionsConfigRuntime(
+            module="decisions-typesafeai",
+            model=model,
+            base_url=base_url,
+            max_documents=max_documents,
+            images=images,
+        )
+
+    @staticmethod
+    def openai(
+        *,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        max_documents: Optional[int] = None,
+    ) -> DecisionsConfigRuntime:
+        """The `decisions-openai` module for this query.
+
+        Args:
+            model: The model, `gpt-6-luna` by default.
+            base_url: The base URL of the API.
+            max_documents: The most objects one query may send to the model, up to 1000.
+        """
+        return _DecisionsConfigRuntime(
+            module="decisions-openai", model=model, base_url=base_url, max_documents=max_documents
+        )
+
+    @staticmethod
+    def custom(
+        module_name: str, settings: Optional[Dict[str, Any]] = None
+    ) -> DecisionsConfigRuntime:
+        """A decisions module this client has no factory for.
+
+        Args:
+            module_name: The name of the module, for example `decisions-dummy`.
+            settings: Its settings under the names of its collection settings, for example `{"maxDocuments": 50}`.
+        """
+        if not module_name or not module_name.strip():
+            raise WeaviateInvalidInputError("DecisionsConfig.custom needs the name of the module")
+        return _DecisionsConfigRuntime(module=module_name, settings=settings)
+
+
 class Rerank(_WeaviateInput):
     """Define how the query's rerank operation should be performed.
 
     `Rerank(prop, query)` goes to the collection's reranker, or to its decisions module as a relevance question
-    when the collection has no reranker; `Rerank.decide(...)` goes to the decisions module.
+    when the collection has no reranker; `Rerank.decide(...)` goes to a decisions module.
     """
 
     prop: str
@@ -296,13 +376,14 @@ class Rerank(_WeaviateInput):
         *,
         min_probability: Optional[float] = None,
         order: Optional[DecisionsOrder] = None,
+        provider: Optional[DecisionsConfigRuntime] = None,
     ) -> "Rerank":
         """Rerank by a decision model.
 
-        The collection's decisions module answers `query` as a yes/no question about every candidate (the text
-        of `prop`, or the image of a `blob` property for a module that judges images), the probability is the
-        rerank score, and the candidates below `min_probability` are dropped. The collection
-        needs a decisions module (`decisions_config`); a reranker it may also have keeps serving `Rerank(...)`.
+        A decisions module answers `query` as a yes/no question about every candidate (the text of `prop`, or
+        the image of a `blob` property for a module that judges images), the probability is the rerank score,
+        and the candidates below `min_probability` are dropped. The module is the one `provider` names, else the
+        collection's (`decisions_config`); a reranker the collection may also have keeps serving `Rerank(...)`.
         An argument left `None` takes the class setting of the module. The page can hold fewer objects than
         `limit`: the decision model only removes candidates.
 
@@ -311,6 +392,7 @@ class Rerank(_WeaviateInput):
             query: The statement the model judges about every candidate.
             min_probability: Drop the candidates whose probability is below it, between 0 and 1.
             order: Keep the search order or sort by probability, a `DecisionsOrder` or its value.
+            provider: The decisions module and its options for this query, built with `DecisionsConfig`.
         """
         # A plain Rerank may leave the query to the reranker; a decision has
         # nothing to judge without one, and the server would only fail after
@@ -324,19 +406,22 @@ class Rerank(_WeaviateInput):
                 raise WeaviateInvalidInputError(
                     f"order must be one of {[o.value for o in DecisionsOrder]}, got {order!r}"
                 ) from None
-        return _RerankDecide(prop=prop, query=query, min_probability=min_probability, order=order)
+        return _RerankDecide(
+            prop=prop, query=query, min_probability=min_probability, order=order, provider=provider
+        )
 
 
 class _RerankDecide(Rerank):
     min_probability: Optional[float] = Field(default=None, ge=0, le=1)
     order: Optional[DecisionsOrder] = Field(default=None)
+    provider: Optional[_DecisionsConfigRuntime] = Field(default=None)
 
 
 class DecisionQuestion(_WeaviateInput):
-    """A question for the collection's decisions module about every object a query returns.
+    """A question for a decisions module about every object a query returns.
 
     Build one with `Decision.predicate`, `Decision.choice` or `Decision.score`. The answer comes back under `name`
-    in the `decisions` of each object.
+    in the `annotations` of each object.
     """
 
     name: str
@@ -379,13 +464,13 @@ def _named(
 
 
 class Decision:
-    """Use this factory class to build the questions of the `decide` argument of a query.
+    """Use this factory class to build the questions of the `annotate` argument of a query.
 
-    The collection's decisions module (`decisions_config`) answers every question for every object the query
-    returns. Each question is about one property of the objects, text or an image in a `blob` property when the
-    module judges images, and has a name that identifies its answer.
-    `decide` never drops or reorders an object; to filter by a condition, pass `Rerank.decide(...)` as the `rerank`
-    argument instead.
+    A decisions module answers every question for every object the query returns: the one `annotate_provider`
+    names, else the collection's (`decisions_config`). Each question is about one property of the objects, text
+    or an image in a `blob` property when the module judges images, and has a name that identifies its answer.
+    `annotate` never drops or reorders an object; to filter by a condition, pass `Rerank.decide(...)` as the
+    `rerank` argument instead.
     """
 
     @staticmethod
@@ -445,7 +530,7 @@ class Decision:
         )
 
 
-DECIDE = Union[DecisionQuestion, Sequence[DecisionQuestion]]
+ANNOTATE = Union[DecisionQuestion, Sequence[DecisionQuestion]]
 
 
 @dataclass

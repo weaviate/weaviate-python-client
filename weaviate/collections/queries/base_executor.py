@@ -347,13 +347,13 @@ class _BaseExecutor(Generic[ConnectionType]):
             for ref_prop in properties.ref_props
         }
 
-    def __parse_decisions(
-        self, decisions: Optional[decisions_pb2.DecisionResult]
+    def __parse_annotations(
+        self, annotations: Optional[decisions_pb2.DecisionResult]
     ) -> Optional[Dict[str, DecisionAnswer]]:
-        if decisions is None:
+        if annotations is None:
             return None
         out: Dict[str, DecisionAnswer] = {}
-        for answer in decisions.answers:
+        for answer in annotations.answers:
             kind = answer.WhichOneof("kind")
             if kind == "predicate":
                 out[answer.name] = DecisionAnswer(
@@ -382,10 +382,10 @@ class _BaseExecutor(Generic[ConnectionType]):
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
         options: _QueryOptions,
-        decisions: Optional[decisions_pb2.DecisionResult] = None,
+        annotations: Optional[decisions_pb2.DecisionResult] = None,
     ) -> Object[Any, Any]:
         return Object(
-            decisions=self.__parse_decisions(decisions),
+            annotations=self.__parse_annotations(annotations),
             collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
@@ -528,7 +528,7 @@ class _BaseExecutor(Generic[ConnectionType]):
                     obj.properties,
                     obj.metadata,
                     options,
-                    obj.decisions if obj.HasField("decisions") else None,
+                    obj.annotations if obj.HasField("annotations") else None,
                 )
                 for obj in res.results
             ],

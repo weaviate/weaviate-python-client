@@ -39,7 +39,7 @@ def test_decisions_openai(collection_factory: CollectionFactory) -> None:
     objs = collection.query.bm25(
         "refund arrived",
         rerank=wvc.query.Rerank(prop="text", query="The customer is unhappy"),
-        decide=[
+        annotate=[
             wvc.query.Decision.predicate(
                 "angry", prop="text", instructions="Is the customer angry?"
             ),
@@ -65,18 +65,18 @@ def test_decisions_openai(collection_factory: CollectionFactory) -> None:
     assert unhappy.metadata.rerank_score > happy.metadata.rerank_score
 
     for obj in objs:
-        assert obj.decisions is not None
-        assert set(obj.decisions) == {"angry", "team", "urgency"}
-        assert obj.decisions["team"].probabilities is not None
-        assert set(obj.decisions["team"].probabilities) == {"billing", "none"}
-        assert obj.decisions["urgency"].probabilities is not None
-        assert set(obj.decisions["urgency"].probabilities) == {"low", "medium", "high"}
-    assert unhappy.decisions is not None and happy.decisions is not None
-    assert unhappy.decisions["angry"].probability is not None
-    assert happy.decisions["angry"].probability is not None
-    assert unhappy.decisions["angry"].probability > happy.decisions["angry"].probability
-    assert unhappy.decisions["team"].choice == "billing"
-    assert happy.decisions["team"].choice == "none"
-    assert unhappy.decisions["urgency"].score is not None
-    assert happy.decisions["urgency"].score is not None
-    assert unhappy.decisions["urgency"].score > happy.decisions["urgency"].score
+        assert obj.annotations is not None
+        assert set(obj.annotations) == {"angry", "team", "urgency"}
+        assert obj.annotations["team"].probabilities is not None
+        assert set(obj.annotations["team"].probabilities) == {"billing", "none"}
+        assert obj.annotations["urgency"].probabilities is not None
+        assert set(obj.annotations["urgency"].probabilities) == {"low", "medium", "high"}
+    assert unhappy.annotations is not None and happy.annotations is not None
+    assert unhappy.annotations["angry"].probability is not None
+    assert happy.annotations["angry"].probability is not None
+    assert unhappy.annotations["angry"].probability > happy.annotations["angry"].probability
+    assert unhappy.annotations["team"].choice == "billing"
+    assert happy.annotations["team"].choice == "none"
+    assert unhappy.annotations["urgency"].score is not None
+    assert happy.annotations["urgency"].score is not None
+    assert unhappy.annotations["urgency"].score > happy.annotations["urgency"].score

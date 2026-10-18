@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 import weaviate
 from mock_tests.conftest import MockDecisionsWeaviateService
-from weaviate.classes.query import Decision, GroupBy, Rerank, DecisionsOrder
+from weaviate.classes.query import Decision, DecisionsConfig, DecisionsOrder, GroupBy, Rerank
 from weaviate.collections.classes.internal import DecisionAnswer
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import search_get_pb2
@@ -26,14 +26,14 @@ QUESTIONS = [
 ]
 
 
-def test_decide_is_sent_and_answers_are_parsed(
+def test_annotate_is_sent_and_answers_are_parsed(
     decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
 ) -> None:
     collection, service = decisions_collection
 
-    objs = collection.query.bm25("billing", decide=QUESTIONS).objects
+    objs = collection.query.bm25("billing", annotate=QUESTIONS).objects
 
-    sent = service.captured_request.decide.questions
+    sent = service.captured_request.annotate.questions
     assert [q.name for q in sent] == ["angry", "team", "severity", "refused"]
     assert sent[0].property == "text"
     assert sent[0].instructions == "Is the customer angry?"
@@ -52,7 +52,7 @@ def test_decide_is_sent_and_answers_are_parsed(
     ]
 
     assert len(objs) == 2
-    assert objs[0].decisions == {
+    assert objs[0].annotations == {
         "angry": DecisionAnswer(name="angry", probability=0.91),
         "team": DecisionAnswer(
             name="team",
@@ -68,7 +68,7 @@ def test_decide_is_sent_and_answers_are_parsed(
         ),
         "refused": DecisionAnswer(name="refused", refused=True),
     }
-    assert objs[1].decisions is None, "an object without decisions has none"
+    assert objs[1].annotations is None, "an object without annotations has none"
 
 
 def test_a_single_question_is_accepted(
@@ -76,20 +76,20 @@ def test_a_single_question_is_accepted(
 ) -> None:
     collection, service = decisions_collection
 
-    collection.query.bm25("billing", decide=QUESTIONS[0])
+    collection.query.bm25("billing", annotate=QUESTIONS[0])
 
-    assert [q.name for q in service.captured_request.decide.questions] == ["angry"]
+    assert [q.name for q in service.captured_request.annotate.questions] == ["angry"]
 
 
-def test_no_decide_sends_no_questions(
+def test_no_annotate_sends_no_questions(
     decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
 ) -> None:
     collection, service = decisions_collection
 
     objs = collection.query.bm25("billing").objects
 
-    assert not service.captured_request.HasField("decide")
-    assert objs[0].decisions is not None, "the mock answers regardless of the request"
+    assert not service.captured_request.HasField("annotate")
+    assert objs[0].annotations is not None, "the mock answers regardless of the request"
 
 
 @pytest.mark.parametrize(
@@ -108,19 +108,19 @@ def test_questions_need_at_least_two_named_answers(build) -> None:
         build()
 
 
-def test_decide_is_rejected_before_the_request(
+def test_annotate_is_rejected_before_the_request(
     decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
 ) -> None:
     collection, service = decisions_collection
     service.captured_request = search_get_pb2.SearchRequest()
 
     with pytest.raises(WeaviateInvalidInputError, match="at least one question"):
-        collection.query.bm25("billing", decide=[])
+        collection.query.bm25("billing", annotate=[])
     with pytest.raises(WeaviateInvalidInputError, match="group_by"):
         collection.query.bm25(
             "billing",
             group_by=GroupBy(prop="text", objects_per_group=1, number_of_groups=1),
-            decide=QUESTIONS[0],
+            annotate=QUESTIONS[0],
         )
     assert service.captured_request.collection == "", "nothing was sent"
 
@@ -183,3 +183,115 @@ def test_rerank_by_a_decision_takes_the_order_as_a_string(
         service.captured_request.rerank.decision.order
         == search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY
     )
+
+
+def test_annotate_provider_is_sent(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+
+    collection.query.bm25(
+        "billing",
+        annotate=QUESTIONS[0],
+        annotate_provider=DecisionsConfig.typesafeai(
+            model="jev-preview", base_url="https://example.test", max_documents=7, images=True
+        ),
+    )
+    sent = service.captured_request.annotate.provider
+    assert sent.WhichOneof("kind") == "typesafeai"
+    assert sent.typesafeai.model == "jev-preview"
+    assert sent.typesafeai.base_url == "https://example.test"
+    assert sent.typesafeai.max_documents == 7
+    assert sent.typesafeai.images is True
+
+    # An option left out is left unset, so the class setting applies.
+    collection.query.bm25(
+        "billing",
+        annotate=QUESTIONS[0],
+        annotate_provider=DecisionsConfig.openai(model="gpt-6-luna"),
+    )
+    sent = service.captured_request.annotate.provider
+    assert sent.WhichOneof("kind") == "openai"
+    assert sent.openai.model == "gpt-6-luna"
+    assert not sent.openai.HasField("base_url")
+    assert not sent.openai.HasField("max_documents")
+
+    collection.query.bm25(
+        "billing",
+        annotate=QUESTIONS[0],
+        annotate_provider=DecisionsConfig.custom(
+            "decisions-mine", {"maxDocuments": 50, "model": "m"}
+        ),
+    )
+    sent = service.captured_request.annotate.provider
+    assert sent.WhichOneof("kind") == "custom"
+    assert sent.custom.module == "decisions-mine"
+    assert dict(sent.custom.settings) == {"maxDocuments": 50, "model": "m"}
+
+    collection.query.bm25(
+        "billing", annotate=QUESTIONS[0], annotate_provider=DecisionsConfig.custom("decisions-mine")
+    )
+    sent = service.captured_request.annotate.provider
+    assert sent.custom.module == "decisions-mine"
+    assert not sent.custom.HasField("settings")
+
+    collection.query.bm25("billing", annotate=QUESTIONS[0])
+    assert not service.captured_request.annotate.HasField("provider")
+
+
+def test_rerank_provider_is_sent(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+
+    collection.query.bm25(
+        "billing",
+        rerank=Rerank.decide(
+            prop="text", query="angry", provider=DecisionsConfig.openai(max_documents=20)
+        ),
+    )
+    sent = service.captured_request.rerank
+    assert sent.HasField("decision")
+    assert sent.provider.decisions.WhichOneof("kind") == "openai"
+    assert sent.provider.decisions.openai.max_documents == 20
+
+    collection.query.bm25("billing", rerank=Rerank.decide(prop="text", query="angry"))
+    assert not service.captured_request.rerank.HasField("provider")
+
+
+def test_rerank_and_annotate_take_different_providers(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+
+    collection.query.bm25(
+        "billing",
+        rerank=Rerank.decide(prop="text", query="angry", provider=DecisionsConfig.openai()),
+        annotate=QUESTIONS[0],
+        annotate_provider=DecisionsConfig.typesafeai(),
+    )
+    request = service.captured_request
+    assert request.rerank.provider.decisions.WhichOneof("kind") == "openai"
+    assert request.annotate.provider.WhichOneof("kind") == "typesafeai"
+
+
+def test_annotate_provider_needs_annotate(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+    service.captured_request = search_get_pb2.SearchRequest()
+
+    with pytest.raises(WeaviateInvalidInputError, match="annotate_provider"):
+        collection.query.bm25("billing", annotate_provider=DecisionsConfig.openai())
+    assert service.captured_request.collection == "", "nothing was sent"
+
+
+@pytest.mark.parametrize("name", ["", "  "])
+def test_a_custom_provider_needs_a_module_name(name: str) -> None:
+    with pytest.raises(WeaviateInvalidInputError):
+        DecisionsConfig.custom(name)
+
+
+def test_a_provider_max_documents_is_positive() -> None:
+    with pytest.raises(ValidationError):
+        DecisionsConfig.openai(max_documents=0)
