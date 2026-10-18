@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 from weaviate.collections.batch.base import _RateLimitedBatching
-from weaviate.collections.batch.grpc_batch import _validate_props
+from weaviate.collections.batch.grpc_batch import _BatchGRPC, _validate_props
 from weaviate.collections.classes.batch import (
     MAX_STORED_RESULTS,
     BatchObject,
@@ -13,7 +13,10 @@ from weaviate.collections.classes.batch import (
     ErrorObject,
     ErrorReference,
 )
+from weaviate.collections.classes.internal import ReferenceToMulti
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError
+from weaviate.proto.v1 import batch_pb2
+from weaviate.util import _ServerVersion
 
 
 def _error_object(index: int) -> ErrorObject:
@@ -141,3 +144,40 @@ def test_validate_props_raises_for_top_level_vector() -> None:
 def test_validate_props_raises_for_nested_vector() -> None:
     with pytest.raises(WeaviateInsertInvalidPropertyError):
         _validate_props({"vector": [0.1, 0.2]}, nested=True)
+
+
+@pytest.mark.parametrize("properties", [None, {}, {"name": "source"}])
+@pytest.mark.parametrize("reference_kind", ["single", "list", "multi"])
+def test_grpc_batch_preserves_references(
+    properties: dict[str, str] | None, reference_kind: str
+) -> None:
+    target = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    reference: uuid.UUID | list[uuid.UUID] | ReferenceToMulti
+    if reference_kind == "multi":
+        reference = ReferenceToMulti(target_collection="Target", uuids=[target])
+    elif reference_kind == "list":
+        reference = [target]
+    else:
+        reference = target
+    obj = BatchObject(
+        collection="Source", properties=properties, references={"related": reference}, index=0
+    )
+    encoded = _BatchGRPC(_ServerVersion(1, 36, 0), None, None).grpc_object(obj._to_internal())
+    wire_object = batch_pb2.BatchObject.FromString(encoded.SerializeToString())
+
+    if reference_kind == "multi":
+        (ref,) = wire_object.properties.multi_target_ref_props
+        assert ref.target_collection == "Target"
+        assert not wire_object.properties.single_target_ref_props
+    else:
+        (ref,) = wire_object.properties.single_target_ref_props
+        assert not wire_object.properties.multi_target_ref_props
+    assert ref.prop_name == "related"
+    assert list(ref.uuids) == [str(target)]
+    assert dict(wire_object.properties.non_ref_properties) == (properties or {})
+
+
+def test_grpc_batch_omits_properties_when_no_properties_or_references() -> None:
+    obj = BatchObject(collection="Source", index=0)
+    encoded = _BatchGRPC(_ServerVersion(1, 36, 0), None, None).grpc_object(obj._to_internal())
+    assert not encoded.HasField("properties")
