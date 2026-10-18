@@ -131,12 +131,13 @@ class _EmbeddedBase:
         Path(self.options.persistence_data_path).mkdir(parents=True, exist_ok=True)
 
     def ensure_weaviate_binary_exists(self) -> None:
+        cache_key = self._parsed_weaviate_version or self._download_url
         self._weaviate_binary_path = Path(
             self.options.binary_path,
             "weaviate-"
             + self._parsed_weaviate_version
             + "-"
-            + str(hashlib.sha256(self._parsed_weaviate_version.encode("utf-8")).hexdigest()),
+            + str(hashlib.sha256(cache_key.encode("utf-8")).hexdigest()),
         )
         if not self._weaviate_binary_path.exists():
             logger.info(
