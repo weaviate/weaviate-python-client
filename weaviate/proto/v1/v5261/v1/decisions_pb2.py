@@ -12,9 +12,10 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12v1/decisions.proto\x12\x0bweaviate.v1\"=\n\tDecisions\x12\x30\n\tquestions\x18\x01 \x03(\x0b\x32\x1d.weaviate.v1.DecisionQuestion\"\xe1\x01\n\x10\x44\x65\x63isionQuestion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08property\x18\x02 \x01(\t\x12\x14\n\x0cinstructions\x18\x03 \x01(\t\x12\x33\n\tpredicate\x18\x04 \x01(\x0b\x32\x1e.weaviate.v1.DecisionPredicateH\x00\x12-\n\x06\x63hoice\x18\x05 \x01(\x0b\x32\x1b.weaviate.v1.DecisionChoiceH\x00\x12+\n\x05score\x18\x06 \x01(\x0b\x32\x1a.weaviate.v1.DecisionScoreH\x00\x42\x06\n\x04kind\"\x13\n\x11\x44\x65\x63isionPredicate\">\n\x0e\x44\x65\x63isionChoice\x12,\n\x07options\x18\x01 \x03(\x0b\x32\x1b.weaviate.v1.DecisionOption\"I\n\x0e\x44\x65\x63isionOption\x12\r\n\x05value\x18\x01 \x01(\t\x12\x18\n\x0b\x64\x65scription\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x0e\n\x0c_description\";\n\rDecisionScore\x12*\n\x06levels\x18\x01 \x03(\x0b\x32\x1a.weaviate.v1.DecisionLevel\"H\n\rDecisionLevel\x12\r\n\x05label\x18\x01 \x01(\t\x12\x18\n\x0b\x64\x65scription\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x0e\n\x0c_description\">\n\x0e\x44\x65\x63isionResult\x12,\n\x07\x61nswers\x18\x01 \x03(\x0b\x32\x1b.weaviate.v1.DecisionAnswer\"\xfa\x01\n\x0e\x44\x65\x63isionAnswer\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x39\n\tpredicate\x18\x02 \x01(\x0b\x32$.weaviate.v1.DecisionPredicateAnswerH\x00\x12\x33\n\x06\x63hoice\x18\x03 \x01(\x0b\x32!.weaviate.v1.DecisionChoiceAnswerH\x00\x12\x31\n\x05score\x18\x04 \x01(\x0b\x32 .weaviate.v1.DecisionScoreAnswerH\x00\x12/\n\x07refusal\x18\x05 \x01(\x0b\x32\x1c.weaviate.v1.DecisionRefusalH\x00\x42\x06\n\x04kind\".\n\x17\x44\x65\x63isionPredicateAnswer\x12\x13\n\x0bprobability\x18\x01 \x01(\x01\"s\n\x14\x44\x65\x63isionChoiceAnswer\x12\x0e\n\x06\x63hoice\x18\x01 \x01(\t\x12\x37\n\rprobabilities\x18\x02 \x03(\x0b\x32 .weaviate.v1.DecisionProbability\x12\x12\n\nconfidence\x18\x03 \x01(\x01\"q\n\x13\x44\x65\x63isionScoreAnswer\x12\r\n\x05score\x18\x01 \x01(\x01\x12\x37\n\rprobabilities\x18\x02 \x03(\x0b\x32 .weaviate.v1.DecisionProbability\x12\x12\n\nconfidence\x18\x03 \x01(\x01\"9\n\x13\x44\x65\x63isionProbability\x12\r\n\x05value\x18\x01 \x01(\t\x12\x13\n\x0bprobability\x18\x02 \x01(\x01\"\x11\n\x0f\x44\x65\x63isionRefusalBs\n#io.weaviate.client.grpc.protocol.v1B\x16WeaviateProtoDecisionsZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12v1/decisions.proto\x12\x0bweaviate.v1\x1a\x1cgoogle/protobuf/struct.proto\"\x80\x01\n\x08\x41nnotate\x12\x30\n\tquestions\x18\x01 \x03(\x0b\x32\x1d.weaviate.v1.DecisionQuestion\x12\x35\n\x08provider\x18\x02 \x01(\x0b\x32\x1e.weaviate.v1.DecisionsProviderH\x00\x88\x01\x01\x42\x0b\n\t_provider\"\xe1\x01\n\x11\x44\x65\x63isionsProvider\x12\x36\n\ntypesafeai\x18\x01 \x01(\x0b\x32 .weaviate.v1.DecisionsTypeSafeAIH\x00\x12.\n\x06openai\x18\x02 \x01(\x0b\x32\x1c.weaviate.v1.DecisionsOpenAIH\x00\x12,\n\x05\x64ummy\x18\x03 \x01(\x0b\x32\x1b.weaviate.v1.DecisionsDummyH\x00\x12.\n\x06\x63ustom\x18\x04 \x01(\x0b\x32\x1c.weaviate.v1.DecisionsCustomH\x00\x42\x06\n\x04kind\"\xa5\x01\n\x13\x44\x65\x63isionsTypeSafeAI\x12\x12\n\x05model\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x15\n\x08\x62\x61se_url\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1a\n\rmax_documents\x18\x03 \x01(\x03H\x02\x88\x01\x01\x12\x13\n\x06images\x18\x04 \x01(\x08H\x03\x88\x01\x01\x42\x08\n\x06_modelB\x0b\n\t_base_urlB\x10\n\x0e_max_documentsB\t\n\x07_images\"\x81\x01\n\x0f\x44\x65\x63isionsOpenAI\x12\x12\n\x05model\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x15\n\x08\x62\x61se_url\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1a\n\rmax_documents\x18\x03 \x01(\x03H\x02\x88\x01\x01\x42\x08\n\x06_modelB\x0b\n\t_base_urlB\x10\n\x0e_max_documents\"\x10\n\x0e\x44\x65\x63isionsDummy\"^\n\x0f\x44\x65\x63isionsCustom\x12\x0e\n\x06module\x18\x01 \x01(\t\x12.\n\x08settings\x18\x02 \x01(\x0b\x32\x17.google.protobuf.StructH\x00\x88\x01\x01\x42\x0b\n\t_settings\"\xe1\x01\n\x10\x44\x65\x63isionQuestion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08property\x18\x02 \x01(\t\x12\x14\n\x0cinstructions\x18\x03 \x01(\t\x12\x33\n\tpredicate\x18\x04 \x01(\x0b\x32\x1e.weaviate.v1.DecisionPredicateH\x00\x12-\n\x06\x63hoice\x18\x05 \x01(\x0b\x32\x1b.weaviate.v1.DecisionChoiceH\x00\x12+\n\x05score\x18\x06 \x01(\x0b\x32\x1a.weaviate.v1.DecisionScoreH\x00\x42\x06\n\x04kind\"\x13\n\x11\x44\x65\x63isionPredicate\">\n\x0e\x44\x65\x63isionChoice\x12,\n\x07options\x18\x01 \x03(\x0b\x32\x1b.weaviate.v1.DecisionOption\"I\n\x0e\x44\x65\x63isionOption\x12\r\n\x05value\x18\x01 \x01(\t\x12\x18\n\x0b\x64\x65scription\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x0e\n\x0c_description\";\n\rDecisionScore\x12*\n\x06levels\x18\x01 \x03(\x0b\x32\x1a.weaviate.v1.DecisionLevel\"H\n\rDecisionLevel\x12\r\n\x05label\x18\x01 \x01(\t\x12\x18\n\x0b\x64\x65scription\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x0e\n\x0c_description\">\n\x0e\x44\x65\x63isionResult\x12,\n\x07\x61nswers\x18\x01 \x03(\x0b\x32\x1b.weaviate.v1.DecisionAnswer\"\xfa\x01\n\x0e\x44\x65\x63isionAnswer\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x39\n\tpredicate\x18\x02 \x01(\x0b\x32$.weaviate.v1.DecisionPredicateAnswerH\x00\x12\x33\n\x06\x63hoice\x18\x03 \x01(\x0b\x32!.weaviate.v1.DecisionChoiceAnswerH\x00\x12\x31\n\x05score\x18\x04 \x01(\x0b\x32 .weaviate.v1.DecisionScoreAnswerH\x00\x12/\n\x07refusal\x18\x05 \x01(\x0b\x32\x1c.weaviate.v1.DecisionRefusalH\x00\x42\x06\n\x04kind\".\n\x17\x44\x65\x63isionPredicateAnswer\x12\x13\n\x0bprobability\x18\x01 \x01(\x01\"s\n\x14\x44\x65\x63isionChoiceAnswer\x12\x0e\n\x06\x63hoice\x18\x01 \x01(\t\x12\x37\n\rprobabilities\x18\x02 \x03(\x0b\x32 .weaviate.v1.DecisionProbability\x12\x12\n\nconfidence\x18\x03 \x01(\x01\"q\n\x13\x44\x65\x63isionScoreAnswer\x12\r\n\x05score\x18\x01 \x01(\x01\x12\x37\n\rprobabilities\x18\x02 \x03(\x0b\x32 .weaviate.v1.DecisionProbability\x12\x12\n\nconfidence\x18\x03 \x01(\x01\"9\n\x13\x44\x65\x63isionProbability\x12\r\n\x05value\x18\x01 \x01(\t\x12\x13\n\x0bprobability\x18\x02 \x01(\x01\"\x11\n\x0f\x44\x65\x63isionRefusalBs\n#io.weaviate.client.grpc.protocol.v1B\x16WeaviateProtoDecisionsZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -22,32 +23,42 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'v1.decisions_pb2', _globals
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n#io.weaviate.client.grpc.protocol.v1B\026WeaviateProtoDecisionsZ4github.com/weaviate/weaviate/grpc/generated;protocol'
-  _globals['_DECISIONS']._serialized_start=35
-  _globals['_DECISIONS']._serialized_end=96
-  _globals['_DECISIONQUESTION']._serialized_start=99
-  _globals['_DECISIONQUESTION']._serialized_end=324
-  _globals['_DECISIONPREDICATE']._serialized_start=326
-  _globals['_DECISIONPREDICATE']._serialized_end=345
-  _globals['_DECISIONCHOICE']._serialized_start=347
-  _globals['_DECISIONCHOICE']._serialized_end=409
-  _globals['_DECISIONOPTION']._serialized_start=411
-  _globals['_DECISIONOPTION']._serialized_end=484
-  _globals['_DECISIONSCORE']._serialized_start=486
-  _globals['_DECISIONSCORE']._serialized_end=545
-  _globals['_DECISIONLEVEL']._serialized_start=547
-  _globals['_DECISIONLEVEL']._serialized_end=619
-  _globals['_DECISIONRESULT']._serialized_start=621
-  _globals['_DECISIONRESULT']._serialized_end=683
-  _globals['_DECISIONANSWER']._serialized_start=686
-  _globals['_DECISIONANSWER']._serialized_end=936
-  _globals['_DECISIONPREDICATEANSWER']._serialized_start=938
-  _globals['_DECISIONPREDICATEANSWER']._serialized_end=984
-  _globals['_DECISIONCHOICEANSWER']._serialized_start=986
-  _globals['_DECISIONCHOICEANSWER']._serialized_end=1101
-  _globals['_DECISIONSCOREANSWER']._serialized_start=1103
-  _globals['_DECISIONSCOREANSWER']._serialized_end=1216
-  _globals['_DECISIONPROBABILITY']._serialized_start=1218
-  _globals['_DECISIONPROBABILITY']._serialized_end=1275
-  _globals['_DECISIONREFUSAL']._serialized_start=1277
-  _globals['_DECISIONREFUSAL']._serialized_end=1294
+  _globals['_ANNOTATE']._serialized_start=66
+  _globals['_ANNOTATE']._serialized_end=194
+  _globals['_DECISIONSPROVIDER']._serialized_start=197
+  _globals['_DECISIONSPROVIDER']._serialized_end=422
+  _globals['_DECISIONSTYPESAFEAI']._serialized_start=425
+  _globals['_DECISIONSTYPESAFEAI']._serialized_end=590
+  _globals['_DECISIONSOPENAI']._serialized_start=593
+  _globals['_DECISIONSOPENAI']._serialized_end=722
+  _globals['_DECISIONSDUMMY']._serialized_start=724
+  _globals['_DECISIONSDUMMY']._serialized_end=740
+  _globals['_DECISIONSCUSTOM']._serialized_start=742
+  _globals['_DECISIONSCUSTOM']._serialized_end=836
+  _globals['_DECISIONQUESTION']._serialized_start=839
+  _globals['_DECISIONQUESTION']._serialized_end=1064
+  _globals['_DECISIONPREDICATE']._serialized_start=1066
+  _globals['_DECISIONPREDICATE']._serialized_end=1085
+  _globals['_DECISIONCHOICE']._serialized_start=1087
+  _globals['_DECISIONCHOICE']._serialized_end=1149
+  _globals['_DECISIONOPTION']._serialized_start=1151
+  _globals['_DECISIONOPTION']._serialized_end=1224
+  _globals['_DECISIONSCORE']._serialized_start=1226
+  _globals['_DECISIONSCORE']._serialized_end=1285
+  _globals['_DECISIONLEVEL']._serialized_start=1287
+  _globals['_DECISIONLEVEL']._serialized_end=1359
+  _globals['_DECISIONRESULT']._serialized_start=1361
+  _globals['_DECISIONRESULT']._serialized_end=1423
+  _globals['_DECISIONANSWER']._serialized_start=1426
+  _globals['_DECISIONANSWER']._serialized_end=1676
+  _globals['_DECISIONPREDICATEANSWER']._serialized_start=1678
+  _globals['_DECISIONPREDICATEANSWER']._serialized_end=1724
+  _globals['_DECISIONCHOICEANSWER']._serialized_start=1726
+  _globals['_DECISIONCHOICEANSWER']._serialized_end=1841
+  _globals['_DECISIONSCOREANSWER']._serialized_start=1843
+  _globals['_DECISIONSCOREANSWER']._serialized_end=1956
+  _globals['_DECISIONPROBABILITY']._serialized_start=1958
+  _globals['_DECISIONPROBABILITY']._serialized_end=2015
+  _globals['_DECISIONREFUSAL']._serialized_start=2017
+  _globals['_DECISIONREFUSAL']._serialized_end=2034
 # @@protoc_insertion_point(module_scope)

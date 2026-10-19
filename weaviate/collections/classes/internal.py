@@ -132,7 +132,7 @@ class _Object(Generic[P, R, M]):
 
 @dataclass
 class DecisionAnswer:
-    """The answer of the collection's decisions module to one `decide` question for one object.
+    """The answer of a decisions module to one `annotate` question for one object.
 
     Attributes:
         name: The name of the question.
@@ -158,11 +158,11 @@ class Object(Generic[P, R], _Object[P, R, MetadataReturn]):
     """A single Weaviate object returned by a query within the `.query` namespace of a collection.
 
     Attributes:
-        decisions: The answers to the `decide` questions of the query, keyed by question name. `None` when the
-            query asked none.
+        annotations: The answers to the `annotate` questions of the query, keyed by question name. `None` when
+            the query asked none.
     """
 
-    decisions: Optional[Dict[str, DecisionAnswer]] = None
+    annotations: Optional[Dict[str, DecisionAnswer]] = None
 
 
 @dataclass

@@ -258,7 +258,7 @@ class MockDecisionsWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
                     properties=search_get_pb2.PropertiesResult(
                         non_ref_props=properties_pb2.Properties(fields={"text": text})
                     ),
-                    decisions=decisions_pb2.DecisionResult(
+                    annotations=decisions_pb2.DecisionResult(
                         answers=[
                             decisions_pb2.DecisionAnswer(
                                 name="angry",

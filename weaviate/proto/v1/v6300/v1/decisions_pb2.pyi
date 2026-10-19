@@ -1,3 +1,4 @@
+from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -6,11 +7,59 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class Decisions(_message.Message):
-    __slots__ = ("questions",)
+class Annotate(_message.Message):
+    __slots__ = ("questions", "provider")
     QUESTIONS_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
     questions: _containers.RepeatedCompositeFieldContainer[DecisionQuestion]
-    def __init__(self, questions: _Optional[_Iterable[_Union[DecisionQuestion, _Mapping]]] = ...) -> None: ...
+    provider: DecisionsProvider
+    def __init__(self, questions: _Optional[_Iterable[_Union[DecisionQuestion, _Mapping]]] = ..., provider: _Optional[_Union[DecisionsProvider, _Mapping]] = ...) -> None: ...
+
+class DecisionsProvider(_message.Message):
+    __slots__ = ("typesafeai", "openai", "dummy", "custom")
+    TYPESAFEAI_FIELD_NUMBER: _ClassVar[int]
+    OPENAI_FIELD_NUMBER: _ClassVar[int]
+    DUMMY_FIELD_NUMBER: _ClassVar[int]
+    CUSTOM_FIELD_NUMBER: _ClassVar[int]
+    typesafeai: DecisionsTypeSafeAI
+    openai: DecisionsOpenAI
+    dummy: DecisionsDummy
+    custom: DecisionsCustom
+    def __init__(self, typesafeai: _Optional[_Union[DecisionsTypeSafeAI, _Mapping]] = ..., openai: _Optional[_Union[DecisionsOpenAI, _Mapping]] = ..., dummy: _Optional[_Union[DecisionsDummy, _Mapping]] = ..., custom: _Optional[_Union[DecisionsCustom, _Mapping]] = ...) -> None: ...
+
+class DecisionsTypeSafeAI(_message.Message):
+    __slots__ = ("model", "base_url", "max_documents", "images")
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    BASE_URL_FIELD_NUMBER: _ClassVar[int]
+    MAX_DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    model: str
+    base_url: str
+    max_documents: int
+    images: bool
+    def __init__(self, model: _Optional[str] = ..., base_url: _Optional[str] = ..., max_documents: _Optional[int] = ..., images: bool = ...) -> None: ...
+
+class DecisionsOpenAI(_message.Message):
+    __slots__ = ("model", "base_url", "max_documents")
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    BASE_URL_FIELD_NUMBER: _ClassVar[int]
+    MAX_DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
+    model: str
+    base_url: str
+    max_documents: int
+    def __init__(self, model: _Optional[str] = ..., base_url: _Optional[str] = ..., max_documents: _Optional[int] = ...) -> None: ...
+
+class DecisionsDummy(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class DecisionsCustom(_message.Message):
+    __slots__ = ("module", "settings")
+    MODULE_FIELD_NUMBER: _ClassVar[int]
+    SETTINGS_FIELD_NUMBER: _ClassVar[int]
+    module: str
+    settings: _struct_pb2.Struct
+    def __init__(self, module: _Optional[str] = ..., settings: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
 
 class DecisionQuestion(_message.Message):
     __slots__ = ("name", "property", "instructions", "predicate", "choice", "score")

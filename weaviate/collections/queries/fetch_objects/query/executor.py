@@ -1,7 +1,14 @@
 from typing import Any, Generic, Literal, Optional, Type, Union, cast, overload
 
 from weaviate.collections.classes.filters import FilterReturn
-from weaviate.collections.classes.grpc import DECIDE, METADATA, PROPERTIES, REFERENCES, Sorting
+from weaviate.collections.classes.grpc import (
+    ANNOTATE,
+    METADATA,
+    PROPERTIES,
+    REFERENCES,
+    DecisionsConfigRuntime,
+    Sorting,
+)
 from weaviate.collections.classes.internal import (
     CrossReferences,
     QueryReturn,
@@ -35,7 +42,8 @@ class _FetchObjectsQueryExecutor(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[DecisionsConfigRuntime] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -51,7 +59,8 @@ class _FetchObjectsQueryExecutor(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[DecisionsConfigRuntime] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -67,7 +76,8 @@ class _FetchObjectsQueryExecutor(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[DecisionsConfigRuntime] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -83,7 +93,8 @@ class _FetchObjectsQueryExecutor(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[DecisionsConfigRuntime] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -99,7 +110,8 @@ class _FetchObjectsQueryExecutor(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[DecisionsConfigRuntime] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -115,7 +127,8 @@ class _FetchObjectsQueryExecutor(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[DecisionsConfigRuntime] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -131,7 +144,8 @@ class _FetchObjectsQueryExecutor(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[DecisionsConfigRuntime] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -146,7 +160,8 @@ class _FetchObjectsQueryExecutor(
         after: Optional[UUID] = None,
         filters: Optional[FilterReturn] = None,
         sort: Optional[Sorting] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[DecisionsConfigRuntime] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -160,7 +175,8 @@ class _FetchObjectsQueryExecutor(
             after: The UUID of the object to start from. If not specified, the retrieval begins from the first object in the server.
             filters: The filters to apply to the retrieval.
             sort: The sorting to apply to the retrieval.
-            decide: Questions for the collection's decisions module to answer about every object returned, built with `Decision`. NOTE: A `decisions-*` module must be configured for this functionality to work.
+            annotate: Questions for a decisions module to answer about every object returned, built with `Decision`. The answers come back under `annotations` of each object. NOTE: A `decisions-*` module must be configured on the collection or named in `annotate_provider`.
+            annotate_provider: The decisions module that answers `annotate`, with options for this query, built with `DecisionsConfig`. Left out, the collection's `decisions_config` applies.
             include_vector: Whether to include the vector in the results. If not specified, this is set to False.
             return_metadata: The metadata to return for each object, defaults to `None`.
             return_properties: The properties to return for each object.
@@ -201,7 +217,8 @@ class _FetchObjectsQueryExecutor(
             after=after,
             filters=filters,
             sort=sort,
-            decide=decide,
+            annotate=annotate,
+            annotate_provider=annotate_provider,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(cast(Any, return_references)),

@@ -13,12 +13,13 @@ from typing import (
     cast,
 )
 
+from google.protobuf.struct_pb2 import Struct
 from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import (
-    DECIDE,
+    ANNOTATE,
     MMR,
     PROPERTIES,
     PROPERTY,
@@ -38,6 +39,7 @@ from weaviate.collections.classes.grpc import (
     _BoostCurve,
     _BoostModifier,
     _DecisionChoice,
+    _DecisionsConfigRuntime,
     _DecisionScore,
     _MetadataQuery,
     _QueryReference,
@@ -131,7 +133,8 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[_DecisionsConfigRuntime] = None,
         boost: Optional[_Boost] = None,
     ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
@@ -155,7 +158,8 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
-            decide=decide,
+            annotate=annotate,
+            annotate_provider=annotate_provider,
             boost=boost,
             sort_by=sort_by,
         )
@@ -180,7 +184,8 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[_DecisionsConfigRuntime] = None,
         boost: Optional[_Boost] = None,
         diversity_selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
@@ -195,7 +200,8 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
-            decide=decide,
+            annotate=annotate,
+            annotate_provider=annotate_provider,
             boost=boost,
             autocut=autocut,
             hybrid_search=self._parse_hybrid(
@@ -227,7 +233,8 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[_DecisionsConfigRuntime] = None,
         boost: Optional[_Boost] = None,
     ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
@@ -248,7 +255,8 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
-            decide=decide,
+            annotate=annotate,
+            annotate_provider=annotate_provider,
             boost=boost,
             autocut=autocut,
             bm25=(
@@ -275,7 +283,8 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[_DecisionsConfigRuntime] = None,
         boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
@@ -292,7 +301,8 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
-            decide=decide,
+            annotate=annotate,
+            annotate_provider=annotate_provider,
             boost=boost,
             autocut=autocut,
             group_by=group_by,
@@ -318,7 +328,8 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[_DecisionsConfigRuntime] = None,
         boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
@@ -335,7 +346,8 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
-            decide=decide,
+            annotate=annotate,
+            annotate_provider=annotate_provider,
             boost=boost,
             autocut=autocut,
             group_by=group_by,
@@ -363,7 +375,8 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[_DecisionsConfigRuntime] = None,
         boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
@@ -380,7 +393,8 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
-            decide=decide,
+            annotate=annotate,
+            annotate_provider=annotate_provider,
             boost=boost,
             autocut=autocut,
             group_by=group_by,
@@ -409,7 +423,8 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[_DecisionsConfigRuntime] = None,
         boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
@@ -426,7 +441,8 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
-            decide=decide,
+            annotate=annotate,
+            annotate_provider=annotate_provider,
             boost=boost,
             autocut=autocut,
             group_by=group_by,
@@ -451,7 +467,8 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        decide: Optional[DECIDE] = None,
+        annotate: Optional[ANNOTATE] = None,
+        annotate_provider: Optional[_DecisionsConfigRuntime] = None,
         boost: Optional[_Boost] = None,
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
@@ -478,7 +495,10 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([_MetadataQuery, None], "metadata", metadata),
                     _ValidateArgument([_Generative, None], "generative", generative),
                     _ValidateArgument([Rerank, None], "rerank", rerank),
-                    _ValidateArgument([DecisionQuestion, Sequence, None], "decide", decide),
+                    _ValidateArgument([DecisionQuestion, Sequence, None], "annotate", annotate),
+                    _ValidateArgument(
+                        [_DecisionsConfigRuntime, None], "annotate_provider", annotate_provider
+                    ),
                     _ValidateArgument([int, None], "autocut", autocut),
                     _ValidateArgument([_GroupBy, None], "group_by", group_by),
                     _ValidateArgument(
@@ -522,8 +542,12 @@ class _QueryGRPC(_BaseGRPC):
 
         return_properties_parsed = self.__parse_return_properties(return_properties)
 
-        if decide is not None and group_by is not None:
-            raise WeaviateInvalidInputError("decide is not supported with group_by")
+        if annotate is not None and group_by is not None:
+            raise WeaviateInvalidInputError("annotate is not supported with group_by")
+        if annotate_provider is not None and annotate is None:
+            raise WeaviateInvalidInputError(
+                "annotate_provider names the module of annotate: pass annotate too"
+            )
 
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
@@ -546,7 +570,7 @@ class _QueryGRPC(_BaseGRPC):
             ),
             group_by=group_by.to_grpc() if group_by is not None else None,
             rerank=(self.__rerank_to_grpc(rerank) if rerank is not None else None),
-            decide=self.__decide_to_grpc(decide),
+            annotate=self.__annotate_to_grpc(annotate, annotate_provider),
             boost=self.__boost_to_grpc(boost),
             near_vector=near_vector,
             sort_by=sort_by,
@@ -604,20 +628,65 @@ class _QueryGRPC(_BaseGRPC):
                     DecisionsOrder.PROBABILITY: search_get_pb2.RerankOrder.RERANK_ORDER_PROBABILITY,
                 }[rerank.order]
             out.decision.CopyFrom(decision)
+            if rerank.provider is not None:
+                out.provider.CopyFrom(
+                    search_get_pb2.RerankProvider(
+                        decisions=_QueryGRPC.__decisions_provider_to_grpc(rerank.provider)
+                    )
+                )
         return out
 
     @staticmethod
-    def __decide_to_grpc(decide: Optional[DECIDE]) -> Optional[decisions_pb2.Decisions]:
-        if decide is None:
+    def __decisions_provider_to_grpc(
+        provider: _DecisionsConfigRuntime,
+    ) -> decisions_pb2.DecisionsProvider:
+        if provider.custom:
+            custom = decisions_pb2.DecisionsCustom(module=provider.module)
+            if provider.settings:
+                settings = Struct()
+                try:
+                    settings.update(provider.settings)
+                except (ValueError, TypeError) as e:
+                    raise WeaviateInvalidInputError(
+                        f"DecisionsConfig.custom settings must hold strings, numbers, booleans, lists or dicts: {e}"
+                    ) from None
+                custom.settings.CopyFrom(settings)
+            return decisions_pb2.DecisionsProvider(custom=custom)
+        if provider.module == "decisions-typesafeai":
+            typesafeai = decisions_pb2.DecisionsTypeSafeAI(
+                model=provider.model,
+                base_url=provider.base_url,
+                max_documents=provider.max_documents,
+            )
+            if provider.images is not None:
+                typesafeai.images = provider.images
+            return decisions_pb2.DecisionsProvider(typesafeai=typesafeai)
+        if provider.module == "decisions-openai":
+            return decisions_pb2.DecisionsProvider(
+                openai=decisions_pb2.DecisionsOpenAI(
+                    model=provider.model,
+                    base_url=provider.base_url,
+                    max_documents=provider.max_documents,
+                )
+            )
+        return decisions_pb2.DecisionsProvider(
+            custom=decisions_pb2.DecisionsCustom(module=provider.module)
+        )
+
+    @staticmethod
+    def __annotate_to_grpc(
+        annotate: Optional[ANNOTATE], provider: Optional[_DecisionsConfigRuntime]
+    ) -> Optional[decisions_pb2.Annotate]:
+        if annotate is None:
             return None
-        questions = [decide] if isinstance(decide, DecisionQuestion) else list(decide)
+        questions = [annotate] if isinstance(annotate, DecisionQuestion) else list(annotate)
         if len(questions) == 0:
-            raise WeaviateInvalidInputError("decide needs at least one question")
+            raise WeaviateInvalidInputError("annotate needs at least one question")
         out = []
         for question in questions:
             if not isinstance(question, DecisionQuestion):
                 raise WeaviateInvalidInputError(
-                    f"decide must hold DecisionQuestion objects built with Decision, got {type(question).__name__}"
+                    f"annotate must hold DecisionQuestion objects built with Decision, got {type(question).__name__}"
                 )
             message = decisions_pb2.DecisionQuestion(
                 name=question.name, property=question.prop, instructions=question.instructions
@@ -643,7 +712,10 @@ class _QueryGRPC(_BaseGRPC):
             else:
                 message.predicate.CopyFrom(decisions_pb2.DecisionPredicate())
             out.append(message)
-        return decisions_pb2.Decisions(questions=out)
+        request = decisions_pb2.Annotate(questions=out)
+        if provider is not None:
+            request.provider.CopyFrom(_QueryGRPC.__decisions_provider_to_grpc(provider))
+        return request
 
     def __boost_to_grpc(self, boost: Optional[_Boost]) -> Optional[search_get_pb2.Boost]:
         if boost is None:

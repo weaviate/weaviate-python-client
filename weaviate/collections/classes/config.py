@@ -667,7 +667,7 @@ class RerankerProvider(_ConfigCreateModel):
 class Decisions(str, BaseEnum):
     """The available decisions modules in Weaviate.
 
-    A decisions module answers typed questions about the objects a search returns (the `decide` argument of a
+    A decisions module answers typed questions about the objects a search returns (the `annotate` argument of a
     query, see `weaviate.classes.query.Decision`) and serves the `rerank` argument as a reranker does.
 
     Attributes:
@@ -1677,7 +1677,7 @@ class _Reranker:
 class _Decisions:
     """Use this factory class to create the correct object for the `decisions_config` argument in the `collections.create()` method.
 
-    A decisions module answers the `decide` questions of a query for every object returned, and reranks by a
+    A decisions module answers the `annotate` questions of a query for every object returned, and reranks by a
     condition with `rerank=Rerank.decide(...)`. A collection has at most one decisions module next to at most one reranker.
     """
 
