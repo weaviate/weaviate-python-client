@@ -109,6 +109,8 @@ async def test_bad_query_inputs(connection: ConnectionV4) -> None:
     await _test_query(lambda: query.bm25("hi", rerank="wrong"))
     await _test_query(lambda: query.bm25("hi", annotate="wrong"))
     await _test_query(lambda: query.bm25("hi", annotate=["wrong"]))
+    await _test_query(lambda: query.bm25("hi", annotate_provider="wrong"))
+    await _test_query(lambda: query.bm25("hi", annotate_provider={"module": "x"}))
 
     # hybrid
     await _test_query(lambda: query.hybrid(42))

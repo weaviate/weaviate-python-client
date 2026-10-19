@@ -287,6 +287,9 @@ class _DecisionsConfigRuntime(_WeaviateInput):
     base_url: Optional[str] = None
     max_documents: Optional[int] = Field(default=None, ge=1)
     images: Optional[bool] = None
+    # Built with DecisionsConfig.custom: sent as the module name and settings,
+    # whatever the name.
+    custom: bool = False
     settings: Optional[Dict[str, Any]] = None
 
 
@@ -354,9 +357,11 @@ class DecisionsConfig:
             module_name: The name of the module, for example `decisions-dummy`.
             settings: Its settings under the names of its collection settings, for example `{"maxDocuments": 50}`.
         """
-        if not module_name or not module_name.strip():
+        if not isinstance(module_name, str) or not module_name.strip():
             raise WeaviateInvalidInputError("DecisionsConfig.custom needs the name of the module")
-        return _DecisionsConfigRuntime(module=module_name, settings=settings)
+        if settings is not None and not isinstance(settings, dict):
+            raise WeaviateInvalidInputError("DecisionsConfig.custom takes the settings as a dict")
+        return _DecisionsConfigRuntime(module=module_name.strip(), custom=True, settings=settings)
 
 
 class Rerank(_WeaviateInput):
@@ -399,6 +404,10 @@ class Rerank(_WeaviateInput):
         # the search.
         if not query or not query.strip():
             raise WeaviateInvalidInputError("Rerank.decide needs the query the model judges")
+        if provider is not None and not isinstance(provider, _DecisionsConfigRuntime):
+            raise WeaviateInvalidInputError(
+                f"provider must be built with DecisionsConfig, got {type(provider).__name__}"
+            )
         if order is not None and not isinstance(order, DecisionsOrder):
             try:
                 order = DecisionsOrder(order)

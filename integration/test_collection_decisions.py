@@ -205,7 +205,7 @@ def test_a_reranker_and_a_decisions_module_on_one_collection(
         pytest.skip("the server has no decisions-dummy module")
     collection.data.insert_many([{"text": ANGRY}, {"text": CALM}])
 
-    # A plain rerank goes to the reranker, which scores by length; decide goes to the
+    # A plain rerank goes to the reranker, which scores by length; annotate goes to the
     # decisions module.
     objs = collection.query.bm25(
         "billing good",

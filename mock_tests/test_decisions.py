@@ -295,3 +295,104 @@ def test_a_custom_provider_needs_a_module_name(name: str) -> None:
 def test_a_provider_max_documents_is_positive() -> None:
     with pytest.raises(ValidationError):
         DecisionsConfig.openai(max_documents=0)
+
+
+def test_provider_options_left_out_are_left_unset(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+
+    collection.query.bm25(
+        "billing", annotate=QUESTIONS[0], annotate_provider=DecisionsConfig.typesafeai()
+    )
+    sent = service.captured_request.annotate.provider.typesafeai
+    assert not sent.HasField("model")
+    assert not sent.HasField("base_url")
+    assert not sent.HasField("max_documents")
+    assert not sent.HasField("images")
+
+    # False is a value, not an omission.
+    collection.query.bm25(
+        "billing", annotate=QUESTIONS[0], annotate_provider=DecisionsConfig.typesafeai(images=False)
+    )
+    sent = service.captured_request.annotate.provider.typesafeai
+    assert sent.HasField("images") and sent.images is False
+
+
+def test_a_custom_provider_keeps_its_settings_whatever_the_module_name(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+
+    collection.query.bm25(
+        "billing",
+        annotate=QUESTIONS[0],
+        annotate_provider=DecisionsConfig.custom("decisions-typesafeai", {"model": "jev-preview"}),
+    )
+    sent = service.captured_request.annotate.provider
+    assert sent.WhichOneof("kind") == "custom"
+    assert sent.custom.module == "decisions-typesafeai"
+    assert dict(sent.custom.settings) == {"model": "jev-preview"}
+
+    collection.query.bm25(
+        "billing",
+        rerank=Rerank.decide(
+            prop="text", query="angry", provider=DecisionsConfig.custom(" decisions-dummy ")
+        ),
+    )
+    sent = service.captured_request.rerank.provider.decisions
+    assert sent.custom.module == "decisions-dummy", "the name is stripped"
+
+    collection.query.bm25(
+        "billing",
+        rerank=Rerank.decide(
+            prop="text", query="angry", provider=DecisionsConfig.typesafeai(images=True)
+        ),
+    )
+    assert service.captured_request.rerank.provider.decisions.typesafeai.images is True
+
+
+def test_annotate_through_other_query_methods(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, service = decisions_collection
+
+    collection.query.fetch_objects(
+        annotate=QUESTIONS[0], annotate_provider=DecisionsConfig.openai()
+    )
+    assert service.captured_request.annotate.provider.WhichOneof("kind") == "openai"
+
+    collection.query.fetch_objects_by_ids(
+        ["00000000-0000-0000-0000-000000000001"],
+        annotate=QUESTIONS[0],
+        annotate_provider=DecisionsConfig.openai(),
+    )
+    assert [q.name for q in service.captured_request.annotate.questions] == ["angry"]
+
+    collection.query.near_vector([0.1, 0.2], annotate=QUESTIONS[0])
+    assert [q.name for q in service.captured_request.annotate.questions] == ["angry"]
+
+
+@pytest.mark.parametrize("bad", [5, None, "", "  "])
+def test_a_custom_provider_needs_a_module_name_of_the_right_type(bad) -> None:
+    with pytest.raises(WeaviateInvalidInputError):
+        DecisionsConfig.custom(bad)
+
+
+def test_a_custom_provider_rejects_settings_it_cannot_send(
+    decisions_collection: tuple[weaviate.collections.Collection, MockDecisionsWeaviateService],
+) -> None:
+    collection, _ = decisions_collection
+    with pytest.raises(WeaviateInvalidInputError, match="settings"):
+        DecisionsConfig.custom("decisions-mine", "not a dict")  # type: ignore[arg-type]
+    with pytest.raises(WeaviateInvalidInputError, match="settings"):
+        collection.query.bm25(
+            "billing",
+            annotate=QUESTIONS[0],
+            annotate_provider=DecisionsConfig.custom("decisions-mine", {"k": b"bytes"}),
+        )
+
+
+def test_a_rerank_provider_must_be_built_with_decisions_config() -> None:
+    with pytest.raises(WeaviateInvalidInputError, match="DecisionsConfig"):
+        Rerank.decide(prop="text", query="angry", provider={"module": "decisions-openai"})  # type: ignore[arg-type]

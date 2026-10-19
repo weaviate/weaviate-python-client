@@ -640,6 +640,18 @@ class _QueryGRPC(_BaseGRPC):
     def __decisions_provider_to_grpc(
         provider: _DecisionsConfigRuntime,
     ) -> decisions_pb2.DecisionsProvider:
+        if provider.custom:
+            custom = decisions_pb2.DecisionsCustom(module=provider.module)
+            if provider.settings:
+                settings = Struct()
+                try:
+                    settings.update(provider.settings)
+                except (ValueError, TypeError) as e:
+                    raise WeaviateInvalidInputError(
+                        f"DecisionsConfig.custom settings must hold strings, numbers, booleans, lists or dicts: {e}"
+                    ) from None
+                custom.settings.CopyFrom(settings)
+            return decisions_pb2.DecisionsProvider(custom=custom)
         if provider.module == "decisions-typesafeai":
             typesafeai = decisions_pb2.DecisionsTypeSafeAI(
                 model=provider.model,
@@ -657,12 +669,9 @@ class _QueryGRPC(_BaseGRPC):
                     max_documents=provider.max_documents,
                 )
             )
-        custom = decisions_pb2.DecisionsCustom(module=provider.module)
-        if provider.settings:
-            settings = Struct()
-            settings.update(provider.settings)
-            custom.settings.CopyFrom(settings)
-        return decisions_pb2.DecisionsProvider(custom=custom)
+        return decisions_pb2.DecisionsProvider(
+            custom=decisions_pb2.DecisionsCustom(module=provider.module)
+        )
 
     @staticmethod
     def __annotate_to_grpc(
