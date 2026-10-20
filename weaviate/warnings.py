@@ -274,6 +274,16 @@ class _Warnings:
         )
 
     @staticmethod
+    def graphql_raw_query_deprecated() -> None:
+        warnings.warn(
+            message="""Dep031: graphql_raw_query() is deprecated and will be removed from the client in a release after May 1, 2027, when Weaviate retires the GraphQL API.
+            Use the collection query methods or the REST Search API instead.
+            See https://docs.weaviate.io/weaviate/api/graphql/migration for how to migrate.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are using the datetime object {date} without a timezone. The timezone will be set to UTC.
