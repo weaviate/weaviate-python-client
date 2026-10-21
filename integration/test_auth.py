@@ -1,6 +1,7 @@
 import os
+import time
 import warnings
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import grpc
 import httpx
@@ -138,6 +139,20 @@ def test_client_with_authentication_with_anon_weaviate() -> None:
         assert any(str(warn.message).startswith("Auth001") for warn in recwarn.list)
 
 
+def _request_with_backoff(send: Callable[[], httpx.Response]) -> httpx.Response:
+    """Send an httpx request, retrying with backoff for errors, or 429."""
+    for delay in (2, 4, 8):
+        try:
+            response = send()
+        except httpx.TransportError:
+            time.sleep(delay)
+            continue
+        if response.status_code != 429:
+            return response
+        time.sleep(delay)
+    return send()
+
+
 def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
     # get an access token with WCS user and pw.
     weaviate_open_id_config = httpx.get("http://" + url + "/v1/.well-known/openid-configuration")
@@ -146,7 +161,8 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
     href = response_json["href"]
 
     # Get the token issuer's OIDC configuration
-    response_auth = httpx.get(href)
+    # Try with backoff; may fail due to rate limit errors in CICD pipeline
+    response_auth = _request_with_backoff(lambda: httpx.get(href))
 
     # Construct the POST request to send to 'token_endpoint'
     auth_body = {
@@ -156,7 +172,8 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
         "password": pw,
         "scope": "openid offline_access",
     }
-    response_post = httpx.post(url=response_auth.json()["token_endpoint"], data=auth_body)
+    token_endpoint = response_auth.json()["token_endpoint"]
+    response_post = _request_with_backoff(lambda: httpx.post(url=token_endpoint, data=auth_body))
     resp_typed = util._decode_json_response_dict(response_post, "test")
     assert resp_typed is not None
     return resp_typed
