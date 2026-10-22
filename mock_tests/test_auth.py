@@ -147,6 +147,142 @@ async def test_oidc_requests_use_own_http_client_async(
     assert client._connection._oauth_session is None  # close() closed the session too
 
 
+def _as_oidc_proxy(proxy: HTTPServer) -> None:
+    """Serve Weaviate and the IdP from a proxy, behind hosts only the proxy can reach."""
+    proxy.expect_request("/v1/meta").respond_with_json({"version": "1.36"})
+    proxy.expect_request("/v1/.well-known/openid-configuration").respond_with_json(
+        {"href": "http://idp.invalid/endpoints", "clientId": CLIENT_ID}
+    )
+    proxy.expect_request("/endpoints").respond_with_json(
+        {"token_endpoint": "http://idp.invalid/auth"}
+    )
+    proxy.expect_request("/auth", method="POST").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
+    proxy.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+
+@pytest.fixture
+def oidc_proxy():
+    proxy = HTTPServer(host=MOCK_IP, port=0)
+    proxy.start()
+    _as_oidc_proxy(proxy)
+    yield proxy
+    proxy.clear()
+    if proxy.is_running():
+        proxy.stop()
+
+
+def _proxied_custom_kwargs(proxy: HTTPServer) -> dict:
+    return {
+        "http_host": "weaviate.invalid",
+        "http_port": 80,
+        "http_secure": False,
+        "grpc_host": MOCK_IP,
+        "grpc_port": MOCK_PORT_GRPC,
+        "grpc_secure": False,
+        "skip_init_checks": True,
+        "auth_credentials": weaviate.auth.AuthClientPassword("AUsername", "SomePassWord"),
+        "additional_config": weaviate.classes.init.AdditionalConfig(
+            proxies=weaviate.classes.init.Proxies(http=proxy.url_for("/"))
+        ),
+    }
+
+
+def test_oidc_token_requests_use_proxies(oidc_proxy: HTTPServer) -> None:
+    """Token requests go through the configured proxies, like every other request."""
+    with weaviate.connect_to_custom(**_proxied_custom_kwargs(oidc_proxy)) as client:
+        client.collections.list_all()
+    assert any(req.path == "/auth" for req, _ in oidc_proxy.log)
+
+
+@pytest.mark.asyncio
+async def test_oidc_token_requests_use_proxies_async(oidc_proxy: HTTPServer) -> None:
+    """Async twin of the test above."""
+    async with weaviate.use_async_with_custom(**_proxied_custom_kwargs(oidc_proxy)) as client:
+        await client.collections.list_all()
+    assert any(req.path == "/auth" for req, _ in oidc_proxy.log)
+
+
+def _track_sessions(monkeypatch: pytest.MonkeyPatch) -> list:
+    """Record every authlib session the client creates."""
+    sessions: list = []
+    for name in ("OAuth2Client", "AsyncOAuth2Client"):
+        base = getattr(weaviate.connect.authentication, name)
+        tracked = type(name, (base,), {})
+        original_init = base.__init__
+
+        def init(self, *args, __init=original_init, **kwargs) -> None:
+            __init(self, *args, **kwargs)
+            sessions.append(self)
+
+        tracked.__init__ = init
+        monkeypatch.setattr(weaviate.connect.authentication, name, tracked)
+    return sessions
+
+
+def _expect_short_lived_client_credentials(weaviate_auth_mock: HTTPServer) -> List[float]:
+    """Client-credentials tokens without a refresh token, expiring right away; returns the hit times."""
+    hits: List[float] = []
+
+    def handler(request: Request) -> Response:
+        hits.append(time.monotonic())
+        return Response(
+            json.dumps({"access_token": ACCESS_TOKEN, "expires_in": 1}),
+            content_type="application/json",
+        )
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
+    return hits
+
+
+def test_client_credentials_refresh_closes_sessions(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each refresh builds a session for one token; it must be closed, and fetch the token once."""
+    sessions = _track_sessions(monkeypatch)
+    hits = _expect_short_lived_client_credentials(weaviate_auth_mock)
+
+    with weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
+    ):
+        time.sleep(3)  # refresh interval is max(expires_in - 30, 1) -> 1s
+
+    assert len(sessions) >= 3  # the refresher ran
+    assert len(hits) == len(sessions)  # one token request per session
+    assert all(session.is_closed for session in sessions)
+
+
+@pytest.mark.asyncio
+async def test_client_credentials_refresh_closes_sessions_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Async twin of the test above."""
+    sessions = _track_sessions(monkeypatch)
+    hits = _expect_short_lived_client_credentials(weaviate_auth_mock)
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
+    ):
+        await asyncio.sleep(3)
+
+    assert len(sessions) >= 3
+    assert len(hits) == len(sessions)
+    assert all(session.is_closed for session in sessions)
+
+
 @pytest.mark.asyncio
 async def test_client_credentials_refresh_async(
     weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server

@@ -7,6 +7,7 @@ from copy import copy
 from dataclasses import dataclass, field
 from ssl import SSLZeroReturnError
 from threading import Event, Thread
+from types import ModuleType
 from typing import (
     Any,
     AsyncGenerator,
@@ -25,6 +26,7 @@ from typing import (
 )
 
 import grpc
+import httpx
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
@@ -43,8 +45,6 @@ from httpx import (
     HTTPError,
     HTTPStatusError,
     HTTPTransport,
-    Limits,
-    Proxy,
     ReadError,
     ReadTimeout,
     RemoteProtocolError,
@@ -252,34 +252,24 @@ class _ConnectionBase:
     def _make_mounts(
         self, colour: executor.Colour
     ) -> Union[Dict[str, AsyncHTTPTransport], Dict[str, HTTPTransport]]:
-        if colour == "async":
-            return {
-                (f"{key}://" if key == "http" or key == "https" else key): AsyncHTTPTransport(
-                    limits=Limits(
-                        max_connections=self.__connection_config.session_pool_maxsize,
-                        max_keepalive_connections=self.__connection_config.session_pool_connections,
-                    ),
-                    proxy=Proxy(url=proxy),
-                    retries=self.__connection_config.session_pool_max_retries,
-                    trust_env=self.__trust_env,
-                )
-                for key, proxy in self._proxies.items()
-                if key != "grpc"
-            }
-        if colour == "sync":
-            return {
-                f"{key}://" if key == "http" or key == "https" else key: HTTPTransport(
-                    limits=Limits(
-                        max_connections=self.__connection_config.session_pool_maxsize,
-                        max_keepalive_connections=self.__connection_config.session_pool_connections,
-                    ),
-                    proxy=Proxy(url=proxy),
-                    retries=self.__connection_config.session_pool_max_retries,
-                    trust_env=self.__trust_env,
-                )
-                for key, proxy in self._proxies.items()
-                if key != "grpc"
-            }
+        return self._make_mounts_with(httpx, colour)
+
+    def _make_mounts_with(self, http: ModuleType, colour: executor.Colour) -> Dict[str, Any]:
+        """Build the proxy transports with `http`: httpx, or httpx2 for an httpx2-based authlib session."""
+        transport = http.AsyncHTTPTransport if colour == "async" else http.HTTPTransport
+        return {
+            (f"{key}://" if key == "http" or key == "https" else key): transport(
+                limits=http.Limits(
+                    max_connections=self.__connection_config.session_pool_maxsize,
+                    max_keepalive_connections=self.__connection_config.session_pool_connections,
+                ),
+                proxy=http.Proxy(url=proxy),
+                retries=self.__connection_config.session_pool_max_retries,
+                trust_env=self.__trust_env,
+            )
+            for key, proxy in self._proxies.items()
+            if key != "grpc"
+        }
 
     def is_connected(self) -> bool:
         return self._connected
@@ -492,7 +482,7 @@ class _ConnectionBase:
                             _Auth.use(
                                 oidc_config=resp,
                                 credentials=auth_client_secret,
-                                make_mounts=lambda: self._make_mounts("async"),
+                                make_mounts=lambda http: self._make_mounts_with(http, "async"),
                                 colour=colour,
                             )
                         )
@@ -516,7 +506,7 @@ class _ConnectionBase:
                         _Auth.use(
                             oidc_config=resp,
                             credentials=auth_client_secret,
-                            make_mounts=lambda: self._make_mounts("sync"),
+                            make_mounts=lambda http: self._make_mounts_with(http, "sync"),
                             colour=colour,
                         )
                     )
@@ -603,8 +593,12 @@ class _ConnectionBase:
                         # client credentials usually does not contain a refresh token => get a
                         # new token using the saved credentials
                         assert _auth is not None
+                        # the new session already fetched a token; only that token is kept
                         new_session = _auth.result(_auth.get_auth_session())
-                        client.token = new_session.fetch_token()
+                        try:
+                            client.token = new_session.token
+                        finally:
+                            new_session.close()
                     refresh_time = client.token.get("expires_in", 60) - 30
                 except Exception as exc:
                     # retry in one second; any error must keep the refresher alive, not only
@@ -652,8 +646,12 @@ class _ConnectionBase:
                     # client credentials usually does not contain a refresh token => get a
                     # new token using the saved credentials
                     assert _auth is not None
+                    # the new session already fetched a token; only that token is kept
                     new_session = await _Auth.aresult(_auth.get_auth_session())
-                    client.token = await new_session.fetch_token()
+                    try:
+                        client.token = new_session.token
+                    finally:
+                        await new_session.aclose()
                 refresh_time = client.token.get("expires_in", 60) - 30
             except asyncio.CancelledError:
                 raise
