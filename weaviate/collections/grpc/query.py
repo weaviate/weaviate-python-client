@@ -575,7 +575,9 @@ class _QueryGRPC(_BaseGRPC):
         for cond in boost.conditions:
             grpc_cond = _B.Condition(weight=cond.weight)
             if cond.filter is not None:
-                grpc_cond.filter.CopyFrom(_FilterToGRPC.convert(cond.filter))
+                grpc_filter = _FilterToGRPC.convert(cond.filter)
+                if grpc_filter is not None:
+                    grpc_cond.filter.CopyFrom(grpc_filter)
             elif cond.time_decay is not None:
                 grpc_cond.time_decay.CopyFrom(
                     _B.TimeDecayFunction(
