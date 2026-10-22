@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Dict, List, Optional, Union
+import importlib
+from types import ModuleType
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 import httpx
 from authlib.integrations.httpx_client import (  # type: ignore
@@ -24,10 +26,24 @@ AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]
 
 Result = Union[OAuth2Client, Awaitable[AsyncOAuth2Client]]
-MountsMaker = Union[
-    Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
-    Callable[[], Dict[str, httpx.HTTPTransport]],
-]
+# builds the proxy transports with the given library (httpx or httpx2)
+MountsMaker = Callable[[ModuleType], Dict[str, Any]]
+
+
+def _session_http_module() -> ModuleType:
+    """Return the library authlib builds its sessions on.
+
+    Authlib >= 1.8 uses httpx2 when it is installed, older versions httpx. A session's transports must come
+    from the same library.
+    """
+    for base in OAuth2Client.__mro__:
+        root = base.__module__.split(".")[0]
+        if root in ("httpx", "httpx2"):
+            return importlib.import_module(root)
+    return httpx
+
+
+_SESSION_HTTP = _session_http_module()
 
 
 class _Auth:
@@ -121,19 +137,11 @@ class _Auth:
         if self.__colour == "async":
 
             async def _execute() -> str:
-                mounts: Dict[str, httpx.AsyncBaseTransport] = {}
-                for key, mount in self.__make_mounts().items():
-                    assert isinstance(mount, httpx.AsyncHTTPTransport)
-                    mounts[key] = mount
-                async with httpx.AsyncClient(mounts=mounts) as client:
+                async with httpx.AsyncClient(mounts=self.__make_mounts(httpx)) as client:
                     return resp(await client.get(self._open_id_config_url))
 
             return _execute()
-        mounts: Dict[str, httpx.BaseTransport] = {}
-        for key, mount in self.__make_mounts().items():
-            assert isinstance(mount, httpx.BaseTransport)
-            mounts[key] = mount
-        with httpx.Client(mounts=mounts) as client:
+        with httpx.Client(mounts=self.__make_mounts(httpx)) as client:
             return resp(client.get(self._open_id_config_url))
 
     def get_auth_session(self) -> Result:
@@ -164,6 +172,7 @@ class _Auth:
                     token_endpoint=await executor.aresult(self._get_token_endpoint()),
                     client_id=self._client_id,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    mounts=self.__make_mounts(_SESSION_HTTP),
                 )
 
             return _execute()
@@ -172,6 +181,7 @@ class _Auth:
             token_endpoint=executor.result(self._get_token_endpoint()),
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            mounts=self.__make_mounts(_SESSION_HTTP),
         )
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> Result:
@@ -186,6 +196,7 @@ class _Auth:
                     grant_type="password",
                     scope=scope,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    mounts=self.__make_mounts(_SESSION_HTTP),
                 )
                 token: dict = await session.fetch_token(
                     username=config.username, password=config.password
@@ -202,6 +213,7 @@ class _Auth:
             grant_type="password",
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            mounts=self.__make_mounts(_SESSION_HTTP),
         )
         token: dict = session.fetch_token(username=config.username, password=config.password)
         if "refresh_token" not in token:
@@ -239,6 +251,7 @@ class _Auth:
                     grant_type="client_credentials",
                     token={"access_token": None, "expires_in": -100},
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    mounts=self.__make_mounts(_SESSION_HTTP),
                 )
                 # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
                 await session.fetch_token()
@@ -254,6 +267,7 @@ class _Auth:
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            mounts=self.__make_mounts(_SESSION_HTTP),
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
         session.fetch_token()
