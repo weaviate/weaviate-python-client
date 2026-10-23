@@ -7,6 +7,7 @@ from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.classes.rbac import Actions, Permissions, RoleScope
 from weaviate.connect.helpers import connect_to_local
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.rbac.models import (
     AliasPermissionOutput,
     BackupsPermissionOutput,
@@ -373,31 +374,6 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             32,
         ),
         (
-            Permissions.alias(alias="", collection="*", read=True, delete=True),
-            Role(
-                name="AlliasRole2",
-                alias_permissions=[
-                    AliasPermissionOutput(
-                        alias="*",
-                        collection="*",
-                        actions={Actions.Alias.READ, Actions.Alias.DELETE},
-                    )
-                ],
-                cluster_permissions=[],
-                users_permissions=[],
-                collections_permissions=[],
-                roles_permissions=[],
-                data_permissions=[],
-                backups_permissions=[],
-                mcp_permissions=[],
-                nodes_permissions=[],
-                tenants_permissions=[],
-                replicate_permissions=[],
-                groups_permissions=[],
-            ),
-            32,  # Minimum version for alias permissions
-        ),
-        (
             Permissions.alias(alias="*", collection="*", read=True, delete=True),
             Role(
                 name="AlliasRole",
@@ -541,6 +517,53 @@ def test_create_role(
             assert role == expected
         finally:
             client.roles.delete(expected.name)
+
+
+def test_create_role_with_empty_alias(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        version = client._connection._weaviate_version
+        if version.is_lower_than(1, 32, 0):
+            pytest.skip("Alias permissions require Weaviate 1.32.0 or higher")
+
+        role_name = "AlliasRole2"
+        permissions = Permissions.alias(alias="", collection="*", read=True, delete=True)
+        try:
+            client.roles.delete(role_name)
+
+            # Weaviate PR #13324 applies the collection-name rule to alias patterns, so these
+            # releases reject an empty alias; older servers store it as "*". Match only "alias"
+            # so a rewording of the server's message does not fail the test.
+            if version.is_at_least_any((1, 38, 19), (1, 39, 10), (1, 40, 0)):
+                with pytest.raises(UnexpectedStatusCodeError, match="alias"):
+                    client.roles.create(role_name=role_name, permissions=permissions)
+                return
+
+            client.roles.create(role_name=role_name, permissions=permissions)
+            role = client.roles.get(role_name)
+            assert role is not None
+            assert role == Role(
+                name=role_name,
+                alias_permissions=[
+                    AliasPermissionOutput(
+                        alias="*",
+                        collection="*",
+                        actions={Actions.Alias.READ, Actions.Alias.DELETE},
+                    )
+                ],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                mcp_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            )
+        finally:
+            client.roles.delete(role_name)
 
 
 def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:

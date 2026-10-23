@@ -1,18 +1,38 @@
 Changelog
 =========
 
+Version 4.24.1
+--------------
+This patch version includes:
+    - Deprecate ``client.graphql_raw_query()`` (Dep031), which will be removed in a release after May 1, 2027, when Weaviate retires the GraphQL API. Use the collection query methods or the REST Search API instead
+
 Version 4.24.0
 --------------
 This minor version includes:
-    - Public names for the collection configuration types, so a helper that passes one around no longer has to import a private class:
-        - Every non-deprecated type accepted by ``collections.create()`` and ``collections.config.update()`` now has a public name exported from ``weaviate.classes.config``, among them ``VectorConfigCreate``, ``VectorConfigUpdate``, ``InvertedIndexConfigCreate``, ``ReplicationConfigUpdate``, ``ObjectTTLConfigCreate``, ``GenerativeProvider`` and ``RerankerProvider``
-        - The types behind the deprecated ``vectorizer_config`` argument and the ``Configure.NamedVectors`` factories are deliberately left private, so that the signatures keep pointing at ``vector_config`` and ``Configure.Vectors``
-        - Both halves of the vector index families are exported: ``VectorIndexConfigCreate`` with ``VectorIndexConfigHNSWCreate``, ``VectorIndexConfigFlatCreate``, ``VectorIndexConfigDynamicCreate``, ``VectorIndexConfigHFreshCreate`` and ``VectorIndexConfigSkipCreate``, and ``VectorIndexConfigUpdate`` with the matching ``Update`` variants
-        - The public name is now the class itself rather than an alias to it, so error messages, ``repr`` output, IDE hovers and the API reference show the public name
-        - Query and generative-query methods annotate ``boost`` with the public ``BoostReturn`` instead of ``_Boost``
-    - Backwards compatibility:
-        - Every ``_``-prefixed spelling is still importable from the module that defines it, and is the same object as its public counterpart, so ``isinstance`` checks and existing imports of it are unaffected
-        - A private spelling that was only ever reachable through a module that happened to import it — the executor modules, and a few of the ``config_*`` modules — is no longer reachable there. Import configuration types from ``weaviate.classes.config``, or from ``weaviate.collections.classes.config``
+    - Pyodide/WebAssembly support for the async client, so it runs in browser Python environments such as marimo notebooks:
+        - gRPC is routed over Weaviate's native ``/v1/grpc-web`` endpoint (server 1.38.3+) and REST over the browser's ``fetch``; install with the new ``grpc-web`` extra, which pulls in the ``weaviate-client-web`` companion package under Emscripten and is a no-op elsewhere
+        - Under Emscripten the async connection helpers route gRPC to the REST endpoint themselves, discarding a differing gRPC endpoint with a warning; the sync client, ``batch.stream()`` and embedded Weaviate raise immediately, since threads, bidirectional streaming and subprocesses are unavailable there
+    - Add ``include_roles`` and ``include_users`` to ``backup.create()`` (Weaviate 1.40+), with wildcard support; omitting them keeps backing up all roles and users
+    - Add ``collection.config.delete_vector_index()`` to drop a named vector's index — destructive, irreversible and applied asynchronously (the endpoint is experimental and may be disabled server-side)
+    - Add ``Configure.Generative.meta()`` and ``GenerativeConfig.meta()`` for the new ``generative-meta`` module
+    - Add the ``PATHSEER`` filter strategy (Weaviate 1.40+) to ``VectorFilterStrategy``, so reading a collection configured with it no longer raises
+    - Add ``Actions.Backups.READ`` and ``Permissions.backup(read=True)`` for the collection-scoped ``read_backups`` RBAC action (Weaviate 1.39+)
+    - ``wait_for_vector_indexing`` now waits on the per-node shard statuses reported by newer servers; ``ShardTypes`` gains ``LOADING``, ``LAZY_LOADING``, ``SHUTDOWN``, ``UNAVAILABLE`` and ``RECOVERING``
+    - Public names for every non-deprecated collection configuration type accepted by ``collections.create()`` and ``collections.config.update()``, exported from ``weaviate.classes.config`` — among them ``VectorConfigCreate``, ``InvertedIndexConfigUpdate``, ``ObjectTTLConfigCreate``, ``GenerativeProvider`` and the ``VectorIndexConfig*Create``/``Update`` families:
+        - Every ``_``-prefixed spelling remains importable from the module that defines it and is the same object, so existing imports and ``isinstance`` checks are unaffected; the types behind the deprecated ``vectorizer_config`` argument and ``Configure.NamedVectors`` stay private
+    - Deprecate the ``async_enabled`` argument of ``Configure.replication`` / ``Reconfigure.replication`` (Dep030): Weaviate 1.38+ removed the field and silently drops it
+    - Bump the default embedded Weaviate version from 1.30.5 to 1.39.7, and verify that every port embedded Weaviate needs is free before starting it
+    - Trust certifi's CA bundle on gRPC channels, the same roots httpx already uses for REST; a roots file set via ``GRPC_DEFAULT_SSL_ROOTS_FILE_PATH`` still takes precedence
+    - Minor bug fixes and improvements:
+        - Fix ``close()`` not stopping the OIDC token refresher and a reconnect leaving two refreshers running; the async client now refreshes in an asyncio task instead of a thread, and any refresh error is retried instead of silently ending the refresh
+        - Fix near-vector and hybrid queries silently retargeting when the vector dictionary's keys differ from ``target_vector``; mismatched names now raise ``WeaviateInvalidInputError``
+        - Fix ``roles.has_permissions()`` returning ``True`` for permissions the role does not hold
+        - Fix object TTL updates being written under the wrong schema key and dropping existing TTL fields, and an omitted ``ttl_offset`` being sent as an explicit zero
+        - Fix multi-vector settings being lost by ``CollectionConfig.to_dict()``, so an exported collection could not be recreated with ``create_from_dict()``
+        - Fix ``config.get()`` always returning ``multi_vector=None`` for HFresh vector indexes
+        - Fix an ``IndexError`` when the server returns an empty date string; the value now deserializes to ``None`` with a warning
+        - Fix ``import weaviate`` failing on Python 3.15
+        - Require ``authlib>=1.7.1`` and drop the client-side filter for its removed ``jose`` deprecation warning
 
 Version 4.23.1
 --------------

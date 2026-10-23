@@ -1,11 +1,22 @@
-from typing import Tuple, Union
+from contextlib import ExitStack
+from typing import List, Tuple, Union
 
 import pytest
 
 import weaviate
 from weaviate.classes.init import AdditionalConfig, Timeout
-from weaviate.embedded import WEAVIATE_VERSION
+from weaviate.embedded import WEAVIATE_VERSION, _hold_port
 from weaviate.exceptions import WeaviateClosedClientError
+
+
+def _free_ports(count: int) -> List[int]:
+    """Return `count` distinct ports that were free when chosen.
+
+    Fixed ports can already be held by another socket on a CI runner, which makes Weaviate exit
+    at startup.
+    """
+    with ExitStack() as held:
+        return [_hold_port(held) for _ in range(count)]
 
 
 @pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
@@ -13,9 +24,10 @@ def test_client_with_extra_options(
     timeout: Union[Tuple[int, int], Timeout], tmp_path_factory: pytest.TempPathFactory
 ) -> None:
     additional_config = AdditionalConfig(timeout=timeout, trust_env=True)
+    port, grpc_port = _free_ports(2)
     client = weaviate.connect_to_embedded(
-        port=8070,
-        grpc_port=50040,
+        port=port,
+        grpc_port=grpc_port,
         additional_config=additional_config,
         environment_variables={"DISABLE_TELEMETRY": "true"},
         persistence_data_path=tmp_path_factory.mktemp("data"),
@@ -28,10 +40,10 @@ def test_client_with_extra_options(
 
 
 def test_connect_and_close_to_embedded(tmp_path_factory: pytest.TempPathFactory) -> None:
-    # Can't use the default port values as they are already in use by the local instances
+    port, grpc_port = _free_ports(2)
     client = weaviate.connect_to_embedded(
-        port=30668,
-        grpc_port=50151,
+        port=port,
+        grpc_port=grpc_port,
         environment_variables={"DISABLE_TELEMETRY": "true"},
         persistence_data_path=tmp_path_factory.mktemp("data"),
         binary_path=tmp_path_factory.mktemp("bin"),
@@ -41,7 +53,7 @@ def test_connect_and_close_to_embedded(tmp_path_factory: pytest.TempPathFactory)
         metadata = client.get_meta()
         assert WEAVIATE_VERSION == metadata["version"]
         assert client.is_ready()
-        assert "30668" == metadata["hostname"].split(":")[2]
+        assert str(port) == metadata["hostname"].split(":")[2]
         assert client.is_live()
 
         client.close()
@@ -53,9 +65,10 @@ def test_connect_and_close_to_embedded(tmp_path_factory: pytest.TempPathFactory)
 
 
 def test_embedded_as_context_manager(tmp_path_factory: pytest.TempPathFactory) -> None:
+    port, grpc_port = _free_ports(2)
     with weaviate.connect_to_embedded(
-        port=30668,
-        grpc_port=50152,
+        port=port,
+        grpc_port=grpc_port,
         environment_variables={"DISABLE_TELEMETRY": "true"},
         persistence_data_path=tmp_path_factory.mktemp("data"),
         binary_path=tmp_path_factory.mktemp("bin"),
@@ -75,9 +88,10 @@ def test_embedded_as_context_manager(tmp_path_factory: pytest.TempPathFactory) -
 async def test_embedded_with_async_as_context_manager(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
+    port, grpc_port = _free_ports(2)
     async with weaviate.use_async_with_embedded(
-        port=8076,
-        grpc_port=50153,
+        port=port,
+        grpc_port=grpc_port,
         environment_variables={"DISABLE_TELEMETRY": "true"},
         persistence_data_path=tmp_path_factory.mktemp("data"),
         binary_path=tmp_path_factory.mktemp("bin"),
@@ -104,9 +118,10 @@ def test_embedded_with_wrong_version(tmp_path_factory: pytest.TempPathFactory) -
 
 
 def test_embedded_already_running(tmp_path_factory: pytest.TempPathFactory) -> None:
+    port, grpc_port = _free_ports(2)
     client = weaviate.connect_to_embedded(
-        port=8096,
-        grpc_port=50155,
+        port=port,
+        grpc_port=grpc_port,
         environment_variables={"DISABLE_TELEMETRY": "true"},
         persistence_data_path=tmp_path_factory.mktemp("data"),
         binary_path=tmp_path_factory.mktemp("bin"),
@@ -117,16 +132,17 @@ def test_embedded_already_running(tmp_path_factory: pytest.TempPathFactory) -> N
 
         with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
             weaviate.connect_to_embedded(
-                port=8096, grpc_port=50155, environment_variables={"DISABLE_TELEMETRY": "true"}
+                port=port, grpc_port=grpc_port, environment_variables={"DISABLE_TELEMETRY": "true"}
             )
     finally:
         client.close()
 
 
 def test_embedded_startup_with_blocked_http_port(tmp_path_factory: pytest.TempPathFactory) -> None:
+    port, grpc_port, other_grpc_port = _free_ports(3)
     client = weaviate.connect_to_embedded(
-        port=8098,
-        grpc_port=50096,
+        port=port,
+        grpc_port=grpc_port,
         environment_variables={"DISABLE_TELEMETRY": "true"},
         persistence_data_path=tmp_path_factory.mktemp("data"),
         binary_path=tmp_path_factory.mktemp("bin"),
@@ -134,8 +150,8 @@ def test_embedded_startup_with_blocked_http_port(tmp_path_factory: pytest.TempPa
     try:
         with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
             weaviate.connect_to_embedded(
-                port=8098,
-                grpc_port=50097,
+                port=port,
+                grpc_port=other_grpc_port,
                 environment_variables={"DISABLE_TELEMETRY": "true"},
                 persistence_data_path=tmp_path_factory.mktemp("data"),
                 binary_path=tmp_path_factory.mktemp("bin"),
@@ -145,9 +161,10 @@ def test_embedded_startup_with_blocked_http_port(tmp_path_factory: pytest.TempPa
 
 
 def test_embedded_startup_with_blocked_grpc_port(tmp_path_factory: pytest.TempPathFactory) -> None:
+    port, other_port, grpc_port = _free_ports(3)
     client = weaviate.connect_to_embedded(
-        port=8099,
-        grpc_port=50150,
+        port=port,
+        grpc_port=grpc_port,
         environment_variables={"DISABLE_TELEMETRY": "true"},
         persistence_data_path=tmp_path_factory.mktemp("data"),
         binary_path=tmp_path_factory.mktemp("bin"),
@@ -155,7 +172,9 @@ def test_embedded_startup_with_blocked_grpc_port(tmp_path_factory: pytest.TempPa
     try:
         with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
             weaviate.connect_to_embedded(
-                port=8100, grpc_port=50150, environment_variables={"DISABLE_TELEMETRY": "true"}
+                port=other_port,
+                grpc_port=grpc_port,
+                environment_variables={"DISABLE_TELEMETRY": "true"},
             )
     finally:
         client.close()
@@ -192,10 +211,11 @@ def test_embedded_create_restore_backup(tmp_path_factory: pytest.TempPathFactory
     collection_name = "BackedUp"
     backup_id = "backup0"
 
+    port, grpc_port = _free_ports(2)
     client = weaviate.connect_to_embedded(
         persistence_data_path=tmp_path_factory.mktemp("data"),
-        port=8164,
-        grpc_port=50500,
+        port=port,
+        grpc_port=grpc_port,
         environment_variables={
             "ENABLE_MODULES": "backup-filesystem",
             "BACKUP_FILESYSTEM_PATH": tmp_path_factory.mktemp("backup"),
