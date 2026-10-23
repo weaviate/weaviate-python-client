@@ -177,7 +177,13 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             (
                 _BatchObject(
                     collection=self.name,
-                    vector=obj.vector,
+                    vector=(
+                        {key: _get_vector_v4(val) for key, val in obj.vector.items()}
+                        if isinstance(obj.vector, dict)
+                        else _get_vector_v4(obj.vector)
+                        if obj.vector is not None
+                        else None
+                    ),
                     uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
                     properties=cast(dict, obj.properties),
                     tenant=self._tenant,
