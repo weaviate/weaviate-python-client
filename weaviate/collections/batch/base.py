@@ -645,9 +645,7 @@ class _BatchBase:
                         }
                     )
             except Exception as e:
-                errors_obj = {
-                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
-                }
+                errors_obj = {obj.index: ErrorObject(message=repr(e), object_=obj) for obj in objs}
                 logger.error(
                     {
                         "message": f"Failed to send all objects in a batch of {len(objs)}",
