@@ -80,10 +80,10 @@ class _BatchGRPC(_BaseGRPC):
             uuid=(str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4())),
             properties=(
                 self.__translate_properties_from_python_to_grpc(
-                    obj.properties,
+                    obj.properties or {},
                     obj.references if obj.references is not None else {},
                 )
-                if obj.properties is not None
+                if obj.properties is not None or obj.references
                 else None
             ),
             tenant=obj.tenant,

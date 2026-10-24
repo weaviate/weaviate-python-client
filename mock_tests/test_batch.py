@@ -160,3 +160,60 @@ def test_ssb_stream_reports_has_errors(
             batch.add_object({"name": f"Object {i}"})
     assert len(failed_object_stream.batch.failed_objects) == 2
     assert failed_object_stream.batch.results.objs.has_errors
+
+
+class MockReferenceCaptureWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    def __init__(self) -> None:
+        self.objects: List[batch_pb2.BatchObject] = []
+
+    def BatchObjects(
+        self, request: batch_pb2.BatchObjectsRequest, context: grpc.ServicerContext
+    ) -> batch_pb2.BatchObjectsReply:
+        self.objects.extend(request.objects)
+        return batch_pb2.BatchObjectsReply()
+
+
+@pytest.fixture
+def reference_capture_service(
+    start_grpc_server: grpc.Server,
+) -> MockReferenceCaptureWeaviateService:
+    service = MockReferenceCaptureWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return service
+
+
+def test_insert_many_preserves_reference_only_objects(
+    weaviate_client: weaviate.WeaviateClient,
+    reference_capture_service: MockReferenceCaptureWeaviateService,
+) -> None:
+    target = "00000000-0000-0000-0000-000000000001"
+    result = weaviate_client.collections.use("Source").data.insert_many(
+        [weaviate.classes.data.DataObject(references={"related": target})]
+    )
+    assert not result.has_errors
+    (obj,) = reference_capture_service.objects
+    (ref,) = obj.properties.single_target_ref_props
+    assert ref.prop_name == "related"
+    assert list(ref.uuids) == [target]
+
+
+@pytest.mark.asyncio
+async def test_async_insert_many_preserves_reference_only_objects(
+    weaviate_mock: HTTPServer,
+    start_grpc_server: grpc.Server,
+    reference_capture_service: MockReferenceCaptureWeaviateService,
+) -> None:
+    target = "00000000-0000-0000-0000-000000000001"
+    client = weaviate.use_async_with_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    await client.connect()
+    try:
+        result = await client.collections.use("Source").data.insert_many(
+            [weaviate.classes.data.DataObject(references={"related": target})]
+        )
+        assert not result.has_errors
+        (obj,) = reference_capture_service.objects
+        (ref,) = obj.properties.single_target_ref_props
+        assert ref.prop_name == "related"
+        assert list(ref.uuids) == [target]
+    finally:
+        await client.close()
