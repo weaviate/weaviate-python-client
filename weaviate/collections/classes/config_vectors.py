@@ -468,6 +468,7 @@ class _Vectors:
             text_fields: The text fields to use in vectorization.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Configure.VectorIndex` to create a vector index configuration. None by default
+            vectorize_collection_name: Deprecated, has no effect.
 
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
