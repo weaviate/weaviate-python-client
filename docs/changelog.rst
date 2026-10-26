@@ -5,6 +5,7 @@ Version 4.24.1
 --------------
 This patch version includes:
     - Deprecate ``client.graphql_raw_query()`` (Dep031), which will be removed in a release after May 1, 2027, when Weaviate retires the GraphQL API. Use the collection query methods or the REST Search API instead
+    - Bump the default embedded Weaviate version from 1.39.7 to 1.40.2
     - Minor bug fixes and improvements:
         - Fix ``ReplicateOperationStatus.errors`` holding the server's raw error objects instead of message strings
         - Fix an exhausted ``collection.iterator()`` sending another request, and possibly yielding newly added objects, when advanced again; it now keeps raising ``StopIteration`` until restarted with ``iter()``, and likewise for the async iterator
