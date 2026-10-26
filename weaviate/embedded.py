@@ -92,6 +92,8 @@ class _EmbeddedBase:
         self.options = options
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
+        # Data path that held Raft state before the most recent launch, set by `start()`.
+        self._existing_data_path: Optional[str] = None
         self.ensure_paths_exist()
         self.check_supported_platform()
         self._parsed_weaviate_version = ""
@@ -287,6 +289,12 @@ class _EmbeddedBase:
         if self.options.additional_env_vars is not None:
             my_env.update(self.options.additional_env_vars)
 
+        # Read the path from the final environment, which may override the option. Check before
+        # launching, because Weaviate creates `raft/` during its own startup.
+        data_path = my_env["PERSISTENCE_DATA_PATH"]
+        has_raft_state = os.path.isdir(os.path.join(data_path, "raft"))
+        self._existing_data_path = data_path if has_raft_state else None
+
         # filter warning about running processes.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
@@ -307,6 +315,23 @@ class _EmbeddedBase:
             self.process = process
         logger.info(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
+
+    def existing_data_hint(self) -> Optional[str]:
+        """Return a hint to append to a startup timeout, or None if the hint does not apply.
+
+        The hint applies when the data path held data before the most recent `start()`. Weaviate
+        uses the HTTP port as its node name, so data created with a different `port` blocks
+        startup. The client cannot tell which port created the data, so the hint names it as a
+        possible cause.
+        """
+        if self._existing_data_path is None:
+            return None
+        return (
+            f"The data path `{self._existing_data_path}` already holds data, which may have been "
+            "created with a different `port`. To run a separate instance, pass a different "
+            "`persistence_data_path` and ports. To use the existing data, pass the `port` it was "
+            "created with."
+        )
 
     @abstractmethod
     def is_listening(self) -> bool:
