@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, TypeVar, Union, cast
 from urllib.parse import urlparse
 
+import certifi
 import grpc  # type: ignore
 from grpc import Channel as SyncChannel
 from grpc import ssl_channel_credentials
@@ -28,6 +29,18 @@ GRPC_WEB_SERVER_PATH_PREFIX = "/v1/grpc-web"
 def _grpc_web_shim_active() -> bool:
     """Whether weaviate-client-web's grpc shim is installed (unary grpc-web RPCs, no streaming)."""
     return getattr(grpc, "__weaviate_client_web_shim__", False) is True
+
+
+def _default_grpc_credentials() -> grpc.ChannelCredentials:
+    """SSL credentials trusting certifi's CA bundle, the same one httpx uses for REST.
+
+    grpcio's bundled roots only change with a grpcio release, so a CA distrust reaches
+    certifi first. A roots file set via GRPC_DEFAULT_SSL_ROOTS_FILE_PATH still wins.
+    """
+    if os.environ.get("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"):
+        return ssl_channel_credentials()
+    with open(certifi.where(), "rb") as f:
+        return ssl_channel_credentials(root_certificates=f.read())
 
 
 class ProtocolParams(BaseModel):
@@ -201,7 +214,7 @@ class ConnectionParams(BaseModel):
             if grpc_config is not None and grpc_config.credentials is not None:
                 creds = grpc_config.credentials
             else:
-                creds = ssl_channel_credentials()
+                creds = _default_grpc_credentials()
             return mod.secure_channel(
                 target=self._grpc_target,
                 credentials=creds,
