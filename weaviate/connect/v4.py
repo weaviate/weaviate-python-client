@@ -1091,7 +1091,7 @@ class ConnectionSync(_ConnectionBase):
                 raise InsufficientPermissionsError(error)
             if error.code() == StatusCode.ABORTED:
                 raise _BatchStreamShutdownError()
-            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})")
+            raise WeaviateBatchStreamError(f"{error.code()}({error.details()})") from e
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest
