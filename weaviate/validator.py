@@ -1,3 +1,4 @@
+from collections.abc import Sequence as ABCSequence
 from dataclasses import dataclass
 from typing import Any, List, Sequence, Union, get_args, get_origin
 
@@ -48,9 +49,9 @@ def _is_valid(expected: Any, value: Any) -> bool:
         args = get_args(expected)
         return any(isinstance(value, arg) for arg in args)
     if expected_origin is not None and (
-        issubclass(expected_origin, Sequence) or expected_origin is list
+        issubclass(expected_origin, ABCSequence) or expected_origin is list
     ):
-        if not isinstance(value, Sequence) and not isinstance(value, list):
+        if not isinstance(value, (ABCSequence, list)):
             return False
         args = get_args(expected)
         if len(args) == 1:
