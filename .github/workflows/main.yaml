@@ -224,12 +224,12 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_140, grpc: "1.59.0"},
-          { py: "3.11", weaviate: $WEAVIATE_140, grpc: "1.66.0"},
-          { py: "3.12", weaviate: $WEAVIATE_140, grpc: "1.70.0"},
-          { py: "3.13", weaviate: $WEAVIATE_140, grpc: "1.72.1"},
-          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0"},
-          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.85.0"}
+          { py: "3.10", weaviate: $WEAVIATE_140, grpc: "1.59.5", protobuf: "4.25.9"},
+          { py: "3.11", weaviate: $WEAVIATE_140, grpc: "1.66.0", protobuf: "5.29.6"},
+          { py: "3.12", weaviate: $WEAVIATE_140, grpc: "1.70.0", protobuf: "5.29.6"},
+          { py: "3.13", weaviate: $WEAVIATE_140, grpc: "1.72.1", protobuf: "6.33.6"},
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0", protobuf: "6.33.6"},
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.85.0", protobuf: "6.33.6"}
         ]
         optional_dependencies: [false]
     steps:
@@ -249,7 +249,7 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
           pip install -r requirements-test.txt
-          pip install grpcio==${{ matrix.versions.grpc }}
+          pip install grpcio==${{ matrix.versions.grpc }} protobuf==${{ matrix.versions.protobuf }}
           pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
