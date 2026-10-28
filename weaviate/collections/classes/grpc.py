@@ -148,6 +148,11 @@ class _MetadataQuery:
     def from_public(
         cls, public: Optional[MetadataQuery], include_vector: INCLUDE_VECTOR
     ) -> "_MetadataQuery":
+        # INCLUDE_VECTOR permits a bare `str` for a single named vector, and the branches below
+        # test only for `bool` and `list`. Without this a `str` matched neither, so the request
+        # asked for no vector at all and the caller got none back, with no error.
+        if isinstance(include_vector, str):
+            include_vector = [include_vector]
         return (
             cls(
                 vector=include_vector if isinstance(include_vector, bool) else False,
