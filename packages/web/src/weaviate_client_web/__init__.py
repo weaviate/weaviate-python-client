@@ -8,6 +8,14 @@ async clients only.
 import os
 import sys
 
+try:
+    import pyodide  # noqa: F401
+except ImportError as exc:
+    raise ImportError(
+        "weaviate-client-web only works under Pyodide (sys.platform == 'emscripten'); "
+        "on CPython the weaviate-client package uses native gRPC and does not need it."
+    ) from exc
+
 from ._channel import GrpcWebChannel, set_sender
 from ._httpx_fetch import (
     install_fetch_transport,

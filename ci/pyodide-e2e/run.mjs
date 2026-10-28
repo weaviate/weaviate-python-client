@@ -2,32 +2,16 @@
 // Usage: node run.mjs <wheels-dir>  (one weaviate_client-*.whl, one weaviate_client_web-*.whl)
 // Env: WEAVIATE_HOST (default localhost), WEAVIATE_PORT (default 8090).
 // The pyodide npm pin in package.json fixes the interpreter.
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadPyodide } from "pyodide";
 
-if (!process.argv[2]) {
-  console.error("usage: node run.mjs <wheels-dir>");
-  process.exit(2);
-}
-const wheelsDir = resolve(process.argv[2]);
-const here = dirname(fileURLToPath(import.meta.url));
+import { wheelsFromArgv } from "./wheels.mjs";
 
-const wheels = readdirSync(wheelsDir)
-  .filter((f) => f.endsWith(".whl"))
-  .sort(); // installs weaviate_client before weaviate_client_web, which depends on it
-const prefixes = ["weaviate_client-", "weaviate_client_web-"];
-if (
-  wheels.length !== 2 ||
-  !prefixes.every((p) => wheels.some((w) => w.startsWith(p)))
-) {
-  console.error(
-    `expected exactly one weaviate_client-*.whl and one weaviate_client_web-*.whl in ${wheelsDir}, found: ${JSON.stringify(wheels)}`,
-  );
-  process.exit(2);
-}
+const { wheelsDir, wheels } = wheelsFromArgv("run.mjs");
+const here = dirname(fileURLToPath(import.meta.url));
 
 const pyodide = await loadPyodide({
   env: {
@@ -69,3 +53,5 @@ try {
   console.error(err);
   process.exit(1);
 }
+// The interpreter keeps live handles on the Node event loop, so exit explicitly.
+process.exit(0);

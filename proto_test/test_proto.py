@@ -23,9 +23,7 @@ def _versions_incompatible() -> bool:
 
 _skip_if_incompatible = pytest.mark.skipif(
     _versions_incompatible(),
-    reason="weaviate.proto.v1 cannot be imported with an incompatible grpcio/protobuf "
-    "pair (CI version-gate matrix); the gate is covered by test_proto_import and the "
-    "fallback is exercised in every compatible cell",
+    reason="incompatible grpcio/protobuf pair: weaviate.proto.v1 does not import",
 )
 
 
@@ -36,9 +34,7 @@ def test_proto_import():
         pb_ver >= version.parse("5.26.1") and grpc_ver < version.parse("1.63.0")
     ):
         with pytest.raises(Exception) as e:
-            import weaviate
-
-            assert weaviate.version is not None
+            importlib.import_module("weaviate")
         assert "WeaviateProtobufIncompatibility" in str(e.type)
     else:
         import weaviate
@@ -80,7 +76,7 @@ def test_grpcio_missing_metadata_raises_off_emscripten(monkeypatch):
 
 
 @_skip_if_incompatible
-def test_grpcio_fallback_version_passes_every_vendored_stub_gate():
+def test_grpcio_fallback_version_is_at_least_every_stub_generated_version():
     """_GRPCIO_FALLBACK_VERSION is at least every vendored stub's GRPC_GENERATED_VERSION."""
     try:
         from grpc._utilities import first_version_is_lower
@@ -104,8 +100,27 @@ def test_grpcio_fallback_version_passes_every_vendored_stub_gate():
         gated += 1
         generated = match.group(1)
         assert not first_version_is_lower(fallback, generated), (
-            f"{stub.relative_to(proto_root)} requires grpcio>={generated} but "
-            f"_GRPCIO_FALLBACK_VERSION is {fallback}; bump the fallback (and the "
-            "grpc-web shim's FAKE_GRPC_VERSION) to match the regenerated stubs"
+            f"{stub.relative_to(proto_root)} was generated for grpcio {generated}, above "
+            f"_GRPCIO_FALLBACK_VERSION {fallback}; bump it and the grpc shim's "
+            "FAKE_GRPC_VERSION to match"
         )
     assert gated > 0, "no stub carried a GRPC_GENERATED_VERSION gate; check the extraction regex"
+
+
+def test_shim_fake_grpc_version_matches_the_fallback():
+    """The grpc shim's FAKE_GRPC_VERSION equals _GRPCIO_FALLBACK_VERSION.
+
+    Read as text: weaviate_client_web imports pyodide, so it cannot be imported here.
+    """
+    repo = pathlib.Path(__file__).resolve().parents[1]
+
+    def literal(path: pathlib.Path, name: str) -> str:
+        match = re.search(rf'^{name} = "([^"]+)"', path.read_text(), re.MULTILINE)
+        assert match is not None, f"{name} not found in {path}"
+        return match.group(1)
+
+    fallback = literal(
+        repo / "weaviate" / "proto" / "v1" / "__init__.py", "_GRPCIO_FALLBACK_VERSION"
+    )
+    shim = repo / "packages" / "web" / "src" / "weaviate_client_web" / "_shim.py"
+    assert literal(shim, "FAKE_GRPC_VERSION") == fallback

@@ -24,6 +24,9 @@ _FETCH_MANAGED_HEADERS = {
     "accept-encoding",
     "content-length",
     "transfer-encoding",
+    # httpx's "python-httpx/x.y"; a User-Agent set on fetch (Firefox honours it) needs a
+    # CORS preflight that Weaviate's default CORS_ALLOW_HEADERS does not allow
+    "user-agent",
 }
 
 # fetch has already decoded the body; passing content-encoding/length through would make
