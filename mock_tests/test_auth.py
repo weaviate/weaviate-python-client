@@ -6,6 +6,7 @@ import warnings
 from typing import List, Union
 
 import grpc
+import httpx
 import pytest
 from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
@@ -83,6 +84,67 @@ def test_client_credentials(weaviate_auth_mock: HTTPServer, start_grpc_server: g
         client.collections.list_all()  # some call that includes authorization
 
     weaviate_auth_mock.check_assertions()
+
+
+OIDC_CREDENTIALS = {
+    "bearer_token": lambda: weaviate.auth.AuthBearerToken(
+        ACCESS_TOKEN, refresh_token=REFRESH_TOKEN
+    ),
+    "client_password": lambda: weaviate.auth.AuthClientPassword("AUsername", "SomePassWord"),
+    "client_credentials": lambda: weaviate.auth.AuthClientCredentials(
+        client_secret=CLIENT_SECRET, scope=SCOPE
+    ),
+}
+
+
+def _expect_oidc_token(weaviate_auth_mock: HTTPServer) -> None:
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+
+@pytest.mark.parametrize("credentials", OIDC_CREDENTIALS.keys())
+def test_oidc_requests_use_own_http_client(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, credentials: str
+) -> None:
+    """Requests must go through the client's own httpx client, never the authlib session.
+
+    Authlib >= 1.8 builds its sessions on httpx2 when it is installed; handing such a
+    session the client's httpx Timeout failed every request with a TypeError (#2220).
+    """
+    _expect_oidc_token(weaviate_auth_mock)
+
+    with weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=OIDC_CREDENTIALS[credentials](),
+    ) as client:
+        assert type(client._connection._client) is httpx.Client
+        client.collections.list_all()
+    assert client._connection._oauth_session is None  # close() closed the session too
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("credentials", OIDC_CREDENTIALS.keys())
+async def test_oidc_requests_use_own_http_client_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, credentials: str
+) -> None:
+    """Async twin of the test above."""
+    _expect_oidc_token(weaviate_auth_mock)
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=OIDC_CREDENTIALS[credentials](),
+    ) as client:
+        assert type(client._connection._client) is httpx.AsyncClient
+        await client.collections.list_all()
+    assert client._connection._oauth_session is None  # close() closed the session too
 
 
 @pytest.mark.asyncio
