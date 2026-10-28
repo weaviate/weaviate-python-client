@@ -6,6 +6,7 @@ from weaviate.collections.classes.filters import (
     FilterValues,
     _CountRef,
     _FilterAnd,
+    _FilterNone,
     _FilterNot,
     _FilterOr,
     _FilterTargets,
@@ -27,11 +28,13 @@ class _FilterToGRPC:
 
     @overload
     @staticmethod
-    def convert(weav_filter: FilterReturn) -> base_pb2.Filters: ...
+    def convert(weav_filter: FilterReturn) -> Optional[base_pb2.Filters]: ...
 
     @staticmethod
     def convert(weav_filter: Optional[FilterReturn]) -> Optional[base_pb2.Filters]:
         if weav_filter is None:
+            return None
+        elif isinstance(weav_filter, _FilterNone):
             return None
         elif isinstance(weav_filter, _FilterValue):
             return _FilterToGRPC.__value_filter(weav_filter)
@@ -175,20 +178,24 @@ class _FilterToGRPC:
             or isinstance(weav_filter, _FilterOr)
             or isinstance(weav_filter, _FilterNot)
         )
-        return base_pb2.Filters(
-            operator=weav_filter.operator._to_grpc(),
-            filters=[
-                filter_
-                for single_filter in weav_filter.filters
-                if (filter_ := _FilterToGRPC.convert(single_filter)) is not None
-            ],
-        )
+        filters = [
+            filter_
+            for single_filter in weav_filter.filters
+            if (filter_ := _FilterToGRPC.convert(single_filter)) is not None
+        ]
+        if len(filters) == 0:
+            return None
+        if len(filters) == 1 and not isinstance(weav_filter, _FilterNot):
+            return filters[0]
+        return base_pb2.Filters(operator=weav_filter.operator._to_grpc(), filters=filters)
 
 
 class _FilterToREST:
     @staticmethod
-    def convert(weav_filter: FilterReturn) -> Dict[str, Any]:
-        if isinstance(weav_filter, _FilterValue):
+    def convert(weav_filter: FilterReturn) -> Optional[Dict[str, Any]]:
+        if isinstance(weav_filter, _FilterNone):
+            return None
+        elif isinstance(weav_filter, _FilterValue):
             return _FilterToREST.__value_filter(weav_filter)
         else:
             return _FilterToREST.__and_or_not_filter(weav_filter)
@@ -254,17 +261,19 @@ class _FilterToREST:
         raise ValueError(f"Unknown filter value type: {type(value)}")
 
     @staticmethod
-    def __and_or_not_filter(weav_filter: FilterReturn) -> Dict[str, Any]:
+    def __and_or_not_filter(weav_filter: FilterReturn) -> Optional[Dict[str, Any]]:
         assert (
             isinstance(weav_filter, _FilterAnd)
             or isinstance(weav_filter, _FilterOr)
             or isinstance(weav_filter, _FilterNot)
         )
-        return {
-            "operator": weav_filter.operator.value,
-            "operands": [
-                filter_
-                for single_filter in weav_filter.filters
-                if (filter_ := _FilterToREST.convert(single_filter)) is not None
-            ],
-        }
+        filters = [
+            filter_
+            for single_filter in weav_filter.filters
+            if (filter_ := _FilterToREST.convert(single_filter)) is not None
+        ]
+        if len(filters) == 0:
+            return None
+        if len(filters) == 1 and not isinstance(weav_filter, _FilterNot):
+            return filters[0]
+        return {"operator": weav_filter.operator.value, "operands": filters}
