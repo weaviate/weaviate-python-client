@@ -172,8 +172,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        grpc: ["1.59.5", "1.63.0", "1.65.0", "1.66.0", "1.68.0", "1.72.1", "1.73.0", "1.74.0"]
-        protobuf: ["4.25.8", "5.26.0", "5.27.4", "5.28.3", "5.29.0", "6.30.0", "6.31.1", "6.32.0"]
+        grpc: ["1.59.5", "1.63.0", "1.65.0", "1.66.0", "1.68.0", "1.72.1", "1.73.0", "1.74.0", "1.85.0"]
+        protobuf: ["4.25.8", "5.26.0", "5.27.4", "5.28.3", "5.29.0", "6.30.0", "6.31.1", "6.32.0", "6.33.6"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -228,7 +228,8 @@ jobs:
           { py: "3.11", weaviate: $WEAVIATE_140, grpc: "1.66.0"},
           { py: "3.12", weaviate: $WEAVIATE_140, grpc: "1.70.0"},
           { py: "3.13", weaviate: $WEAVIATE_140, grpc: "1.72.1"},
-          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0"}
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0"},
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.85.0"}
         ]
         optional_dependencies: [false]
     steps:
@@ -248,7 +249,7 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
           pip install -r requirements-test.txt
-          pip install grpcio==${{ matrix.versions.grpc }} grpcio-tools==${{ matrix.versions.grpc }} grpcio-health-checking==${{ matrix.versions.grpc }}
+          pip install grpcio==${{ matrix.versions.grpc }}
           pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
