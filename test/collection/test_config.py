@@ -874,6 +874,36 @@ def test_config_with_vectorizer_and_properties(
     }
 
 
+def test_config_with_vector_config_and_properties() -> None:
+    config = _CollectionConfigCreate(
+        name="test",
+        properties=[
+            Property(
+                name="text",
+                data_type=DataType.TEXT,
+                skip_vectorization=True,
+                vectorize_property_name=False,
+            )
+        ],
+        vector_config=[
+            Configure.Vectors.text2vec_transformers(name="first"),
+            Configure.Vectors.self_provided(name="second"),
+        ],
+    )
+    assert config._to_dict()["properties"] == [
+        {
+            "dataType": ["text"],
+            "name": "text",
+            "moduleConfig": {
+                "text2vec-transformers": {
+                    "skip": True,
+                    "vectorizePropertyName": False,
+                }
+            },
+        }
+    ]
+
+
 TEST_CONFIG_WITH_GENERATIVE = [
     (
         Configure.Generative.openai(),
