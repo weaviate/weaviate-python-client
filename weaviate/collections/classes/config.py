@@ -2782,22 +2782,28 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     ) -> None:
         if props is None:
             return
+        vectorizers: Optional[List[Union[Vectorizers, _EnumLikeStr]]] = (
+            [self.vectorizerConfig.vectorizer]
+            if isinstance(self.vectorizerConfig, _VectorizerConfigCreate)
+            else (
+                None
+                if self.vectorizerConfig is None
+                else [conf.vectorizer.vectorizer for conf in self.vectorizerConfig]
+            )
+        )
+        if self.vectorConfig is not None:
+            vector_configs = (
+                [self.vectorConfig]
+                if isinstance(self.vectorConfig, VectorConfigCreate)
+                else self.vectorConfig
+            )
+            vectorizers = (vectorizers or []) + [
+                conf.vectorizer.vectorizer for conf in vector_configs
+            ]
         existing_props = ret_dict.get("properties", [])
         existing_props.extend(
             [
-                (
-                    prop._to_dict(
-                        [self.vectorizerConfig.vectorizer]
-                        if isinstance(self.vectorizerConfig, _VectorizerConfigCreate)
-                        else (
-                            None
-                            if self.vectorizerConfig is None
-                            else [conf.vectorizer.vectorizer for conf in self.vectorizerConfig]
-                        )
-                    )
-                    if isinstance(prop, Property)
-                    else prop._to_dict()
-                )
+                prop._to_dict(vectorizers) if isinstance(prop, Property) else prop._to_dict()
                 for prop in props
             ]
         )
