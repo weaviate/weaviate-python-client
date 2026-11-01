@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from weaviate.backup.backup_location import _BackupLocationConfig
 
@@ -107,3 +107,10 @@ class BackupListReturn(BaseModel):
     # None when the backup is not incremental, and also when the server omits the
     # field: it is only returned to callers Weaviate has confirmed as root.
     incremental_base_backup_id: Optional[str] = Field(default=None)
+
+    @field_validator("completed_at", mode="after")
+    @classmethod
+    def _normalize_zero_completed_at(cls, v: Optional[datetime]) -> Optional[datetime]:
+        if v is not None and v.year <= 1:
+            return None
+        return v
