@@ -205,6 +205,8 @@ class _FilterToREST:
     def __to_path(target: _FilterTargets) -> List[str]:
         if isinstance(target, str):
             return [target]
+        elif isinstance(target, _CountRef):
+            return [target.link_on]
         elif isinstance(target, _SingleTargetRef):
             raise WeaviateInvalidInputError(
                 "Cannot use Filter.by_ref() in the aggregate API currently. Instead use Filter.by_ref_multi_target() and specify the target collection explicitly."

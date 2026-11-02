@@ -12,8 +12,30 @@ from weaviate.collections.classes.filters import (
     _FilterValue,
     _Operator,
 )
-from weaviate.collections.filters import _FilterToGRPC
+from weaviate.collections.filters import _FilterToGRPC, _FilterToREST
 from weaviate.proto.v1 import base_pb2
+
+
+@pytest.mark.parametrize("compound", [False, True])
+def test_graphql_reference_count_filter(compound: bool) -> None:
+    """Serialize reference-count targets for direct and compound GraphQL filters."""
+    ref_filter = wvc.query.Filter.by_ref_count("ref").greater_than(0)
+    expected_ref = {
+        "operator": "GreaterThan",
+        "path": ["ref"],
+        "valueInt": 0,
+    }
+    if compound:
+        combined = ref_filter & wvc.query.Filter.by_property("name").equal("Berlin")
+        assert _FilterToREST.convert(combined) == {
+            "operator": "And",
+            "operands": [
+                expected_ref,
+                {"operator": "Equal", "path": ["name"], "valueText": "Berlin"},
+            ],
+        }
+    else:
+        assert _FilterToREST.convert(ref_filter) == expected_ref
 
 
 def test_empty_input_contains_any() -> None:
