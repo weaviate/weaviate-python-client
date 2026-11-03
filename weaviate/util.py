@@ -513,6 +513,9 @@ def _sanitize_str(value: str) -> str:
     value = re.sub(
         r'(?<!\\)((?:\\{2})*)"', r"\1\"", value
     )  # only replaces unescaped double quotes without permitting query injection
+    if (len(value) - len(value.rstrip("\\"))) % 2 == 1:
+        # an unpaired trailing backslash would escape the closing quote
+        value += "\\"
     return f'"{value}"'
 
 
