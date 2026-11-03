@@ -1,15 +1,16 @@
-"""fetch-based httpx.AsyncHTTPTransport for Pyodide, where httpcore has no sockets.
+"""fetch-based httpx2.AsyncHTTPTransport for Pyodide, where httpcore2 has no sockets.
 
-Replaces Pyodide's bundled jsfetch transport, which fails on body-less HEAD/204 responses
-and ignores read timeouts. Differs from native httpx: fetch follows redirects itself,
-multi-value headers are folded, and bodies are fully buffered.
+Replaces the transport httpx2 uses under Emscripten (httpx2-jsfetch), so body-less
+HEAD/204 responses and read timeouts behave as tested here. Differs from native httpx2:
+fetch follows redirects itself, multi-value headers are folded, and bodies are fully
+buffered.
 """
 
 import math
 import sys
 from typing import Callable, Dict, Optional
 
-import httpx
+import httpx2
 from pyodide.http import pyfetch  # type: ignore[import-not-found]
 
 _installed = False
@@ -40,14 +41,14 @@ _TIMEOUT_HINTS = ("timeout", "timed out", "abort")
 _MAX_ABORT_SIGNAL_MS = 2**31 - 1
 
 
-async def _read_request_body(request: httpx.Request) -> bytes:
+async def _read_request_body(request: httpx2.Request) -> bytes:
     try:
         return request.content
-    except httpx.RequestNotRead:
+    except httpx2.RequestNotRead:
         return await request.aread()
 
 
-def _pick_timeout(request: httpx.Request) -> Optional[float]:
+def _pick_timeout(request: httpx2.Request) -> Optional[float]:
     """The request deadline: httpx's ``read`` timeout only (None = no deadline).
 
     ``connect`` and ``pool`` have no meaning under fetch.
@@ -71,27 +72,27 @@ def _abort_signal_ms(timeout: Optional[float]) -> Optional[int]:
 
 
 def _map_fetch_error(
-    e: BaseException, request: httpx.Request, deadline_set: bool
-) -> httpx.TransportError:
+    e: BaseException, request: httpx2.Request, deadline_set: bool
+) -> httpx2.TransportError:
     """Map a pyfetch OSError (network, DNS, CORS, CSP, abort) to an httpx error.
 
-    httpx.ReadTimeout if our deadline fired, else httpx.ConnectError.
+    httpx2.ReadTimeout if our deadline fired, else httpx2.ConnectError.
     """
     msg = str(e) or repr(e)
     if deadline_set and any(hint in msg.lower() for hint in _TIMEOUT_HINTS):
-        return httpx.ReadTimeout(msg, request=request)
-    return httpx.ConnectError(msg, request=request)
+        return httpx2.ReadTimeout(msg, request=request)
+    return httpx2.ConnectError(msg, request=request)
 
 
 def _validate_header(name: str, value: str) -> None:
     # h11 normally rejects CR/LF/NUL in headers; this transport bypasses h11.
     if any(c in name or c in value for c in ("\r", "\n", "\0")):
-        raise httpx.LocalProtocolError(f"Illegal character in header {name!r}")
+        raise httpx2.LocalProtocolError(f"Illegal character in header {name!r}")
 
 
 async def _fetch_handle_async_request(
-    self: httpx.AsyncHTTPTransport, request: httpx.Request
-) -> httpx.Response:
+    self: httpx2.AsyncHTTPTransport, request: httpx2.Request
+) -> httpx2.Response:
     headers: Dict[str, str] = {}
     for k, v in request.headers.items():
         if k.lower() in _FETCH_MANAGED_HEADERS:
@@ -133,10 +134,10 @@ async def _fetch_handle_async_request(
         resp_headers = {}
     # Hand httpx an unread stream, as its own transports do: the client reads it and
     # only then stamps ``response.elapsed``, which the batch-references path relies on.
-    return httpx.Response(
+    return httpx2.Response(
         status_code=int(response.status),
         headers=resp_headers,
-        stream=httpx.ByteStream(data),
+        stream=httpx2.ByteStream(data),
         request=request,
     )
 
@@ -146,9 +147,9 @@ _fetch_handle_async_request.__weaviate_fetch_shim__ = True  # type: ignore[attr-
 
 
 def install_fetch_transport() -> None:
-    """Patch ``httpx.AsyncHTTPTransport`` to send requests through ``fetch``.
+    """Patch ``httpx2.AsyncHTTPTransport`` to send requests through ``fetch``.
 
-    Installs only under Emscripten (elsewhere httpx's own socket transports work and
+    Installs only under Emscripten (elsewhere httpx2's own socket transports work and
     must be left in place). Idempotent.
     """
     global _installed, _original_handle_async_request
@@ -156,18 +157,18 @@ def install_fetch_transport() -> None:
         return
     if sys.platform != "emscripten":
         return
-    _original_handle_async_request = httpx.AsyncHTTPTransport.handle_async_request
-    httpx.AsyncHTTPTransport.handle_async_request = _fetch_handle_async_request  # type: ignore[method-assign]
+    _original_handle_async_request = httpx2.AsyncHTTPTransport.handle_async_request
+    httpx2.AsyncHTTPTransport.handle_async_request = _fetch_handle_async_request  # type: ignore[method-assign]
     _installed = True
 
 
 def uninstall_fetch_transport() -> None:
-    """Restore the original ``httpx.AsyncHTTPTransport`` behaviour. No-op if not installed."""
+    """Restore the original ``httpx2.AsyncHTTPTransport`` behaviour. No-op if not installed."""
     global _installed, _original_handle_async_request
     if not _installed:
         return
     assert _original_handle_async_request is not None
-    httpx.AsyncHTTPTransport.handle_async_request = _original_handle_async_request  # type: ignore[method-assign]
+    httpx2.AsyncHTTPTransport.handle_async_request = _original_handle_async_request  # type: ignore[method-assign]
     _original_handle_async_request = None
     _installed = False
 

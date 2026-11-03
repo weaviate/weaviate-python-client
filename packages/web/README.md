@@ -50,8 +50,8 @@ client = WeaviateAsyncClient(
 )
 ```
 
-REST goes through the package's own `fetch`-based httpx transport, including on Pyodide
-builds whose httpx has one (that one fails on body-less HEAD/204 responses).
+REST goes through the package's own `fetch`-based httpx2 transport, in place of the
+`httpx2-jsfetch` one httpx2 uses under Pyodide.
 
 ## Usage
 

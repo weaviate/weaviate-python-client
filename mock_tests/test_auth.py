@@ -148,7 +148,7 @@ async def test_token_refresh_survives_failures_async(
 ) -> None:
     """A failing refresh must not kill the refresher: warn, retry, stay alive.
 
-    A 400 invalid_grant makes authlib raise OAuthError, which is not an httpx.HTTPError.
+    A 400 invalid_grant makes authlib raise OAuthError, which is not an httpx2.HTTPError.
     """
     hits = _reject_refreshes(weaviate_auth_mock)
 
@@ -179,7 +179,7 @@ def test_token_refresh_survives_failures(
 ) -> None:
     """Sync twin of the test above.
 
-    The daemon thread used to die silently on anything but an httpx.HTTPError.
+    The daemon thread used to die silently on anything but an httpx2.HTTPError.
     """
     hits = _reject_refreshes(weaviate_auth_mock)
 
