@@ -518,7 +518,6 @@ Q = TypeVar("Q", bound=Union[BatchClientProtocolAsync, BatchCollectionProtocolAs
 
 class _ContextManagerSync(Generic[T, P]):
     def __init__(self, current_batch: T):
-        # Assigned first so __del__ can read it even if the rest of __init__ fails.
         self.__entered = False
         self.__current_batch: T = current_batch
 
@@ -532,16 +531,13 @@ class _ContextManagerSync(Generic[T, P]):
         return self.__current_batch  # pyright: ignore[reportReturnType]
 
     def __del__(self) -> None:
-        # Batching methods such as `rate_limit()` read like setters, so a caller may invoke one
-        # without `with` and expect later batches to use that mode. Nothing signals that mistake
-        # otherwise; warn when an unused manager is collected, as asyncio does for un-awaited coroutines.
+        # Mode methods read like setters; warn if one is called without `with`.
         if not self.__entered:
             _Warnings.batch_context_manager_not_entered()
 
 
 class _ContextManagerAsync(Generic[Q]):
     def __init__(self, current_batch: _BatchBaseAsync):
-        # Assigned first so __del__ can read it even if the rest of __init__ fails.
         self.__entered = False
         self.__current_batch = current_batch
 
