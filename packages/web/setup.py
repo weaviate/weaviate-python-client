@@ -13,7 +13,7 @@ version = get_version(root="../..", relative_to=__file__)
 setup(
     install_requires=[
         f"weaviate-client=={version}",
-        # Pyodide's bundled httpx build omits anyio, but authlib imports it directly.
+        # httpx2 skips anyio under Emscripten, but authlib imports it directly.
         'anyio ; sys_platform == "emscripten"',
     ]
 )

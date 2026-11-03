@@ -1,4 +1,6 @@
 import os
+import ssl
+import sys
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, TypeVar, Union, cast
 from urllib.parse import urlparse
 
@@ -31,8 +33,25 @@ def _grpc_web_shim_active() -> bool:
     return getattr(grpc, "__weaviate_client_web_shim__", False) is True
 
 
+def _default_ssl_context(trust_env: bool = True) -> Union[ssl.SSLContext, bool]:
+    """The ``verify`` value for every httpx2 client: certifi's CA bundle, as gRPC uses.
+
+    httpx2 defaults to the OS trust store (via truststore); pinning certifi keeps REST and
+    gRPC on the same roots and matches what httpx did. With ``trust_env``, SSL_CERT_FILE
+    and SSL_CERT_DIR still win, as they did with httpx. Under Emscripten the browser's
+    fetch verifies TLS, so httpx2's default is kept there.
+    """
+    if sys.platform == "emscripten":
+        return True
+    if trust_env and (cafile := os.environ.get("SSL_CERT_FILE")):
+        return ssl.create_default_context(cafile=cafile)
+    if trust_env and (capath := os.environ.get("SSL_CERT_DIR")):
+        return ssl.create_default_context(capath=capath)
+    return ssl.create_default_context(cafile=certifi.where())
+
+
 def _default_grpc_credentials() -> grpc.ChannelCredentials:
-    """SSL credentials trusting certifi's CA bundle, the same one httpx uses for REST.
+    """SSL credentials trusting certifi's CA bundle, the same one httpx2 uses for REST.
 
     grpcio's bundled roots only change with a grpcio release, so a CA distrust reaches
     certifi first. A roots file set via GRPC_DEFAULT_SSL_ROOTS_FILE_PATH still wins.

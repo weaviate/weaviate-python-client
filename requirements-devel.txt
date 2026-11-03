@@ -1,4 +1,4 @@
-httpx==0.26.0
+httpx2==2.12.0
 validators==0.34.0
 authlib==1.9.1
 grpcio==1.75.1
