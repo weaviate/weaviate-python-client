@@ -594,8 +594,12 @@ class _ConnectionBase:
                         # client credentials usually does not contain a refresh token => get a
                         # new token using the saved credentials
                         assert _auth is not None
+                        # the new session already fetched a token; only that token is kept
                         new_session = _auth.result(_auth.get_auth_session())
-                        client.token = new_session.fetch_token()
+                        try:
+                            client.token = new_session.token
+                        finally:
+                            new_session.close()
                     refresh_time = client.token.get("expires_in", 60) - 30
                 except Exception as exc:
                     # retry in one second; any error must keep the refresher alive, not only
@@ -643,8 +647,12 @@ class _ConnectionBase:
                     # client credentials usually does not contain a refresh token => get a
                     # new token using the saved credentials
                     assert _auth is not None
+                    # the new session already fetched a token; only that token is kept
                     new_session = await _Auth.aresult(_auth.get_auth_session())
-                    client.token = await new_session.fetch_token()
+                    try:
+                        client.token = new_session.token
+                    finally:
+                        await new_session.aclose()
                 refresh_time = client.token.get("expires_in", 60) - 30
             except asyncio.CancelledError:
                 raise

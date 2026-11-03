@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Dict, List, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 import httpx2
 from authlib.integrations.httpx_client import (  # type: ignore
@@ -139,6 +139,14 @@ class _Auth:
         with httpx2.Client(mounts=mounts, verify=_default_ssl_context()) as client:
             return resp(client.get(self._open_id_config_url))
 
+    def __session_mounts(self) -> Dict[str, Any]:
+        """Proxy transports for an authlib session: the connection's, over HTTP(S)_PROXY ones.
+
+        The sessions have always honoured the proxy env vars (httpx2's trust_env default);
+        building those transports here keeps an https:// proxy's TLS on certifi.
+        """
+        return {**_env_proxy_mounts(self.__colour), **self.__make_mounts()}
+
     def get_auth_session(self) -> Result:
         if isinstance(self._credentials, AuthBearerToken):
             sessions = self._get_session_auth_bearer_token(self._credentials)
@@ -168,7 +176,7 @@ class _Auth:
                     client_id=self._client_id,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
                     verify=_default_ssl_context(),
-                    mounts=_env_proxy_mounts("async"),
+                    mounts=self.__session_mounts(),
                 )
 
             return _execute()
@@ -178,7 +186,7 @@ class _Auth:
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
             verify=_default_ssl_context(),
-            mounts=_env_proxy_mounts("sync"),
+            mounts=self.__session_mounts(),
         )
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> Result:
@@ -194,7 +202,7 @@ class _Auth:
                     scope=scope,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
                     verify=_default_ssl_context(),
-                    mounts=_env_proxy_mounts("async"),
+                    mounts=self.__session_mounts(),
                 )
                 token: dict = await session.fetch_token(
                     username=config.username, password=config.password
@@ -212,7 +220,7 @@ class _Auth:
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
             verify=_default_ssl_context(),
-            mounts=_env_proxy_mounts("sync"),
+            mounts=self.__session_mounts(),
         )
         token: dict = session.fetch_token(username=config.username, password=config.password)
         if "refresh_token" not in token:
@@ -251,7 +259,7 @@ class _Auth:
                     token={"access_token": None, "expires_in": -100},
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
                     verify=_default_ssl_context(),
-                    mounts=_env_proxy_mounts("async"),
+                    mounts=self.__session_mounts(),
                 )
                 # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
                 await session.fetch_token()
@@ -268,7 +276,7 @@ class _Auth:
             token={"access_token": None, "expires_in": -100},
             default_timeout=AUTH_DEFAULT_TIMEOUT,
             verify=_default_ssl_context(),
-            mounts=_env_proxy_mounts("sync"),
+            mounts=self.__session_mounts(),
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
         session.fetch_token()
