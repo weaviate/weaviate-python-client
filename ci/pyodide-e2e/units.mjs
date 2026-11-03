@@ -54,12 +54,12 @@ import weaviate  # the ONLY weaviate-side import: must bootstrap the companion
 assert "weaviate_client_web" in sys.modules, "hook did not import the companion"
 import weaviate_client_web
 import grpc
-import httpx
+import httpx2
 assert weaviate_client_web.is_installed()
 assert weaviate_client_web.is_fetch_transport_installed()
 assert getattr(grpc, "__weaviate_client_web_shim__", False) is True
 assert getattr(
-    httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
+    httpx2.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
 ) is True
 `);
     console.log("OK scenario: bare 'import weaviate' bootstraps the companion");

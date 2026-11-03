@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, Generic, List, Optional, Union, overload
 
-from httpx import Response
+from httpx2 import Response
 
 from weaviate.collections.classes.config import (
     StopwordsConfig,

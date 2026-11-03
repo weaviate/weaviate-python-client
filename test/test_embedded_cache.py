@@ -5,7 +5,7 @@ import zipfile
 from pathlib import Path
 from typing import List
 
-import httpx
+import httpx2
 import pytest
 
 from weaviate import embedded
@@ -106,7 +106,9 @@ def test_known_version_reuses_existing_cache(
     tmp_path: Path, downloads: List[str], monkeypatch: pytest.MonkeyPatch, version: str
 ) -> None:
     monkeypatch.setattr(
-        embedded.httpx, "get", lambda url: httpx.Response(200, json={"tag_name": "v1.39.7"})
+        embedded.httpx2,
+        "get",
+        lambda url, **kwargs: httpx2.Response(200, json={"tag_name": "v1.39.7"}),
     )
     instance = _instance(version, tmp_path)
     cached = tmp_path / "bin" / f"weaviate-v1.39.7-{hashlib.sha256(b'v1.39.7').hexdigest()}"
@@ -124,7 +126,9 @@ def test_latest_resolves_current_version_before_reusing_cache(
 ) -> None:
     tags = iter(["v1.39.7", "v1.40.0"])
     monkeypatch.setattr(
-        embedded.httpx, "get", lambda url: httpx.Response(200, json={"tag_name": next(tags)})
+        embedded.httpx2,
+        "get",
+        lambda url, **kwargs: httpx2.Response(200, json={"tag_name": next(tags)}),
     )
     (tmp_path / "bin").mkdir()
     for tag in ["v1.39.7", "v1.40.0"]:
