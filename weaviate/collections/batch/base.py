@@ -715,10 +715,20 @@ class _BatchBase:
                     },
                     errors=new_errors,
                     has_errors=len(new_errors) > 0,
+                    # Filter by uuid, not by list position: the batch-wide
+                    # index of an errored object is not its position in
+                    # _all_responses, so position-based filtering left the
+                    # re-added objects' stale errors behind from the second
+                    # chunk on. The private field is read directly to avoid
+                    # the deprecated property's Dep020 warning in internal
+                    # code (issue #2179).
                     _all_responses=[
-                        err
-                        for i, err in enumerate(response_obj.all_responses)
-                        if i not in readded_objects
+                        r
+                        for r in response_obj._all_responses
+                        if not (
+                            isinstance(r, ErrorObject)
+                            and r.object_.uuid in readded_uuids
+                        )
                     ],
                     elapsed_seconds=response_obj.elapsed_seconds,
                 )
