@@ -241,6 +241,17 @@ class WeaviateQueryError(WeaviateBaseError):
 WeaviateQueryException = WeaviateQueryError
 
 
+class WeaviateGenerativeQueryError(WeaviateQueryError):
+    """Is raised if a generative query to Weaviate fails.
+
+    This remains a ``WeaviateQueryError`` so existing query error handlers continue
+    to work. The original server error is available through ``message`` and ``error``.
+    """
+
+    def __init__(self, message: str):
+        super().__init__(message, "GRPC generative search")
+
+
 class WeaviateBatchError(WeaviateQueryError):
     """Is raised if a gRPC batch query to Weaviate fails in any way."""
 
