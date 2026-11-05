@@ -158,6 +158,9 @@ class _IndexWrappers:
         vector_index_config: Optional[VectorIndexConfigCreate],
         quantizer: Optional[_QuantizerConfigCreate],
     ) -> Optional[VectorIndexConfigCreate]:
+        # copy so that a config object reused for several vectors is never mutated in place
+        if vector_index_config is not None:
+            vector_index_config = vector_index_config.model_copy(deep=True)
         if quantizer is not None:
             if vector_index_config is None:
                 vector_index_config = _IndexWrappers.__hnsw(quantizer=quantizer)
@@ -182,8 +185,13 @@ class _IndexWrappers:
         multi_vector_config: Optional[_MultiVectorConfigCreate],
         encoding: Optional[_MultiVectorEncodingConfigCreate],
     ) -> Optional[VectorIndexConfigCreate]:
+        # copy so that config objects reused for several vectors are never mutated in place
+        if vector_index_config is not None:
+            vector_index_config = vector_index_config.model_copy(deep=True)
         if multi_vector_config is None:
             multi_vector_config = _MultiVectorConfigCreate(aggregation=None, encoding=None)
+        else:
+            multi_vector_config = multi_vector_config.model_copy(deep=True)
         if encoding is not None:
             multi_vector_config.encoding = encoding
         if vector_index_config is None:

@@ -3529,3 +3529,98 @@ class TestInvertedIndexStopwordPresets:
         }
         merged = rc.merge_with_existing(existing)
         assert merged["stopwordPresets"] == {"fr": ["le", "la"]}
+
+
+class TestSharedVectorIndexConfig:
+    """A config object reused for several vectors must not be shared or mutated."""
+
+    def test_quantizer_does_not_leak_between_vectors(self) -> None:
+        shared = Configure.VectorIndex.hnsw(ef_construction=128)
+        config = _CollectionConfigCreate(
+            name="test",
+            vector_config=[
+                Configure.Vectors.self_provided(name="plain", vector_index_config=shared),
+                Configure.Vectors.self_provided(
+                    name="quantized",
+                    vector_index_config=shared,
+                    quantizer=Configure.VectorIndex.Quantizer.pq(),
+                ),
+            ],
+        )
+
+        vectors = config._to_dict()["vectorConfig"]
+        assert vectors["plain"]["vectorIndexConfig"] == {"efConstruction": 128}
+        assert vectors["quantized"]["vectorIndexConfig"] == {
+            "efConstruction": 128,
+            "pq": {"enabled": True, "encoder": {}},
+        }
+        assert shared._to_dict() == {"efConstruction": 128}, "the caller's object was mutated"
+
+    def test_quantizer_does_not_leak_between_vectors_with_dynamic_index(self) -> None:
+        shared = Configure.VectorIndex.dynamic()
+        config = _CollectionConfigCreate(
+            name="test",
+            vector_config=[
+                Configure.Vectors.self_provided(name="plain", vector_index_config=shared),
+                Configure.Vectors.self_provided(
+                    name="quantized",
+                    vector_index_config=shared,
+                    quantizer=Configure.VectorIndex.Quantizer.bq(),
+                ),
+            ],
+        )
+
+        vectors = config._to_dict()["vectorConfig"]
+        assert vectors["plain"]["vectorIndexConfig"] == {}
+        assert vectors["quantized"]["vectorIndexConfig"] == {
+            "hnsw": {"bq": {"enabled": True}},
+            "flat": {"bq": {"enabled": True}},
+        }
+        assert shared._to_dict() == {}, "the caller's object was mutated"
+
+    def test_quantizer_does_not_leak_between_multi_vectors(self) -> None:
+        shared = Configure.VectorIndex.hnsw(ef_construction=128)
+        config = _CollectionConfigCreate(
+            name="test",
+            vector_config=[
+                Configure.MultiVectors.self_provided(name="plain", vector_index_config=shared),
+                Configure.MultiVectors.self_provided(
+                    name="quantized",
+                    vector_index_config=shared,
+                    quantizer=Configure.VectorIndex.Quantizer.pq(),
+                ),
+            ],
+        )
+
+        vectors = config._to_dict()["vectorConfig"]
+        assert vectors["plain"]["vectorIndexConfig"] == {
+            "efConstruction": 128,
+            "multivector": {"enabled": True},
+        }
+        assert vectors["quantized"]["vectorIndexConfig"] == {
+            "efConstruction": 128,
+            "multivector": {"enabled": True},
+            "pq": {"enabled": True, "encoder": {}},
+        }
+        assert shared._to_dict() == {"efConstruction": 128}, "the caller's object was mutated"
+
+    def test_encoding_does_not_leak_between_multi_vectors(self) -> None:
+        shared = Configure.VectorIndex.MultiVector.multi_vector()
+        config = _CollectionConfigCreate(
+            name="test",
+            vector_config=[
+                Configure.MultiVectors.self_provided(name="plain", multi_vector_config=shared),
+                Configure.MultiVectors.self_provided(
+                    name="muvera",
+                    multi_vector_config=shared,
+                    encoding=Configure.VectorIndex.MultiVector.Encoding.muvera(),
+                ),
+            ],
+        )
+
+        vectors = config._to_dict()["vectorConfig"]
+        assert vectors["plain"]["vectorIndexConfig"] == {"multivector": {"enabled": True}}
+        assert vectors["muvera"]["vectorIndexConfig"] == {
+            "multivector": {"enabled": True, "muvera": {"enabled": True}}
+        }
+        assert shared.encoding is None, "the caller's object was mutated"
