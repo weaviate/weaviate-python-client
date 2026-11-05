@@ -1,10 +1,12 @@
 import threading
 import time
 import uuid as uuid_package
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty, Full, Queue
-from typing import Generator, List, Optional, Set, Union
+from typing import Generator, List, Optional, Set, Union, cast
 
+from grpc import Call, RpcError, StatusCode
 from pydantic import ValidationError
 
 from weaviate.collections.batch.base import (
@@ -40,6 +42,7 @@ from weaviate.exceptions import (
     WeaviateBatchFailedToReestablishStreamError,
     WeaviateBatchStreamError,
     WeaviateBatchValidationError,
+    WeaviateClosedClientError,
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
 )
@@ -89,6 +92,7 @@ class _BatchBaseSync:
         self.__results_lock = threading.Lock()
 
         self.__bg_exception: Optional[Exception] = None
+        self.__consecutive_retries = 0
         self.__is_oom = threading.Event()
         self.__is_shutting_down = threading.Event()
         self.__is_hungup = threading.Event()
@@ -105,10 +109,15 @@ class _BatchBaseSync:
         self.__acks_lock = threading.Lock()
         self.__inflight_objs: set[str] = set()
         self.__inflight_refs: set[str] = set()
+        self.__unresolved_objs: set[str] = set()
+        self.__unresolved_refs: set[str] = set()
 
         # maxsize=1 so that __loop does not run faster than generator for __recv
         # thereby using too much buffer in case of server-side shutdown
         self.__reqs: Queue[Optional[_BatchStreamRequest]] = Queue(maxsize=1)
+        self.__send_lock = threading.Lock()
+        self.__replay_requests: deque[_BatchStreamRequest] = deque()
+        self.__send_finished = False
 
     @property
     def number_errors(self) -> int:
@@ -200,6 +209,8 @@ class _BatchBaseSync:
                             logger.info("Server is shutting down, pausing batching loop...")
                             paused = True
                         time.sleep(refresh_time)
+                        if self.__bg_exception is not None:
+                            return
                         if time.time() - start > self.__oom_wait_time:
                             raise WeaviateBatchFailedToReestablishStreamError(
                                 f"Batch stream was not re-established within {self.__oom_wait_time} seconds after an OOM message. Terminating batch."
@@ -255,7 +266,7 @@ class _BatchBaseSync:
             uuids.add(obj.uuid)
 
         for reference in references:
-            ref = self.__batch_grpc.grpc_reference(reference._to_internal())
+            ref = self.__batch_grpc.grpc_reference(reference.model_copy()._to_internal())
             ref_size = ref.ByteSize() + per_object_overhead
 
             if total_size + ref_size >= self.__batch_grpc.grpc_max_msg_size:
@@ -273,6 +284,7 @@ class _BatchBaseSync:
 
     def __send(
         self,
+        stopped: threading.Event,
     ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
         yield batch_pb2.BatchStreamRequest(
             start=batch_pb2.BatchStreamRequest.Start(
@@ -280,7 +292,7 @@ class _BatchBaseSync:
             ),
         )
         stream_start = time.time()
-        while self.__bg_exception is None:
+        while self.__bg_exception is None and not stopped.is_set():
             if self.__is_gcp_on_wcd:
                 assert stream_start is not None, "stream_start should be set for GCP streams"
                 if time.time() - stream_start > GCP_STREAM_TIMEOUT:
@@ -291,16 +303,28 @@ class _BatchBaseSync:
                     yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     return
             try:
-                req = self.__reqs.get(timeout=1)
+                with self.__send_lock:
+                    if stopped.is_set():
+                        return
+                    if self.__replay_requests:
+                        req = self.__replay_requests.popleft()
+                    elif self.__send_finished:
+                        req = None
+                    else:
+                        req = self.__reqs.get(timeout=0.1)
+                    if req is not None:
+                        with self.__acks_lock:
+                            self.__inflight_objs.update(req.uuids)
+                            self.__inflight_refs.update(req.beacons)
+                            self.__unresolved_objs.update(req.uuids)
+                            self.__unresolved_refs.update(req.beacons)
                 if req is None:
+                    self.__send_finished = True
                     logger.info(
                         "Batching finished, stopping and closing the client-side of the stream"
                     )
                     yield batch_pb2.BatchStreamRequest(stop=batch_pb2.BatchStreamRequest.Stop())
                     return
-                with self.__acks_lock:
-                    self.__inflight_objs.update(req.uuids)
-                    self.__inflight_refs.update(req.beacons)
                 yield req.proto
                 continue
             except Empty:
@@ -318,14 +342,25 @@ class _BatchBaseSync:
                 )
         logger.info("Batch send thread exiting due to exception...")
 
-    def __recv(self) -> None:
+    def __stream(self) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        stopped = threading.Event()
+        try:
+            yield from self.__batch_grpc.stream(
+                connection=self.__connection,
+                requests=self.__send(stopped),
+            )
+        finally:
+            # gRPC may still be waiting in next(requests) after the RPC ends.
+            # Stop that iterator before it can take requests for its replacement.
+            stopped.set()
+            with self.__send_lock:
+                pass  # Wait for any queue read already in progress before replaying.
+
+    def __recv(self) -> bool:
         self.__is_renewing_stream.clear()
         self.__is_shutting_down.clear()
         self.__is_hungup.clear()
-        for message in self.__batch_grpc.stream(
-            connection=self.__connection,
-            requests=self.__send(),
-        ):
+        for message in self.__stream():
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
 
@@ -347,6 +382,12 @@ class _BatchBaseSync:
                     self.__inflight_refs.difference_update(message.acks.beacons)
 
             if message.HasField("results"):
+                with self.__acks_lock:
+                    for entry in [*message.results.errors, *message.results.successes]:
+                        if entry.HasField("uuid"):
+                            self.__unresolved_objs.discard(entry.uuid)
+                        if entry.HasField("beacon"):
+                            self.__unresolved_refs.discard(entry.beacon)
                 result_objs = BatchObjectReturn()
                 result_refs = BatchReferenceReturn()
                 failed_objs: List[ErrorObject] = []
@@ -420,6 +461,8 @@ class _BatchBaseSync:
                     self.__results_for_wrapper.results.refs += result_refs
                     self.__results_for_wrapper.failed_objects.extend(failed_objs)
                     self.__results_for_wrapper.failed_references.extend(failed_refs)
+                if message.results.errors or message.results.successes:
+                    self.__consecutive_retries = 0
 
             if message.HasField("out_of_memory"):
                 logger.info(
@@ -427,6 +470,9 @@ class _BatchBaseSync:
                 )
                 self.__is_oom.set()
                 self.__oom_wait_time = message.out_of_memory.wait_time
+                with self.__acks_lock:
+                    self.__unresolved_objs.difference_update(message.out_of_memory.uuids)
+                    self.__unresolved_refs.difference_update(message.out_of_memory.beacons)
                 with self.__objs_cache_lock:
                     self.__batch_objects.prepend(
                         [
@@ -454,14 +500,58 @@ class _BatchBaseSync:
         if self.__is_shutting_down.is_set():
             self.__reconnect()
             logger.info("Restarting batch recv after shutdown...")
-            return self.__recv()
+            return True
         elif self.__is_renewing_stream.is_set():
             # restart the stream if we are renewing it (GCP connections have a max lifetime)
             logger.info("Restarting batch recv after renewing stream...")
-            return self.__recv()
+            return True
 
         logger.info("Server closed the stream from its side, shutting down batch")
         self.__shutdown_loop.set()
+        return False
+
+    def __wait_for_reconnect(self, delay: float) -> None:
+        deadline = time.monotonic() + delay
+        while True:
+            if not self.__connection.is_connected():
+                raise WeaviateClosedClientError()
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return
+            time.sleep(min(remaining, 0.1))
+
+    def __wait_for_channel(self) -> None:
+        self.__wait_for_reconnect(0)
+        if self.__consistency_level == ConsistencyLevel.ALL or self.__number_of_nodes == 1:
+            # check that all nodes are available before reconnecting
+            deadline = time.monotonic() + self.__oom_wait_time
+            up_nodes = self.__cluster.get_nodes_status()
+            while len(up_nodes) != self.__number_of_nodes or any(
+                node["status"] != "HEALTHY" for node in up_nodes
+            ):
+                logger.info(
+                    "Waiting for all nodes to be HEALTHY before reconnecting to batch stream..."
+                )
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise WeaviateBatchFailedToReestablishStreamError(
+                        "Batch stream was not re-established because cluster nodes did not become HEALTHY."
+                    )
+                self.__wait_for_reconnect(min(5, remaining))
+                up_nodes = self.__cluster.get_nodes_status()
+        # gRPC reconnects the existing channel. Closing the client here would
+        # cancel every other stream and query sharing that connection.
+        if self.__connection._skip_init_checks:
+            return
+        for retry in range(6):
+            self.__wait_for_reconnect(0)
+            try:
+                result(self.__connection._ping_grpc("sync"))
+                return
+            except WeaviateGRPCUnavailableError:
+                if retry == 5:
+                    raise
+                self.__wait_for_reconnect(2**retry)
 
     def __reconnect(self, retry: int = 0) -> None:
         if self.__consistency_level == ConsistencyLevel.ALL or self.__number_of_nodes == 1:
@@ -499,35 +589,60 @@ class _BatchBaseSync:
                 self.__bg_exception = e
 
         def recv_wrapper() -> None:
-            try:
-                self.__recv()
-                logger.info("exited batch receive thread")
-            except Exception as e:
-                if isinstance(e, WeaviateBatchStreamError) and (
-                    "Socket closed" in e.message
-                    or "context canceled" in e.message
-                    or "Connection reset" in e.message
-                    or "Received RST_STREAM with error code 2" in e.message
-                ):
-                    logger.error(f"Socket hang up detected in batch receive thread: {e.message}")
+            while True:
+                try:
+                    if self.__recv():
+                        continue
+                    logger.info("exited batch receive thread")
+                    return
+                except Exception as e:
+                    if (
+                        not isinstance(e, WeaviateBatchStreamError)
+                        or not (
+                            isinstance(e.__cause__, RpcError)
+                            and cast(Call, e.__cause__).code() == StatusCode.UNAVAILABLE
+                            or "Socket closed" in e.message
+                            or "context canceled" in e.message
+                            or "Connection reset" in e.message
+                            or "Received RST_STREAM with error code 2" in e.message
+                        )
+                        or self.__consecutive_retries >= 5
+                    ):
+                        logger.error(e)
+                        self.__bg_exception = e
+                        return
                     self.__is_hungup.set()
-                else:
-                    logger.error(e)
-                    logger.error(type(e))
-                    self.__bg_exception = e
-            if self.__is_hungup.is_set():
-                # this happens during ungraceful shutdown of the coordinator
-                # lets restart the stream and add the cached objects again
-                logger.warning("Stream closed unexpectedly, restarting...")
-                self.__reconnect()
-                with self.__objs_cache_lock:
-                    self.__batch_objects.prepend(list(self.__objs_cache.values()))
-                with self.__refs_cache_lock:
-                    self.__batch_references.prepend(list(self.__refs_cache.values()))
-                self.__inflight_objs.clear()
-                self.__inflight_refs.clear()
-                # start a new stream with a newly reconnected channel
-                return recv_wrapper()
+                    try:
+                        if self.__consecutive_retries:
+                            self.__wait_for_reconnect(2 ** (self.__consecutive_retries - 1))
+                        self.__consecutive_retries += 1
+                        self.__wait_for_channel()
+                    except Exception as reconnect_error:
+                        self.__bg_exception = reconnect_error
+                        return
+                    # Replay only requests taken by this RPC, not objects still
+                    # waiting in the producer's queues. The producer may already
+                    # have stopped, so send these directly on the replacement RPC.
+                    with self.__objs_cache_lock:
+                        objects = [
+                            obj
+                            for uuid in self.__unresolved_objs
+                            if (obj := self.__objs_cache.get(uuid)) is not None
+                        ]
+                    with self.__refs_cache_lock:
+                        references = [
+                            ref
+                            for beacon in self.__unresolved_refs
+                            if (ref := self.__refs_cache.get(beacon)) is not None
+                        ]
+                    self.__replay_requests.extendleft(
+                        reversed(list(self.__generate_stream_requests(objects, references)))
+                    )
+                    with self.__acks_lock:
+                        self.__inflight_objs.clear()
+                        self.__inflight_refs.clear()
+                        self.__unresolved_objs.clear()
+                        self.__unresolved_refs.clear()
 
         self.__bg_threads = _BgThreads(
             loop=threading.Thread(
