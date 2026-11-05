@@ -1,4 +1,5 @@
-from typing import List, Union
+import inspect
+from typing import Callable, List, Union
 
 import pytest
 from pydantic import ValidationError
@@ -2277,6 +2278,38 @@ def test_config_with_named_vectors(
         "class": "Test",
         "vectorConfig": expected,
     }
+
+
+MULTI2VEC_FACTORIES_WITH_VECTORIZE_COLLECTION_NAME = [
+    Configure.Vectorizer.multi2vec_cohere,
+    Configure.Vectorizer.multi2vec_clip,
+    Configure.Vectorizer.multi2vec_palm,
+    Configure.Vectorizer.multi2vec_google,
+    Configure.Vectorizer.multi2vec_bind,
+    Configure.Vectorizer.multi2vec_voyageai,
+    Configure.Vectorizer.multi2vec_nvidia,
+    Configure.Vectorizer.multi2vec_jinaai,
+    Configure.NamedVectors.multi2vec_cohere,
+    Configure.NamedVectors.multi2vec_clip,
+    Configure.NamedVectors.multi2vec_palm,
+    Configure.NamedVectors.multi2vec_google,
+    Configure.NamedVectors.multi2vec_bind,
+    Configure.NamedVectors.multi2vec_voyageai,
+    Configure.NamedVectors.multi2vec_nvidia,
+    Configure.NamedVectors.multi2vec_jinaai,
+    Configure.Vectors.multi2vec_cohere,
+]
+
+
+@pytest.mark.parametrize("factory", MULTI2VEC_FACTORIES_WITH_VECTORIZE_COLLECTION_NAME)
+def test_multi2vec_vectorize_collection_name_deprecated(factory: Callable) -> None:
+    """`vectorize_collection_name` must be documented as having no effect in `multi2vec_*` factories.
+
+    No `multi2vec-*` module reads `vectorizeClassName` server-side, so the argument is kept
+    for backwards compatibility only and must not be documented as functional.
+    """
+    assert "vectorize_collection_name" in inspect.signature(factory).parameters
+    assert "vectorize_collection_name: Deprecated, has no effect." in (factory.__doc__ or "")
 
 
 TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
