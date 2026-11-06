@@ -2,9 +2,18 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from weaviate.backup.backup_location import _BackupLocationConfig
+
+
+def _zero_time_to_none(value: Optional[datetime]) -> Optional[datetime]:
+    # Weaviate sends Go's zero time (0001-01-01T00:00:00Z) for timestamps it has not set yet,
+    # for example `completedAt` while a backup or export is still running.
+    if value is not None and value.replace(tzinfo=None) == datetime.min:
+        return None
+    return value
+
 
 STORAGE_NAMES = {
     "filesystem",
@@ -107,3 +116,8 @@ class BackupListReturn(BaseModel):
     # None when the backup is not incremental, and also when the server omits the
     # field: it is only returned to callers Weaviate has confirmed as root.
     incremental_base_backup_id: Optional[str] = Field(default=None)
+
+    @field_validator("completed_at")
+    @classmethod
+    def _completed_at_unset_to_none(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return _zero_time_to_none(v)
