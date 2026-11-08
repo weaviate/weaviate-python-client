@@ -383,3 +383,22 @@ def test_updating_rq_rescore_factor() -> None:
     rq = new_schema["vectorConfig"]["boi"]["vectorIndexConfig"]["rq"]
     assert rq["rescoreFactor"] == 3.5
     assert rq["rescoreLimit"] == 20
+
+
+def test_reranker_update_openai_replaces_existing_reranker() -> None:
+    update = _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.openai())
+    merged = update.merge_with_existing({"moduleConfig": {"reranker-cohere": {"model": "m"}}})
+    assert merged["moduleConfig"] == {"reranker-openai": {}}
+
+
+def test_reranker_update_openai_without_existing_module_config() -> None:
+    update = _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.openai())
+    assert update.merge_with_existing({})["moduleConfig"] == {"reranker-openai": {}}
+
+
+def test_reranker_update_openai_keeps_generative_module() -> None:
+    update = _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.openai())
+    merged = update.merge_with_existing(
+        {"moduleConfig": {"generative-openai": {"model": "m"}, "reranker-cohere": {"model": "r"}}}
+    )
+    assert merged["moduleConfig"] == {"generative-openai": {"model": "m"}, "reranker-openai": {}}
