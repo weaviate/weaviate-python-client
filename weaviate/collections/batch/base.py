@@ -39,7 +39,6 @@ from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import (
-    EmptyResponseException,
     WeaviateBatchValidationError,
     WeaviateInvalidInputError,
 )
@@ -971,8 +970,8 @@ class _ClusterBatchAsync:
         response_typed = _decode_json_response_dict(response, "Nodes status")
         assert response_typed is not None
         nodes = response_typed.get("nodes")
-        if nodes is None or nodes == []:
-            raise EmptyResponseException("Nodes status response returned empty")
+        if nodes is None:
+            return []
         return cast(List[Node], nodes)
 
     async def get_number_of_nodes(self) -> int:
