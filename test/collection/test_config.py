@@ -1380,6 +1380,36 @@ TEST_CONFIG_WITH_RERANKER = [
         },
     ),
     (
+        Configure.Reranker.typesafeai(),
+        {
+            "reranker-typesafeai": {},
+        },
+    ),
+    (
+        Configure.Reranker.typesafeai(model="jev-latest", base_url="https://api.typesafe.ai"),
+        {
+            "reranker-typesafeai": {
+                "model": "jev-latest",
+                "baseURL": "https://api.typesafe.ai/",
+            },
+        },
+    ),
+    (
+        Configure.Reranker.openai(),
+        {
+            "reranker-openai": {},
+        },
+    ),
+    (
+        Configure.Reranker.openai(model="gpt-6-luna", base_url="https://api.openai.com/v1"),
+        {
+            "reranker-openai": {
+                "model": "gpt-6-luna",
+                "baseURL": "https://api.openai.com/v1",
+            },
+        },
+    ),
+    (
         Configure.Reranker.transformers(),
         {
             "reranker-transformers": {},

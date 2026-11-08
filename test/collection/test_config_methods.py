@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 import pytest
 
 from weaviate.collections.classes.config import (
+    Rerankers,
     VectorIndexType,
     _MultiVectorConfig,
     _MuveraConfig,
@@ -507,3 +508,26 @@ def test_collection_config_stopword_presets_absent() -> None:
     schema = _full_schema("TestNoStopwordPresets")
     full = _collection_config_from_json(schema)
     assert full.inverted_index_config.stopword_presets is None
+
+
+@pytest.mark.parametrize(
+    "parser", [_collection_config_from_json, _collection_config_simple_from_json]
+)
+@pytest.mark.parametrize(
+    "module,expected,model",
+    [
+        ("reranker-typesafeai", Rerankers.TYPESAFEAI, "jev-latest"),
+        ("reranker-openai", Rerankers.OPENAI, "gpt-6-luna"),
+    ],
+)
+def test_collection_config_from_json_with_decision_rerankers(
+    parser: Any, module: str, expected: Rerankers, model: str
+) -> None:
+    """The typesafeai and openai reranker modules parse to their `Rerankers` member and keep the model."""
+    schema = _full_schema("TestDecisionRerankers")
+    schema["moduleConfig"] = {module: {"model": model}}
+
+    parsed = parser(schema)
+
+    assert parsed.reranker_config.reranker is expected
+    assert parsed.reranker_config.model == {"model": model}
