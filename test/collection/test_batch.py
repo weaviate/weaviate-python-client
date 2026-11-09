@@ -1,9 +1,13 @@
+import copy
+import datetime
 import uuid
+from collections import UserList
+from typing import Any
 
 import pytest
 
 from weaviate.collections.batch.base import _RateLimitedBatching
-from weaviate.collections.batch.grpc_batch import _validate_props
+from weaviate.collections.batch.grpc_batch import _BatchGRPC, _validate_props
 from weaviate.collections.classes.batch import (
     MAX_STORED_RESULTS,
     BatchObject,
@@ -14,6 +18,7 @@ from weaviate.collections.classes.batch import (
     ErrorReference,
 )
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError
+from weaviate.util import _ServerVersion
 
 
 def _error_object(index: int) -> ErrorObject:
@@ -141,3 +146,88 @@ def test_validate_props_raises_for_top_level_vector() -> None:
 def test_validate_props_raises_for_nested_vector() -> None:
     with pytest.raises(WeaviateInsertInvalidPropertyError):
         _validate_props({"vector": [0.1, 0.2]}, nested=True)
+
+
+@pytest.mark.parametrize("sequence", [list, tuple, UserList])
+@pytest.mark.parametrize(
+    ("values", "field"),
+    [
+        ([], "empty_list_props"),
+        ([True, False], "boolean_array_properties"),
+        (["", "text"], "text_array_properties"),
+        ([2**53 + 1, -(2**53 + 1)], "int_array_properties"),
+        ([0.1, -2.5], "number_array_properties"),
+        ([datetime.datetime(2026, 1, 2, tzinfo=datetime.timezone.utc)], "text_array_properties"),
+        ([uuid.UUID("12345678-1234-5678-1234-567812345678")], "text_array_properties"),
+        ([{"id": "nested", "value": "text"}], "object_array_properties"),
+    ],
+)
+def test_batch_property_sequences_match_lists(sequence: Any, values: Any, field: str) -> None:
+    grpc = _BatchGRPC(_ServerVersion(1, 40, 0), None, None)
+    properties = {"value": sequence(values)}
+    original = copy.deepcopy(properties)
+
+    def encode(props: Any) -> Any:
+        return grpc.grpc_object(
+            BatchObject(collection="Test", properties=props, index=0)._to_internal()
+        )
+
+    actual = encode(properties).properties
+    expected = encode({"value": values}).properties
+    assert actual == expected
+    assert len(getattr(actual, field)) == 1
+    if field == "int_array_properties":
+        assert list(actual.int_array_properties[0].values) == values
+    assert properties == original
+    assert isinstance(properties["value"], sequence)
+
+
+@pytest.mark.parametrize("sequence", [list, tuple, UserList])
+def test_batch_nested_property_sequences_match_lists(sequence: Any) -> None:
+    grpc = _BatchGRPC(_ServerVersion(1, 40, 0), None, None)
+    child = {"integers": sequence([2**53 + 1]), "empty": sequence([])}
+    properties = {"nested": {"objects": sequence([child])}}
+    original = copy.deepcopy(properties)
+    expected = {"nested": {"objects": [{"integers": [2**53 + 1], "empty": []}]}}
+    actual = grpc.grpc_object(
+        BatchObject(collection="Test", properties=properties, index=0)._to_internal()
+    ).properties
+    assert (
+        actual
+        == grpc.grpc_object(
+            BatchObject(collection="Test", properties=expected, index=0)._to_internal()
+        ).properties
+    )
+    assert properties == original
+
+
+@pytest.mark.parametrize("value", ["", "text", True, 3, 1.5, None])
+def test_batch_scalar_properties_remain_scalars(value: Any) -> None:
+    grpc = _BatchGRPC(_ServerVersion(1, 40, 0), None, None)
+    actual = grpc.grpc_object(
+        BatchObject(collection="Test", properties={"value": value}, index=0)._to_internal()
+    ).properties
+    assert actual.non_ref_properties["value"] == value
+    assert not actual.empty_list_props
+    assert not actual.int_array_properties
+    assert not actual.text_array_properties
+
+
+@pytest.mark.parametrize("value", [b"", b"text", bytearray(b"text"), {1, 2}, iter([1, 2])])
+def test_batch_unsupported_iterables_are_not_arrays(value: Any) -> None:
+    grpc = _BatchGRPC(_ServerVersion(1, 40, 0), None, None)
+    with pytest.raises(ValueError, match="Unexpected type"):
+        grpc.grpc_object(
+            BatchObject(collection="Test", properties={"value": value}, index=0)._to_internal()
+        )
+
+
+@pytest.mark.parametrize("sequence", [list, tuple, UserList])
+def test_batch_object_array_sequences_validate_reserved_properties(sequence: Any) -> None:
+    grpc = _BatchGRPC(_ServerVersion(1, 40, 0), None, None)
+    with pytest.raises(WeaviateInsertInvalidPropertyError):
+        grpc.grpc_object(
+            BatchObject(
+                collection="Test", properties={"objects": sequence([{"vector": [0.1]}])}, index=0
+            )._to_internal()
+        )

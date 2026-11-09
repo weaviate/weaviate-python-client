@@ -276,6 +276,8 @@ class _BatchGRPC(_BaseGRPC):
                 raise WeaviateInvalidInputError(f"Invalid reference: {ref}")
 
         for key, entry in data.items():
+            if isinstance(entry, Sequence) and not isinstance(entry, (list, str, bytes, bytearray)):
+                entry = list(entry)
             if isinstance(entry, dict):
                 parsed = self.__translate_properties_from_python_to_grpc(entry, {}, nested=True)
                 object_properties.append(
