@@ -317,9 +317,9 @@ class _Warnings:
     @staticmethod
     def skip_vectorization_ignored_with_vector_config(property_name: str) -> None:
         warnings.warn(
-            message=f"""Col002: `skip_vectorization` on property "{property_name}" has no effect when the collection is
+            message=f"""Dep032: `skip_vectorization` on property "{property_name}" has no effect when the collection is
             created with `vector_config`. Use `source_properties` on the vector to choose which properties are vectorized.""",
-            category=UserWarning,
+            category=DeprecationWarning,
             stacklevel=1,
         )
 

@@ -876,13 +876,13 @@ def test_config_with_vectorizer_and_properties(
 
 
 def test_config_with_vector_config_warns_on_skip_vectorization() -> None:
-    """With `vector_config` the flag is not sent, so setting it must warn (Col002)."""
+    """With `vector_config` the flag is not sent, so setting it must warn (Dep032)."""
     config = _CollectionConfigCreate(
         name="test",
         properties=[Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)],
         vector_config=Configure.Vectors.text2vec_transformers(),
     )
-    with pytest.warns(UserWarning, match="Col002"):
+    with pytest.warns(DeprecationWarning, match="Dep032"):
         config._to_dict()
 
 
