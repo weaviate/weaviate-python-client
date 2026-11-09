@@ -84,7 +84,7 @@ from weaviate.collections.classes.config_vectors import (
 )
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError, WeaviateInvalidInputError
 from weaviate.str_enum import BaseEnum
-from weaviate.util import _capitalize_first_letter, docstring_deprecated
+from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
 
 # BC for direct imports
@@ -1165,56 +1165,6 @@ class _Generative:
             systemPrompt=system_prompt,
             avoidCommentary=avoid_commentary,
             knowledge=knowledge,
-        )
-
-    @staticmethod
-    @docstring_deprecated(
-        deprecated_in="4.9.0",
-        details="""
-This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Generative.google` instead.
-""",
-    )
-    @typing_deprecated(
-        "This method is deprecated and will be removed in Q2 '25. Please use `google` instead."
-    )
-    def palm(
-        project_id: str,
-        api_endpoint: Optional[str] = None,
-        max_output_tokens: Optional[int] = None,
-        model_id: Optional[str] = None,
-        temperature: Optional[float] = None,
-        top_k: Optional[int] = None,
-        top_p: Optional[float] = None,
-    ) -> GenerativeProvider:
-        """Create a `_GenerativePaLMConfig` object for use when performing AI generation using the `generative-palm` module.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-palm)
-        for detailed usage.
-
-        Args:
-            project_id: The PalM project ID to use.
-            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            max_output_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default
-            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
-            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
-            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
-        """
-        _Warnings.palm_to_google_gen()
-        return _GenerativeGoogleConfig(
-            apiEndpoint=api_endpoint,
-            region=None,
-            location=None,
-            maxOutputTokens=max_output_tokens,
-            modelId=model_id,
-            projectId=project_id,
-            endpointId=None,
-            temperature=temperature,
-            topK=top_k,
-            topP=top_p,
-            stopSequences=None,
-            frequencyPenalty=None,
-            presencePenalty=None,
         )
 
     @staticmethod
