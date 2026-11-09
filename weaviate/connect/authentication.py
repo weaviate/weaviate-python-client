@@ -19,7 +19,7 @@ from weaviate.exceptions import AuthenticationFailedError, MissingScopeError
 from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
 from . import executor
-from .base import _default_ssl_context
+from .base import _default_ssl_context, _env_proxy_mounts
 
 AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]
@@ -168,6 +168,7 @@ class _Auth:
                     client_id=self._client_id,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
                     verify=_default_ssl_context(),
+                    mounts=_env_proxy_mounts("async"),
                 )
 
             return _execute()
@@ -177,6 +178,7 @@ class _Auth:
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
             verify=_default_ssl_context(),
+            mounts=_env_proxy_mounts("sync"),
         )
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> Result:
@@ -192,6 +194,7 @@ class _Auth:
                     scope=scope,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
                     verify=_default_ssl_context(),
+                    mounts=_env_proxy_mounts("async"),
                 )
                 token: dict = await session.fetch_token(
                     username=config.username, password=config.password
@@ -209,6 +212,7 @@ class _Auth:
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
             verify=_default_ssl_context(),
+            mounts=_env_proxy_mounts("sync"),
         )
         token: dict = session.fetch_token(username=config.username, password=config.password)
         if "refresh_token" not in token:
@@ -247,6 +251,7 @@ class _Auth:
                     token={"access_token": None, "expires_in": -100},
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
                     verify=_default_ssl_context(),
+                    mounts=_env_proxy_mounts("async"),
                 )
                 # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
                 await session.fetch_token()
@@ -263,6 +268,7 @@ class _Auth:
             token={"access_token": None, "expires_in": -100},
             default_timeout=AUTH_DEFAULT_TIMEOUT,
             verify=_default_ssl_context(),
+            mounts=_env_proxy_mounts("sync"),
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
         session.fetch_token()

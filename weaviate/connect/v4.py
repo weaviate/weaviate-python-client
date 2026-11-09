@@ -43,7 +43,6 @@ from httpx2 import (
     HTTPStatusError,
     HTTPTransport,
     Limits,
-    Proxy,
     ReadError,
     ReadTimeout,
     RemoteProtocolError,
@@ -62,7 +61,9 @@ from weaviate.connect.base import (
     ConnectionParams,
     JSONPayload,
     _default_ssl_context,
+    _env_proxy_mounts,
     _get_proxies,
+    _make_proxy,
 )
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
@@ -249,7 +250,7 @@ class _ConnectionBase:
                         max_connections=self.__connection_config.session_pool_maxsize,
                         max_keepalive_connections=self.__connection_config.session_pool_connections,
                     ),
-                    proxy=Proxy(url=proxy),
+                    proxy=_make_proxy(proxy, self.__trust_env),
                     retries=self.__connection_config.session_pool_max_retries,
                     trust_env=self.__trust_env,
                     verify=_default_ssl_context(self.__trust_env),
@@ -264,7 +265,7 @@ class _ConnectionBase:
                         max_connections=self.__connection_config.session_pool_maxsize,
                         max_keepalive_connections=self.__connection_config.session_pool_connections,
                     ),
-                    proxy=Proxy(url=proxy),
+                    proxy=_make_proxy(proxy, self.__trust_env),
                     retries=self.__connection_config.session_pool_max_retries,
                     trust_env=self.__trust_env,
                     verify=_default_ssl_context(self.__trust_env),
@@ -806,7 +807,9 @@ class _ConnectionBase:
 
             async def _execute() -> None:
                 try:
-                    async with AsyncClient(verify=_default_ssl_context()) as client:
+                    async with AsyncClient(
+                        verify=_default_ssl_context(), mounts=_env_proxy_mounts("async")
+                    ) as client:
                         res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
                     return resp(res)
                 except (RequestError, OSError):
@@ -818,7 +821,7 @@ class _ConnectionBase:
             return _execute()
 
         try:
-            with Client(verify=_default_ssl_context()) as client:
+            with Client(verify=_default_ssl_context(), mounts=_env_proxy_mounts("sync")) as client:
                 res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
             return resp(res)
         except (RequestError, OSError):
