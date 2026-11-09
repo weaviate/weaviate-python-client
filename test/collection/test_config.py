@@ -1,3 +1,4 @@
+import warnings
 from typing import List, Union
 
 import pytest
@@ -872,6 +873,45 @@ def test_config_with_vectorizer_and_properties(
         "properties": expected_props,
         "moduleConfig": expected_mc,
     }
+
+
+def test_config_with_vector_config_warns_on_skip_vectorization() -> None:
+    """With `vector_config` the flag is not sent, so setting it must warn (Dep032)."""
+    config = _CollectionConfigCreate(
+        name="test",
+        properties=[Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)],
+        vector_config=Configure.Vectors.text2vec_transformers(),
+    )
+    with pytest.warns(DeprecationWarning, match="Dep032"):
+        config._to_dict()
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        # flag not set at all
+        {
+            "properties": [Property(name="text", data_type=DataType.TEXT)],
+            "vector_config": Configure.Vectors.text2vec_transformers(),
+        },
+        # legacy path maps the flag, so it does take effect
+        {
+            "properties": [Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)],
+            "vectorizer_config": Configure.Vectorizer.text2vec_transformers(),
+        },
+        # nothing is vectorized, so the flag is moot
+        {
+            "properties": [Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)],
+            "vector_config": Configure.Vectors.self_provided(),
+        },
+        {"properties": [Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)]},
+    ],
+)
+def test_config_property_flags_do_not_warn(kwargs: dict) -> None:
+    config = _CollectionConfigCreate(name="test", **kwargs)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        config._to_dict()
 
 
 TEST_CONFIG_WITH_GENERATIVE = [
