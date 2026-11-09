@@ -204,9 +204,14 @@ class _Auth:
                     verify=_default_ssl_context(),
                     mounts=self.__session_mounts(),
                 )
-                token: dict = await session.fetch_token(
-                    username=config.username, password=config.password
-                )
+                try:
+                    token: dict = await session.fetch_token(
+                        username=config.username, password=config.password
+                    )
+                except BaseException:
+                    # failed or cancelled (close() during a refresh): nothing else owns it
+                    await session.aclose()
+                    raise
                 if "refresh_token" not in token:
                     _Warnings.auth_no_refresh_token(token["expires_in"])
 
@@ -222,7 +227,11 @@ class _Auth:
             verify=_default_ssl_context(),
             mounts=self.__session_mounts(),
         )
-        token: dict = session.fetch_token(username=config.username, password=config.password)
+        try:
+            token: dict = session.fetch_token(username=config.username, password=config.password)
+        except BaseException:
+            session.close()
+            raise
         if "refresh_token" not in token:
             _Warnings.auth_no_refresh_token(token["expires_in"])
 
@@ -262,7 +271,12 @@ class _Auth:
                     mounts=self.__session_mounts(),
                 )
                 # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
-                await session.fetch_token()
+                try:
+                    await session.fetch_token()
+                except BaseException:
+                    # failed or cancelled (close() during a refresh): nothing else owns it
+                    await session.aclose()
+                    raise
                 return session
 
             return _execute()
@@ -279,5 +293,9 @@ class _Auth:
             mounts=self.__session_mounts(),
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
-        session.fetch_token()
+        try:
+            session.fetch_token()
+        except BaseException:
+            session.close()
+            raise
         return session
