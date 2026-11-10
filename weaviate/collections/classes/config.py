@@ -267,8 +267,8 @@ class Rerankers(str, BaseEnum):
         VOYAGEAI: Weaviate module backed by VoyageAI reranking models.
         JINAAI: Weaviate module backed by JinaAI reranking models.
         NVIDIA: Weaviate module backed by NVIDIA reranking models.
-        TYPESAFEAI: Weaviate module backed by TypeSafe AI reranking models.
-        OPENAI: Weaviate module backed by OpenAI reranking models.
+        TYPESAFEAI: Weaviate module backed by TypeSafe AI decision models.
+        OPENAI: Weaviate module backed by OpenAI decision models.
     """
 
     NONE = "none"
