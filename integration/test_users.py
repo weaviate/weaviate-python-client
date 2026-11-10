@@ -1,3 +1,7 @@
+import os
+from datetime import datetime, timedelta, timezone
+from typing import Callable, Union
+
 import pytest
 from _pytest.fixtures import SubRequest
 
@@ -5,6 +9,7 @@ import weaviate
 from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.rbac.models import Role, RoleBase, UserTypes
+from weaviate.users.sync import _UsersDB
 
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
@@ -302,3 +307,142 @@ def test_list_all_include_last_used_time(
             assert target.last_used_time is not None
         finally:
             client.users.db.delete(user_id=user_id)
+
+
+def _skip_unless_user_expiration(
+    client: Union[weaviate.WeaviateClient, weaviate.WeaviateAsyncClient],
+) -> None:
+    if client._connection._weaviate_version.is_lower_than(1, 41, 0):
+        pytest.skip("This test requires Weaviate 1.41.0 or higher")
+    if not os.environ.get("WEAVIATE_LICENSE_KEY"):
+        pytest.skip("This test requires WEAVIATE_LICENSE_KEY, the server's license key")
+
+
+def _in_days(days: int) -> datetime:
+    # _in_days drops the microseconds the server does not keep, and uses a non-UTC
+    # zone so a round trip shows that the client sends the offset.
+    return (datetime.now(timezone(timedelta(hours=2))) + timedelta(days=days)).replace(
+        microsecond=0
+    )
+
+
+def test_user_expiration(client_factory: ClientFactory, request: SubRequest) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        _skip_unless_user_expiration(client)
+
+        user_id = _unique_user_id(request.node.name)
+        in_one_day = _in_days(1)
+        api_key = client.users.db.create(user_id=user_id, expires_at=in_one_day)
+        try:
+            user = client.users.db.get(user_id=user_id)
+            assert user is not None
+            assert user.expires_at == in_one_day
+            listed = next(u for u in client.users.db.list_all() if u.user_id == user_id)
+            assert listed.expires_at == in_one_day
+            with weaviate.connect_to_local(
+                port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(api_key)
+            ) as client2:
+                assert client2.users.get_my_user().expires_at == in_one_day
+
+            in_two_days = _in_days(2)
+            client.users.db.set_expiration(user_id=user_id, expires_at=in_two_days)
+            user = client.users.db.get(user_id=user_id)
+            assert user is not None
+            assert user.expires_at == in_two_days
+
+            client.users.db.set_expiration(user_id=user_id, expires_at=None)
+            user = client.users.db.get(user_id=user_id)
+            assert user is not None
+            assert user.expires_at is None
+        finally:
+            client.users.db.delete(user_id=user_id)
+
+
+@pytest.mark.asyncio
+async def test_user_expiration_async(request: SubRequest) -> None:
+    async with weaviate.use_async_with_local(
+        port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=RBAC_AUTH_CREDS
+    ) as client:
+        _skip_unless_user_expiration(client)
+
+        user_id = _unique_user_id(request.node.name)
+        in_one_day = _in_days(1)
+        await client.users.db.create(user_id=user_id, expires_at=in_one_day)
+        try:
+            user = await client.users.db.get(user_id=user_id)
+            assert user is not None
+            assert user.expires_at == in_one_day
+
+            in_two_days = _in_days(2)
+            await client.users.db.set_expiration(user_id=user_id, expires_at=in_two_days)
+            user = await client.users.db.get(user_id=user_id)
+            assert user is not None
+            assert user.expires_at == in_two_days
+
+            await client.users.db.set_expiration(user_id=user_id, expires_at=None)
+            user = await client.users.db.get(user_id=user_id)
+            assert user is not None
+            assert user.expires_at is None
+        finally:
+            await client.users.db.delete(user_id=user_id)
+
+
+def test_set_expiration_on_never_expiring_user(
+    client_factory: ClientFactory, request: SubRequest
+) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        _skip_unless_user_expiration(client)
+
+        user_id = _unique_user_id(request.node.name)
+        api_key = client.users.db.create(user_id=user_id)
+        try:
+            user = client.users.db.get(user_id=user_id)
+            assert user is not None
+            assert user.expires_at is None
+
+            in_one_day = _in_days(1)
+            client.users.db.set_expiration(user_id=user_id, expires_at=in_one_day)
+            user = client.users.db.get(user_id=user_id)
+            assert user is not None
+            assert user.expires_at == in_one_day
+            with weaviate.connect_to_local(
+                port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(api_key)
+            ) as client2:
+                assert client2.users.get_my_user().expires_at == in_one_day
+
+            new_api_key = client.users.db.rotate_key(user_id=user_id)
+            with weaviate.connect_to_local(
+                port=RBAC_PORTS[0],
+                grpc_port=RBAC_PORTS[1],
+                auth_credentials=Auth.api_key(new_api_key),
+            ) as client2:
+                assert client2.users.get_my_user().expires_at == in_one_day
+        finally:
+            client.users.db.delete(user_id=user_id)
+
+
+def test_set_expiration_of_missing_user(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        _skip_unless_user_expiration(client)
+
+        with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError):
+            client.users.db.set_expiration(user_id="I-do-not-exist", expires_at=_in_days(1))
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda db: db.create(user_id="expiry-unsupported", expires_at=_in_days(1)),
+        lambda db: db.set_expiration(user_id="expiry-unsupported", expires_at=_in_days(1)),
+    ],
+    ids=["create", "set_expiration"],
+)
+def test_user_expiration_unsupported_version(
+    client_factory: ClientFactory, call: Callable[[_UsersDB], object]
+) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if not client._connection._weaviate_version.is_lower_than(1, 41, 0):
+            pytest.skip("This test requires a Weaviate version below 1.41.0")
+
+        with pytest.raises(weaviate.exceptions.WeaviateUnsupportedFeatureError):
+            call(client.users.db)

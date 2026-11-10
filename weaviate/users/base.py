@@ -19,17 +19,38 @@ from weaviate.users.users import (
     OwnUser,
     UserDB,
 )
-from weaviate.util import _decode_json_response_dict, escape_string
+from weaviate.util import (
+    _datetime_to_string,
+    _decode_json_response_dict,
+    escape_string,
+)
 
 # Go's zero time value, returned by the server when a timestamp is not set
 _GO_ZERO_TIME = datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc)
 
 
-def _parse_last_used_at(value: Optional[str]) -> Optional[datetime]:
+def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
     if value is None:
         return None
-    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _parse_last_used_at(value: Optional[str]) -> Optional[datetime]:
+    dt = _parse_datetime(value)
     return None if dt == _GO_ZERO_TIME else dt
+
+
+def _parse_db_user(user: WeaviateDBUserRoleNames) -> UserDB:
+    return UserDB(
+        user_id=user["userId"],
+        role_names=user["roles"],
+        active=user["active"],
+        user_type=UserTypes(user["dbUserType"]),
+        created_at=_parse_datetime(user.get("createdAt")),
+        last_used_time=_parse_last_used_at(user.get("lastUsedAt")),
+        api_key_first_letters=user.get("apiKeyFirstLetters"),
+        expires_at=_parse_datetime(user.get("expiresAt")),
+    )
 
 
 class _BaseExecutor(Generic[ConnectionType]):
@@ -147,6 +168,7 @@ class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     else {}
                 ),
                 groups=parsed["groups"] if "groups" in parsed else [],
+                expires_at=_parse_datetime(parsed.get("expiresAt")),
             )
 
         return executor.execute(
@@ -360,15 +382,22 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             USER_TYPE_DB,
         )
 
-    def create(self, *, user_id: str) -> executor.Result[str]:
+    def create(
+        self, *, user_id: str, expires_at: Optional[datetime] = None
+    ) -> executor.Result[str]:
         """Create a new db user and return its API key.
 
         Args:
             user_id: The id of the new user.
+            expires_at: The time at which the user's API key stops authenticating, which must be in the future. Weaviate stores it in UTC to the millisecond. If None, the key never expires. Requires Weaviate 1.41+ and a Weaviate license key on the server.
 
         Returns:
             The API key of the newly created user. This key can not be retrieved later.
         """
+        payload: Dict[str, Any] = {}
+        if expires_at is not None:
+            self._connection._weaviate_version.check_is_at_least_1_41_0("DB user expiration")
+            payload["expiresAt"] = _datetime_to_string(expires_at)
 
         def resp(res: Response) -> str:
             resp = _decode_json_response_dict(res, "Create user")
@@ -378,10 +407,40 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         return executor.execute(
             response_callback=resp,
             method=self._connection.post,
-            path=f"/users/db/{user_id}",
-            weaviate_object={},
+            path=f"/users/db/{escape_string(user_id)}",
+            weaviate_object=payload,
             error_msg=f"Could not create user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create user"),
+        )
+
+    def set_expiration(
+        self, *, user_id: str, expires_at: Optional[datetime]
+    ) -> executor.Result[None]:
+        """Set or remove the time at which the API key of a db user stops authenticating.
+
+        Requires Weaviate 1.41+ and a Weaviate license key on the server.
+
+        Args:
+            user_id: The id of the user.
+            expires_at: The time at which the user's API key stops authenticating, which must be in the future. Weaviate stores it in UTC to the millisecond. If None, the key never expires.
+        """
+        self._connection._weaviate_version.check_is_at_least_1_41_0("DB user expiration")
+        payload: Dict[str, Any] = (
+            {"neverExpires": True}
+            if expires_at is None
+            else {"expiresAt": _datetime_to_string(expires_at)}
+        )
+
+        def resp(res: Response) -> None:
+            pass
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.put,
+            path=f"/users/db/{escape_string(user_id)}/expiration",
+            weaviate_object=payload,
+            error_msg=f"Could not set the expiration of user '{user_id}'",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Set user expiration"),
         )
 
     def delete(self, *, user_id: str) -> executor.Result[bool]:
@@ -404,6 +463,8 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
     def rotate_key(self, *, user_id: str) -> executor.Result[str]:
         """Rotate the key of a new db user.
+
+        The new key expires when the old one would have. `set_expiration` changes that.
 
         Args:
             user_id: The id of the user.
@@ -467,6 +528,8 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     ) -> executor.Result[Optional[UserDB]]:
         """Get all information about an user.
 
+        `active` stays True after the user's API key expires, so compare `expires_at` with the current time.
+
         Args:
             user_id: The id of the user.
             include_last_used_time: If True, the last used time of the user will be included.
@@ -477,25 +540,12 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 return None
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
-            created_at = parsed.get("createdAt")
-            return UserDB(
-                user_id=parsed["userId"],
-                role_names=parsed["roles"],
-                active=parsed["active"],
-                user_type=UserTypes(parsed["dbUserType"]),
-                created_at=(
-                    datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                    if created_at is not None
-                    else None
-                ),
-                last_used_time=_parse_last_used_at(parsed.get("lastUsedAt")),
-                api_key_first_letters=parsed.get("apiKeyFirstLetters"),
-            )
+            return _parse_db_user(cast(WeaviateDBUserRoleNames, parsed))
 
         return executor.execute(
             response_callback=resp,
             method=self._connection.get,
-            path=f"/users/db/{user_id}",
+            path=f"/users/db/{escape_string(user_id)}",
             params={"includeLastUsedTime": include_last_used_time},
             error_msg=f"Could not get user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get user"),
@@ -504,6 +554,8 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def list_all(self, *, include_last_used_time: bool = False) -> executor.Result[List[UserDB]]:
         """List all DB users.
 
+        `active` stays True after a user's API key expires, so compare `expires_at` with the current time.
+
         Args:
             include_last_used_time: If True, the last used time of each user will be included.
         """
@@ -511,22 +563,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         def resp(res: Response) -> List[UserDB]:
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
-            return [
-                UserDB(
-                    user_id=user["userId"],
-                    role_names=user["roles"],
-                    active=user["active"],
-                    user_type=UserTypes(user["dbUserType"]),
-                    created_at=(
-                        datetime.fromisoformat(ca.replace("Z", "+00:00"))
-                        if (ca := user.get("createdAt")) is not None
-                        else None
-                    ),
-                    last_used_time=_parse_last_used_at(user.get("lastUsedAt")),
-                    api_key_first_letters=user.get("apiKeyFirstLetters"),
-                )
-                for user in cast(List[WeaviateDBUserRoleNames], parsed)
-            ]
+            return [_parse_db_user(user) for user in cast(List[WeaviateDBUserRoleNames], parsed)]
 
         return executor.execute(
             response_callback=resp,
