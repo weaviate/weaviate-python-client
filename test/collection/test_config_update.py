@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 import pytest
 
@@ -7,6 +7,7 @@ from test.collection.schema import multi_vector_schema
 from weaviate.collections.classes.config import (
     ObjectTTLConfigUpdate,
     Reconfigure,
+    RerankerProvider,
     _CollectionConfigUpdate,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -367,20 +368,35 @@ def test_updating_vector_when_none_left() -> None:
         update.merge_with_existing({"class": "Test", "properties": []})
 
 
-def test_reranker_update_openai_replaces_existing_reranker() -> None:
-    update = _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.openai())
+DECISION_RERANKERS = [
+    (Reconfigure.Reranker.typesafeai, "reranker-typesafeai"),
+    (Reconfigure.Reranker.openai, "reranker-openai"),
+]
+
+
+@pytest.mark.parametrize("factory,module", DECISION_RERANKERS)
+def test_reranker_update_replaces_existing_reranker(
+    factory: Callable[[], RerankerProvider], module: str
+) -> None:
+    update = _CollectionConfigUpdate(reranker_config=factory())
     merged = update.merge_with_existing({"moduleConfig": {"reranker-cohere": {"model": "m"}}})
-    assert merged["moduleConfig"] == {"reranker-openai": {}}
+    assert merged["moduleConfig"] == {module: {}}
 
 
-def test_reranker_update_openai_without_existing_module_config() -> None:
-    update = _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.openai())
-    assert update.merge_with_existing({})["moduleConfig"] == {"reranker-openai": {}}
+@pytest.mark.parametrize("factory,module", DECISION_RERANKERS)
+def test_reranker_update_without_existing_module_config(
+    factory: Callable[[], RerankerProvider], module: str
+) -> None:
+    update = _CollectionConfigUpdate(reranker_config=factory())
+    assert update.merge_with_existing({})["moduleConfig"] == {module: {}}
 
 
-def test_reranker_update_openai_keeps_generative_module() -> None:
-    update = _CollectionConfigUpdate(reranker_config=Reconfigure.Reranker.openai())
+@pytest.mark.parametrize("factory,module", DECISION_RERANKERS)
+def test_reranker_update_keeps_generative_module(
+    factory: Callable[[], RerankerProvider], module: str
+) -> None:
+    update = _CollectionConfigUpdate(reranker_config=factory())
     merged = update.merge_with_existing(
         {"moduleConfig": {"generative-openai": {"model": "m"}, "reranker-cohere": {"model": "r"}}}
     )
-    assert merged["moduleConfig"] == {"generative-openai": {"model": "m"}, "reranker-openai": {}}
+    assert merged["moduleConfig"] == {"generative-openai": {"model": "m"}, module: {}}
