@@ -143,6 +143,7 @@ class WeaviateDBUserRoleNames(TypedDict):
     createdAt: NotRequired[str]
     lastUsedAt: NotRequired[str]
     apiKeyFirstLetters: NotRequired[str]
+    expiresAt: NotRequired[Optional[str]]
 
 
 class _Action:

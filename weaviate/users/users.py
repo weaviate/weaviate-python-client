@@ -17,6 +17,7 @@ class OwnUser:
     user_id: str
     roles: Dict[str, Role]
     groups: List[str]
+    expires_at: Optional[datetime] = field(default=None)
 
 
 @dataclass
@@ -33,6 +34,7 @@ class UserDB(UserBase):
     created_at: Optional[datetime] = field(default=None)
     last_used_time: Optional[datetime] = field(default=None)
     api_key_first_letters: Optional[str] = field(default=None)
+    expires_at: Optional[datetime] = field(default=None)
 
 
 @dataclass
