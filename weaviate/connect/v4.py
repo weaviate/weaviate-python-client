@@ -989,10 +989,10 @@ class ConnectionSync(_ConnectionBase):
                 raise WeaviateStartUpError(f"{e.message} {hint}") from e
 
         # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 27, patch=0):
+        if self._weaviate_version.is_lower_than(1, 32, 0):
             self._connected = False
             raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.32.0 or higher."
             )
 
         if not self._skip_init_checks:
@@ -1196,10 +1196,10 @@ class ConnectionAsync(_ConnectionBase):
                 raise WeaviateStartUpError(f"{e.message} {hint}") from e
 
         # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 27, 0):
+        if self._weaviate_version.is_lower_than(1, 32, 0):
             self._connected = False
             raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.27.0 or higher."
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.32.0 or higher."
             )
 
         if not self._skip_init_checks:
