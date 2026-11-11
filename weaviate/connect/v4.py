@@ -111,6 +111,12 @@ HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
 PERMISSION_DENIED = "PERMISSION_DENIED"
 
 
+def _search_error(request: search_get_pb2.SearchRequest, message: str) -> WeaviateQueryError:
+    if request.HasField("generative"):
+        return WeaviateGenerativeQueryError(message)
+    return WeaviateQueryError(message, "GRPC search")
+
+
 @dataclass
 class _ExpectedStatusCodes:
     ok_in: Union[List[int], int]
@@ -1039,13 +1045,9 @@ class ConnectionSync(_ConnectionBase):
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
-            if request.HasField("generative"):
-                raise WeaviateGenerativeQueryError(str(error.details())) from e
-            raise WeaviateQueryError(str(error.details()), "GRPC search")  # pyright: ignore
+            raise _search_error(request, str(error.details())) from e  # pyright: ignore
         except WeaviateRetryError as e:
-            if request.HasField("generative"):
-                raise WeaviateGenerativeQueryError(str(e)) from e
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+            raise _search_error(request, str(e)) from e  # pyright: ignore
 
     def grpc_batch_objects(
         self,
@@ -1248,13 +1250,9 @@ class ConnectionAsync(_ConnectionBase):
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
-            if request.HasField("generative"):
-                raise WeaviateGenerativeQueryError(str(e.details())) from e
-            raise WeaviateQueryError(str(e.details()), "GRPC search")  # pyright: ignore
+            raise _search_error(request, str(e.details())) from e  # pyright: ignore
         except WeaviateRetryError as e:
-            if request.HasField("generative"):
-                raise WeaviateGenerativeQueryError(str(e)) from e
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+            raise _search_error(request, str(e)) from e  # pyright: ignore
 
     async def grpc_batch_objects(
         self,

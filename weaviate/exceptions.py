@@ -249,7 +249,7 @@ class WeaviateGenerativeQueryError(WeaviateQueryError):
     """
 
     def __init__(self, message: str):
-        super().__init__(message, "GRPC generative search")
+        super().__init__(message, "GRPC search")
 
 
 class WeaviateBatchError(WeaviateQueryError):
