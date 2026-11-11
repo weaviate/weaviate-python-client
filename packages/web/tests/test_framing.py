@@ -131,3 +131,22 @@ def test_compressed_trailer_frame_rejected():
     body = _frame(b"grpc-status:0\r\n", 0x81)
     with pytest.raises(FrameError, match="compressed"):
         split_response(body)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b"grpc-status:13\r\ngrpc-message:boom\r\ngrpc-status:0\r\n",
+        b"grpc-status:0\r\ngrpc-message:a\r\ngrpc-message:b\r\n",
+    ],
+)
+def test_conflicting_duplicate_status_or_message_rejected(raw):
+    # last-value-wins would read "13 ... 0" as OK
+    with pytest.raises(FrameError, match="conflicting grpc-"):
+        parse_trailers(raw)
+
+
+def test_identical_duplicate_status_accepted():
+    parsed = parse_trailers(b"grpc-status:5\r\nGrpc-Status: 5\r\ngrpc-message:gone\r\n")
+    assert parsed["grpc-status"] == "5"
+    assert parsed["grpc-message"] == "gone"

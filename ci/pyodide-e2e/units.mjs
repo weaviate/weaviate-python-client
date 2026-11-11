@@ -2,32 +2,15 @@
 // bootstrap check. No Weaviate needed.
 // Usage: node --experimental-wasm-jspi units.mjs <wheels-dir>  (same wheels as run.mjs)
 // JSPI is required: pytest runs async tests through run_until_complete (stack switching).
-import { readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadPyodide } from "pyodide";
 
-if (!process.argv[2]) {
-  console.error("usage: node units.mjs <wheels-dir>");
-  process.exit(2);
-}
-const wheelsDir = resolve(process.argv[2]);
-const here = dirname(fileURLToPath(import.meta.url));
+import { wheelsFromArgv } from "./wheels.mjs";
 
-const wheels = readdirSync(wheelsDir)
-  .filter((f) => f.endsWith(".whl"))
-  .sort(); // installs weaviate_client before weaviate_client_web, which depends on it
-const prefixes = ["weaviate_client-", "weaviate_client_web-"];
-if (
-  wheels.length !== 2 ||
-  !prefixes.every((p) => wheels.some((w) => w.startsWith(p)))
-) {
-  console.error(
-    `expected exactly one weaviate_client-*.whl and one weaviate_client_web-*.whl in ${wheelsDir}, found: ${JSON.stringify(wheels)}`,
-  );
-  process.exit(2);
-}
+const { wheelsDir, wheels } = wheelsFromArgv("units.mjs");
+const here = dirname(fileURLToPath(import.meta.url));
 
 // Fresh interpreter with micropip ready and the wheels dir mounted.
 async function freshPyodide() {
@@ -50,8 +33,8 @@ async function freshPyodide() {
     pyodide.runPython(`
 import sys
 assert "weaviate_client_web" not in sys.modules
-import weaviate  # the ONLY weaviate-side import: must bootstrap the companion
-assert "weaviate_client_web" in sys.modules, "hook did not import the companion"
+import weaviate  # first weaviate import: installs weaviate_client_web
+assert "weaviate_client_web" in sys.modules, "hook did not import weaviate_client_web"
 import weaviate_client_web
 import grpc
 import httpx
@@ -62,9 +45,9 @@ assert getattr(
     httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
 ) is True
 `);
-    console.log("OK scenario: bare 'import weaviate' bootstraps the companion");
+    console.log("OK scenario: bare 'import weaviate' bootstraps weaviate_client_web");
   } catch (err) {
-    console.error("FAIL scenario: bare 'import weaviate' bootstraps the companion");
+    console.error("FAIL scenario: bare 'import weaviate' bootstraps weaviate_client_web");
     console.error(err);
     process.exit(1);
   }

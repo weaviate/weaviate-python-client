@@ -11,6 +11,7 @@ _FLAG_TRAILER = 0x80
 _FLAG_COMPRESSED = 0x01
 _KNOWN_FLAGS = _FLAG_TRAILER | _FLAG_COMPRESSED
 _HEADER = struct.Struct(">BI")  # 1 flag byte + 4-byte big-endian length
+_SINGLE_VALUE_TRAILERS = ("grpc-status", "grpc-message")
 
 
 class FrameError(ValueError):
@@ -55,6 +56,7 @@ def parse_trailers(raw: bytes) -> Dict[str, str]:
     """Parse a trailer payload into a lower-cased dict; accepts CRLF or LF line ends.
 
     Undecodable bytes are replaced, so an odd grpc-message never drops grpc-status.
+    Conflicting repeats of grpc-status or grpc-message raise FrameError.
     """
     out: Dict[str, str] = {}
     for line in raw.split(b"\n"):
@@ -63,7 +65,10 @@ def parse_trailers(raw: bytes) -> Dict[str, str]:
             continue
         key, _, value = line.partition(b":")
         name = key.strip().decode("utf-8", "replace").lower()
-        out[name] = value.strip().decode("utf-8", "replace")
+        text = value.strip().decode("utf-8", "replace")
+        if name in _SINGLE_VALUE_TRAILERS and out.get(name, text) != text:
+            raise FrameError(f"conflicting {name} values in the grpc-web trailer frame")
+        out[name] = text
     return out
 
 

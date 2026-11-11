@@ -171,6 +171,14 @@ async def test_fetch_managed_request_headers_stripped(fake_pyfetch):
         assert managed not in sent
 
 
+async def test_httpx_user_agent_is_not_forwarded(fake_pyfetch):
+    # httpx.AsyncClient adds "user-agent: python-httpx/..." to every request
+    async with httpx.AsyncClient(transport=_FetchTransport()) as client:
+        await client.get("http://h:8080/v1/meta")
+    sent = fake_pyfetch.calls[0]["headers"]
+    assert all(key.lower() != "user-agent" for key in sent), sent
+
+
 async def test_get_without_body_omits_body_kwarg(fake_pyfetch):
     # fetch rejects GET/HEAD requests that carry a body, so the kwarg must be absent
     await _handle(httpx.Request("GET", "http://h:8080/v1/.well-known/ready"))
@@ -233,9 +241,7 @@ async def test_read_timeout_maps_to_abort_signal_ms(fake_pyfetch, fake_abort_sig
     assert fake_pyfetch.calls[0]["signal"] == "signal-30000"
 
 
-async def test_read_none_means_no_deadline_even_with_pool_and_connect_set(
-    fake_pyfetch, fake_abort_signal
-):
+async def test_read_none_is_no_deadline(fake_pyfetch, fake_abort_signal):
     # a non-finite timeout arrives as read=None with pool set; pool must not become the deadline
     await _handle(_request_with_timeout({"connect": None, "read": None, "write": None, "pool": 5}))
     await _handle(_request_with_timeout({"connect": 2.0, "read": None, "write": None, "pool": 9.0}))
@@ -339,9 +345,7 @@ async def test_fetch_abort_with_deadline_maps_to_read_timeout(monkeypatch, fake_
         )
 
 
-async def test_fetch_failure_with_deadline_but_no_timeout_message_stays_connect_error(
-    monkeypatch, fake_abort_signal
-):
+async def test_network_failure_with_deadline_is_connect_error(monkeypatch, fake_abort_signal):
     # nearly every weaviate request sets a read deadline; a plain network failure on
     # such a request must remain a connection error, not become a timeout
     _install_raising_pyfetch(monkeypatch, OSError("TypeError: Failed to fetch"))

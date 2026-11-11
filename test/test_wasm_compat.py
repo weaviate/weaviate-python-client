@@ -5,6 +5,7 @@ import pathlib
 import subprocess
 import sys
 import textwrap
+import warnings
 
 import grpc
 import pytest
@@ -12,7 +13,7 @@ from grpc.aio import AioRpcError, Metadata
 
 from weaviate import WeaviateClient
 from weaviate.collections.batch.async_ import _BatchBaseAsync
-from weaviate.connect.base import ConnectionParams
+from weaviate.connect.base import GRPC_WEB_SERVER_PATH_PREFIX, ConnectionParams
 from weaviate.connect.v4 import _ConnectionBase
 from weaviate.embedded import _EmbeddedBase
 from weaviate.exceptions import (
@@ -25,7 +26,7 @@ from weaviate.util import _ServerVersion
 
 def test_embedded_raises_explicit_error_under_emscripten(monkeypatch) -> None:
     monkeypatch.setattr(sys, "platform", "emscripten")
-    with pytest.raises(WeaviateStartUpError, match="WebAssembly/Pyodide"):
+    with pytest.raises(WeaviateStartUpError, match="not supported under Pyodide"):
         _EmbeddedBase.check_supported_platform()
 
 
@@ -47,30 +48,37 @@ def test_batch_stream_fails_fast_when_grpc_web_shim_active(monkeypatch) -> None:
 # --- grpc-web diagnostics -------------------------------------------------------------
 
 
-def _connection(prefix=None) -> _ConnectionBase:
+def _connection(prefix=None, grpc_port=None) -> _ConnectionBase:
     conn = object.__new__(_ConnectionBase)
     conn._client = None
     conn._grpc_channel = None
     conn._weaviate_version = _ServerVersion.from_string("1.36.0")
+    if grpc_port is None:
+        grpc_port = 8080 if prefix else 50051
     conn._connection_params = ConnectionParams.from_url(
         "http://localhost:8080",
-        grpc_port=8080 if prefix else 50051,
+        grpc_port=grpc_port,
         grpc_path_prefix=prefix,
     )
     return conn
+
+
+# the shape of the grpc-web channel's details for a response that is not grpc-web
+_CHANNEL_404_DETAILS = (
+    "HTTP 404 from http://localhost:8080/grpc-web/grpc.health.v1.Health/Check: not a "
+    "grpc-web response. The grpc-web endpoint does not exist at that path. "
+    "Response body: 404 page not found"
+)
 
 
 def _ping_exception(conn: _ConnectionBase, error: Exception) -> None:
     getattr(conn, "_ConnectionBase__handle_ping_exception")(error)  # noqa: B009
 
 
-def test_grpc_web_404_names_the_two_real_causes_and_drops_firewall_advice() -> None:
+def test_grpc_web_404_names_both_causes_without_port_advice() -> None:
     conn = _connection(prefix="/grpc-web")
     error = AioRpcError(
-        grpc.StatusCode.UNIMPLEMENTED,
-        Metadata(),
-        Metadata(),
-        details="HTTP 404 for /grpc-web/grpc.health.v1.Health/Check: 404 page not found",
+        grpc.StatusCode.UNIMPLEMENTED, Metadata(), Metadata(), details=_CHANNEL_404_DETAILS
     )
     with pytest.raises(WeaviateGRPCUnavailableError) as excinfo:
         _ping_exception(conn, error)
@@ -79,11 +87,50 @@ def test_grpc_web_404_names_the_two_real_causes_and_drops_firewall_advice() -> N
     assert "firewall" not in msg
     assert "port (localhost:8080) are correct" not in msg
     assert "UNIMPLEMENTED" in msg  # the real code, not swallowed
-    assert "HTTP 404 for /grpc-web/grpc.health.v1.Health/Check" in msg  # ... and details
+    assert "HTTP 404 from http://localhost:8080/grpc-web/grpc.health" in msg  # ... and details
     assert "/grpc-web" in msg  # the prefix that was actually used
     assert "1.38.3" in msg  # candidate 1: server too old ...
     assert "v1.36.0" in msg  # ... shown against the observed server version
     assert "/v1/grpc-web" in msg  # candidate 2: wrong prefix
+    assert "over the REST endpoint localhost:8080" in msg  # gRPC shares the REST address
+    assert "CORS" not in msg  # a routed-path problem, not a blocked request
+
+
+def test_grpc_web_405_gets_the_same_wrong_path_diagnosis() -> None:
+    # a 405 means an HTTP route answered instead of the grpc-web endpoint
+    conn = _connection(prefix="/grpc-web")
+    error = AioRpcError(
+        grpc.StatusCode.UNIMPLEMENTED,
+        Metadata(),
+        Metadata(),
+        details=(
+            "HTTP 405 from http://localhost:8080/grpc-web/grpc.health.v1.Health/Check: not a "
+            "grpc-web response. An HTTP route answered instead of the grpc-web endpoint. "
+            'Response body: {"code":405,"message":"method POST is not allowed"}'
+        ),
+    )
+    with pytest.raises(WeaviateGRPCUnavailableError) as excinfo:
+        _ping_exception(conn, error)
+    msg = str(excinfo.value)
+
+    assert "did not route the grpc-web path '/grpc-web'" in msg
+    assert "1.38.3" in msg
+    assert "/v1/grpc-web" in msg
+    assert "HTTP 405" in msg
+
+
+def test_grpc_web_on_a_separate_endpoint_is_not_called_the_rest_endpoint() -> None:
+    # a hand-built prefix can target a transcoder on another port
+    conn = _connection(prefix="/grpc-web", grpc_port=50290)
+    error = AioRpcError(
+        grpc.StatusCode.UNIMPLEMENTED, Metadata(), Metadata(), details=_CHANNEL_404_DETAILS
+    )
+    with pytest.raises(WeaviateGRPCUnavailableError) as excinfo:
+        _ping_exception(conn, error)
+    msg = str(excinfo.value)
+
+    assert "REST endpoint" not in msg
+    assert "over localhost:50290 (grpc-web)" in msg
 
 
 def test_grpc_web_genuine_unimplemented_is_not_diagnosed_as_a_wrong_path() -> None:
@@ -106,7 +153,14 @@ def test_grpc_web_genuine_unimplemented_is_not_diagnosed_as_a_wrong_path() -> No
 def test_grpc_web_non_404_error_still_omits_the_native_port_advice() -> None:
     conn = _connection(prefix="/grpc-web")
     error = AioRpcError(
-        grpc.StatusCode.UNAVAILABLE, Metadata(), Metadata(), details="HTTP 502 for /grpc-web/..."
+        grpc.StatusCode.UNAVAILABLE,
+        Metadata(),
+        Metadata(),
+        details=(
+            "HTTP 502 from http://localhost:8080/grpc-web/grpc.health.v1.Health/Check: not a "
+            "grpc-web response. Weaviate or the proxy in front of it is unavailable. "
+            "Response body: 502 Bad Gateway"
+        ),
     )
     with pytest.raises(WeaviateGRPCUnavailableError) as excinfo:
         _ping_exception(conn, error)
@@ -116,9 +170,12 @@ def test_grpc_web_non_404_error_still_omits_the_native_port_advice() -> None:
     assert "UNAVAILABLE" in msg
     assert "HTTP 502" in msg
     assert "skip_init_checks=True" in msg  # the still-useful advice is kept
+    # a CORS block looks like any other fetch failure, so it is named as a possibility
+    assert "CORS_ALLOW_ORIGIN" in msg
+    assert "CORS_ALLOW_HEADERS" in msg
 
 
-def test_native_grpc_message_keeps_its_advice_and_gains_the_real_status() -> None:
+def test_native_grpc_message_includes_status() -> None:
     conn = _connection()
     error = AioRpcError(
         grpc.StatusCode.UNAVAILABLE, Metadata(), Metadata(), details="failed to connect"
@@ -135,6 +192,28 @@ def test_native_grpc_message_keeps_its_advice_and_gains_the_real_status() -> Non
     assert "failed to connect" in msg
 
 
+def test_prefixless_params_under_emscripten_point_at_the_async_helpers_and_the_prefix(
+    monkeypatch,
+) -> None:
+    # hand-built ConnectionParams without a prefix under Pyodide: the firewall advice and
+    # weaviate.connect_to_local (a sync helper, which raises there) would mislead
+    conn = _connection()
+    monkeypatch.setattr(sys, "platform", "emscripten")
+    error = AioRpcError(
+        grpc.StatusCode.UNKNOWN, Metadata(), Metadata(), details="TypeError: fetch failed"
+    )
+    with pytest.raises(WeaviateGRPCUnavailableError) as excinfo:
+        _ping_exception(conn, error)
+    msg = str(excinfo.value)
+
+    assert "firewall" not in msg
+    assert "connect_to_local" not in msg
+    assert "use_async_with_local" in msg
+    assert "grpc_path_prefix='/v1/grpc-web'" in msg
+    assert "localhost:50051" in msg
+    assert "fetch failed" in msg  # the observed error is kept
+
+
 def test_non_grpc_ping_error_is_still_reported() -> None:
     # not every ping failure is an RpcError; those must not lose the generic advice
     conn = _connection()
@@ -145,7 +224,7 @@ def test_non_grpc_ping_error_is_still_reported() -> None:
 
 # --- grpc-web routing under Emscripten ------------------------------------------------
 
-GRPC_WEB_PREFIX = "/v1/grpc-web"
+GRPC_WEB_PREFIX = GRPC_WEB_SERVER_PATH_PREFIX
 
 
 @pytest.fixture
@@ -244,7 +323,8 @@ def test_overridden_grpc_arguments_are_warned_about(emscripten) -> None:
     msg = str(record[0].message)
     assert "grpc.example.com:50051" in msg  # what was discarded ...
     assert "localhost:8080" in msg  # ... and what is used instead
-    assert "WebAssembly" in msg  # ... and why
+    assert "Pyodide" in msg  # ... and why
+    assert "may ignore this warning" in msg  # portable advice: no CPython port collision
     _assert_grpc_rides_rest(client)
 
 
@@ -272,6 +352,11 @@ def test_an_explicit_local_grpc_port_is_warned_about_but_the_default_is_not(emsc
 
     with pytest.warns(UserWarning, match="Con006"):
         client = weaviate.use_async_with_local(port=8080, grpc_port=8081)
+    _assert_grpc_rides_rest(client)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # any warning fails the default case
+        client = weaviate.use_async_with_local(port=8080)
     _assert_grpc_rides_rest(client)
 
 
@@ -302,7 +387,7 @@ def _run_hook_scenario(
     return subprocess.run([*interp, "-c", script], capture_output=True, text=True)
 
 
-def test_bare_import_without_companion_raises_clear_import_error() -> None:
+def test_bare_import_without_weaviate_client_web_raises_import_error() -> None:
     # No site-packages, so neither weaviate_client_web nor grpcio is importable; the repo
     # root goes on sys.path so the weaviate package itself is still found.
     result = _run_hook_scenario(
@@ -313,10 +398,10 @@ def test_bare_import_without_companion_raises_clear_import_error() -> None:
         except ImportError as e:
             assert "weaviate-client-web" in str(e), str(e)
             assert "weaviate-client[grpc-web]" in str(e), str(e)
-            assert "WebAssembly/Pyodide" in str(e), str(e)
+            assert "Pyodide" in str(e), str(e)
             print("OK")
         else:
-            raise AssertionError("expected ImportError without the companion")
+            raise AssertionError("expected ImportError without weaviate-client-web")
         """,
         no_site=True,
     )
@@ -344,7 +429,7 @@ def test_bare_import_with_grpc_present_falls_through_silently() -> None:
     assert "OK" in result.stdout
 
 
-def test_bare_import_with_broken_companion_surfaces_its_own_error(tmp_path) -> None:
+def test_bare_import_with_broken_weaviate_client_web_surfaces_its_own_error(tmp_path) -> None:
     # an installed weaviate-client-web that fails to import surfaces its own error, not the
     # install hint
     fake_pkg = tmp_path / "weaviate_client_web"
@@ -364,9 +449,29 @@ def test_bare_import_with_broken_companion_surfaces_its_own_error(tmp_path) -> N
             assert "grpc-web" not in str(e), str(e)
             print("OK")
         else:
-            raise AssertionError("expected the companion's own ImportError to surface")
+            raise AssertionError("expected weaviate_client_web's own ImportError to surface")
         """,
         path_entry=str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_importing_weaviate_client_web_on_cpython_says_it_needs_pyodide() -> None:
+    # an accidental install on CPython must explain itself, not fail on 'pyodide'
+    web_src = str(pathlib.Path(_REPO_ROOT) / "packages" / "web" / "src")
+    result = _run_hook_scenario(
+        """
+        try:
+            import weaviate_client_web
+        except ImportError as e:
+            assert "Pyodide" in str(e), str(e)
+            assert e.name != "pyodide", e.name
+            print("OK")
+        else:
+            raise AssertionError("expected ImportError outside Pyodide")
+        """,
+        path_entry=web_src,
     )
     assert result.returncode == 0, result.stderr
     assert "OK" in result.stdout
