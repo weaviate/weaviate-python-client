@@ -21,9 +21,6 @@ from weaviate.collections.classes.grpc import (
     _HybridNearVector,
 )
 from weaviate.collections.classes.internal import Object
-from weaviate.exceptions import (
-    WeaviateUnsupportedFeatureError,
-)
 
 
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
@@ -167,14 +164,6 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
     uuid_banana = collection.data.insert({"text": "banana"})
     obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            collection.query.hybrid(
-                query=None,
-                vector=wvc.query.HybridVector.near_vector(vector=obj.vector["default"]),
-            ).objects
-        return
-
     collection.data.insert({"text": "dog"})
     collection.data.insert({"text": "different concept"})
 
@@ -226,16 +215,7 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
 
     obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
-                query=None,
-                vector=wvc.query.HybridVector.near_vector(vector=obj.vector["text"]),
-                target_vector="text",
-            ).objects
-        return
-
-    hybrid_objs = collection.query.hybrid(
+    hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
         query=None,
         vector=wvc.query.HybridVector.near_vector(vector=obj.vector["text"]),
         target_vector="text",
@@ -273,14 +253,6 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
             vectorize_collection_name=False
         ),
     )
-
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            collection.query.hybrid(
-                query=None,
-                vector=wvc.query.HybridVector.near_text(query="banana pudding"),
-            ).objects
-        return
 
     uuid_banana_pudding = collection.data.insert({"text": "banana pudding"})
     collection.data.insert({"text": "banana smoothie"})
@@ -327,16 +299,7 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
     collection.data.insert({"text": "banana smoothie"})
     collection.data.insert({"text": "different concept"})
 
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateUnsupportedFeatureError):
-            hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
-                query=None,
-                vector=wvc.query.HybridVector.near_text(query="banana pudding"),
-                target_vector="text",
-            ).objects
-        return
-
-    hybrid_objs = collection.query.hybrid(
+    hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
         query=None,
         vector=wvc.query.HybridVector.near_text(query="banana pudding"),
         target_vector="text",
@@ -371,10 +334,6 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
 def test_vector_per_target(
     collection_factory: CollectionFactory, vector: NearVectorInputType
 ) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("No multi target search below 1.26")
-
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
@@ -434,10 +393,6 @@ def test_same_target_vector_multiple_input_combinations(
     near_vector: Union[List[float], _HybridNearVector],
     target_vector: List[str],
 ) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
-        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
-
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
@@ -466,9 +421,6 @@ def test_vector_distance(collection_factory: CollectionFactory):
         ),
     )
 
-    if collection._connection._weaviate_version.is_lower_than(1, 26, 3):
-        pytest.skip("Hybrid max vector distance is only supported in versions higher than 1.26.3")
-
     uuid1 = collection.data.insert({}, vector=[1, 0, 0])
     collection.data.insert({}, vector=[0, 1, 0])
     collection.data.insert({}, vector=[0, 0, 1])
@@ -487,9 +439,6 @@ def test_aggregate_max_vector_distance(collection_factory: CollectionFactory) ->
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-
-    if collection._connection._weaviate_version.is_lower_than(1, 26, 3):
-        pytest.skip("Hybrid max vector distance is only supported in versions higher than 1.26.3")
 
     collection.data.insert({"name": "banana one"}, vector=[1, 0, 0, 0])
     collection.data.insert({"name": "banana two"}, vector=[0, 1, 0, 0])
@@ -510,9 +459,6 @@ def test_hybrid_bm25_operators(collection_factory: CollectionFactory) -> None:
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-
-    if collection._connection._weaviate_version.is_lower_than(1, 31, 0):
-        pytest.skip("bm25 operators are only supported in versions higher than 1.31.0")
 
     uuid1 = collection.data.insert({"name": "banana one"}, vector=[1, 0, 0, 0])
     uuid2 = collection.data.insert({"name": "banana two"}, vector=[0, 1, 0, 0])

@@ -106,51 +106,30 @@ class _NearObjectExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         if isinstance(group_by, str):
             group_by = GroupByAggregate(prop=group_by)
 
-        if self._connection._weaviate_version.is_lower_than(1, 29, 0):
-            # use gql, remove once 1.29 is the minimum supported version
-            def resp(res: dict) -> Union[AggregateReturn, AggregateGroupByReturn]:
-                return (
-                    self._to_aggregate_result(res, return_metrics)
-                    if group_by is None
-                    else self._to_group_by_result(res, return_metrics)
-                )
+        request = self._grpc.near_object(
+            near_object=near_object,
+            certainty=certainty,
+            distance=distance,
+            target_vector=target_vector,
+            aggregations=(
+                [metric.to_grpc() for metric in return_metrics]
+                if return_metrics is not None
+                else []
+            ),
+            filters=_FilterToGRPC.convert(filters) if filters is not None else None,
+            group_by=group_by._to_grpc() if group_by is not None else None,
+            limit=group_by.limit if group_by is not None else None,
+            objects_count=total_count,
+            object_limit=object_limit,
+        )
 
-            builder = self._base(return_metrics, filters, total_count)
-            builder = self._add_groupby_to_builder(builder, group_by)
-            builder = self._add_near_object_to_builder(
-                builder, near_object, certainty, distance, object_limit, target_vector
-            )
-            return executor.execute(
-                response_callback=resp,
-                method=self._do,
-                query=builder,
-            )
-        else:
-            # use grpc
-            request = self._grpc.near_object(
-                near_object=near_object,
-                certainty=certainty,
-                distance=distance,
-                target_vector=target_vector,
-                aggregations=(
-                    [metric.to_grpc() for metric in return_metrics]
-                    if return_metrics is not None
-                    else []
-                ),
-                filters=_FilterToGRPC.convert(filters) if filters is not None else None,
-                group_by=group_by._to_grpc() if group_by is not None else None,
-                limit=group_by.limit if group_by is not None else None,
-                objects_count=total_count,
-                object_limit=object_limit,
-            )
+        def respGrpc(
+            res: aggregate_pb2.AggregateReply,
+        ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+            return self._to_result(group_by is not None, res)
 
-            def respGrpc(
-                res: aggregate_pb2.AggregateReply,
-            ) -> Union[AggregateReturn, AggregateGroupByReturn]:
-                return self._to_result(group_by is not None, res)
-
-            return executor.execute(
-                response_callback=respGrpc,
-                method=self._connection.grpc_aggregate,
-                request=request,
-            )
+        return executor.execute(
+            response_callback=respGrpc,
+            method=self._connection.grpc_aggregate,
+            request=request,
+        )
