@@ -27,6 +27,7 @@ env:
   WEAVIATE_138: 1.38.22
   WEAVIATE_139: 1.39.13
   WEAVIATE_140: 1.40.2
+  WEAVIATE_141: 1.41.0-dev-483b145
 
 jobs:
   lint-and-format:
@@ -377,7 +378,8 @@ jobs:
           $WEAVIATE_137,
           $WEAVIATE_138,
           $WEAVIATE_139,
-          $WEAVIATE_140
+          $WEAVIATE_140,
+          $WEAVIATE_141
         ]
     steps:
       - name: Checkout

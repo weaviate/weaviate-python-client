@@ -1,6 +1,6 @@
 import datetime
 import time
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Union
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -630,6 +630,50 @@ def test_hnsw_with_rq4c(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.centering is True
     assert config.vector_index_config.quantizer.rescore_limit == 50
     assert config.vector_index_config.quantizer.training_limit == 10000
+
+
+@pytest.mark.parametrize(
+    "configure,reconfigure",
+    [
+        (Configure.VectorIndex.Quantizer.pq, Reconfigure.VectorIndex.Quantizer.pq),
+        (Configure.VectorIndex.Quantizer.bq, Reconfigure.VectorIndex.Quantizer.bq),
+        (Configure.VectorIndex.Quantizer.sq, Reconfigure.VectorIndex.Quantizer.sq),
+        (Configure.VectorIndex.Quantizer.rq, Reconfigure.VectorIndex.Quantizer.rq),
+    ],
+    ids=["pq", "bq", "sq", "rq"],
+)
+def test_hnsw_quantizer_rescore_factor(
+    collection_factory: CollectionFactory,
+    configure: Callable[..., Any],
+    reconfigure: Callable[..., Any],
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 41, 0):
+        pytest.skip("rescoreFactor is not supported in Weaviate versions lower than 1.41.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            quantizer=configure(rescore_limit=30, rescore_factor=2.5),
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.quantizer is not None
+    assert config.vector_index_config.quantizer.rescore_limit == 30
+    assert config.vector_index_config.quantizer.rescore_factor == 2.5
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            quantizer=reconfigure(rescore_factor=4),
+        ),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.quantizer is not None
+    assert config.vector_index_config.quantizer.rescore_limit == 30
+    assert config.vector_index_config.quantizer.rescore_factor == 4
 
 
 def test_hnsw_with_pathseer_filter_strategy(collection_factory: CollectionFactory) -> None:

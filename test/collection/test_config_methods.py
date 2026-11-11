@@ -507,3 +507,29 @@ def test_collection_config_stopword_presets_absent() -> None:
     schema = _full_schema("TestNoStopwordPresets")
     full = _collection_config_from_json(schema)
     assert full.inverted_index_config.stopword_presets is None
+
+
+@pytest.mark.parametrize("rescore_factor", [None, -1, 2.5])
+def test_collection_config_from_json_quantizer_rescore_factor(
+    rescore_factor: Optional[float],
+) -> None:
+    index_config = dict(HFRESH_CONFIG)
+    if rescore_factor is not None:
+        index_config["rq"] = {**HFRESH_CONFIG["rq"], "rescoreFactor": rescore_factor}
+    schema = _schema_with_vector_config(
+        {
+            "vec": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hfresh",
+                "vectorIndexConfig": index_config,
+            }
+        }
+    )
+
+    config = _collection_config_from_json(schema)
+
+    assert config.vector_config is not None
+    quantizer = config.vector_config["vec"].vector_index_config.quantizer
+    assert quantizer is not None
+    assert quantizer.rescore_limit == 350
+    assert quantizer.rescore_factor == rescore_factor
