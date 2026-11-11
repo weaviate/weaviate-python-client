@@ -47,3 +47,4 @@ def test_batch_fixed_size_times_out_when_insert_exceeded(
     failed = batch_slow_response_collection.batch.failed_objects
     assert len(failed) == 1
     assert "Deadline Exceeded" in failed[0].message
+    assert failed[0].original_uuid == str(failed[0].object_.uuid)
