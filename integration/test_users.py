@@ -329,6 +329,8 @@ def _in_days(days: int) -> datetime:
 def test_user_expiration(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         _skip_unless_user_expiration(client)
+        # admin-user is a static user from the server's env config, whose key never expires.
+        assert client.users.get_my_user().expires_at is None
 
         user_id = _unique_user_id(request.node.name)
         in_one_day = _in_days(1)
@@ -354,6 +356,8 @@ def test_user_expiration(client_factory: ClientFactory, request: SubRequest) -> 
             user = client.users.db.get(user_id=user_id)
             assert user is not None
             assert user.expires_at is None
+            listed = next(u for u in client.users.db.list_all() if u.user_id == user_id)
+            assert listed.expires_at is None
         finally:
             client.users.db.delete(user_id=user_id)
 
@@ -399,6 +403,10 @@ def test_set_expiration_on_never_expiring_user(
             user = client.users.db.get(user_id=user_id)
             assert user is not None
             assert user.expires_at is None
+            with weaviate.connect_to_local(
+                port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(api_key)
+            ) as client2:
+                assert client2.users.get_my_user().expires_at is None
 
             in_one_day = _in_days(1)
             client.users.db.set_expiration(user_id=user_id, expires_at=in_one_day)
