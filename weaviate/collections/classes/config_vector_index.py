@@ -278,6 +278,8 @@ class _PQConfigCreate(_QuantizerConfigCreate):
     encoder: _PQEncoderConfigCreate
     segments: Optional[int]
     trainingLimit: Optional[int]
+    rescoreLimit: Optional[int]
+    rescoreFactor: Optional[float]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -287,6 +289,7 @@ class _PQConfigCreate(_QuantizerConfigCreate):
 class _BQConfigCreate(_QuantizerConfigCreate):
     cache: Optional[bool]
     rescoreLimit: Optional[int]
+    rescoreFactor: Optional[float]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -295,6 +298,7 @@ class _BQConfigCreate(_QuantizerConfigCreate):
 
 class _SQConfigCreate(_QuantizerConfigCreate):
     rescoreLimit: Optional[int]
+    rescoreFactor: Optional[float]
     trainingLimit: Optional[int]
 
     @staticmethod
@@ -306,6 +310,7 @@ class _RQConfigCreate(_QuantizerConfigCreate):
     cache: Optional[bool]
     bits: Optional[int]
     rescoreLimit: Optional[int]
+    rescoreFactor: Optional[float]
     centering: Optional[bool]
     trainingLimit: Optional[int]
 
@@ -327,6 +332,8 @@ class _PQConfigUpdate(_QuantizerConfigUpdate):
     segments: Optional[int]
     trainingLimit: Optional[int]
     encoder: Optional[_PQEncoderConfigUpdate]
+    rescoreLimit: Optional[int]
+    rescoreFactor: Optional[float]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -336,6 +343,7 @@ class _PQConfigUpdate(_QuantizerConfigUpdate):
 class _BQConfigUpdate(_QuantizerConfigUpdate):
     enabled: Optional[bool]
     rescoreLimit: Optional[int]
+    rescoreFactor: Optional[float]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -345,6 +353,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 class _RQConfigUpdate(_QuantizerConfigUpdate):
     enabled: Optional[bool]
     rescoreLimit: Optional[int]
+    rescoreFactor: Optional[float]
     bits: Optional[int]
     centering: Optional[bool]
     trainingLimit: Optional[int]
@@ -357,6 +366,7 @@ class _RQConfigUpdate(_QuantizerConfigUpdate):
 class _SQConfigUpdate(_QuantizerConfigUpdate):
     enabled: Optional[bool]
     rescoreLimit: Optional[int]
+    rescoreFactor: Optional[float]
     trainingLimit: Optional[int]
 
     @staticmethod
@@ -421,6 +431,8 @@ class _VectorIndexQuantizer:
         encoder_type: Optional[PQEncoderType] = None,
         segments: Optional[int] = None,
         training_limit: Optional[int] = None,
+        rescore_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _PQConfigCreate:
         """Create a `_PQConfigCreate` object to be used when defining the product quantization (PQ) configuration of Weaviate.
 
@@ -436,12 +448,15 @@ class _VectorIndexQuantizer:
             segments=segments,
             trainingLimit=training_limit,
             encoder=_PQEncoderConfigCreate(type_=encoder_type, distribution=encoder_distribution),
+            rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
         )
 
     @staticmethod
     def bq(
         cache: Optional[bool] = None,
         rescore_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _BQConfigCreate:
         """Create a `_BQConfigCreate` object to be used when defining the binary quantization (BQ) configuration of Weaviate.
 
@@ -453,6 +468,7 @@ class _VectorIndexQuantizer:
         return _BQConfigCreate(
             cache=cache,
             rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
         )
 
     @deprecated(
@@ -464,6 +480,7 @@ class _VectorIndexQuantizer:
         cache: bool,
         rescore_limit: Optional[int] = None,
         training_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _SQConfigCreate: ...
 
     @overload
@@ -472,6 +489,7 @@ class _VectorIndexQuantizer:
         cache: Literal[None] = None,
         rescore_limit: Optional[int] = None,
         training_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _SQConfigCreate: ...
 
     @staticmethod
@@ -479,6 +497,7 @@ class _VectorIndexQuantizer:
         cache: Optional[bool] = None,
         rescore_limit: Optional[int] = None,
         training_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _SQConfigCreate:
         """Create a `_SQConfigCreate` object to be used when defining the scalar quantization (SQ) configuration of Weaviate.
 
@@ -489,6 +508,7 @@ class _VectorIndexQuantizer:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _SQConfigCreate(
             rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
             trainingLimit=training_limit,
         )
 
@@ -499,6 +519,7 @@ class _VectorIndexQuantizer:
         rescore_limit: Optional[int] = None,
         centering: Optional[bool] = None,
         training_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _RQConfigCreate:
         """Create a `_RQConfigCreate` object to be used when defining the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -513,6 +534,7 @@ class _VectorIndexQuantizer:
             rescoreLimit=rescore_limit,
             centering=centering,
             trainingLimit=training_limit,
+            rescoreFactor=rescore_factor,
         )
 
     @staticmethod

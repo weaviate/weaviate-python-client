@@ -2066,6 +2066,8 @@ class _PQConfig(_ConfigBase):
     centroids: int
     training_limit: int
     encoder: PQEncoderConfig
+    rescore_limit: Optional[int]
+    rescore_factor: Optional[float]
 
     @property
     def bit_compression(self) -> bool:
@@ -2080,11 +2082,13 @@ PQConfig = _PQConfig
 class _BQConfig(_ConfigBase):
     cache: Optional[bool]
     rescore_limit: int
+    rescore_factor: Optional[float]
 
 
 @dataclass
 class _SQConfig(_ConfigBase):
     rescore_limit: int
+    rescore_factor: Optional[float]
     training_limit: int
 
 
@@ -2093,6 +2097,7 @@ class _RQConfig(_ConfigBase):
     cache: Optional[bool]
     bits: Optional[int]
     rescore_limit: int
+    rescore_factor: Optional[float]
     centering: Optional[bool]
     training_limit: Optional[int]
 
@@ -3106,6 +3111,8 @@ class _VectorIndexQuantizerUpdate:
         segments: Optional[int] = None,
         training_limit: Optional[int] = None,
         enabled: bool = True,
+        rescore_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _PQConfigUpdate:
         """Create a `_PQConfigUpdate` object to be used when updating the product quantization (PQ) configuration of Weaviate.
 
@@ -3127,10 +3134,16 @@ class _VectorIndexQuantizerUpdate:
                 if encoder_type is not None or encoder_distribution is not None
                 else None
             ),
+            rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
         )
 
     @staticmethod
-    def bq(rescore_limit: Optional[int] = None, enabled: bool = True) -> _BQConfigUpdate:
+    def bq(
+        rescore_limit: Optional[int] = None,
+        enabled: bool = True,
+        rescore_factor: Optional[float] = None,
+    ) -> _BQConfigUpdate:
         """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
@@ -3138,13 +3151,16 @@ class _VectorIndexQuantizerUpdate:
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _BQConfigUpdate(rescoreLimit=rescore_limit, enabled=enabled)
+        return _BQConfigUpdate(
+            rescoreLimit=rescore_limit, rescoreFactor=rescore_factor, enabled=enabled
+        )
 
     @staticmethod
     def sq(
         rescore_limit: Optional[int] = None,
         training_limit: Optional[int] = None,
         enabled: bool = True,
+        rescore_factor: Optional[float] = None,
     ) -> _SQConfigUpdate:
         """Create a `_SQConfigUpdate` object to be used when updating the scalar quantization (SQ) configuration of Weaviate.
 
@@ -3154,7 +3170,10 @@ class _VectorIndexQuantizerUpdate:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _SQConfigUpdate(
-            enabled=enabled, rescoreLimit=rescore_limit, trainingLimit=training_limit
+            enabled=enabled,
+            rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
+            trainingLimit=training_limit,
         )
 
     @staticmethod
@@ -3164,6 +3183,7 @@ class _VectorIndexQuantizerUpdate:
         bits: Optional[int] = None,
         centering: Optional[bool] = None,
         training_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _RQConfigUpdate:
         """Create a `_RQConfigUpdate` object to be used when updating the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -3175,6 +3195,7 @@ class _VectorIndexQuantizerUpdate:
         return _RQConfigUpdate(
             enabled=enabled,
             rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
             bits=bits,
             centering=centering,
             trainingLimit=training_limit,
