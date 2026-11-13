@@ -267,6 +267,8 @@ class Rerankers(str, BaseEnum):
         VOYAGEAI: Weaviate module backed by VoyageAI reranking models.
         JINAAI: Weaviate module backed by JinaAI reranking models.
         NVIDIA: Weaviate module backed by NVIDIA reranking models.
+        TYPESAFEAI: Weaviate module backed by TypeSafe AI decision models.
+        OPENAI: Weaviate module backed by OpenAI decision models.
     """
 
     NONE = "none"
@@ -276,6 +278,8 @@ class Rerankers(str, BaseEnum):
     VOYAGEAI = "reranker-voyageai"
     JINAAI = "reranker-jinaai"
     NVIDIA = "reranker-nvidia"
+    TYPESAFEAI = "reranker-typesafeai"
+    OPENAI = "reranker-openai"
 
 
 class StopwordsPreset(str, BaseEnum):
@@ -724,6 +728,34 @@ class _RerankerVoyageAIConfig(RerankerProvider):
 class _RerankerNvidiaConfig(RerankerProvider):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.NVIDIA, frozen=True, exclude=True
+    )
+    model: Optional[str] = Field(default=None)
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _RerankerTypeSafeAIConfig(RerankerProvider):
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.TYPESAFEAI, frozen=True, exclude=True
+    )
+    model: Optional[str] = Field(default=None)
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _RerankerOpenAIConfig(RerankerProvider):
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.OPENAI, frozen=True, exclude=True
     )
     model: Optional[str] = Field(default=None)
     baseURL: Optional[AnyHttpUrl]
@@ -1540,6 +1572,38 @@ class _Reranker:
             base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
         """
         return _RerankerNvidiaConfig(model=model, baseURL=base_url)
+
+    @staticmethod
+    def typesafeai(
+        model: Optional[str] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> RerankerProvider:
+        """Create a `_RerankerTypeSafeAIConfig` object for use when reranking using the `reranker-typesafeai` module.
+
+        The rerank query is a condition that the model judges about each object, for example
+        "The customer is about to churn". `rerank_score` is the probability that the condition holds.
+
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default (`jev-latest`).
+            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default (`https://api.typesafe.ai`).
+        """
+        return _RerankerTypeSafeAIConfig(model=model, baseURL=base_url)
+
+    @staticmethod
+    def openai(
+        model: Optional[str] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> RerankerProvider:
+        """Create a `_RerankerOpenAIConfig` object for use when reranking using the `reranker-openai` module.
+
+        The rerank query is a condition that the model judges about each object, for example
+        "The customer is about to churn". `rerank_score` is the probability that the condition holds.
+
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default (`gpt-6-luna`).
+            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default (`https://api.openai.com`).
+        """
+        return _RerankerOpenAIConfig(model=model, baseURL=base_url)
 
     @staticmethod
     def contextualai(
