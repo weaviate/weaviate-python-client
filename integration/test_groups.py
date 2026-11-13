@@ -1,5 +1,3 @@
-import pytest
-
 from integration.conftest import ClientFactory
 from weaviate.auth import Auth
 from weaviate.rbac.models import GroupTypes, Role
@@ -10,9 +8,6 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 def test_assign_and_get_group_roles_oidc(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 32, 0):
-            pytest.skip("This test requires Weaviate 1.32.0 or higher")
-
         roles_to_assign = ["viewer", "admin"]
         group_id = "/assign-group"
         client.groups.oidc.revoke_roles(group_id=group_id, role_names=roles_to_assign)
@@ -40,9 +35,6 @@ def test_assign_and_get_group_roles_oidc(client_factory: ClientFactory) -> None:
 
 def test_known_groups(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 32, 0):
-            pytest.skip("This test requires Weaviate 1.32.0 or higher")
-
         group1 = "/known-group1"
         group2 = "/known-group2"
         client.groups.oidc.assign_roles(group_id=group1, role_names="viewer")
@@ -64,9 +56,6 @@ def test_known_groups(client_factory: ClientFactory) -> None:
 
 def test_get_group_assignments(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 32, 0):
-            pytest.skip("This test requires Weaviate 1.32.0 or higher")
-
         role_name = "test_group_assignments_role"
         client.roles.delete(role_name=role_name)
         client.roles.create(role_name=role_name, permissions=[])

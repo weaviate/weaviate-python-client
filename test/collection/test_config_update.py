@@ -365,3 +365,21 @@ def test_updating_vector_when_none_left() -> None:
 
     with pytest.raises(WeaviateInvalidInputError, match="does not exist"):
         update.merge_with_existing({"class": "Test", "properties": []})
+
+
+def test_updating_rq_rescore_factor() -> None:
+    schema = _hfresh_schema()
+    update = _CollectionConfigUpdate(
+        vector_config=Reconfigure.Vectors.update(
+            name="boi",
+            vector_index_config=Reconfigure.VectorIndex.hfresh(
+                quantizer=Reconfigure.VectorIndex.Quantizer.rq(rescore_factor=3.5)
+            ),
+        )
+    )
+
+    new_schema = update.merge_with_existing(schema)
+
+    rq = new_schema["vectorConfig"]["boi"]["vectorIndexConfig"]["rq"]
+    assert rq["rescoreFactor"] == 3.5
+    assert rq["rescoreLimit"] == 20

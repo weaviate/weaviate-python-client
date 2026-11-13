@@ -1,5 +1,5 @@
 import uuid as uuid_lib
-from typing import Any, Dict, List, Literal, Optional, cast, overload
+from typing import List, Literal, Optional, cast, overload
 
 from weaviate.collections.classes.filters import (
     FilterReturn,
@@ -183,88 +183,3 @@ class _FilterToGRPC:
                 if (filter_ := _FilterToGRPC.convert(single_filter)) is not None
             ],
         )
-
-
-class _FilterToREST:
-    @staticmethod
-    def convert(weav_filter: FilterReturn) -> Dict[str, Any]:
-        if isinstance(weav_filter, _FilterValue):
-            return _FilterToREST.__value_filter(weav_filter)
-        else:
-            return _FilterToREST.__and_or_not_filter(weav_filter)
-
-    @staticmethod
-    def __value_filter(weav_filter: _FilterValue) -> Dict[str, Any]:
-        return {
-            "operator": weav_filter.operator.value,
-            "path": _FilterToREST.__to_path(weav_filter.target),
-            **_FilterToREST.__parse_filter(weav_filter.value),
-        }
-
-    @staticmethod
-    def __to_path(target: _FilterTargets) -> List[str]:
-        if isinstance(target, str):
-            return [target]
-        elif isinstance(target, _SingleTargetRef):
-            raise WeaviateInvalidInputError(
-                "Cannot use Filter.by_ref() in the aggregate API currently. Instead use Filter.by_ref_multi_target() and specify the target collection explicitly."
-            )
-        else:
-            assert isinstance(target, _MultiTargetRef)
-            assert target.target is not None
-            return [
-                target.link_on,
-                target.target_collection,
-                *_FilterToREST.__to_path(target.target),
-            ]
-
-    @staticmethod
-    def __parse_filter(value: FilterValues) -> Dict[str, Any]:
-        if isinstance(value, str):
-            return {"valueText": value}
-        if isinstance(value, uuid_lib.UUID):
-            return {"valueText": str(value)}
-        if isinstance(value, TIME):
-            return {"valueDate": _datetime_to_string(value)}
-        if isinstance(value, bool):
-            return {"valueBoolean": value}
-        if isinstance(value, int):
-            return {"valueInt": value}
-        if isinstance(value, float):
-            return {"valueNumber": value}
-        if isinstance(value, list):
-            if len(value) == 0:
-                raise WeaviateInvalidInputError(
-                    "Filtering on empty lists is not supported by Weaviate. "
-                    "To filter by property length, use "
-                    "Filter.by_property('prop', length=True).equal(0)"
-                )
-            if isinstance(value[0], str):
-                return {"valueTextArray": value}
-            if isinstance(value[0], uuid_lib.UUID):
-                return {"valueTextArray": [str(val) for val in value]}
-            if isinstance(value[0], TIME):
-                return {"valueDateArray": [_datetime_to_string(cast(TIME, val)) for val in value]}
-            if isinstance(value[0], bool):
-                return {"valueBooleanArray": value}
-            if isinstance(value[0], int):
-                return {"valueIntArray": value}
-            if isinstance(value[0], float):
-                return {"valueNumberArray": value}
-        raise ValueError(f"Unknown filter value type: {type(value)}")
-
-    @staticmethod
-    def __and_or_not_filter(weav_filter: FilterReturn) -> Dict[str, Any]:
-        assert (
-            isinstance(weav_filter, _FilterAnd)
-            or isinstance(weav_filter, _FilterOr)
-            or isinstance(weav_filter, _FilterNot)
-        )
-        return {
-            "operator": weav_filter.operator.value,
-            "operands": [
-                filter_
-                for single_filter in weav_filter.filters
-                if (filter_ := _FilterToREST.convert(single_filter)) is not None
-            ],
-        }

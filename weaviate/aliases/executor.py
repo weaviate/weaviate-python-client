@@ -16,8 +16,6 @@ class _AliasExecutor(Generic[ConnectionType]):
         self, *, collection: Optional[str] = None
     ) -> executor.Result[Dict[str, AliasReturn]]:
         """Get the alias for a given alias name."""
-        self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
-
         error_msg = "list all aliases"
         if collection is not None:
             error_msg += f" for collection {collection}"
@@ -46,7 +44,6 @@ class _AliasExecutor(Generic[ConnectionType]):
 
     def get(self, *, alias_name: str) -> executor.Result[Optional[AliasReturn]]:
         """Get the given alias."""
-        self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
 
         def resp(res: Response) -> Optional[AliasReturn]:
             if res.status_code == 404:
@@ -69,7 +66,6 @@ class _AliasExecutor(Generic[ConnectionType]):
 
     def create(self, *, alias_name: str, target_collection: str) -> executor.Result[None]:
         """Create an alias for a given collection."""
-        self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
 
         def resp(res: Response) -> None:
             return None
@@ -88,7 +84,6 @@ class _AliasExecutor(Generic[ConnectionType]):
 
     def delete(self, *, alias_name: str) -> executor.Result[bool]:
         """Create an alias."""
-        self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
 
         def resp(res: Response) -> bool:
             return res.status_code == 204
@@ -106,7 +101,6 @@ class _AliasExecutor(Generic[ConnectionType]):
 
     def update(self, *, alias_name: str, new_target_collection: str) -> executor.Result[bool]:
         """Replace an alias."""
-        self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
 
         def resp(res: Response) -> bool:
             return res.status_code == 200
@@ -132,7 +126,6 @@ class _AliasExecutor(Generic[ConnectionType]):
         Returns:
             `True` if the alias exists, `False` otherwise.
         """
-        self._connection._weaviate_version.check_is_at_least_1_32_0("alias")
 
         def resp(res: Response) -> bool:
             return res.status_code == 200

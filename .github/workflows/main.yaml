@@ -18,11 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WEAVIATE_127: 1.27.27
-  WEAVIATE_128: 1.28.16
-  WEAVIATE_129: 1.29.11
-  WEAVIATE_130: 1.30.23
-  WEAVIATE_131: 1.31.22
   WEAVIATE_132: 1.32.27
   WEAVIATE_133: 1.33.18
   WEAVIATE_134: 1.34.20
@@ -32,6 +27,7 @@ env:
   WEAVIATE_138: 1.38.22
   WEAVIATE_139: 1.39.13
   WEAVIATE_140: 1.40.2
+  WEAVIATE_141: 1.41.0-dev-483b145
 
 jobs:
   lint-and-format:
@@ -375,11 +371,6 @@ jobs:
       fail-fast: false
       matrix:
         version: [
-          $WEAVIATE_127,
-          $WEAVIATE_128,
-          $WEAVIATE_129,
-          $WEAVIATE_130,
-          $WEAVIATE_131,
           $WEAVIATE_132,
           $WEAVIATE_133,
           $WEAVIATE_134,
@@ -388,7 +379,8 @@ jobs:
           $WEAVIATE_137,
           $WEAVIATE_138,
           $WEAVIATE_139,
-          $WEAVIATE_140
+          $WEAVIATE_140,
+          $WEAVIATE_141
         ]
     steps:
       - name: Checkout

@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Union
+from typing import Any, List, Union
 
 import pytest
 from pydantic import ValidationError
@@ -3447,3 +3447,26 @@ class TestInvertedIndexStopwordPresets:
         }
         merged = rc.merge_with_existing(existing)
         assert merged["stopwordPresets"] == {"fr": ["le", "la"]}
+
+
+@pytest.mark.parametrize(
+    "quantizer,name",
+    [
+        (Configure.VectorIndex.Quantizer.pq(rescore_limit=123, rescore_factor=2.5), "pq"),
+        (Configure.VectorIndex.Quantizer.bq(rescore_limit=123, rescore_factor=2.5), "bq"),
+        (Configure.VectorIndex.Quantizer.sq(rescore_limit=123, rescore_factor=2.5), "sq"),
+        (Configure.VectorIndex.Quantizer.rq(rescore_limit=123, rescore_factor=2.5), "rq"),
+    ],
+)
+def test_vector_config_hnsw_quantizer_rescore_factor(quantizer: Any, name: str) -> None:
+    vi_dict = Configure.VectorIndex.hnsw(quantizer=quantizer)._to_dict()
+
+    assert vi_dict[name]["rescoreLimit"] == 123
+    assert vi_dict[name]["rescoreFactor"] == 2.5
+
+
+def test_vector_config_hnsw_quantizer_rescore_factor_omitted_by_default() -> None:
+    vi_dict = Configure.VectorIndex.hnsw(quantizer=Configure.VectorIndex.Quantizer.pq())._to_dict()
+
+    assert "rescoreLimit" not in vi_dict["pq"]
+    assert "rescoreFactor" not in vi_dict["pq"]
