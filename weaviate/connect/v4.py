@@ -487,6 +487,7 @@ class _ConnectionBase:
                                 oidc_config=resp,
                                 credentials=auth_client_secret,
                                 make_mounts=lambda: self._make_mounts("async"),
+                                trust_env=self.__trust_env,
                                 colour=colour,
                             )
                         )
@@ -510,6 +511,7 @@ class _ConnectionBase:
                             oidc_config=resp,
                             credentials=auth_client_secret,
                             make_mounts=lambda: self._make_mounts("sync"),
+                            trust_env=self.__trust_env,
                             colour=colour,
                         )
                     )
