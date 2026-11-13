@@ -1,5 +1,19 @@
 import os
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, TypeVar, Union, cast
+import ssl
+import sys
+from typing import (
+    Any,
+    Dict,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 from urllib.parse import urlparse
 
 import certifi
@@ -7,6 +21,7 @@ import grpc  # type: ignore
 from grpc import Channel as SyncChannel
 from grpc import ssl_channel_credentials
 from grpc.aio import Channel as AsyncChannel  # type: ignore
+from httpx2 import AsyncHTTPTransport, HTTPTransport, Proxy
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import GrpcConfig, Proxies
@@ -31,8 +46,69 @@ def _grpc_web_shim_active() -> bool:
     return getattr(grpc, "__weaviate_client_web_shim__", False) is True
 
 
+def _default_ssl_context(trust_env: bool = True) -> Union[ssl.SSLContext, bool]:
+    """The ``verify`` value for every httpx2 client: certifi's CA bundle, as gRPC uses.
+
+    httpx2 defaults to the OS trust store (via truststore); pinning certifi keeps REST and
+    gRPC on the same roots and matches what httpx did. With ``trust_env``, SSL_CERT_FILE
+    and SSL_CERT_DIR still win, as they did with httpx. Under Emscripten the browser's
+    fetch verifies TLS, so httpx2's default is kept there.
+    """
+    if sys.platform == "emscripten":
+        return True
+    if trust_env and (cafile := os.environ.get("SSL_CERT_FILE")):
+        return ssl.create_default_context(cafile=cafile)
+    if trust_env and (capath := os.environ.get("SSL_CERT_DIR")):
+        return ssl.create_default_context(capath=capath)
+    return ssl.create_default_context(cafile=certifi.where())
+
+
+def _make_proxy(url: str, trust_env: bool = True) -> Proxy:
+    """An httpx2 Proxy whose own TLS handshake follows ``_default_ssl_context`` too.
+
+    httpx2 verifies an https:// proxy with a separate context (``Proxy.ssl_context``) that
+    otherwise defaults to the OS trust store. http:// proxies must not get one: httpcore2
+    rejects a proxy SSL context for the http scheme.
+    """
+    if urlparse(url).scheme != "https":
+        return Proxy(url=url)
+    verify = _default_ssl_context(trust_env)
+    if not isinstance(verify, ssl.SSLContext):
+        return Proxy(url=url)
+    return Proxy(url=url, ssl_context=verify)
+
+
+@overload
+def _env_proxy_mounts(colour: Literal["async"]) -> Dict[str, AsyncHTTPTransport]: ...
+
+
+@overload
+def _env_proxy_mounts(colour: Literal["sync"]) -> Dict[str, HTTPTransport]: ...
+
+
+def _env_proxy_mounts(
+    colour: Literal["async", "sync"],
+) -> Union[Dict[str, AsyncHTTPTransport], Dict[str, HTTPTransport]]:
+    """Transports for HTTP(S)_PROXY, for clients that would otherwise let httpx2 build them.
+
+    httpx2 builds environment proxies without a proxy SSL context, so an https:// proxy would
+    be verified against the OS trust store. NO_PROXY still applies: httpx2 keeps its more
+    specific per-host mounts for it.
+    """
+    proxies = {key: url for key, url in _get_proxies(None, True).items() if key != "grpc"}
+    if colour == "async":
+        return {
+            f"{key}://": AsyncHTTPTransport(verify=_default_ssl_context(), proxy=_make_proxy(url))
+            for key, url in proxies.items()
+        }
+    return {
+        f"{key}://": HTTPTransport(verify=_default_ssl_context(), proxy=_make_proxy(url))
+        for key, url in proxies.items()
+    }
+
+
 def _default_grpc_credentials() -> grpc.ChannelCredentials:
-    """SSL credentials trusting certifi's CA bundle, the same one httpx uses for REST.
+    """SSL credentials trusting certifi's CA bundle, the same one httpx2 uses for REST.
 
     grpcio's bundled roots only change with a grpcio release, so a CA distrust reaches
     certifi first. A roots file set via GRPC_DEFAULT_SSL_ROOTS_FILE_PATH still wins.

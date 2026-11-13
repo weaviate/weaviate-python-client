@@ -330,6 +330,10 @@ def test_bare_import_with_grpc_present_falls_through_silently() -> None:
     result = _run_hook_scenario(
         prelude=_PRIME_SYSCONFIG,
         body="""
+        # httpx2 picks its transports from sys.platform at import time; under a faked
+        # emscripten it would look for httpx2-jsfetch, so import it for real first
+        import httpx2
+
         sys.platform = "emscripten"
         sys.modules["weaviate_client_web"] = None  # makes its import raise ImportError
 

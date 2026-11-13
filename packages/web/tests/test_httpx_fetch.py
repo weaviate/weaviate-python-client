@@ -7,7 +7,7 @@ import sys
 import types
 from typing import Any, Dict, List, Optional
 
-import httpx
+import httpx2
 import pytest
 
 import weaviate_client_web
@@ -70,23 +70,23 @@ def missing_js(monkeypatch):
     monkeypatch.setitem(sys.modules, "js", None)
 
 
-async def _handle(request: httpx.Request) -> httpx.Response:
+async def _handle(request: httpx2.Request) -> httpx2.Response:
     # self is unused by the handler implementation; a bare transport instance suffices
-    transport = httpx.AsyncHTTPTransport.__new__(httpx.AsyncHTTPTransport)
+    transport = httpx2.AsyncHTTPTransport.__new__(httpx2.AsyncHTTPTransport)
     response = await _httpx_fetch._fetch_handle_async_request(transport, request)
-    await response.aread()  # httpx.AsyncClient reads non-streamed responses the same way
+    await response.aread()  # httpx2.AsyncClient reads non-streamed responses the same way
     return response
 
 
-class _FetchTransport(httpx.AsyncBaseTransport):
-    """Route an ``httpx.AsyncClient`` through the handler without touching global state."""
+class _FetchTransport(httpx2.AsyncBaseTransport):
+    """Route an ``httpx2.AsyncClient`` through the handler without touching global state."""
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+    async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
         return await _httpx_fetch._fetch_handle_async_request(self, request)  # type: ignore[arg-type]
 
 
-async def _via_client(method: str, url: str, **kwargs: Any) -> httpx.Response:
-    async with httpx.AsyncClient(transport=_FetchTransport()) as client:
+async def _via_client(method: str, url: str, **kwargs: Any) -> httpx2.Response:
+    async with httpx2.AsyncClient(transport=_FetchTransport()) as client:
         return await client.request(method, url, **kwargs)
 
 
@@ -94,7 +94,7 @@ async def test_basic_get_round_trip(fake_pyfetch):
     fake_pyfetch.response = FakeFetchResponse(
         status=200, headers={"content-type": "application/json"}, body=b'{"version": "1.30.0"}'
     )
-    response = await _handle(httpx.Request("GET", "http://h:8080/v1/meta"))
+    response = await _handle(httpx2.Request("GET", "http://h:8080/v1/meta"))
 
     assert response.status_code == 200
     assert response.json() == {"version": "1.30.0"}
@@ -106,8 +106,8 @@ async def test_basic_get_round_trip(fake_pyfetch):
 
 async def test_response_has_request_attached_for_raise_for_status(fake_pyfetch):
     fake_pyfetch.response = FakeFetchResponse(status=404, body=b"")
-    response = await _handle(httpx.Request("GET", "http://h:8080/v1/schema/Nope"))
-    with pytest.raises(httpx.HTTPStatusError):
+    response = await _handle(httpx2.Request("GET", "http://h:8080/v1/schema/Nope"))
+    with pytest.raises(httpx2.HTTPStatusError):
         response.raise_for_status()
 
 
@@ -116,7 +116,7 @@ async def test_head_response_without_body_yields_empty_content(fake_pyfetch, sta
     # data.exists() / tenants.exists() are HEAD requests answered 204/404 with a null
     # body; the transport must hand httpx an empty response, not fail on the missing body
     fake_pyfetch.response = FakeFetchResponse(status=status, body=None)
-    response = await _handle(httpx.Request("HEAD", "http://h:8080/v1/objects/A/uuid"))
+    response = await _handle(httpx2.Request("HEAD", "http://h:8080/v1/objects/A/uuid"))
     assert response.status_code == status
     assert response.content == b""
     assert "body" not in fake_pyfetch.calls[0]
@@ -125,13 +125,13 @@ async def test_head_response_without_body_yields_empty_content(fake_pyfetch, sta
 async def test_delete_204_without_body_yields_empty_content(fake_pyfetch):
     # data.delete_by_id() / reference_delete() are answered 204 with a null body
     fake_pyfetch.response = FakeFetchResponse(status=204, body=None)
-    response = await _handle(httpx.Request("DELETE", "http://h:8080/v1/objects/A/uuid"))
+    response = await _handle(httpx2.Request("DELETE", "http://h:8080/v1/objects/A/uuid"))
     assert response.status_code == 204
     assert response.content == b""
 
 
 async def test_body_less_response_through_async_client(fake_pyfetch):
-    # the full httpx.AsyncClient path (stream wrapping + read) on a body-less response
+    # the full httpx2.AsyncClient path (stream wrapping + read) on a body-less response
     fake_pyfetch.response = FakeFetchResponse(status=204, body=None)
     response = await _via_client("HEAD", "http://h:8080/v1/objects/A/uuid")
     assert response.status_code == 204
@@ -150,7 +150,7 @@ async def test_response_through_async_client_exposes_elapsed_and_content(fake_py
 
 
 async def test_fetch_managed_request_headers_stripped(fake_pyfetch):
-    request = httpx.Request(
+    request = httpx2.Request(
         "POST",
         "http://h:8080/v1/objects",
         headers={
@@ -173,25 +173,25 @@ async def test_fetch_managed_request_headers_stripped(fake_pyfetch):
 
 async def test_get_without_body_omits_body_kwarg(fake_pyfetch):
     # fetch rejects GET/HEAD requests that carry a body, so the kwarg must be absent
-    await _handle(httpx.Request("GET", "http://h:8080/v1/.well-known/ready"))
+    await _handle(httpx2.Request("GET", "http://h:8080/v1/.well-known/ready"))
     assert "body" not in fake_pyfetch.calls[0]
 
 
 async def test_post_body_passed(fake_pyfetch):
-    await _handle(httpx.Request("POST", "http://h:8080/v1/graphql", content=b'{"query": "x"}'))
+    await _handle(httpx2.Request("POST", "http://h:8080/v1/graphql", content=b'{"query": "x"}'))
     assert fake_pyfetch.calls[0]["body"] == b'{"query": "x"}'
 
 
 async def test_delete_with_body_passed(fake_pyfetch):
     # the REST batch-delete path sends DELETE with a JSON body
     await _handle(
-        httpx.Request("DELETE", "http://h:8080/v1/batch/objects", content=b'{"match": {}}')
+        httpx2.Request("DELETE", "http://h:8080/v1/batch/objects", content=b'{"match": {}}')
     )
     assert fake_pyfetch.calls[0]["body"] == b'{"match": {}}'
 
 
 async def test_query_string_preserved_in_url(fake_pyfetch):
-    await _handle(httpx.Request("GET", "http://h:8080/v1/objects?class=A&limit=10&after=a%20b"))
+    await _handle(httpx2.Request("GET", "http://h:8080/v1/objects?class=A&limit=10&after=a%20b"))
     assert fake_pyfetch.calls[0]["url"] == "http://h:8080/v1/objects?class=A&limit=10&after=a%20b"
 
 
@@ -202,7 +202,7 @@ async def test_content_encoding_stripped_from_response(fake_pyfetch):
         headers={"content-encoding": "gzip", "content-length": "23", "x-other": "kept"},
         body=b'{"version": "1.30.0"}',
     )
-    response = await _handle(httpx.Request("GET", "http://h:8080/v1/meta"))
+    response = await _handle(httpx2.Request("GET", "http://h:8080/v1/meta"))
     assert response.json() == {"version": "1.30.0"}
     assert "content-encoding" not in response.headers
     assert response.headers["x-other"] == "kept"
@@ -215,13 +215,13 @@ async def test_unreadable_response_headers_tolerated(fake_pyfetch):
 
     fake_pyfetch.response = FakeFetchResponse(status=200, body=b"ok")
     fake_pyfetch.response.headers = BadHeaders()
-    response = await _handle(httpx.Request("GET", "http://h:8080/v1/meta"))
+    response = await _handle(httpx2.Request("GET", "http://h:8080/v1/meta"))
     assert response.status_code == 200
     assert response.content == b"ok"
 
 
-def _request_with_timeout(timeouts: Dict[str, Optional[float]]) -> httpx.Request:
-    request = httpx.Request("GET", "http://h:8080/v1/meta")
+def _request_with_timeout(timeouts: Dict[str, Optional[float]]) -> httpx2.Request:
+    request = httpx2.Request("GET", "http://h:8080/v1/meta")
     request.extensions["timeout"] = timeouts
     return request
 
@@ -250,7 +250,7 @@ async def test_read_timeout_alone_sets_the_deadline(fake_pyfetch, fake_abort_sig
 
 
 async def test_no_timeout_extension_sends_no_signal(fake_pyfetch, fake_abort_signal):
-    await _handle(httpx.Request("GET", "http://h:8080/v1/meta"))
+    await _handle(httpx2.Request("GET", "http://h:8080/v1/meta"))
     assert fake_abort_signal.timeouts == []
     assert "signal" not in fake_pyfetch.calls[0]
 
@@ -324,8 +324,8 @@ async def test_fetch_failure_maps_to_httpx_connect_error(monkeypatch):
     # pyodide surfaces JS fetch rejections as OSError; the base client can only classify
     # httpx exceptions, so the transport maps OSError to httpx errors
     _install_raising_pyfetch(monkeypatch, OSError("TypeError: Failed to fetch"))
-    with pytest.raises(httpx.ConnectError, match="Failed to fetch") as excinfo:
-        await _handle(httpx.Request("GET", "http://h:8080/v1/meta"))
+    with pytest.raises(httpx2.ConnectError, match="Failed to fetch") as excinfo:
+        await _handle(httpx2.Request("GET", "http://h:8080/v1/meta"))
     assert isinstance(excinfo.value.__cause__, OSError)
 
 
@@ -333,7 +333,7 @@ async def test_fetch_abort_with_deadline_maps_to_read_timeout(monkeypatch, fake_
     # AbortSignal.timeout firing surfaces as an OSError subclass mentioning the abort;
     # with a deadline set this must classify as a timeout, not a connection error
     _install_raising_pyfetch(monkeypatch, OSError("AbortError: signal timed out"))
-    with pytest.raises(httpx.ReadTimeout, match="signal timed out"):
+    with pytest.raises(httpx2.ReadTimeout, match="signal timed out"):
         await _handle(
             _request_with_timeout({"connect": None, "read": 0.5, "write": None, "pool": None})
         )
@@ -345,7 +345,7 @@ async def test_fetch_failure_with_deadline_but_no_timeout_message_stays_connect_
     # nearly every weaviate request sets a read deadline; a plain network failure on
     # such a request must remain a connection error, not become a timeout
     _install_raising_pyfetch(monkeypatch, OSError("TypeError: Failed to fetch"))
-    with pytest.raises(httpx.ConnectError, match="Failed to fetch"):
+    with pytest.raises(httpx2.ConnectError, match="Failed to fetch"):
         await _handle(
             _request_with_timeout({"connect": None, "read": 30.0, "write": None, "pool": None})
         )
@@ -354,7 +354,7 @@ async def test_fetch_failure_with_deadline_but_no_timeout_message_stays_connect_
 async def test_fetch_abort_without_deadline_stays_connect_error(monkeypatch, missing_js):
     # without our deadline (no js bridge -> no signal), an abort is a connection error
     _install_raising_pyfetch(monkeypatch, OSError("AbortError: signal timed out"))
-    with pytest.raises(httpx.ConnectError):
+    with pytest.raises(httpx2.ConnectError):
         await _handle(
             _request_with_timeout({"connect": None, "read": 0.5, "write": None, "pool": None})
         )
@@ -362,16 +362,16 @@ async def test_fetch_abort_without_deadline_stays_connect_error(monkeypatch, mis
 
 async def test_empty_oserror_str_keeps_repr_detail(monkeypatch):
     _install_raising_pyfetch(monkeypatch, OSError())
-    with pytest.raises(httpx.ConnectError) as excinfo:
-        await _handle(httpx.Request("GET", "http://h:8080/v1/meta"))
+    with pytest.raises(httpx2.ConnectError) as excinfo:
+        await _handle(httpx2.Request("GET", "http://h:8080/v1/meta"))
     assert "OSError" in str(excinfo.value)
 
 
 async def test_crlf_in_header_value_rejected(fake_pyfetch):
-    request = httpx.Request(
+    request = httpx2.Request(
         "GET", "http://h:8080/v1/meta", headers={"x-key": "val\r\nx-injected: evil"}
     )
-    with pytest.raises(httpx.LocalProtocolError):
+    with pytest.raises(httpx2.LocalProtocolError):
         await _handle(request)
     assert fake_pyfetch.calls == []
 
@@ -385,19 +385,19 @@ def test_bootstrap_installed_fetch_transport():
     # the import at the top ran the real bootstrap, which replaces Pyodide's jsfetch transport
     assert weaviate_client_web.is_fetch_transport_installed()
     assert (
-        getattr(httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False)
+        getattr(httpx2.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False)
         is True
     )
 
 
 def test_install_fetch_transport_is_idempotent():
-    patched_method = httpx.AsyncHTTPTransport.handle_async_request
+    patched_method = httpx2.AsyncHTTPTransport.handle_async_request
     weaviate_client_web.install_fetch_transport()
-    assert httpx.AsyncHTTPTransport.handle_async_request is patched_method
+    assert httpx2.AsyncHTTPTransport.handle_async_request is patched_method
 
 
 def test_sync_transport_left_untouched():
-    assert not getattr(httpx.HTTPTransport.handle_request, "__weaviate_fetch_shim__", False)
+    assert not getattr(httpx2.HTTPTransport.handle_request, "__weaviate_fetch_shim__", False)
 
 
 def test_uninstall_restores_original_transport():
@@ -405,19 +405,19 @@ def test_uninstall_restores_original_transport():
     # checked by identity even though the install happened at import time
     original = _httpx_fetch._original_handle_async_request
     assert original is not None
-    patched_method = httpx.AsyncHTTPTransport.handle_async_request
+    patched_method = httpx2.AsyncHTTPTransport.handle_async_request
     try:
         weaviate_client_web.uninstall_fetch_transport()
         assert not weaviate_client_web.is_fetch_transport_installed()
-        assert httpx.AsyncHTTPTransport.handle_async_request is original
-        assert httpx.AsyncHTTPTransport.handle_async_request is not patched_method
+        assert httpx2.AsyncHTTPTransport.handle_async_request is original
+        assert httpx2.AsyncHTTPTransport.handle_async_request is not patched_method
         weaviate_client_web.uninstall_fetch_transport()  # no-op when not installed
-        assert httpx.AsyncHTTPTransport.handle_async_request is original
+        assert httpx2.AsyncHTTPTransport.handle_async_request is original
     finally:
         weaviate_client_web.install_fetch_transport()
     assert weaviate_client_web.is_fetch_transport_installed()
     assert (
-        getattr(httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False)
+        getattr(httpx2.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False)
         is True
     )
 
@@ -427,7 +427,7 @@ async def test_installed_transport_routes_async_client_through_pyfetch(fake_pyfe
     fake_pyfetch.response = FakeFetchResponse(
         status=200, headers={"content-type": "application/json"}, body=b'{"ok": true}'
     )
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.get("http://h:8080/v1/meta")
     assert response.status_code == 200
     assert response.json() == {"ok": True}

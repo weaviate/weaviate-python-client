@@ -34,7 +34,7 @@ from grpc.aio import AioRpcError, StreamStreamCall
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 
 # from grpclib.client import Channel
-from httpx import (
+from httpx2 import (
     AsyncClient,
     AsyncHTTPTransport,
     Client,
@@ -43,7 +43,6 @@ from httpx import (
     HTTPStatusError,
     HTTPTransport,
     Limits,
-    Proxy,
     ReadError,
     ReadTimeout,
     RemoteProtocolError,
@@ -61,7 +60,10 @@ from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
     JSONPayload,
+    _default_ssl_context,
+    _env_proxy_mounts,
     _get_proxies,
+    _make_proxy,
 )
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
@@ -229,12 +231,14 @@ class _ConnectionBase:
                 headers=self._headers,
                 mounts=self._make_mounts(colour),
                 trust_env=self.__trust_env,
+                verify=_default_ssl_context(self.__trust_env),
             )
         if colour == "sync":
             return Client(
                 headers=self._headers,
                 mounts=self._make_mounts(colour),
                 trust_env=self.__trust_env,
+                verify=_default_ssl_context(self.__trust_env),
             )
 
     @overload
@@ -253,9 +257,10 @@ class _ConnectionBase:
                         max_connections=self.__connection_config.session_pool_maxsize,
                         max_keepalive_connections=self.__connection_config.session_pool_connections,
                     ),
-                    proxy=Proxy(url=proxy),
+                    proxy=_make_proxy(proxy, self.__trust_env),
                     retries=self.__connection_config.session_pool_max_retries,
                     trust_env=self.__trust_env,
+                    verify=_default_ssl_context(self.__trust_env),
                 )
                 for key, proxy in self._proxies.items()
                 if key != "grpc"
@@ -267,9 +272,10 @@ class _ConnectionBase:
                         max_connections=self.__connection_config.session_pool_maxsize,
                         max_keepalive_connections=self.__connection_config.session_pool_connections,
                     ),
-                    proxy=Proxy(url=proxy),
+                    proxy=_make_proxy(proxy, self.__trust_env),
                     retries=self.__connection_config.session_pool_max_retries,
                     trust_env=self.__trust_env,
+                    verify=_default_ssl_context(self.__trust_env),
                 )
                 for key, proxy in self._proxies.items()
                 if key != "grpc"
@@ -674,7 +680,7 @@ class _ConnectionBase:
     ) -> Timeout:
         """Get the timeout for the request.
 
-        In this way, the client waits the `httpx` default of 5s when connecting to a socket (connect), writing chunks (write), and
+        In this way, the client waits the `httpx2` default of 5s when connecting to a socket (connect), writing chunks (write), and
         acquiring a connection from the pool (pool), but a custom amount as specified for reading the response (read).
 
         From the PoV of the user, a request is considered to be timed out if no response is received within the specified time.
@@ -808,7 +814,9 @@ class _ConnectionBase:
 
             async def _execute() -> None:
                 try:
-                    async with AsyncClient() as client:
+                    async with AsyncClient(
+                        verify=_default_ssl_context(), mounts=_env_proxy_mounts("async")
+                    ) as client:
                         res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
                     return resp(res)
                 except (RequestError, OSError):
@@ -820,7 +828,7 @@ class _ConnectionBase:
             return _execute()
 
         try:
-            with Client() as client:
+            with Client(verify=_default_ssl_context(), mounts=_env_proxy_mounts("sync")) as client:
                 res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
             return resp(res)
         except (RequestError, OSError):

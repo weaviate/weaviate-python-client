@@ -10,7 +10,7 @@ import warnings
 import weaviate_client_web  # bootstraps the grpc shim + fetch transport under Emscripten
 
 import grpc
-import httpx
+import httpx2
 import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.config import DataType, Property, ReferenceProperty
@@ -37,8 +37,8 @@ async def main() -> None:
     # REST must use weaviate-client-web's fetch transport, not Pyodide's bundled one.
     assert weaviate_client_web.is_fetch_transport_installed(), "fetch transport not installed"
     assert getattr(
-        httpx.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
-    ), "httpx.AsyncHTTPTransport is not the package's fetch transport"
+        httpx2.AsyncHTTPTransport.handle_async_request, "__weaviate_fetch_shim__", False
+    ), "httpx2.AsyncHTTPTransport is not the package's fetch transport"
     ok("self-check: package fetch transport is the active httpx transport")
 
     host = os.environ.get("WEAVIATE_HOST", "localhost")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Awaitable, Callable, Dict, List, Optional, Union
 
-import httpx
+import httpx2
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
@@ -19,14 +19,15 @@ from weaviate.exceptions import AuthenticationFailedError, MissingScopeError
 from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
 from . import executor
+from .base import _default_ssl_context, _env_proxy_mounts
 
 AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]
 
 Result = Union[OAuth2Client, Awaitable[AsyncOAuth2Client]]
 MountsMaker = Union[
-    Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
-    Callable[[], Dict[str, httpx.HTTPTransport]],
+    Callable[[], Dict[str, httpx2.AsyncHTTPTransport]],
+    Callable[[], Dict[str, httpx2.HTTPTransport]],
 ]
 
 
@@ -111,7 +112,7 @@ class _Auth:
         if self._token_endpoint is not None:
             return executor.return_(self._token_endpoint, self.__colour)
 
-        def resp(res: httpx.Response) -> str:
+        def resp(res: httpx2.Response) -> str:
             data = _decode_json_response_dict(res, "Get token endpoint")
             assert data is not None
             token_endpoint = data["token_endpoint"]
@@ -121,19 +122,21 @@ class _Auth:
         if self.__colour == "async":
 
             async def _execute() -> str:
-                mounts: Dict[str, httpx.AsyncBaseTransport] = {}
+                mounts: Dict[str, httpx2.AsyncBaseTransport] = {}
                 for key, mount in self.__make_mounts().items():
-                    assert isinstance(mount, httpx.AsyncHTTPTransport)
+                    assert isinstance(mount, httpx2.AsyncHTTPTransport)
                     mounts[key] = mount
-                async with httpx.AsyncClient(mounts=mounts) as client:
+                async with httpx2.AsyncClient(
+                    mounts=mounts, verify=_default_ssl_context()
+                ) as client:
                     return resp(await client.get(self._open_id_config_url))
 
             return _execute()
-        mounts: Dict[str, httpx.BaseTransport] = {}
+        mounts: Dict[str, httpx2.BaseTransport] = {}
         for key, mount in self.__make_mounts().items():
-            assert isinstance(mount, httpx.BaseTransport)
+            assert isinstance(mount, httpx2.BaseTransport)
             mounts[key] = mount
-        with httpx.Client(mounts=mounts) as client:
+        with httpx2.Client(mounts=mounts, verify=_default_ssl_context()) as client:
             return resp(client.get(self._open_id_config_url))
 
     def get_auth_session(self) -> Result:
@@ -164,6 +167,8 @@ class _Auth:
                     token_endpoint=await executor.aresult(self._get_token_endpoint()),
                     client_id=self._client_id,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    verify=_default_ssl_context(),
+                    mounts=_env_proxy_mounts("async"),
                 )
 
             return _execute()
@@ -172,6 +177,8 @@ class _Auth:
             token_endpoint=executor.result(self._get_token_endpoint()),
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            verify=_default_ssl_context(),
+            mounts=_env_proxy_mounts("sync"),
         )
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> Result:
@@ -186,6 +193,8 @@ class _Auth:
                     grant_type="password",
                     scope=scope,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    verify=_default_ssl_context(),
+                    mounts=_env_proxy_mounts("async"),
                 )
                 token: dict = await session.fetch_token(
                     username=config.username, password=config.password
@@ -202,6 +211,8 @@ class _Auth:
             grant_type="password",
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            verify=_default_ssl_context(),
+            mounts=_env_proxy_mounts("sync"),
         )
         token: dict = session.fetch_token(username=config.username, password=config.password)
         if "refresh_token" not in token:
@@ -239,6 +250,8 @@ class _Auth:
                     grant_type="client_credentials",
                     token={"access_token": None, "expires_in": -100},
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    verify=_default_ssl_context(),
+                    mounts=_env_proxy_mounts("async"),
                 )
                 # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
                 await session.fetch_token()
@@ -254,6 +267,8 @@ class _Auth:
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            verify=_default_ssl_context(),
+            mounts=_env_proxy_mounts("sync"),
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
         session.fetch_token()
