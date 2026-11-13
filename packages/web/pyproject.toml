@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "weaviate-client-web"
 description = "grpc-web / WASM (Pyodide) transport for the Weaviate Python client"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "BSD-3-Clause" }
 authors = [{ name = "Weaviate", email = "hello@weaviate.io" }]
 keywords = ["weaviate", "grpc-web", "pyodide", "wasm", "emscripten"]

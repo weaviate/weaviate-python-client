@@ -22,7 +22,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     WeaviateInvalidInputError,
 )
-from weaviate.types import BLOB_INPUT, NUMBER, TIME, UUIDS
+from weaviate.types import BLOB_INPUT, NUMBER, TIME, UUID, UUIDS
 from weaviate.warnings import _Warnings
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
@@ -670,9 +670,7 @@ def _type_request_response(json_response: Any) -> Optional[Dict[str, Any]]:
 
 
 def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
-    if isinstance(uuids, uuid_lib.UUID) or isinstance(
-        uuids, str
-    ):  # replace with isinstance(uuids, UUID) in 3.10
+    if isinstance(uuids, UUID):
         uuids = [uuids]
 
     if len(to_class) > 0:

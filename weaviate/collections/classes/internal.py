@@ -1,8 +1,8 @@
 import datetime
-import sys
 import uuid as uuid_package
 from dataclasses import dataclass, field
 from typing import (
+    Annotated,
     Any,
     Dict,
     Generic,
@@ -14,14 +14,12 @@ from typing import (
     Type,
     Union,
     cast,
+    get_args,
+    get_origin,
+    get_type_hints,
 )
 
 from typing_extensions import TypeAlias, deprecated
-
-if sys.version_info < (3, 9):
-    from typing_extensions import Annotated, get_args, get_origin, get_type_hints
-else:
-    from typing import Annotated, get_args, get_origin, get_type_hints
 
 from weaviate.collections.classes.generative import (
     _GenerativeConfigRuntime,
