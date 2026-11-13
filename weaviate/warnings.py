@@ -328,6 +328,17 @@ class _Warnings:
         )
 
     @staticmethod
+    def batch_context_manager_not_entered() -> None:
+        warnings.warn(
+            message=(
+                "Bat006: A batching method such as `rate_limit()` was called without `with`, so its settings were not used.\n"
+                "Call it in a `with` statement instead, for example `with collection.batch.rate_limit(100) as batch:`"
+            ),
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def unknown_type_encountered(field: str) -> None:
         warnings.warn(
             message=f"""Grpc002: Unknown return type {field} received, skipping value and returning None.""",
