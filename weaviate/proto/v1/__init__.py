@@ -16,9 +16,9 @@ from importlib.metadata import PackageNotFoundError, version as metadata_version
 
 from weaviate.exceptions import WeaviateProtobufIncompatibility
 
-# grpcio version assumed under Emscripten, where weaviate-client-web provides grpc; the shim
-# reports it as grpc.__version__, so it must be >= every vendored stub's
-# GRPC_GENERATED_VERSION (1.83.0 in v7351).
+# grpcio version assumed under Emscripten, where weaviate-client-web provides grpc. The shim's
+# stub version check always passes, so this only steers the selector below: 1.83.0 picks v7351
+# on protobuf 7.35.1+, and anything under 1.72.0 raises on protobuf 6.30+.
 _GRPCIO_FALLBACK_VERSION = "1.83.0"
 
 def get_version(pkg: str) -> version.Version:

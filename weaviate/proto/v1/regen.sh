@@ -75,7 +75,7 @@ compile_protos() {
 compile_protos "4.21.6" "1.59.5"
 compile_protos "5.26.1" "1.63.0"
 compile_protos "6.30.0" "1.72.1" # .0 was yanked
-compile_protos "7.35.1" "1.83.0" # first grpcio-tools on protobuf 7
+compile_protos "7.35.1" "1.83.0" # sets the grpcio floor __init__.py checks for v7351
 
 deactivate
 rm -rf "$PROTO_VENV"
