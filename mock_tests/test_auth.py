@@ -11,6 +11,7 @@ from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import weaviate
+import weaviate.connect.authentication
 from mock_tests.conftest import CLIENT_ID, MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 from weaviate.exceptions import MissingScopeException
 
@@ -85,6 +86,193 @@ def test_client_credentials(weaviate_auth_mock: HTTPServer, start_grpc_server: g
     weaviate_auth_mock.check_assertions()
 
 
+def _as_oidc_proxy(proxy: HTTPServer) -> None:
+    """Serve Weaviate and the IdP from a proxy, behind hosts only the proxy can reach."""
+    proxy.expect_request("/v1/meta").respond_with_json({"version": "1.36"})
+    proxy.expect_request("/v1/.well-known/openid-configuration").respond_with_json(
+        {"href": "http://idp.invalid/endpoints", "clientId": CLIENT_ID}
+    )
+    proxy.expect_request("/endpoints").respond_with_json(
+        {"token_endpoint": "http://idp.invalid/auth"}
+    )
+    proxy.expect_request("/auth", method="POST").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
+    proxy.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+
+@pytest.fixture
+def oidc_proxy():
+    proxy = HTTPServer(host=MOCK_IP, port=0)
+    proxy.start()
+    _as_oidc_proxy(proxy)
+    yield proxy
+    proxy.clear()
+    if proxy.is_running():
+        proxy.stop()
+
+
+def _proxied_custom_kwargs(proxy: HTTPServer) -> dict:
+    return {
+        "http_host": "weaviate.invalid",
+        "http_port": 80,
+        "http_secure": False,
+        "grpc_host": MOCK_IP,
+        "grpc_port": MOCK_PORT_GRPC,
+        "grpc_secure": False,
+        "skip_init_checks": True,
+        "auth_credentials": weaviate.auth.AuthClientPassword("AUsername", "SomePassWord"),
+        "additional_config": weaviate.classes.init.AdditionalConfig(
+            proxies=weaviate.classes.init.Proxies(http=proxy.url_for("/"))
+        ),
+    }
+
+
+def test_oidc_token_requests_use_proxies(oidc_proxy: HTTPServer) -> None:
+    """Token requests go through the configured proxies, like every other request."""
+    with weaviate.connect_to_custom(**_proxied_custom_kwargs(oidc_proxy)) as client:
+        client.collections.list_all()
+    assert any(req.path == "/auth" for req, _ in oidc_proxy.log)
+
+
+@pytest.mark.asyncio
+async def test_oidc_token_requests_use_proxies_async(oidc_proxy: HTTPServer) -> None:
+    """Async twin of the test above."""
+    async with weaviate.use_async_with_custom(**_proxied_custom_kwargs(oidc_proxy)) as client:
+        await client.collections.list_all()
+    assert any(req.path == "/auth" for req, _ in oidc_proxy.log)
+
+
+def _track_sessions(monkeypatch: pytest.MonkeyPatch) -> list:
+    """Record every authlib session the client creates, and count each one's token fetches."""
+    sessions: list = []
+    for name in ("OAuth2Client", "AsyncOAuth2Client"):
+        base = getattr(weaviate.connect.authentication, name)
+        original_init = base.__init__
+        original_fetch = base.fetch_token
+
+        def init(self, *args, __init=original_init, **kwargs) -> None:
+            __init(self, *args, **kwargs)
+            sessions.append(self)
+
+        async def afetch_token(self, *args, __fetch=original_fetch, **kwargs):
+            self.fetches += 1
+            return await __fetch(self, *args, **kwargs)
+
+        def fetch_token(self, *args, __fetch=original_fetch, **kwargs):
+            self.fetches += 1
+            return __fetch(self, *args, **kwargs)
+
+        counting_fetch = afetch_token if name == "AsyncOAuth2Client" else fetch_token
+        tracked = type(
+            name, (base,), {"fetches": 0, "__init__": init, "fetch_token": counting_fetch}
+        )
+        monkeypatch.setattr(weaviate.connect.authentication, name, tracked)
+    return sessions
+
+
+def _expect_short_lived_client_credentials(weaviate_auth_mock: HTTPServer) -> None:
+    """Client-credentials tokens without a refresh token, expiring right away."""
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 1}
+    )
+
+
+def _assert_refresh_sessions_closed_after_one_fetch(sessions: list) -> None:
+    assert len(sessions) >= 3  # the refresher ran
+    # counted per session, not as IdP hits: a refresh cancelled by close() may never reach the IdP
+    assert all(session.fetches <= 1 for session in sessions)
+    assert all(session.is_closed for session in sessions)
+
+
+def test_client_credentials_refresh_closes_sessions(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each refresh builds a session for one token; it must be closed, and fetch the token once."""
+    sessions = _track_sessions(monkeypatch)
+    _expect_short_lived_client_credentials(weaviate_auth_mock)
+
+    threads_before = set(threading.enumerate())
+    with weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
+    ):
+        refreshers = [
+            t for t in set(threading.enumerate()) - threads_before if t.name == "TokenRefresh"
+        ]
+        time.sleep(3)  # refresh interval is max(expires_in - 30, 1) -> 1s
+
+    # close() doesn't wait for a refresh in flight; let it finish so it can't reach the next test
+    refreshers[0].join(timeout=10)
+    assert not refreshers[0].is_alive()
+    _assert_refresh_sessions_closed_after_one_fetch(sessions)
+
+
+@pytest.mark.asyncio
+async def test_client_credentials_refresh_closes_sessions_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Async twin of the test above; close() waits for the cancelled refresh task."""
+    sessions = _track_sessions(monkeypatch)
+    _expect_short_lived_client_credentials(weaviate_auth_mock)
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
+    ):
+        await asyncio.sleep(3)
+
+    _assert_refresh_sessions_closed_after_one_fetch(sessions)
+
+
+@pytest.mark.asyncio
+async def test_close_during_refresh_closes_the_new_session_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """close() cancels a refresh whose session is still fetching its token; that session is closed too."""
+    sessions = _track_sessions(monkeypatch)
+    refreshing, release = threading.Event(), threading.Event()
+    requests: List[Request] = []
+
+    def handler(request: Request) -> Response:
+        requests.append(request)
+        if len(requests) > 1:  # the first token request is connect()'s own
+            refreshing.set()
+            release.wait(timeout=10)
+        return Response(
+            json.dumps({"access_token": ACCESS_TOKEN, "expires_in": 1}),
+            content_type="application/json",
+        )
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
+    try:
+        async with weaviate.use_async_with_local(
+            host=MOCK_IP,
+            port=MOCK_PORT,
+            grpc_port=MOCK_PORT_GRPC,
+            auth_credentials=weaviate.auth.AuthClientCredentials(
+                client_secret=CLIENT_SECRET, scope=SCOPE
+            ),
+        ):
+            # leave the context, cancelling the refresh, only while its token request is in flight
+            assert await asyncio.get_running_loop().run_in_executor(None, refreshing.wait, 10)
+    finally:
+        release.set()
+
+    assert len(sessions) == 2  # connect()'s session and the cancelled refresh's
+    assert all(session.is_closed for session in sessions)
+
+
 @pytest.mark.asyncio
 async def test_client_credentials_refresh_async(
     weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
@@ -148,7 +336,7 @@ async def test_token_refresh_survives_failures_async(
 ) -> None:
     """A failing refresh must not kill the refresher: warn, retry, stay alive.
 
-    A 400 invalid_grant makes authlib raise OAuthError, which is not an httpx.HTTPError.
+    A 400 invalid_grant makes authlib raise OAuthError, which is not an httpx2.HTTPError.
     """
     hits = _reject_refreshes(weaviate_auth_mock)
 
@@ -179,7 +367,7 @@ def test_token_refresh_survives_failures(
 ) -> None:
     """Sync twin of the test above.
 
-    The daemon thread used to die silently on anything but an httpx.HTTPError.
+    The daemon thread used to die silently on anything but an httpx2.HTTPError.
     """
     hits = _reject_refreshes(weaviate_auth_mock)
 

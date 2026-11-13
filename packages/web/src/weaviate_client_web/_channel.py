@@ -220,7 +220,7 @@ class GrpcWebChannel(AioChannel):
                 details=f"grpc-web request to {path} timed out after {timeout}s",
             ) from exc
         except Exception as exc:  # network/transport failure -> retryable UNAVAILABLE
-            # str() of transport errors can be empty (e.g. httpx.ConnectError) — always
+            # str() of transport errors can be empty (e.g. httpx2.ConnectError) — always
             # include the exception type so failures stay diagnosable
             detail = f"{type(exc).__name__}: {exc}" if str(exc) else repr(exc)
             details = f"grpc-web transport error for {path}: {detail}"
