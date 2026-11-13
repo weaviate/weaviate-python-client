@@ -85,6 +85,7 @@ class GrpcConfig(BaseModel):
     To provide your own `channel_options`, supply a list of tuples where each tuple contains the name of the gRPC channel option and its corresponding value.
         [Reference](https://grpc.github.io/grpc/python/glossary.html#term-channel_arguments)
 
+    Without `credentials`, secure channels trust certifi's CA bundle, or the roots file named by the `GRPC_DEFAULT_SSL_ROOTS_FILE_PATH` environment variable if it is set.
     To provide your own `credentials`, use the `ssl_channel_credentials()` function from the `grpc` library to build a `ChannelCredentials` object.
         [Reference](https://grpc.github.io/grpc/python/grpc.html#grpc.ssl_channel_credentials)
 

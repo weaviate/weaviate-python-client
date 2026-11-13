@@ -51,6 +51,8 @@ class _BackupExecutor(Generic[ConnectionType]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
+        include_roles: Union[List[str], str, None] = None,
+        include_users: Union[List[str], str, None] = None,
     ) -> executor.Result[BackupReturn]:
         """Create a backup of all/per collection Weaviate objects.
 
@@ -66,6 +68,10 @@ class _BackupExecutor(Generic[ConnectionType]):
             wait_for_completion: Whether to wait until the backup is done. By default False.
             config: The configuration of the backup creation. By default None.
             backup_location: The dynamic location of a backup. By default None.
+            include_roles: Roles to include. Accepts `*` and `?` wildcards. None backs up all roles, an empty list backs up
+                none. Requires Weaviate 1.40.0. By default None.
+            include_users: Dynamic DB users to include. Accepts `*` and `?` wildcards. None backs up all users, an empty list
+                backs up none. Requires Weaviate 1.40.0. By default None.
 
         Returns:
              A `_BackupReturn` object that contains the backup creation response.
@@ -98,6 +104,15 @@ class _BackupExecutor(Generic[ConnectionType]):
                 "1.37.0",
             )
 
+        if (
+            include_roles is not None or include_users is not None
+        ) and self._connection._weaviate_version.is_lower_than(1, 40, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Backup include_roles/include_users",
+                str(self._connection._weaviate_version),
+                "1.40.0",
+            )
+
         payload: dict = {
             "id": backup_id,
             "include": include_collections,
@@ -108,6 +123,15 @@ class _BackupExecutor(Generic[ConnectionType]):
                 else None
             ),
         }
+
+        if include_roles is not None:
+            payload["includeRoles"] = (
+                [include_roles] if isinstance(include_roles, str) else include_roles
+            )
+        if include_users is not None:
+            payload["includeUsers"] = (
+                [include_users] if isinstance(include_users, str) else include_users
+            )
 
         if config is not None:
             payload["config"] = config._to_dict()

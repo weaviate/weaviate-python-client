@@ -29,6 +29,7 @@ from .embedded import EmbeddedOptions, EmbeddedV4
 from .types import NUMBER
 from .util import _decode_json_response_dict
 from .validator import _validate_input, _ValidateArgument
+from .warnings import _Warnings
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
@@ -227,6 +228,8 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
     def graphql_raw_query(self, gql_query: str) -> executor.Result[_RawGQLReturn]:
         """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
 
+        Deprecated: use the collection query methods or the REST Search API instead. This method will be removed in a release after May 1, 2027 when we retire GraphQL support.
+
         Be cautious of injection risks when generating query strings.
 
         Args:
@@ -240,6 +243,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
         """
+        _Warnings.graphql_raw_query_deprecated()
         _validate_input(_ValidateArgument([str], "gql_query", gql_query))
         json_query = {"query": gql_query}
 

@@ -245,6 +245,7 @@ class NodesAction(str, _Action, Enum):
 
 
 class BackupsAction(str, _Action, Enum):
+    READ = "read_backups"
     MANAGE = "manage_backups"
 
     @staticmethod
@@ -1040,7 +1041,7 @@ class Permissions:
 
     @staticmethod
     def backup(
-        *, collection: Union[str, Sequence[str]], manage: bool = False
+        *, collection: Union[str, Sequence[str]], read: bool = False, manage: bool = False
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(collection, str):
@@ -1048,6 +1049,8 @@ class Permissions:
         for c in collection:
             permission = _BackupsPermission(collection=c, actions=set())
 
+            if read:
+                permission.actions.add(BackupsAction.READ)
             if manage:
                 permission.actions.add(BackupsAction.MANAGE)
             if len(permission.actions) > 0:

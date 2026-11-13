@@ -57,15 +57,19 @@ class _ObjectIterator(
         self.__iter_object_cache: deque[Object[TProperties, TReferences]] = deque()
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
+        self.__iter_object_exhausted = False
 
     def __iter__(
         self,
     ) -> Iterator[Object[TProperties, TReferences]]:
+        self.__iter_object_exhausted = False
         self.__iter_object_cache = deque()
         self.__iter_object_last_uuid = _parse_after(self.__inputs.after)
         return self
 
     def __next__(self) -> Object[TProperties, TReferences]:
+        if self.__iter_object_exhausted:
+            raise StopIteration
         if len(self.__iter_object_cache) == 0:
             res = self.__query.fetch_objects(
                 limit=self.__iter_cache_size,
@@ -77,6 +81,7 @@ class _ObjectIterator(
             )
             self.__iter_object_cache = deque(res.objects)  # type: ignore
             if len(self.__iter_object_cache) == 0:
+                self.__iter_object_exhausted = True
                 raise StopIteration
 
         ret_object = self.__iter_object_cache.popleft()
@@ -103,10 +108,12 @@ class _ObjectAIterator(
         self.__iter_object_cache: deque[Object[TProperties, TReferences]] = deque()
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
         self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
+        self.__iter_object_exhausted = False
 
     def __aiter__(
         self,
     ) -> AsyncIterator[Object[TProperties, TReferences]]:
+        self.__iter_object_exhausted = False
         self.__iter_object_cache = deque()
         self.__iter_object_last_uuid = _parse_after(self.__inputs.after)
         return self
@@ -114,6 +121,8 @@ class _ObjectAIterator(
     async def __anext__(
         self,
     ) -> Object[TProperties, TReferences]:
+        if self.__iter_object_exhausted:
+            raise StopAsyncIteration
         if len(self.__iter_object_cache) == 0:
             res = await self.__query.fetch_objects(
                 limit=self.__iter_cache_size,
@@ -125,6 +134,7 @@ class _ObjectAIterator(
             )
             self.__iter_object_cache = deque(res.objects)  # type: ignore
             if len(self.__iter_object_cache) == 0:
+                self.__iter_object_exhausted = True
                 raise StopAsyncIteration
 
         ret_object = self.__iter_object_cache.popleft()
