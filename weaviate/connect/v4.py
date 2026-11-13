@@ -74,6 +74,7 @@ from weaviate.exceptions import (
     WeaviateClosedClientError,
     WeaviateConnectionError,
     WeaviateDeleteManyError,
+    WeaviateGenerativeQueryError,
     WeaviateGRPCUnavailableError,
     WeaviateInvalidInputError,
     WeaviateQueryError,
@@ -108,6 +109,12 @@ AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
 
 PERMISSION_DENIED = "PERMISSION_DENIED"
+
+
+def _search_error(request: search_get_pb2.SearchRequest, message: str) -> WeaviateQueryError:
+    if request.HasField("generative"):
+        return WeaviateGenerativeQueryError(message)
+    return WeaviateQueryError(message, "GRPC search")
 
 
 @dataclass
@@ -1041,9 +1048,9 @@ class ConnectionSync(_ConnectionBase):
             error = cast(Call, e)
             if error.code() == StatusCode.PERMISSION_DENIED:
                 raise InsufficientPermissionsError(error)
-            raise WeaviateQueryError(str(error.details()), "GRPC search")  # pyright: ignore
+            raise _search_error(request, str(error.details())) from e  # pyright: ignore
         except WeaviateRetryError as e:
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+            raise _search_error(request, str(e)) from e  # pyright: ignore
 
     def grpc_batch_objects(
         self,
@@ -1249,9 +1256,9 @@ class ConnectionAsync(_ConnectionBase):
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
-            raise WeaviateQueryError(str(e.details()), "GRPC search")  # pyright: ignore
+            raise _search_error(request, str(e.details())) from e  # pyright: ignore
         except WeaviateRetryError as e:
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+            raise _search_error(request, str(e)) from e  # pyright: ignore
 
     async def grpc_batch_objects(
         self,

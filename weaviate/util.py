@@ -307,12 +307,14 @@ def get_vector(vector: Sequence) -> Sequence[float]:
         return vector
     try:
         # if vector is numpy.ndarray or torch.Tensor
-        return vector.squeeze().tolist()  # type: ignore
+        vector_list = vector.squeeze().tolist()  # type: ignore
+        return vector_list if isinstance(vector_list, list) else [vector_list]
     except AttributeError:
         pass
     try:
         # if vector is tf.Tensor or torch.Tensor
-        return vector.numpy().squeeze().tolist()  # type: ignore
+        vector_list = vector.numpy().squeeze().tolist()  # type: ignore
+        return vector_list if isinstance(vector_list, list) else [vector_list]
     except AttributeError:
         pass
     try:

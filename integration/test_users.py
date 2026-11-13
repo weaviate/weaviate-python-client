@@ -64,6 +64,7 @@ def test_get_static_db_user(client_factory: ClientFactory) -> None:
         assert user.user_id == "admin-user"
         assert user.active
         assert user.user_type == UserTypes.DB_STATIC
+        assert user.created_at is None
 
 
 def test_create_user_and_get(client_factory: ClientFactory, request: SubRequest) -> None:
@@ -183,6 +184,9 @@ def test_list_all_users(client_factory: ClientFactory) -> None:
         users = client.users.db.list_all()
         dynamic_users = [user for user in users if user.user_id.startswith("list-all-")]
         assert len(dynamic_users) == 5
+        admin_user = next((user for user in users if user.user_id == "admin-user"), None)
+        assert admin_user is not None
+        assert admin_user.created_at is None
         for i in range(5):
             client.users.db.delete(user_id=f"list-all-{i}")
 
