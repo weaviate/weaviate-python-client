@@ -3,11 +3,11 @@ import json
 import threading
 import time
 import warnings
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 import grpc
 import pytest
-from authlib.integrations.httpx_client import OAuth2Client
+from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client
 from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
@@ -110,20 +110,12 @@ def test_oidc_session_follows_connection_config(
         assert session.trust_env is False
 
 
-@pytest.mark.asyncio
-async def test_client_credentials_refresh_async(
-    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
-) -> None:
-    """Test the refresh_session branch of the async token refresher.
-
-    Client-credentials tokens carry no refresh token, so the refresher must get a whole
-    new token from the saved credentials.
-    """
-    token_requests = 0
+def _grant_short_lived_tokens(weaviate_auth_mock: HTTPServer) -> List[Dict[str, str]]:
+    """Make the IdP grant tokens that expire after 1s; returns each token request's form."""
+    hits: List[Dict[str, str]] = []
 
     def handler(request: Request) -> Response:
-        nonlocal token_requests
-        token_requests += 1
+        hits.append(request.form.to_dict())
         return Response(
             json.dumps({"access_token": ACCESS_TOKEN, "expires_in": 1}),
             content_type="application/json",
@@ -133,6 +125,33 @@ async def test_client_credentials_refresh_async(
     weaviate_auth_mock.expect_request(
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
     ).respond_with_json({"classes": []})
+    return hits
+
+
+def _record_sessions(monkeypatch: pytest.MonkeyPatch, session_class: type) -> List[Any]:
+    """Record every session_class instance created while the test runs."""
+    sessions: List[Any] = []
+    init = session_class.__init__
+
+    def recording_init(self: Any, *args: Any, **kwargs: Any) -> None:
+        init(self, *args, **kwargs)
+        sessions.append(self)
+
+    monkeypatch.setattr(session_class, "__init__", recording_init)
+    return sessions
+
+
+@pytest.mark.asyncio
+async def test_client_credentials_refresh_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test the client-credentials branch of the async token refresher.
+
+    Client-credentials tokens carry no refresh token, so the refresher fetches a new token
+    with the client secret its session holds, and opens no session besides the client's own.
+    """
+    hits = _grant_short_lived_tokens(weaviate_auth_mock)
+    sessions = _record_sessions(monkeypatch, AsyncOAuth2Client)
 
     async with weaviate.use_async_with_local(
         host=MOCK_IP,
@@ -143,9 +162,42 @@ async def test_client_credentials_refresh_async(
         ),
     ) as client:
         await client.collections.list_all()
-        first = token_requests
+        first = len(hits)
         await asyncio.sleep(3)  # refresh interval is max(expires_in - 30, 1) -> 1s
-        assert token_requests > first  # a fresh token was fetched with the credentials
+        assert len(hits) > first  # a fresh token was fetched with the credentials
+        assert all(
+            h["grant_type"] == "client_credentials" and h["client_secret"] == CLIENT_SECRET
+            for h in hits[first:]
+        )
+        live = client._connection._client
+        assert all(session.is_closed for session in sessions if session is not live)
+
+
+def test_client_credentials_refresh(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test the client-credentials branch of the sync token refresher."""
+    hits = _grant_short_lived_tokens(weaviate_auth_mock)
+    sessions = _record_sessions(monkeypatch, OAuth2Client)
+
+    with weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
+    ) as client:
+        client.collections.list_all()
+        first = len(hits)
+        time.sleep(3)  # refresh interval is max(expires_in - 30, 1) -> 1s
+        assert len(hits) > first  # a fresh token was fetched with the credentials
+        assert all(
+            h["grant_type"] == "client_credentials" and h["client_secret"] == CLIENT_SECRET
+            for h in hits[first:]
+        )
+        live = client._connection._client
+        assert all(session.is_closed for session in sessions if session is not live)
 
 
 def _reject_refreshes(weaviate_auth_mock: HTTPServer) -> List[float]:
@@ -348,6 +400,21 @@ def test_sync_reconnect_leaves_exactly_one_refresher_thread(
     client.close()
     alive[0].join(timeout=2)
     assert not alive[0].is_alive()
+
+
+def test_bearer_token_without_refresh_token_starts_no_refresher(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """Only a refresh token or client credentials can renew a token, so nothing else gets a refresher."""
+    threads_before = set(threading.enumerate())
+    with weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(ACCESS_TOKEN, expires_in=500),
+    ):
+        started = set(threading.enumerate()) - threads_before
+        assert not [t for t in started if t.name == "TokenRefresh"]
 
 
 @pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
