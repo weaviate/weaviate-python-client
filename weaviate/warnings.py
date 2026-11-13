@@ -107,30 +107,6 @@ class _Warnings:
         )
 
     @staticmethod
-    def palm_to_google_t2v() -> None:
-        warnings.warn(
-            "Dep011: text2vec-palm is deprecated and will be removed in Q2 25. Use text2vec-google instead.",
-            DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def palm_to_google_m2v() -> None:
-        warnings.warn(
-            "Dep012: multi2vec-palm is deprecated and will be removed in Q2 25. Use multi2vec-google instead.",
-            DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def palm_to_google_gen() -> None:
-        warnings.warn(
-            "Dep013: generative.palm is deprecated and will be removed in Q2 25. Use generative.google instead.",
-            DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def vector_index_config_in_config_update() -> None:
         warnings.warn(
             message="""Dep017: You are using the `vector_index_config` argument in the `collection.config.update()` method, which is deprecated.
@@ -311,6 +287,15 @@ class _Warnings:
             date value, as an unset property is returned as null and never reaches this path.
             None will be returned.""",
             category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def skip_vectorization_ignored_with_vector_config(property_name: str) -> None:
+        warnings.warn(
+            message=f"""Dep032: `skip_vectorization` on property "{property_name}" has no effect when the collection is
+            created with `vector_config`. Use `source_properties` on the vector to choose which properties are vectorized.""",
+            category=DeprecationWarning,
             stacklevel=1,
         )
 
