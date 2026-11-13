@@ -11,9 +11,9 @@ pytest-httpserver==1.1.3
 py-spy==0.4.1
 
 numpy>=1.24.4,<3.0.0
-pandas>=2.0.3,<3.0.0
+pandas>=2.0.3,<4.0.0
 polars>=0.20.26,<1.39.0
 
 fastapi>=0.111.0,<1.0.0
 flask[async]>=2.0.0,<4.0.0
-litestar>=2.14.0,<3.0.0
+litestar>=2.25.0,<3.0.0
