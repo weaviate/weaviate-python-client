@@ -7,6 +7,7 @@ from typing import List, Union
 
 import grpc
 import pytest
+from authlib.integrations.httpx_client import OAuth2Client
 from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
@@ -83,6 +84,30 @@ def test_client_credentials(weaviate_auth_mock: HTTPServer, start_grpc_server: g
         client.collections.list_all()  # some call that includes authorization
 
     weaviate_auth_mock.check_assertions()
+
+
+def test_oidc_session_follows_connection_config(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """Test that the OIDC session, which is the REST client, follows the connection's config.
+
+    httpx defaults trust_env to True, AdditionalConfig to False.
+    """
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500}
+    )
+
+    with weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
+    ) as client:
+        session = client._connection._client
+        assert isinstance(session, OAuth2Client)
+        assert session.trust_env is False
 
 
 @pytest.mark.asyncio
