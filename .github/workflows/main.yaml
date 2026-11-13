@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         folder: ["weaviate", "integration", "integration_embedded"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -188,7 +188,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        version: ["3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -225,7 +225,8 @@ jobs:
           { py: "3.13", weaviate: $WEAVIATE_140, grpc: "1.72.1", protobuf: "6.33.6"},
           { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0", protobuf: "6.33.6"},
           { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.85.0", protobuf: "6.33.6"},
-          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.85.0", protobuf: "7.36.2"}
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.85.0", protobuf: "7.36.2"},
+          { py: "3.15", weaviate: $WEAVIATE_140, grpc: "1.85.0", protobuf: "7.36.2"}
         ]
         optional_dependencies: [false]
     steps:
@@ -280,7 +281,8 @@ jobs:
           { py: "3.11", weaviate: $WEAVIATE_140},
           { py: "3.12", weaviate: $WEAVIATE_140},
           { py: "3.13", weaviate: $WEAVIATE_140},
-          { py: "3.14", weaviate: $WEAVIATE_140}
+          { py: "3.14", weaviate: $WEAVIATE_140},
+          { py: "3.15", weaviate: $WEAVIATE_140}
         ]
         optional_dependencies: [false]
     steps:
