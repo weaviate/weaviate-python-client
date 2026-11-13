@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14"]
         folder: ["weaviate", "integration", "integration_embedded"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -96,7 +96,7 @@ jobs:
       - name: Run unittests
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main')
+        if: matrix.version == '3.11' && (github.ref_name != 'main')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-${{ matrix.folder }}
@@ -188,7 +188,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -206,7 +206,7 @@ jobs:
         if: ${{ !github.event.pull_request.head.repo.fork }}
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
       - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main') && !github.event.pull_request.head.repo.fork
+        if: matrix.version == '3.11' && (github.ref_name != 'main') && !github.event.pull_request.head.repo.fork
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-integration-embedded
@@ -220,8 +220,7 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_140, grpc: "1.59.5", protobuf: "4.25.9"},
-          { py: "3.11", weaviate: $WEAVIATE_140, grpc: "1.66.0", protobuf: "5.29.6"},
+          { py: "3.11", weaviate: $WEAVIATE_140, grpc: "1.59.5", protobuf: "4.25.9"},
           { py: "3.12", weaviate: $WEAVIATE_140, grpc: "1.70.0", protobuf: "5.29.6"},
           { py: "3.13", weaviate: $WEAVIATE_140, grpc: "1.72.1", protobuf: "6.33.6"},
           { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0", protobuf: "6.33.6"},
@@ -262,7 +261,7 @@ jobs:
         if: ${{ github.event.pull_request.head.repo.fork || github.triggering_actor == 'dependabot[bot]' }}
         run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
-        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
+        if: matrix.versions.py == '3.11' && (github.ref_name != 'main')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-integration
@@ -278,7 +277,6 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_140},
           { py: "3.11", weaviate: $WEAVIATE_140},
           { py: "3.12", weaviate: $WEAVIATE_140},
           { py: "3.13", weaviate: $WEAVIATE_140},

@@ -2,7 +2,6 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from typing import (
-    Any,
     Dict,
     Generic,
     List,
@@ -644,8 +643,7 @@ class Diversity:
 
 @dataclass
 class BM25OperatorOptions:
-    # replace with ClassVar[base_search_pb2.SearchOperatorOptions.Operator] once python 3.10 is removed
-    operator: ClassVar[Any]
+    operator: ClassVar[base_search_pb2.SearchOperatorOptions.Operator]
 
 
 @dataclass
