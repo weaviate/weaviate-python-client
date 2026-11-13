@@ -725,10 +725,7 @@ class _BatchBase:
                     _all_responses=[
                         r
                         for r in response_obj._all_responses
-                        if not (
-                            isinstance(r, ErrorObject)
-                            and r.object_.uuid in readded_uuids
-                        )
+                        if not (isinstance(r, ErrorObject) and r.object_.uuid in readded_uuids)
                     ],
                     elapsed_seconds=response_obj.elapsed_seconds,
                 )
