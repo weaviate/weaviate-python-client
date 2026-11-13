@@ -1,11 +1,38 @@
+from datetime import timedelta
+from typing import Optional, Union
+
 import pytest
 
 from test.collection.schema import multi_vector_schema
 from weaviate.collections.classes.config import (
+    ObjectTTLConfigUpdate,
     Reconfigure,
     _CollectionConfigUpdate,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
+
+
+@pytest.mark.parametrize(
+    "offset,expected",
+    [(None, None), (0, 0), (timedelta(seconds=120), 120)],
+)
+def test_object_ttl_update_offset(
+    offset: Optional[Union[int, timedelta]], expected: Optional[int]
+) -> None:
+    update = Reconfigure.ObjectTTL.delete_by_date_property(
+        filter_expired_objects=True, ttl_offset=offset
+    )
+    assert update.defaultTtl == expected
+    merged = update.merge_with_existing(
+        {
+            "enabled": True,
+            "deleteOn": "expiresAt",
+            "defaultTtl": 3600,
+            "filterExpiredObjects": False,
+        }
+    )
+    assert merged["defaultTtl"] == (3600 if expected is None else expected)
+    assert merged["filterExpiredObjects"] is True
 
 
 @pytest.mark.parametrize(
@@ -160,6 +187,55 @@ def test_replication_async_config_reset_all_fields() -> None:
     )
     result = update.merge_with_existing(schema)
     assert result["asyncConfig"] == {}
+
+
+@pytest.mark.parametrize(
+    "stored,update,expected",
+    [
+        (
+            {
+                "enabled": True,
+                "deleteOn": "expiresAt",
+                "defaultTtl": 3600,
+                "filterExpiredObjects": False,
+            },
+            ObjectTTLConfigUpdate(enabled=True, filterExpiredObjects=True),
+            {
+                "enabled": True,
+                "deleteOn": "expiresAt",
+                "defaultTtl": 3600,
+                "filterExpiredObjects": True,
+            },
+        ),
+        (
+            None,
+            Reconfigure.ObjectTTL.delete_by_update_time(time_to_live=3600),
+            {"enabled": True, "deleteOn": "_lastUpdateTimeUnix", "defaultTtl": 3600},
+        ),
+        (
+            {
+                "enabled": True,
+                "deleteOn": "expiresAt",
+                "defaultTtl": 3600,
+                "filterExpiredObjects": False,
+            },
+            Reconfigure.ObjectTTL.disable(),
+            {
+                "enabled": False,
+                "deleteOn": "expiresAt",
+                "defaultTtl": 3600,
+                "filterExpiredObjects": False,
+            },
+        ),
+    ],
+)
+def test_object_ttl_update_merges_into_objectTtlConfig(
+    stored: Optional[dict], update: ObjectTTLConfigUpdate, expected: dict
+) -> None:
+    schema = {"class": "Test"} if stored is None else {"class": "Test", "objectTtlConfig": stored}
+    merged = _CollectionConfigUpdate(object_ttl_config=update).merge_with_existing(schema)
+    assert "objectTTLConfig" not in merged
+    assert merged["objectTtlConfig"] == expected
 
 
 def _hfresh_schema(rescore_limit: int = 20) -> dict:

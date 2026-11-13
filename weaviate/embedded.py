@@ -12,6 +12,7 @@ import urllib.request
 import warnings
 import zipfile
 from abc import abstractmethod
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -31,7 +32,7 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 DEFAULT_PORT = 8079
 DEFAULT_GRPC_PORT = 50060
 
-WEAVIATE_VERSION = "1.30.5"
+WEAVIATE_VERSION = "1.40.2"
 
 
 @dataclass
@@ -53,11 +54,46 @@ def get_random_port() -> int:
     return port_num
 
 
+def _hold_port(held: ExitStack, port: int = 0) -> int:
+    """Bind `port` (0 lets the OS choose) on a socket that stays open until `held` closes."""
+    sock = held.enter_context(socket.socket())
+    sock.bind(("", port))
+    return int(sock.getsockname()[1])
+
+
+def _hold_consecutive_ports(held: ExitStack) -> Tuple[int, int]:
+    """Bind a free port and the port after it on sockets that stay open until `held` closes."""
+    for _ in range(100):
+        first_port = _hold_port(held)
+        try:
+            return first_port, _hold_port(held, first_port + 1)
+        except (OSError, OverflowError):
+            # The rejected first port stays held, so the OS offers a different one next.
+            continue
+    raise WeaviateStartUpError("Could not find two consecutive free ports for Weaviate")
+
+
+def _get_server_ports() -> Tuple[int, int, int, int, int]:
+    """Return free gossip, data, Raft, Raft internal RPC, and profiling ports for one instance.
+
+    The Weaviate server requires data = gossip + 1 and, in a local cluster, Raft internal RPC =
+    Raft + 1. All five ports are distinct and were free when chosen, but are released before
+    returning.
+    """
+    with ExitStack() as held:
+        gossip_port, data_port = _hold_consecutive_ports(held)
+        raft_port, raft_internal_rpc_port = _hold_consecutive_ports(held)
+        profiling_port = _hold_port(held)
+        return gossip_port, data_port, raft_port, raft_internal_rpc_port, profiling_port
+
+
 class _EmbeddedBase:
     def __init__(self, options: EmbeddedOptions) -> None:
         self.options = options
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
+        # Data path that held Raft state before the most recent launch, set by `start()`.
+        self._existing_data_path: Optional[str] = None
         self.ensure_paths_exist()
         self.check_supported_platform()
         self._parsed_weaviate_version = ""
@@ -131,12 +167,13 @@ class _EmbeddedBase:
         Path(self.options.persistence_data_path).mkdir(parents=True, exist_ok=True)
 
     def ensure_weaviate_binary_exists(self) -> None:
+        cache_key = self._parsed_weaviate_version or self._download_url
         self._weaviate_binary_path = Path(
             self.options.binary_path,
             "weaviate-"
             + self._parsed_weaviate_version
             + "-"
-            + str(hashlib.sha256(self._parsed_weaviate_version.encode("utf-8")).hexdigest()),
+            + str(hashlib.sha256(cache_key.encode("utf-8")).hexdigest()),
         )
         if not self._weaviate_binary_path.exists():
             logger.info(
@@ -216,30 +253,24 @@ class _EmbeddedBase:
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
-        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
-        # Limitation with weaviate server requires setting
-        # data_bind_port to gossip_bind_port + 1
-        gossip_bind_port = get_random_port()
-        data_bind_port = gossip_bind_port + 1
+        # Weaviate exits at startup if any of its ports is taken, so every port is checked rather
+        # than assumed free because it follows a random one. Distinct ports also keep the Raft
+        # port off the data port, which breaks backups. With CLUSTER_IN_LOCALHOST, the server
+        # ignores RAFT_INTERNAL_RPC_PORT when dialing and uses the Raft port + 1
+        # (cluster/resolver/rpc.go), so _get_server_ports() returns that pair.
+        (
+            gossip_bind_port,
+            data_bind_port,
+            raft_port,
+            raft_internal_rpc_port,
+            profiling_port,
+        ) = _get_server_ports()
+        my_env.setdefault("PROFILING_PORT", str(profiling_port))
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(gossip_bind_port))
         my_env.setdefault("CLUSTER_DATA_BIND_PORT", str(data_bind_port))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
         my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
         my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
-
-        # Each call to `get_random_port()` will likely result in
-        # a port 1 higher than the last time it was called. With
-        # this, we end up with raft_port == gossip_bind_port + 1,
-        # which is the same as data_bind_port. This kind of
-        # configuration leads to failed cross cluster communication.
-        # Although the current version of embedded does not support
-        # multi-node instances, the backup process communication
-        # passes through the internal cluster server, and will fail.
-        #
-        # So we here we ensure that raft_port never collides with
-        # data_bind_port.
-        raft_port = data_bind_port + 1
-        raft_internal_rpc_port = raft_port + 1
         my_env.setdefault("RAFT_PORT", str(raft_port))
         my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(raft_internal_rpc_port))
 
@@ -257,6 +288,12 @@ class _EmbeddedBase:
 
         if self.options.additional_env_vars is not None:
             my_env.update(self.options.additional_env_vars)
+
+        # Read the path from the final environment, which may override the option. Check before
+        # launching, because Weaviate creates `raft/` during its own startup.
+        data_path = my_env["PERSISTENCE_DATA_PATH"]
+        has_raft_state = os.path.isdir(os.path.join(data_path, "raft"))
+        self._existing_data_path = data_path if has_raft_state else None
 
         # filter warning about running processes.
         with warnings.catch_warnings():
@@ -278,6 +315,23 @@ class _EmbeddedBase:
             self.process = process
         logger.info(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
+
+    def existing_data_hint(self) -> Optional[str]:
+        """Return a hint to append to a startup timeout, or None if the hint does not apply.
+
+        The hint applies when the data path held data before the most recent `start()`. Weaviate
+        uses the HTTP port as its node name, so data created with a different `port` blocks
+        startup. The client cannot tell which port created the data, so the hint names it as a
+        possible cause.
+        """
+        if self._existing_data_path is None:
+            return None
+        return (
+            f"The data path `{self._existing_data_path}` already holds data, which may have been "
+            "created with a different `port`. To run a separate instance, pass a different "
+            "`persistence_data_path` and ports. To use the existing data, pass the `port` it was "
+            "created with."
+        )
 
     @abstractmethod
     def is_listening(self) -> bool:

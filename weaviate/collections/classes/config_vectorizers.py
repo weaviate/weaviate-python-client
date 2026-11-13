@@ -4,12 +4,8 @@ from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 from typing_extensions import TypeAlias
-from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
-from weaviate.util import docstring_deprecated
-
-from ...warnings import _Warnings
 
 # See https://docs.cohere.com/docs/cohere-embed for reference
 CohereModel: TypeAlias = Literal[
@@ -98,7 +94,8 @@ class Vectorizers(str, Enum):
         TEXT2VEC_GPT4ALL: Weaviate module backed by GPT-4-All text-based embedding models.
         TEXT2VEC_HUGGINGFACE: Weaviate module backed by HuggingFace text-based embedding models.
         TEXT2VEC_OPENAI: Weaviate module backed by OpenAI and Azure-OpenAI text-based embedding models.
-        TEXT2VEC_PALM: Weaviate module backed by PaLM text-based embedding models.
+        TEXT2VEC_GOOGLE: Weaviate module backed by a Google (and formerly PaLM) text-based embedding models.
+        TEXT2VEC_PALM: Deprecated. Former name of `text2vec-google`, reported by collections that were created with it.
         TEXT2VEC_TRANSFORMERS: Weaviate module backed by Transformers text-based embedding models.
         TEXT2VEC_JINAAI: Weaviate module backed by Jina AI text-based embedding models.
         TEXT2VEC_VOYAGEAI: Weaviate module backed by Voyage AI text-based embedding models.
@@ -106,7 +103,8 @@ class Vectorizers(str, Enum):
         TEXT2VEC_WEAVIATE: Weaviate module backed by Weaviate's self-hosted text-based embedding models.
         IMG2VEC_NEURAL: Weaviate module backed by a ResNet-50 neural network for images.
         MULTI2VEC_CLIP: Weaviate module backed by a Sentence-BERT CLIP model for images and text.
-        MULTI2VEC_PALM: Weaviate module backed by a palm model for images and text.
+        MULTI2VEC_GOOGLE: Weaviate module backed by a Google (and formerly PaLM) model for images and text.
+        MULTI2VEC_PALM: Deprecated. Former name of `multi2vec-google`, reported by collections that were created with it.
         MULTI2VEC_BIND: Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         MULTI2VEC_VOYAGEAI: Weaviate module backed by a Voyage AI multimodal embedding models.
         MULTI2VEC_NVIDIA: Weaviate module backed by NVIDIA multimodal embedding models.
@@ -129,7 +127,8 @@ class Vectorizers(str, Enum):
     TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
-    TEXT2VEC_PALM = "text2vec-palm"  # change to google once 1.27 is the lowest supported version
+    TEXT2VEC_GOOGLE = "text2vec-google"
+    TEXT2VEC_PALM = "text2vec-palm"  # deprecated, former name of text2vec-google
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_JINAAI = "text2vec-jinaai"
     TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
@@ -142,7 +141,8 @@ class Vectorizers(str, Enum):
     MULTI2MULTI_JINAAI = "multi2multivec-jinaai"
     MULTI2MULTI_WEAVIATE = "multi2multivec-weaviate"
     MULTI2VEC_BIND = "multi2vec-bind"
-    MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
+    MULTI2VEC_GOOGLE = "multi2vec-google"
+    MULTI2VEC_PALM = "multi2vec-palm"  # deprecated, former name of multi2vec-google
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
     MULTI2VEC_NVIDIA = "multi2vec-nvidia"
     MULTI2VEC_TWELVELABS = "multi2vec-twelvelabs"
@@ -374,7 +374,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
 
 class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
-        default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True
+        default=Vectorizers.TEXT2VEC_GOOGLE, frozen=True, exclude=True
     )
     projectId: Optional[str]
     apiEndpoint: Optional[str]
@@ -566,7 +566,7 @@ class _Multi2VecClipConfig(_Multi2VecBase):
 
 class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
-        default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
+        default=Vectorizers.MULTI2VEC_GOOGLE, frozen=True, exclude=True
     )
     audioFields: Optional[List[Multi2VecField]]
     videoFields: Optional[List[Multi2VecField]]
@@ -1185,50 +1185,6 @@ class _Vectorizer:
         )
 
     @staticmethod
-    @docstring_deprecated(
-        deprecated_in="4.9.0",
-        details="""
-This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Vectorizer.text2vec_google` instead.
-""",
-    )
-    @typing_deprecated(
-        "This method is deprecated and will be removed in Q2 '25. Please use `text2vec_google` instead."
-    )
-    def text2vec_palm(
-        project_id: str,
-        api_endpoint: Optional[str] = None,
-        model_id: Optional[str] = None,
-        title_property: Optional[str] = None,
-        vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
-        """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-palm` model.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
-        for detailed usage.
-
-        Args:
-            project_id: The project ID to use, REQUIRED.
-            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
-            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
-
-        Raises:
-            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
-        """
-        _Warnings.palm_to_google_t2v()
-        return _Text2VecGoogleConfig(
-            projectId=project_id,
-            apiEndpoint=api_endpoint,
-            dimensions=None,
-            modelId=model_id,
-            vectorizeClassName=vectorize_collection_name,
-            titleProperty=title_property,
-            taskType=None,
-            location=None,
-        )
-
-    @staticmethod
     def text2vec_google_aistudio(
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
@@ -1293,60 +1249,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             titleProperty=title_property,
             taskType=None,
             location=location,
-        )
-
-    @staticmethod
-    @docstring_deprecated(
-        deprecated_in="4.9.0",
-        details="""
-This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Vectorizer.multi2vec_google` instead.
-""",
-    )
-    @typing_deprecated(
-        "This method is deprecated and will be removed in Q2 '25. Please use `multi2vec_google` instead."
-    )
-    def multi2vec_palm(
-        *,
-        location: str,
-        project_id: str,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        dimensions: Optional[int] = None,
-        model_id: Optional[str] = None,
-        video_interval_seconds: Optional[int] = None,
-        vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
-        """Create a `_Multi2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
-        for detailed usage.
-
-        Args:
-            location: Where the model runs. REQUIRED.
-            project_id: The project ID to use, REQUIRED.
-            image_fields: The image fields to use in vectorization.
-            text_fields: The text fields to use in vectorization.
-            video_fields: The video fields to use in vectorization.
-            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
-            video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            vectorize_collection_name: Deprecated, has no effect.
-
-        Raises:
-            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
-        """
-        _Warnings.palm_to_google_m2v()
-        return _Multi2VecGoogleConfig(
-            projectId=project_id,
-            location=location,
-            audioFields=None,
-            imageFields=_map_multi2vec_fields(image_fields),
-            textFields=_map_multi2vec_fields(text_fields),
-            videoFields=_map_multi2vec_fields(video_fields),
-            dimensions=dimensions,
-            modelId=model_id,
-            videoIntervalSeconds=video_interval_seconds,
         )
 
     @staticmethod

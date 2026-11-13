@@ -227,7 +227,7 @@ def __get_hfresh_config(config: Dict[str, Any]) -> _VectorIndexConfigHFresh:
         replicas=config["replicas"],
         search_probe=config["searchProbe"],
         quantizer=quantizer,
-        multi_vector=None,
+        multi_vector=__get_multivector(config),
     )
 
 

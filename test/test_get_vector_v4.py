@@ -1,10 +1,40 @@
+import struct
+from typing import Any
+from unittest.mock import Mock
+
 import numpy as np
 import pandas as pd
 import polars as pl
+import pytest
 
-from weaviate.util import _get_vector_v4
+from weaviate.collections.grpc.shared import _Pack
+from weaviate.util import _get_vector_v4, get_vector
 
 # Don't need to test `tf` or `torch` tensors since `_get_vector_v4`` converts them to `np` first
+
+
+@pytest.mark.parametrize(
+    "vector",
+    [
+        [0.5],
+        np.array([0.5], dtype=np.float32),
+        np.array([0.5], dtype=np.float64),
+        pd.Series([0.5]),
+        pl.Series([0.5]),
+    ],
+    ids=["list", "numpy-float32", "numpy-float64", "pandas", "polars"],
+)
+def test_single_component_vector_stays_a_list_and_can_be_packed(vector: Any) -> None:
+    assert _get_vector_v4(vector) == [0.5]
+    assert _Pack.single(vector) == struct.pack("f", 0.5)
+
+
+@pytest.mark.parametrize("values", [[0.5], [0.5, 0.25], []])
+def test_get_vector_with_numpy_fallback_preserves_list_shape(values: list[float]) -> None:
+    vector = Mock(spec=["numpy"])
+    vector.numpy.return_value = np.array(values)
+
+    assert get_vector(vector) == values
 
 
 def test_get_vector_v4_with_np_array_and_np_float() -> None:

@@ -1,7 +1,6 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import AnyHttpUrl, Field
-from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
@@ -63,9 +62,6 @@ from weaviate.collections.classes.config_vectorizers import (
     _VectorizerConfigCreate,
     _VectorizerCustomConfig,
 )
-from weaviate.util import docstring_deprecated
-
-from ...warnings import _Warnings
 
 
 class _NamedVectorConfigCreate(_ConfigCreateModel):
@@ -550,65 +546,6 @@ class _NamedVectors:
         )
 
     @staticmethod
-    @docstring_deprecated(
-        deprecated_in="4.9.0",
-        details="""
-This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._NamedVectors.multi2vec_google` instead.
-""",
-    )
-    @typing_deprecated(
-        "This method is deprecated and will be removed in Q2 '25. Please use `multi2vec_google` instead."
-    )
-    def multi2vec_palm(
-        name: str,
-        *,
-        vector_index_config: Optional[VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
-        location: str,
-        project_id: str,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        dimensions: Optional[int] = None,
-        video_interval_seconds: Optional[int] = None,
-        model_id: Optional[str] = None,
-    ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `multi2vec_palm` model.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
-        for detailed usage.
-
-        Args:
-            name: The name of the named vector.
-            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
-            location: Where the model runs. REQUIRED.
-            project_id: The project ID to use, REQUIRED.
-            image_fields: The image fields to use in vectorization.
-            text_fields: The text fields to use in vectorization.
-            video_fields: The video fields to use in vectorization.
-            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
-            video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
-        """
-        _Warnings.palm_to_google_m2v()
-        return _NamedVectorConfigCreate(
-            name=name,
-            vectorizer=_Multi2VecGoogleConfig(
-                projectId=project_id,
-                location=location,
-                audioFields=None,
-                imageFields=_map_multi2vec_fields(image_fields),
-                textFields=_map_multi2vec_fields(text_fields),
-                videoFields=_map_multi2vec_fields(video_fields),
-                dimensions=dimensions,
-                modelId=model_id,
-                videoIntervalSeconds=video_interval_seconds,
-            ),
-            vector_index_config=vector_index_config,
-        )
-
-    @staticmethod
     def multi2vec_google(
         name: str,
         *,
@@ -946,63 +883,6 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         )
 
     @staticmethod
-    @docstring_deprecated(
-        deprecated_in="4.9.0",
-        details="""
-This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._NamedVectors.text2vec_google` instead.
-""",
-    )
-    @typing_deprecated(
-        "This method is deprecated and will be removed in Q2 '25. Please use `text2vec_google` instead."
-    )
-    def text2vec_palm(
-        name: str,
-        project_id: str,
-        *,
-        source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
-        api_endpoint: Optional[str] = None,
-        model_id: Optional[str] = None,
-        title_property: Optional[str] = None,
-    ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `text2vec_palm` model.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
-        for detailed usage.
-
-        Args:
-            name: The name of the named vector.
-            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
-            project_id: The project ID to use, REQUIRED.
-            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
-            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
-            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
-            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
-
-        Raises:
-            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
-        """
-        _Warnings.palm_to_google_t2v()
-        return _NamedVectorConfigCreate(
-            name=name,
-            source_properties=source_properties,
-            vectorizer=_Text2VecGoogleConfig(
-                projectId=project_id,
-                apiEndpoint=api_endpoint,
-                dimensions=None,
-                modelId=model_id,
-                vectorizeClassName=vectorize_collection_name,
-                titleProperty=title_property,
-                taskType=None,
-                location=None,
-            ),
-            vector_index_config=vector_index_config,
-        )
-
-    @staticmethod
     def text2vec_google(
         name: str,
         project_id: str,
@@ -1015,7 +895,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         vectorize_collection_name: bool = True,
         location: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `text2vec_palm` model.
+        """Create a named vector using the `text2vec_google` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
@@ -1061,7 +941,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         vector_index_config: Optional[VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `text2vec_palm` model.
+        """Create a named vector using the `text2vec_google` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.

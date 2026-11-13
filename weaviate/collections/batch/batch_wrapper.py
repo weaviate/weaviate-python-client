@@ -398,7 +398,7 @@ class BatchClientProtocolAsync(Protocol):
         ...
 
 
-class BatchCollectionProtocol(Generic[Properties], Protocol[Properties]):
+class BatchCollectionProtocol(Protocol[Properties]):
     def add_object(
         self,
         properties: Optional[Properties] = None,
@@ -454,7 +454,7 @@ class BatchCollectionProtocol(Generic[Properties], Protocol[Properties]):
         ...
 
 
-class BatchCollectionProtocolAsync(Generic[Properties], Protocol[Properties]):
+class BatchCollectionProtocolAsync(Protocol[Properties]):
     async def add_object(
         self,
         properties: Optional[Properties] = None,
