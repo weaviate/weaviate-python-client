@@ -730,6 +730,7 @@ def test_get_assigned_users_db(client_factory: ClientFactory, request: SubReques
             permissions=Permissions.roles(role="test", read=True),
         )
 
+        client.users.db.delete(user_id=names)
         client.users.db.create(user_id=names)
 
         client.users.db.assign_roles(user_id=names, role_names=names)
@@ -737,6 +738,13 @@ def test_get_assigned_users_db(client_factory: ClientFactory, request: SubReques
         assert len(assigned_users) == 1
         assert assigned_users[0].user_id == names
         assert assigned_users[0].user_type == UserTypes.DB_DYNAMIC
+
+        # An OIDC user with the same id keeps the role when the db user's is revoked.
+        client.users.oidc.assign_roles(user_id=names, role_names=names)
+        client.users.db.revoke_roles(user_id=names, role_names=names)
+        assigned_users = client.roles.get_user_assignments(names)
+        assert len(assigned_users) == 1
+        assert assigned_users[0].user_type == UserTypes.OIDC
 
         client.roles.delete(names)
         client.users.db.delete(user_id=names)

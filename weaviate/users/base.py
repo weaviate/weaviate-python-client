@@ -119,7 +119,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.post,
             path=path,
-            weaviate_object={"roles": roles},
+            weaviate_object=payload,
             error_msg=f"Could not revoke roles {roles} from user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Revoke roles from user"),
         )
