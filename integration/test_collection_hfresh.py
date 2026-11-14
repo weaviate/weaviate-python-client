@@ -19,7 +19,7 @@ def test_collection_config_hfresh(collection_factory: CollectionFactory) -> None
 
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hfresh(
-            distance_metric=VectorDistances.COSINE,
+            distance_metric=VectorDistances.DOT,
             max_posting_size_kb=1024,
             replicas=2,
             search_probe=50,

@@ -2079,6 +2079,7 @@ class _VectorIndexConfig(_ConfigBase):
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
+        out["distance"] = out.pop("distanceMetric")
         if isinstance(self.quantizer, _PQConfig):
             out["pq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _BQConfig):
@@ -2162,6 +2163,11 @@ class _VectorIndexConfigDynamic(_ConfigBase):
     @staticmethod
     def vector_index_type() -> str:
         return VectorIndexType.DYNAMIC.value
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["distance"] = out.pop("distanceMetric")
+        return out
 
 
 VectorIndexConfigDynamic = _VectorIndexConfigDynamic
