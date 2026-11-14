@@ -14,6 +14,7 @@ from weaviate.collections.classes.config import (
     GenerativeSearches,
     Property,
     ReferenceProperty,
+    VectorDistances,
     Vectorizers,
     _CollectionConfig,
 )
@@ -302,7 +303,24 @@ def test_create_export_and_recreate_named_vectors(
                 source_properties=["name"],
                 vectorize_collection_name=False,
             ),
-            Configure.NamedVectors.none("custom", vector_index_config=Configure.VectorIndex.flat()),
+            Configure.NamedVectors.none(
+                "custom",
+                vector_index_config=Configure.VectorIndex.flat(
+                    distance_metric=VectorDistances.DOT
+                ),
+            ),
+            Configure.NamedVectors.none(
+                "hnsw",
+                vector_index_config=Configure.VectorIndex.hnsw(
+                    distance_metric=VectorDistances.DOT
+                ),
+            ),
+            Configure.NamedVectors.none(
+                "dynamic",
+                vector_index_config=Configure.VectorIndex.dynamic(
+                    distance_metric=VectorDistances.DOT
+                ),
+            ),
         ],
     )
     conf = col.config.get()
