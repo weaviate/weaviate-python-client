@@ -20,6 +20,8 @@ import pytest
 import pytest_asyncio
 
 import weaviate
+from integration.conftest import CollectionFactory
+from weaviate.classes.config import Configure, DataType, Property
 from weaviate.classes.tokenization import (
     StopwordsCreate,
     StopwordsPreset,
@@ -27,6 +29,7 @@ from weaviate.classes.tokenization import (
     Tokenization,
     TokenizeResult,
 )
+from weaviate.collections import Collection
 from weaviate.config import AdditionalConfig
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 
@@ -57,26 +60,18 @@ async def async_client() -> AsyncGenerator[weaviate.WeaviateAsyncClient, None]:
 
 
 @pytest.fixture
-def recipe_collection(client: weaviate.WeaviateClient) -> Generator:
+def recipe_collection(collection_factory: CollectionFactory) -> Collection:
     """Collection with a `recipe` word-tokenized property and an en + ["quick"] stopwords config."""
-    name = "TestTokenizeRecipe"
-    client.collections.delete(name)
-    client.collections.create_from_dict(
-        {
-            "class": name,
-            "vectorizer": "none",
-            "invertedIndexConfig": {
-                "stopwords": {"preset": "en", "additions": ["quick"]},
-            },
-            "properties": [
-                {"name": "recipe", "dataType": ["text"], "tokenization": "word"},
-            ],
-        }
+    # collection_factory derives the name from the test node, so tests on different
+    # xdist workers never create or delete each other's collection.
+    return collection_factory(
+        properties=[
+            Property(name="recipe", data_type=DataType.TEXT, tokenization=Tokenization.WORD)
+        ],
+        inverted_index_config=Configure.inverted_index(
+            stopwords_preset=StopwordsPreset.EN, stopwords_additions=["quick"]
+        ),
     )
-    try:
-        yield client.collections.get(name)
-    finally:
-        client.collections.delete(name)
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import inspect
+import warnings
 from typing import Callable, List, Union
 
 import pytest
@@ -349,22 +350,11 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        Configure.Vectorizer.text2vec_palm(
-            project_id="project",
-        ),
-        {
-            "text2vec-palm": {
-                "projectId": "project",
-                "vectorizeClassName": True,
-            }
-        },
-    ),
-    (
         Configure.Vectorizer.text2vec_google(
             project_id="project",
         ),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
                 "projectId": "project",
                 "vectorizeClassName": True,
             }
@@ -373,25 +363,9 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_google_aistudio(),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
                 "apiEndpoint": "generativelanguage.googleapis.com",
                 "vectorizeClassName": True,
-            }
-        },
-    ),
-    (
-        Configure.Vectorizer.text2vec_palm(
-            project_id="project",
-            api_endpoint="api.google.com",
-            model_id="model",
-            vectorize_collection_name=False,
-        ),
-        {
-            "text2vec-palm": {
-                "projectId": "project",
-                "apiEndpoint": "api.google.com",
-                "modelId": "model",
-                "vectorizeClassName": False,
             }
         },
     ),
@@ -403,7 +377,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             vectorize_collection_name=False,
         ),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
                 "projectId": "project",
                 "apiEndpoint": "api.google.com",
                 "modelId": "model",
@@ -548,26 +522,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        Configure.Vectorizer.multi2vec_palm(
-            image_fields=["image"],
-            text_fields=["text"],
-            video_fields=["video"],
-            project_id="project",
-            video_interval_seconds=1,
-            location="us-central1",
-        ),
-        {
-            "multi2vec-palm": {
-                "imageFields": ["image"],
-                "textFields": ["text"],
-                "videoFields": ["video"],
-                "projectId": "project",
-                "location": "us-central1",
-                "videoIntervalSeconds": 1,
-            }
-        },
-    ),
-    (
         Configure.Vectorizer.multi2vec_google(
             image_fields=["image"],
             text_fields=["text"],
@@ -577,7 +531,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             location="us-central1",
         ),
         {
-            "multi2vec-palm": {
+            "multi2vec-google": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -596,7 +550,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             location="us-central1",
         ),
         {
-            "multi2vec-palm": {
+            "multi2vec-google": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -614,7 +568,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             location="us-central1",
         ),
         {
-            "multi2vec-palm": {
+            "multi2vec-google": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -633,7 +587,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             vectorize_collection_name=False,
         ),
         {
-            "multi2vec-palm": {
+            "multi2vec-google": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -875,6 +829,45 @@ def test_config_with_vectorizer_and_properties(
     }
 
 
+def test_config_with_vector_config_warns_on_skip_vectorization() -> None:
+    """With `vector_config` the flag is not sent, so setting it must warn (Dep032)."""
+    config = _CollectionConfigCreate(
+        name="test",
+        properties=[Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)],
+        vector_config=Configure.Vectors.text2vec_transformers(),
+    )
+    with pytest.warns(DeprecationWarning, match="Dep032"):
+        config._to_dict()
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        # flag not set at all
+        {
+            "properties": [Property(name="text", data_type=DataType.TEXT)],
+            "vector_config": Configure.Vectors.text2vec_transformers(),
+        },
+        # legacy path maps the flag, so it does take effect
+        {
+            "properties": [Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)],
+            "vectorizer_config": Configure.Vectorizer.text2vec_transformers(),
+        },
+        # nothing is vectorized, so the flag is moot
+        {
+            "properties": [Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)],
+            "vector_config": Configure.Vectors.self_provided(),
+        },
+        {"properties": [Property(name="text", data_type=DataType.TEXT, skip_vectorization=True)]},
+    ],
+)
+def test_config_property_flags_do_not_warn(kwargs: dict) -> None:
+    config = _CollectionConfigCreate(name="test", **kwargs)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        config._to_dict()
+
+
 TEST_CONFIG_WITH_GENERATIVE = [
     (
         Configure.Generative.openai(),
@@ -983,40 +976,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
-        Configure.Generative.palm(project_id="project"),
-        {
-            "generative-palm": {
-                "projectId": "project",
-            }
-        },
-    ),
-    (
         Configure.Generative.google(project_id="project"),
         {
             "generative-palm": {
                 "projectId": "project",
-            }
-        },
-    ),
-    (
-        Configure.Generative.palm(
-            project_id="project",
-            api_endpoint="https://api.google.com",
-            max_output_tokens=100,
-            model_id="model",
-            temperature=0.5,
-            top_k=10,
-            top_p=0.5,
-        ),
-        {
-            "generative-palm": {
-                "projectId": "project",
-                "apiEndpoint": "https://api.google.com",
-                "maxOutputTokens": 100,
-                "modelId": "model",
-                "temperature": 0.5,
-                "topK": 10,
-                "topP": 0.5,
             }
         },
     ),
@@ -1979,27 +1942,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     ),
     (
         [
-            Configure.NamedVectors.text2vec_palm(
-                name="test",
-                project_id="project",
-                source_properties=["prop"],
-            )
-        ],
-        {
-            "test": {
-                "vectorizer": {
-                    "text2vec-palm": {
-                        "projectId": "project",
-                        "properties": ["prop"],
-                        "vectorizeClassName": True,
-                    }
-                },
-                "vectorIndexType": "hnsw",
-            }
-        },
-    ),
-    (
-        [
             Configure.NamedVectors.text2vec_google(
                 name="test",
                 project_id="project",
@@ -2009,7 +1951,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -2029,7 +1971,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -2155,30 +2097,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     ),
     (
         [
-            Configure.NamedVectors.multi2vec_palm(
-                name="test",
-                image_fields=["image"],
-                text_fields=["text"],
-                project_id="project",
-                location="us-central1",
-            )
-        ],
-        {
-            "test": {
-                "vectorizer": {
-                    "multi2vec-palm": {
-                        "imageFields": ["image"],
-                        "textFields": ["text"],
-                        "projectId": "project",
-                        "location": "us-central1",
-                    }
-                },
-                "vectorIndexType": "hnsw",
-            }
-        },
-    ),
-    (
-        [
             Configure.NamedVectors.multi2vec_google(
                 name="test",
                 image_fields=["image"],
@@ -2190,7 +2108,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
@@ -2215,7 +2133,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "audioFields": ["audio"],
                         "imageFields": ["image"],
                         "textFields": ["text"],
@@ -2283,7 +2201,6 @@ def test_config_with_named_vectors(
 MULTI2VEC_FACTORIES_WITH_VECTORIZE_COLLECTION_NAME = [
     Configure.Vectorizer.multi2vec_cohere,
     Configure.Vectorizer.multi2vec_clip,
-    Configure.Vectorizer.multi2vec_palm,
     Configure.Vectorizer.multi2vec_google,
     Configure.Vectorizer.multi2vec_bind,
     Configure.Vectorizer.multi2vec_voyageai,
@@ -2291,7 +2208,6 @@ MULTI2VEC_FACTORIES_WITH_VECTORIZE_COLLECTION_NAME = [
     Configure.Vectorizer.multi2vec_jinaai,
     Configure.NamedVectors.multi2vec_cohere,
     Configure.NamedVectors.multi2vec_clip,
-    Configure.NamedVectors.multi2vec_palm,
     Configure.NamedVectors.multi2vec_google,
     Configure.NamedVectors.multi2vec_bind,
     Configure.NamedVectors.multi2vec_voyageai,
@@ -2721,7 +2637,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -2745,7 +2661,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "projectId": "project",
                         "location": "europe-west1",
                         "properties": ["prop"],
@@ -2768,7 +2684,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -2995,7 +2911,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
@@ -3019,7 +2935,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "imageFields": ["image"],
                         "textFields": ["text"],
@@ -3045,7 +2961,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "audioFields": ["audio"],
                         "imageFields": ["image"],
                         "textFields": ["text"],
@@ -3071,7 +2987,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "audioFields": ["audio"],
                         "imageFields": ["image"],
@@ -3096,7 +3012,7 @@ TEST_CONFIG_WITH_VECTORS_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
                         "apiEndpoint": "generativelanguage.googleapis.com",
                         "audioFields": ["audio"],
                         "imageFields": ["image"],

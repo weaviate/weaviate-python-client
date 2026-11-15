@@ -1,6 +1,7 @@
 from typing import Any, List, Tuple
 from unittest.mock import MagicMock
 
+import certifi
 import grpc
 import pytest
 
@@ -47,16 +48,34 @@ def test_grpc_config_channel_options() -> None:
 
 
 def test_secure_channel_default_credentials(
-    secure_params: ConnectionParams, mock_grpc: MagicMock, mock_ssl_creds: MagicMock
+    secure_params: ConnectionParams,
+    mock_grpc: MagicMock,
+    mock_ssl_creds: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.delenv("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH", raising=False)
     mock_channel = MagicMock()
     mock_grpc.secure_channel.return_value = mock_channel
 
     result = secure_params._grpc_channel(proxies={}, grpc_msg_size=None, is_async=False)
 
-    mock_ssl_creds.assert_called_once_with()
-    mock_grpc.secure_channel.assert_called_once()
+    with open(certifi.where(), "rb") as f:
+        mock_ssl_creds.assert_called_once_with(root_certificates=f.read())
+    assert mock_grpc.secure_channel.call_args.kwargs["credentials"] is mock_ssl_creds.return_value
     assert result is mock_channel
+
+
+def test_secure_channel_roots_file_env_overrides_certifi(
+    secure_params: ConnectionParams,
+    mock_grpc: MagicMock,
+    mock_ssl_creds: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH", "/etc/ssl/corp-roots.pem")
+
+    secure_params._grpc_channel(proxies={}, grpc_msg_size=None, is_async=False)
+
+    mock_ssl_creds.assert_called_once_with()
 
 
 def test_insecure_channel_no_config(

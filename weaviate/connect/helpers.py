@@ -263,6 +263,7 @@ def connect_to_embedded(
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         version: Weaviate version to be used for the embedded instance.
         persistence_data_path: Directory where the files making up the database are stored.
+            Data in this directory belongs to the `port` that created it, so each separate instance needs its own directory.
             When the XDG_DATA_HOME env variable is set, the default value is: `XDG_DATA_HOME/weaviate/`
             Otherwise it is: `~/.local/share/weaviate`
         binary_path: Directory where to download the binary. If deleted, the client will download the binary again.
@@ -568,6 +569,7 @@ def use_async_with_embedded(
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         version: Weaviate version to be used for the embedded instance.
         persistence_data_path: Directory where the files making up the database are stored.
+            Data in this directory belongs to the `port` that created it, so each separate instance needs its own directory.
             When the XDG_DATA_HOME env variable is set, the default value is: `XDG_DATA_HOME/weaviate/`
             Otherwise it is: `~/.local/share/weaviate`
         binary_path: Directory where to download the binary. If deleted, the client will download the binary again.
