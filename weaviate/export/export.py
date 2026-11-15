@@ -6,7 +6,8 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from weaviate.backup.backup import BackupStorage, _zero_time_to_none
+from weaviate.backup.backup import BackupStorage
+from weaviate.util import _zero_time_to_none
 
 ExportStorage = BackupStorage
 

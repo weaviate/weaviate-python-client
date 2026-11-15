@@ -5,15 +5,7 @@ from typing import Any, Dict, List, Optional, cast
 from pydantic import BaseModel, Field, field_validator
 
 from weaviate.backup.backup_location import _BackupLocationConfig
-
-
-def _zero_time_to_none(value: Optional[datetime]) -> Optional[datetime]:
-    # Weaviate sends Go's zero time (0001-01-01T00:00:00Z) for timestamps it has not set yet,
-    # for example `completedAt` while a backup or export is still running.
-    if value is not None and value.replace(tzinfo=None) == datetime.min:
-        return None
-    return value
-
+from weaviate.util import _zero_time_to_none
 
 STORAGE_NAMES = {
     "filesystem",
