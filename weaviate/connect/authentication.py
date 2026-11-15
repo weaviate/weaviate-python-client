@@ -36,10 +36,12 @@ class _Auth:
         oidc_config: OIDC_CONFIG,
         credentials: AuthCredentials,
         make_mounts: MountsMaker,
+        trust_env: bool,
         colour: executor.Colour,
     ) -> None:
         self._credentials: AuthCredentials = credentials
         self.__make_mounts = make_mounts
+        self.__trust_env = trust_env
         self.__colour: executor.Colour = colour
         config_url = oidc_config["href"]
         client_id = oidc_config["clientId"]
@@ -70,9 +72,10 @@ class _Auth:
         oidc_config: OIDC_CONFIG,
         credentials: AuthCredentials,
         make_mounts: MountsMaker,
+        trust_env: bool,
         colour: executor.Colour,
     ) -> executor.Result[_Auth]:
-        auth = _Auth(oidc_config, credentials, make_mounts, colour)
+        auth = _Auth(oidc_config, credentials, make_mounts, trust_env, colour)
         if colour == "async":
 
             async def _execute() -> _Auth:
@@ -107,6 +110,20 @@ class _Auth:
             return executor.execute(response_callback=resp, method=self._get_token_endpoint)
         return executor.empty(self.__colour)
 
+    def __async_mounts(self) -> Dict[str, httpx.AsyncBaseTransport]:
+        mounts: Dict[str, httpx.AsyncBaseTransport] = {}
+        for key, mount in self.__make_mounts().items():
+            assert isinstance(mount, httpx.AsyncHTTPTransport)
+            mounts[key] = mount
+        return mounts
+
+    def __sync_mounts(self) -> Dict[str, httpx.BaseTransport]:
+        mounts: Dict[str, httpx.BaseTransport] = {}
+        for key, mount in self.__make_mounts().items():
+            assert isinstance(mount, httpx.BaseTransport)
+            mounts[key] = mount
+        return mounts
+
     def _get_token_endpoint(self) -> executor.Result[str]:
         if self._token_endpoint is not None:
             return executor.return_(self._token_endpoint, self.__colour)
@@ -121,19 +138,13 @@ class _Auth:
         if self.__colour == "async":
 
             async def _execute() -> str:
-                mounts: Dict[str, httpx.AsyncBaseTransport] = {}
-                for key, mount in self.__make_mounts().items():
-                    assert isinstance(mount, httpx.AsyncHTTPTransport)
-                    mounts[key] = mount
-                async with httpx.AsyncClient(mounts=mounts) as client:
+                async with httpx.AsyncClient(
+                    mounts=self.__async_mounts(), trust_env=self.__trust_env
+                ) as client:
                     return resp(await client.get(self._open_id_config_url))
 
             return _execute()
-        mounts: Dict[str, httpx.BaseTransport] = {}
-        for key, mount in self.__make_mounts().items():
-            assert isinstance(mount, httpx.BaseTransport)
-            mounts[key] = mount
-        with httpx.Client(mounts=mounts) as client:
+        with httpx.Client(mounts=self.__sync_mounts(), trust_env=self.__trust_env) as client:
             return resp(client.get(self._open_id_config_url))
 
     def get_auth_session(self) -> Result:
@@ -164,6 +175,8 @@ class _Auth:
                     token_endpoint=await executor.aresult(self._get_token_endpoint()),
                     client_id=self._client_id,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    mounts=self.__async_mounts(),
+                    trust_env=self.__trust_env,
                 )
 
             return _execute()
@@ -172,6 +185,8 @@ class _Auth:
             token_endpoint=executor.result(self._get_token_endpoint()),
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            mounts=self.__sync_mounts(),
+            trust_env=self.__trust_env,
         )
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> Result:
@@ -186,6 +201,8 @@ class _Auth:
                     grant_type="password",
                     scope=scope,
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    mounts=self.__async_mounts(),
+                    trust_env=self.__trust_env,
                 )
                 token: dict = await session.fetch_token(
                     username=config.username, password=config.password
@@ -202,6 +219,8 @@ class _Auth:
             grant_type="password",
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            mounts=self.__sync_mounts(),
+            trust_env=self.__trust_env,
         )
         token: dict = session.fetch_token(username=config.username, password=config.password)
         if "refresh_token" not in token:
@@ -239,6 +258,8 @@ class _Auth:
                     grant_type="client_credentials",
                     token={"access_token": None, "expires_in": -100},
                     default_timeout=AUTH_DEFAULT_TIMEOUT,
+                    mounts=self.__async_mounts(),
+                    trust_env=self.__trust_env,
                 )
                 # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
                 await session.fetch_token()
@@ -254,6 +275,8 @@ class _Auth:
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},
             default_timeout=AUTH_DEFAULT_TIMEOUT,
+            mounts=self.__sync_mounts(),
+            trust_env=self.__trust_env,
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
         session.fetch_token()
