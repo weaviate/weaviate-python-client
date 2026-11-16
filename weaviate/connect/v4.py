@@ -498,11 +498,7 @@ class _ConnectionBase:
                                 f"Failed to authenticate with OIDC: {repr(e)}"
                             )
 
-                        if isinstance(auth_client_secret, AuthClientCredentials):
-                            # credentials should only be saved for client credentials, otherwise use refresh token
-                            self._create_background_token_refresh(_auth)
-                        else:
-                            self._create_background_token_refresh()
+                        self._create_background_token_refresh()
 
                     return execute()
                 else:
@@ -522,11 +518,7 @@ class _ConnectionBase:
                             f"Failed to authenticate with OIDC: {repr(e)}"
                         )
 
-                    if isinstance(auth_client_secret, AuthClientCredentials):
-                        # credentials should only be saved for client credentials, otherwise use refresh token
-                        self._create_background_token_refresh(_auth)
-                    else:
-                        self._create_background_token_refresh()
+                    self._create_background_token_refresh()
 
             else:
                 msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credentials.
@@ -552,15 +544,16 @@ class _ConnectionBase:
             self.__make_clients(colour)
         return executor.empty(colour)
 
-    def _create_background_token_refresh(self, _auth: Optional[_Auth] = None) -> None:
-        """Create a background thread that periodically refreshes access and refresh tokens.
+    def _create_background_token_refresh(self) -> None:
+        """Start the background refresher that renews the OIDC token shortly before it expires.
 
-        While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
-        X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
-        expire. Therefore, refresh manually shortly before expiration time is up.
+        authlib renews a token only inside its own ``request()``, and ``_send`` uses ``send()``,
+        so this refresher is the only renewal.
         """
         assert isinstance(self._client, (OAuth2Client, AsyncOAuth2Client))
-        if "refresh_token" not in self._client.token and _auth is None:
+        if "refresh_token" not in self._client.token and not isinstance(
+            self._auth, AuthClientCredentials
+        ):
             return
 
         # stop the refresher from an earlier connect(), if any
@@ -578,11 +571,11 @@ class _ConnectionBase:
             # async client: refresh in an asyncio task on the current loop, not in a thread
             # (threads cannot start under WASM/Pyodide)
             self.__token_refresh_task = asyncio.get_running_loop().create_task(
-                self.__periodic_token_refresh_async(refresh_in, _auth, shutdown)
+                self.__periodic_token_refresh_async(refresh_in, shutdown)
             )
             return
 
-        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
+        def periodic_refresh_token(refresh_time: int) -> None:
             # wait on the event instead of sleeping, so close() can end the thread right away
             while not shutdown.wait(timeout=max(refresh_time, 1)):
                 try:
@@ -594,13 +587,14 @@ class _ConnectionBase:
                     if "refresh_token" in client.token:
                         client.token = client.refresh_token(url=client.metadata["token_endpoint"])
                     else:
-                        # client credentials usually does not contain a refresh token => get a
-                        # new token using the saved credentials
-                        assert _auth is not None
-                        new_session = _auth.result(_auth.get_auth_session())
-                        client.token = new_session.fetch_token()
+                        # client credentials usually come without a refresh token => fetch a
+                        # new token with the client secret this session holds
+                        client.token = client.fetch_token()
                     refresh_time = client.token.get("expires_in", 60) - 30
                 except Exception as exc:
+                    # close() sets the event before it closes the client under this request
+                    if shutdown.is_set():
+                        return
                     # retry in one second; any error must keep the refresher alive, not only
                     # network errors
                     refresh_time = 1
@@ -608,7 +602,7 @@ class _ConnectionBase:
 
         demon = Thread(
             target=periodic_refresh_token,
-            args=(refresh_in, _auth),
+            args=(refresh_in,),
             daemon=True,
             name="TokenRefresh",
         )
@@ -630,9 +624,7 @@ class _ConnectionBase:
                 pass
         return task
 
-    async def __periodic_token_refresh_async(
-        self, refresh_time: int, _auth: Optional[_Auth], shutdown: Event
-    ) -> None:
+    async def __periodic_token_refresh_async(self, refresh_time: int, shutdown: Event) -> None:
         """Async version of ``periodic_refresh_token``, run as a task; close() cancels it."""
         while not shutdown.is_set():
             await asyncio.sleep(max(refresh_time, 1))
@@ -643,11 +635,9 @@ class _ConnectionBase:
                 if "refresh_token" in client.token:
                     client.token = await client.refresh_token(url=client.metadata["token_endpoint"])
                 else:
-                    # client credentials usually does not contain a refresh token => get a
-                    # new token using the saved credentials
-                    assert _auth is not None
-                    new_session = await _Auth.aresult(_auth.get_auth_session())
-                    client.token = await new_session.fetch_token()
+                    # client credentials usually come without a refresh token => fetch a
+                    # new token with the client secret this session holds
+                    client.token = await client.fetch_token()
                 refresh_time = client.token.get("expires_in", 60) - 30
             except asyncio.CancelledError:
                 raise
