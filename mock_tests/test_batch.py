@@ -1,10 +1,18 @@
+import asyncio
+import threading
+from queue import Queue
 from typing import AsyncGenerator, Generator, List
 
 import grpc
 import pytest
 import pytest_asyncio
 import weaviate
+from weaviate.collections.batch.async_ import _BatchBaseAsync
+from weaviate.collections.batch.base import _BatchStreamRequest
+from weaviate.collections.batch.grpc_batch import _BatchGRPC
+from weaviate.collections.batch.sync import _BatchBaseSync
 from weaviate.proto.v1 import batch_pb2, weaviate_pb2_grpc
+from weaviate.util import _ServerVersion
 from .conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, mock_class, HTTPServer
 
 HOW_MANY = 1000
@@ -160,3 +168,120 @@ def test_ssb_stream_reports_has_errors(
             batch.add_object({"name": f"Object {i}"})
     assert len(failed_object_stream.batch.failed_objects) == 2
     assert failed_object_stream.batch.results.objs.has_errors
+
+
+def _make_sync_batch() -> _BatchBaseSync:
+    # build a _BatchBaseSync without a connection, setting only the fields
+    # __send and __put_back read, so the stale-sender race can be driven
+    # deterministically without a server
+    batch = object.__new__(_BatchBaseSync)
+    batch._BatchBaseSync__batch_grpc = _BatchGRPC(_ServerVersion.from_string("1.30.0"), None, None)  # type: ignore[attr-defined]
+    batch._BatchBaseSync__is_gcp_on_wcd = False  # type: ignore[attr-defined]
+    batch._BatchBaseSync__bg_exception = None  # type: ignore[attr-defined]
+    batch._BatchBaseSync__reqs = Queue(maxsize=1)  # type: ignore[attr-defined]
+    batch._BatchBaseSync__is_hungup = threading.Event()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__is_shutting_down = threading.Event()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__is_oom = threading.Event()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__shutdown_loop = threading.Event()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__acks_lock = threading.Lock()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__inflight_objs = set()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__inflight_refs = set()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__stream_generation = 0  # type: ignore[attr-defined]
+    batch._BatchBaseSync__generation_lock = threading.Lock()  # type: ignore[attr-defined]
+    return batch
+
+
+def _stream_request(uuid: str) -> _BatchStreamRequest:
+    return _BatchStreamRequest(proto=batch_pb2.BatchStreamRequest(), uuids={uuid}, beacons=set())
+
+
+def test_sync_stale_sender_returns_request_after_fast_reconnect() -> None:
+    # regression test for #2261: after a hang-up with a sub-second reconnect,
+    # the old stream's sender must not yield the next request into the dead
+    # call (gRPC drops it and its uuids wedge __inflight_objs, hanging
+    # add_object); it must hand the request back to the live stream's sender
+    batch = _make_sync_batch()
+    batch._BatchBaseSync__stream_generation = 1  # type: ignore[attr-defined]
+    stale = batch._BatchBaseSync__send(1)  # type: ignore[attr-defined]
+    assert next(stale).HasField("start")
+
+    # fast reconnect: __recv starts a new stream (generation 2) and clears the
+    # hung-up flag before the old sender wakes from its queue wait
+    batch._BatchBaseSync__stream_generation = 2  # type: ignore[attr-defined]
+    req = _stream_request("uuid-1")
+    batch._BatchBaseSync__reqs.put(req)  # type: ignore[attr-defined]
+
+    with pytest.raises(StopIteration):
+        next(stale)
+    # the request is back on the queue and nothing was marked inflight
+    assert batch._BatchBaseSync__reqs.get_nowait() is req  # type: ignore[attr-defined]
+    assert batch._BatchBaseSync__inflight_objs == set()  # type: ignore[attr-defined]
+
+    # the live stream's sender delivers the same request exactly once
+    batch._BatchBaseSync__reqs.put(req)  # type: ignore[attr-defined]
+    live = batch._BatchBaseSync__send(2)  # type: ignore[attr-defined]
+    assert next(live).HasField("start")
+    assert next(live) is req.proto
+    assert batch._BatchBaseSync__inflight_objs == {"uuid-1"}  # type: ignore[attr-defined]
+
+
+def test_sync_stale_sender_returns_stop_sentinel_after_fast_reconnect() -> None:
+    # the None sentinel must also be handed back: if the stale sender consumed
+    # it, the live stream would never receive its stop message (#2261)
+    batch = _make_sync_batch()
+    batch._BatchBaseSync__stream_generation = 1  # type: ignore[attr-defined]
+    stale = batch._BatchBaseSync__send(1)  # type: ignore[attr-defined]
+    assert next(stale).HasField("start")
+
+    batch._BatchBaseSync__stream_generation = 2  # type: ignore[attr-defined]
+    batch._BatchBaseSync__reqs.put(None)  # type: ignore[attr-defined]
+
+    with pytest.raises(StopIteration):
+        next(stale)
+    assert batch._BatchBaseSync__reqs.get_nowait() is None  # type: ignore[attr-defined]
+
+    batch._BatchBaseSync__reqs.put(None)  # type: ignore[attr-defined]
+    live = batch._BatchBaseSync__send(2)  # type: ignore[attr-defined]
+    assert next(live).HasField("start")
+    assert next(live).HasField("stop")
+
+
+def _make_async_batch() -> _BatchBaseAsync:
+    # async twin of _make_sync_batch, for _BatchBaseAsync.__send/__put_back
+    batch = object.__new__(_BatchBaseAsync)
+    batch._BatchBaseAsync__batch_grpc = _BatchGRPC(_ServerVersion.from_string("1.30.0"), None, None)  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__is_gcp_on_wcd = False  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__bg_exception = None  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__reqs = asyncio.Queue(maxsize=1)  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__is_hungup = asyncio.Event()  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__is_shutting_down = asyncio.Event()  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__is_oom = asyncio.Event()  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__shutdown_loop = asyncio.Event()  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__inflight_objs = set()  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__inflight_refs = set()  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__stream_generation = 0  # type: ignore[attr-defined]
+    return batch
+
+
+@pytest.mark.asyncio
+async def test_async_stale_sender_returns_request_after_fast_reconnect() -> None:
+    # regression test for #2261, async variant of the sync test above
+    batch = _make_async_batch()
+    batch._BatchBaseAsync__stream_generation = 1  # type: ignore[attr-defined]
+    stale = batch._BatchBaseAsync__send(1)  # type: ignore[attr-defined]
+    assert (await anext(stale)).HasField("start")
+
+    batch._BatchBaseAsync__stream_generation = 2  # type: ignore[attr-defined]
+    req = _stream_request("uuid-1")
+    batch._BatchBaseAsync__reqs.put_nowait(req)  # type: ignore[attr-defined]
+
+    with pytest.raises(StopAsyncIteration):
+        await anext(stale)
+    assert batch._BatchBaseAsync__reqs.get_nowait() is req  # type: ignore[attr-defined]
+    assert batch._BatchBaseAsync__inflight_objs == set()  # type: ignore[attr-defined]
+
+    batch._BatchBaseAsync__reqs.put_nowait(req)  # type: ignore[attr-defined]
+    live = batch._BatchBaseAsync__send(2)  # type: ignore[attr-defined]
+    assert (await anext(live)).HasField("start")
+    assert (await anext(live)) is req.proto
+    assert batch._BatchBaseAsync__inflight_objs == {"uuid-1"}  # type: ignore[attr-defined]
