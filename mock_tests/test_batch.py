@@ -1,9 +1,11 @@
+import warnings
 from typing import AsyncGenerator, Generator, List
 
 import grpc
 import pytest
 import pytest_asyncio
 import weaviate
+from weaviate.collections.classes.batch import ErrorObject
 from weaviate.proto.v1 import batch_pb2, weaviate_pb2_grpc
 from .conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, mock_class, HTTPServer
 
@@ -160,3 +162,46 @@ def test_ssb_stream_reports_has_errors(
             batch.add_object({"name": f"Object {i}"})
     assert len(failed_object_stream.batch.failed_objects) == 2
     assert failed_object_stream.batch.results.objs.has_errors
+
+
+class MockRateLimitedSecondChunkService(weaviate_pb2_grpc.WeaviateServicer):
+    calls = 0
+
+    def BatchObjects(self, request, context):
+        self.calls += 1
+        if self.calls == 2:
+            return batch_pb2.BatchObjectsReply(
+                errors=[{"index": 0, "error": "failed with status: 503 error"}]
+            )
+        return batch_pb2.BatchObjectsReply()
+
+
+@pytest.fixture(scope="function")
+def rate_limited_readd_collection(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> Generator[weaviate.collections.Collection, None, None]:
+    weaviate_mock.expect_request(f"/v1/schema/{mock_class['class']}").respond_with_json(mock_class)
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(
+        MockRateLimitedSecondChunkService(), start_grpc_server
+    )
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    yield client.collections.use(mock_class["class"])
+    client.close()
+
+
+def test_readded_rate_limited_object_leaves_no_stale_error(
+    rate_limited_readd_collection: weaviate.collections.Collection,
+) -> None:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        with rate_limited_readd_collection.batch.fixed_size(
+            batch_size=2, concurrent_requests=1
+        ) as batch:
+            for i in range(4):
+                batch.add_object({"name": f"Object {i}"})
+
+    results = rate_limited_readd_collection.batch.results.objs
+    assert results.errors == {}
+    assert len(results.uuids) == 4
+    assert all(not isinstance(resp, ErrorObject) for resp in results._all_responses)
+    assert not any("Dep020" in str(w.message) for w in caught)
