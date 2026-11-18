@@ -270,6 +270,24 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+class VectorSearchParams(_WeaviateInput):
+    """Per-request tuning of the vector index search.
+
+    Lets a single query trade recall for latency without changing the collection's vector index
+    configuration. Only HNSW indexes honour it; flat and HFresh indexes ignore it. Requires
+    Weaviate >= 1.41.0; older servers ignore the field.
+
+    Args:
+        ef: HNSW layer-0 beam width for this request only. ``None`` or ``0`` keeps the collection's
+            configured ``ef`` (or dynamic ef). The server floors the value at the request's
+            ``limit``, so a small ``ef`` never truncates the results, and rejects values above its
+            ``HNSW_MAX_SEARCH_EF`` cap (``QUERY_MAXIMUM_RESULTS``, 10000 by default). Applies to
+            every vector search, including the vector leg of a hybrid search.
+    """
+
+    ef: Optional[int] = Field(default=None, ge=0, strict=True)
+
+
 @dataclass
 class _TimeDecayFunction:
     property: str  # noqa: A003

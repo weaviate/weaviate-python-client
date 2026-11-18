@@ -11,6 +11,7 @@ from weaviate.collections.classes.grpc import (
     Move,
     Rerank,
     TargetVectorJoinType,
+    VectorSearchParams,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -51,6 +52,7 @@ class _NearTextQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
     def near_text(
@@ -74,6 +76,7 @@ class _NearTextQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     def near_text(
@@ -97,6 +100,7 @@ class _NearTextQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
     def near_text(
@@ -120,6 +124,7 @@ class _NearTextQuery(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> QueryReturn[TProperties, References]: ...
     @overload
     def near_text(
@@ -143,6 +148,7 @@ class _NearTextQuery(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
     def near_text(
@@ -166,6 +172,7 @@ class _NearTextQuery(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> QueryReturn[TProperties, TReferences]: ...
     @overload
     def near_text(
@@ -189,6 +196,7 @@ class _NearTextQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
     def near_text(
@@ -212,6 +220,7 @@ class _NearTextQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     def near_text(
@@ -235,6 +244,7 @@ class _NearTextQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
     def near_text(
@@ -258,6 +268,7 @@ class _NearTextQuery(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> GroupByReturn[TProperties, References]: ...
     @overload
     def near_text(
@@ -281,6 +292,7 @@ class _NearTextQuery(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> GroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def near_text(
@@ -304,6 +316,7 @@ class _NearTextQuery(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> GroupByReturn[TProperties, TReferences]: ...
     @overload
     def near_text(
@@ -327,4 +340,5 @@ class _NearTextQuery(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...

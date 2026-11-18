@@ -31,6 +31,7 @@ from weaviate.collections.classes.grpc import (
     QueryNested,
     Rerank,
     TargetVectorJoinType,
+    VectorSearchParams,
     _Boost,
     _BoostCurve,
     _BoostModifier,
@@ -45,6 +46,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import base_search_pb2, search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _ServerVersion
@@ -64,6 +66,11 @@ _PyValue: TypeAlias = Union[
     List[bool],
     List[UUID],
 ]
+
+
+# Servers below this version drop the unknown proto field and search with the collection ef,
+# so the option would be a silent no-op there.
+_VECTOR_SEARCH_PARAMS_MIN_VERSION = (1, 41, 0)
 
 
 @dataclass
@@ -174,6 +181,7 @@ class _QueryGRPC(_BaseGRPC):
         boost: Optional[_Boost] = None,
         diversity_selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -187,6 +195,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             boost=boost,
             autocut=autocut,
+            vector_search_params=vector_search_params,
             hybrid_search=self._parse_hybrid(
                 query,
                 alpha,
@@ -268,6 +277,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -280,6 +290,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             boost=boost,
             autocut=autocut,
+            vector_search_params=vector_search_params,
             group_by=group_by,
             near_vector=self._parse_near_vector(
                 near_vector,
@@ -309,6 +320,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -321,6 +333,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             boost=boost,
             autocut=autocut,
+            vector_search_params=vector_search_params,
             group_by=group_by,
             near_object=self._parse_near_object(
                 near_object,
@@ -352,6 +365,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -364,6 +378,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             boost=boost,
             autocut=autocut,
+            vector_search_params=vector_search_params,
             group_by=group_by,
             near_text=self._parse_near_text(
                 near_text,
@@ -396,6 +411,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -408,6 +424,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             boost=boost,
             autocut=autocut,
+            vector_search_params=vector_search_params,
             group_by=group_by,
             **self._parse_media(
                 media,
@@ -433,6 +450,7 @@ class _QueryGRPC(_BaseGRPC):
         boost: Optional[_Boost] = None,
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
         near_vector: Optional[base_search_pb2.NearVector] = None,
         sort_by: Optional[Sequence[search_get_pb2.SortBy]] = None,
         hybrid_search: Optional[base_search_pb2.Hybrid] = None,
@@ -458,6 +476,11 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([Rerank, None], "rerank", rerank),
                     _ValidateArgument([int, None], "autocut", autocut),
                     _ValidateArgument([_GroupBy, None], "group_by", group_by),
+                    _ValidateArgument(
+                        [VectorSearchParams, None],
+                        "vector_search_params",
+                        vector_search_params,
+                    ),
                     _ValidateArgument(
                         [str, bool, QueryNested, Sequence, None],
                         "return_properties",
@@ -525,6 +548,7 @@ class _QueryGRPC(_BaseGRPC):
                 else None
             ),
             boost=self.__boost_to_grpc(boost),
+            vector_search_params=self.__vector_search_params_to_grpc(vector_search_params),
             near_vector=near_vector,
             sort_by=sort_by,
             hybrid_search=hybrid_search,
@@ -566,6 +590,20 @@ class _QueryGRPC(_BaseGRPC):
         _BoostModifier.LOG1P: _Boost_pb2.PROPERTY_VALUE_MODIFIER_LOG1P,
         _BoostModifier.SQRT: _Boost_pb2.PROPERTY_VALUE_MODIFIER_SQRT,
     }
+
+    def __vector_search_params_to_grpc(
+        self, params: Optional[VectorSearchParams]
+    ) -> Optional[search_get_pb2.VectorSearchParams]:
+        if params is None:
+            return None
+        if self._weaviate_version.is_lower_than(*_VECTOR_SEARCH_PARAMS_MIN_VERSION):
+            raise WeaviateUnsupportedFeatureError(
+                "vector_search_params",
+                str(self._weaviate_version),
+                ".".join(str(v) for v in _VECTOR_SEARCH_PARAMS_MIN_VERSION),
+            )
+        # ef=None leaves the proto field unset, which the server reads as the collection default.
+        return search_get_pb2.VectorSearchParams(ef=params.ef)
 
     def __boost_to_grpc(self, boost: Optional[_Boost]) -> Optional[search_get_pb2.Boost]:
         if boost is None:

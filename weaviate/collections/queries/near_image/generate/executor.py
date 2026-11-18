@@ -18,6 +18,7 @@ from weaviate.collections.classes.grpc import (
     NearMediaType,
     Rerank,
     TargetVectorJoinType,
+    VectorSearchParams,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -71,6 +72,7 @@ class _NearImageGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeReturn[Properties, References]]: ...
 
     @overload
@@ -97,6 +99,7 @@ class _NearImageGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -123,6 +126,7 @@ class _NearImageGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeReturn[Properties, TReferences]]: ...
 
     @overload
@@ -149,6 +153,7 @@ class _NearImageGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, References]]: ...
 
     @overload
@@ -175,6 +180,7 @@ class _NearImageGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -201,6 +207,7 @@ class _NearImageGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, TReferences]]: ...
 
     ### GroupBy ###
@@ -228,6 +235,7 @@ class _NearImageGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, References]]: ...
 
     @overload
@@ -254,6 +262,7 @@ class _NearImageGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -280,6 +289,7 @@ class _NearImageGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, TReferences]]: ...
 
     @overload
@@ -306,6 +316,7 @@ class _NearImageGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, References]]: ...
 
     @overload
@@ -332,6 +343,7 @@ class _NearImageGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -358,6 +370,7 @@ class _NearImageGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, TReferences]]: ...
 
     ### DEFAULT ###
@@ -385,6 +398,7 @@ class _NearImageGenerateExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[
         GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -412,6 +426,7 @@ class _NearImageGenerateExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParams] = None,
     ) -> executor.Result[
         GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
     ]:
@@ -439,6 +454,7 @@ class _NearImageGenerateExecutor(
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
             diversity_selection: Apply diversity selection (e.g. MMR) to the results. Requires Weaviate >= 1.37.0.
+            vector_search_params: Per-request vector index tuning, e.g. ``VectorSearchParams(ef=...)`` to override the collection's HNSW ``ef`` for this query only. Ignored by flat and HFresh indexes. Requires Weaviate >= 1.41.0.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -481,6 +497,7 @@ class _NearImageGenerateExecutor(
             group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
             diversity_selection=diversity_selection,
+            vector_search_params=vector_search_params,
             boost=boost,
             target_vector=target_vector,
             generative=_Generative(
