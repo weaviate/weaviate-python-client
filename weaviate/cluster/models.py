@@ -62,13 +62,16 @@ class _ReplicateOperation(Generic[H]):
         data: dict,
         include_history: bool,
     ):
+        # Weaviate 1.31 uses Id-suffixed shard/node fields and transferType.
         common = {
             "collection": data["collection"],
-            "shard": data["shard"],
-            "source_node": data["sourceNode"],
+            "shard": data["shard"] if "shard" in data else data["shardId"],
+            "source_node": data["sourceNode"] if "sourceNode" in data else data["sourceNodeId"],
             "status": ReplicateOperationStatus._from_weaviate(data["status"]),
-            "target_node": data["targetNode"],
-            "transfer_type": ReplicationType(data["type"]),
+            "target_node": data["targetNode"] if "targetNode" in data else data["targetNodeId"],
+            "transfer_type": ReplicationType(
+                data["type"] if "type" in data else data["transferType"]
+            ),
             "uuid": uuid.UUID(data["id"]),
         }
         if include_history and data["statusHistory"] is not None:
