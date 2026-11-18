@@ -1,101 +1,258 @@
-"""Proposed HTTP-contract tests for replication scale plans, for discussion.
+"""HTTP-contract tests for replication scale plans."""
 
-These placeholders describe tests; they do not implement fixtures or assertions.
-Exercise public client methods against mock HTTP responses, not mocked methods.
-Run request/response and error scenarios with both sync and async clients. Run
-input-validation and version-boundary matrices with the sync client only. Unless
-a test says otherwise, mock a supported server version.
-"""
+import inspect
+from functools import partial
+from typing import AsyncIterator, Awaitable, TypeVar, Union, cast
+from uuid import UUID
 
+import grpc
+import pytest
+import pytest_asyncio
+from pytest_httpserver import HTTPServer
 
-def test_generate_scale_plan_request_and_parsing() -> None:
-    """Send the expected GET and parse a typed, multi-shard plan.
+import weaviate
+from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
+from weaviate.outputs.replication import (
+    ReplicaAddition,
+    ReplicationScaleApplyResult,
+    ReplicationScalePlan,
+    ShardScaleActions,
+)
 
-    Call generate_scale_plan(collection="articleArchive", replication_factor=3).
-    Expect GET /v1/replication/scale with query parameters collection=ArticleArchive
-    and replicationFactor=3. This one name checks first-letter capitalization
-    while preserving the rest of the name.
-
-    Return plan JSON containing multiple shards with additions and removals.
-    Expect a ReplicationScalePlan with a UUID plan_id, the returned collection,
-    and ShardScaleActions for every shard. Each addNodes entry becomes a
-    ReplicaAddition with target_node from the key and source_node from the value,
-    in response order.
-
-    Make one shard removal-only in the server's actual shape,
-    {"removeNodes": ["node2"]} with no addNodes key, and expect
-    remove_nodes=["node2"] and add_nodes=[] for it.
-    """
-    raise NotImplementedError("Test not implemented")
-
-
-def test_apply_scale_plan_serialization_and_result_parsing() -> None:
-    """Serialize the supplied plan and parse the application result.
-
-    Construct a ReplicationScalePlan directly with collection="article" and call
-    apply_scale_plan. Expect POST /v1/replication/scale with literal JSON matching
-    the plan: planId, collection, shardScaleActions, removeNodes, and addNodes.
-    The collection is sent as given ("article"); unlike generate_scale_plan,
-    application does not capitalize it. Each ReplicaAddition must serialize as an
-    addNodes entry keyed by target_node. Include empty removals and both named
-    and None sources; None must serialize as JSON null. Include one removal-only
-    shard with add_nodes=[], which must serialize with "addNodes": {} so every
-    shard sends both keys.
-
-    Return planId, collection, and multiple operationIds. Expect a
-    ReplicationScaleApplyResult with UUID plan_id and operation_ids.
-    """
-    raise NotImplementedError("Test not implemented")
+SCALE_PATH = "/v1/replication/scale"
+PLAN_ID = "32536c0e-09e1-4ea1-a2c5-e85af10a9d58"
+OPERATION_ID = "47b26ba1-6bc9-41f8-a655-8b9a5b60e1a3"
+SECOND_OPERATION_ID = "5fef6289-28d2-4ea2-82a9-48eb501200cd"
+Client = Union[weaviate.WeaviateClient, weaviate.WeaviateAsyncClient]
+T = TypeVar("T")
 
 
-def test_apply_scale_plan_rejects_duplicate_target_nodes() -> None:
-    """Reject a shard that adds two replicas on one target before sending a request.
-
-    addNodes is a JSON object keyed by target node, so a duplicate target_node
-    cannot be represented and would otherwise drop one addition silently. Call
-    apply_scale_plan with a shard containing two ReplicaAddition entries for
-    target_node="node3" with different sources. Expect WeaviateInvalidInputError
-    identifying the shard and target node, and assert no request occurred.
-
-    Only duplicates within one shard are invalid; the same target_node in
-    different shards is valid.
-    """
-    raise NotImplementedError("Test not implemented")
+@pytest.fixture
+def server_version() -> str:
+    return "1.35.0"
 
 
-def test_scale_methods_enforce_minimum_versions() -> None:
-    """Enforce the scale-plan version minimums for generation and application.
-
-    Call both generate_scale_plan and apply_scale_plan against each unsupported
-    patch and its first supported patch:
-        1.31.19 rejected; 1.31.20 accepted.
-        1.32.16 rejected; 1.32.17 accepted.
-        1.33.4 rejected; 1.33.5 accepted.
-        1.34.0 rejected; 1.34.1 accepted.
-
-    Rejected versions must raise WeaviateUnsupportedFeatureError identifying the
-    server version and the four minimum versions, without sending an HTTP request.
-    Accepted versions must send the request and return the parsed result from a
-    valid mocked GET or POST response.
-
-    These cases verify the feature's minimum-version configuration for both
-    methods: a rejected case fails if a minimum is too low or if a plain
-    is_at_least check replaces is_at_least_any, and an accepted case fails if a
-    minimum is too high. Later patches and minors are covered by the shared
-    version helper's tests.
-    """
-    raise NotImplementedError("Test not implemented")
+@pytest.fixture
+def weaviate_mock(ready_mock: HTTPServer, server_version: str) -> HTTPServer:
+    """Override the shared mock's fixed version for branch-boundary cases."""
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": server_version})
+    ready_mock.expect_request("/v1/nodes").respond_with_json(
+        {"nodes": [{"name": "node1", "status": "HEALTHY"}]}
+    )
+    ready_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_json(
+        {}, status=404
+    )
+    return ready_mock
 
 
-def test_generate_scale_plan_raises_for_missing_collection() -> None:
-    """Raise on the server's collection-not-found response instead of returning None.
+@pytest_asyncio.fixture(params=["sync", "async"])
+async def client(
+    request: pytest.FixtureRequest,
+    weaviate_mock: HTTPServer,
+    start_grpc_server: grpc.Server,
+) -> AsyncIterator[Client]:
+    client: Client
+    if request.param == "sync":
+        client = weaviate.connect_to_local(host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC)
+    else:
+        client = weaviate.use_async_with_local(
+            host=MOCK_IP, port=MOCK_PORT, grpc_port=MOCK_PORT_GRPC
+        )
+        await client.connect()
+    try:
+        yield client
+    finally:
+        if isinstance(client, weaviate.WeaviateAsyncClient):
+            await client.close()
+        else:
+            client.close()
 
-    Return HTTP 404 with an empty body for GET /v1/replication/scale, matching the
-    server's response for a missing collection. Expect UnexpectedStatusCodeError
-    with status 404. Replication operation get treats 404 as None; generation
-    must not, so a missing collection cannot pass silently as an empty result.
 
-    Other error statuses use the shared status handling covered by
-    mock_tests/test_collection.py and are not repeated here.
-    """
-    raise NotImplementedError("Test not implemented")
+async def await_if_needed(value: Union[T, Awaitable[T]]) -> T:
+    if inspect.isawaitable(value):
+        return await value
+    return cast(T, value)
+
+
+@pytest.mark.asyncio
+async def test_generate_scale_plan_request_and_parsing(
+    client: Client, weaviate_mock: HTTPServer
+) -> None:
+    """Capitalize the GET collection and parse ordered additions and omitted addNodes."""
+    weaviate_mock.expect_request(
+        SCALE_PATH,
+        method="GET",
+        query_string={"collection": "ArticleArchive", "replicationFactor": "3"},
+    ).respond_with_json(
+        {
+            "planId": PLAN_ID,
+            "collection": "ArticleArchive",
+            "shardScaleActions": {
+                "shard-a": {
+                    "removeNodes": ["node4"],
+                    "addNodes": {"node3": "node4", "node2": "node1"},
+                },
+                "shard-b": {"removeNodes": ["node2"]},
+            },
+        }
+    )
+
+    result = await await_if_needed(
+        client.cluster.replications.generate_scale_plan(
+            collection="articleArchive", replication_factor=3
+        )
+    )
+
+    assert result == ReplicationScalePlan(
+        plan_id=UUID(PLAN_ID),
+        collection="ArticleArchive",
+        shard_scale_actions={
+            "shard-a": ShardScaleActions(
+                remove_nodes=["node4"],
+                add_nodes=[
+                    ReplicaAddition(target_node="node3", source_node="node4"),
+                    ReplicaAddition(target_node="node2", source_node="node1"),
+                ],
+            ),
+            "shard-b": ShardScaleActions(remove_nodes=["node2"], add_nodes=[]),
+        },
+    )
+    weaviate_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_apply_scale_plan_serialization_and_result_parsing(
+    client: Client, weaviate_mock: HTTPServer
+) -> None:
+    """Preserve collection spelling, serialize every shard, and return UUID operation IDs."""
+    plan = ReplicationScalePlan(
+        plan_id=UUID(PLAN_ID),
+        collection="article",
+        shard_scale_actions={
+            "shard-a": ShardScaleActions(
+                remove_nodes=[],
+                add_nodes=[
+                    ReplicaAddition(target_node="node2", source_node="node1"),
+                    ReplicaAddition(target_node="node3", source_node=None),
+                ],
+            ),
+            "shard-b": ShardScaleActions(
+                remove_nodes=["node1"],
+                add_nodes=[ReplicaAddition(target_node="node2", source_node="node1")],
+            ),
+            "shard-c": ShardScaleActions(remove_nodes=["node2"], add_nodes=[]),
+        },
+    )
+    weaviate_mock.expect_request(
+        SCALE_PATH,
+        method="POST",
+        json={
+            "planId": PLAN_ID,
+            "collection": "article",
+            "shardScaleActions": {
+                "shard-a": {
+                    "removeNodes": [],
+                    "addNodes": {"node2": "node1", "node3": None},
+                },
+                "shard-b": {"removeNodes": ["node1"], "addNodes": {"node2": "node1"}},
+                "shard-c": {"removeNodes": ["node2"], "addNodes": {}},
+            },
+        },
+    ).respond_with_json(
+        {
+            "planId": PLAN_ID,
+            "collection": "article",
+            "operationIds": [OPERATION_ID, SECOND_OPERATION_ID],
+        }
+    )
+
+    result = await await_if_needed(client.cluster.replications.apply_scale_plan(plan=plan))
+
+    assert result == ReplicationScaleApplyResult(
+        plan_id=UUID(PLAN_ID),
+        collection="article",
+        operation_ids=[UUID(OPERATION_ID), UUID(SECOND_OPERATION_ID)],
+    )
+    weaviate_mock.check_assertions()
+
+
+def test_apply_scale_plan_rejects_duplicate_target_nodes(
+    weaviate_client: weaviate.WeaviateClient, weaviate_mock: HTTPServer
+) -> None:
+    """Reject duplicate targets within one shard before making a request."""
+    plan = ReplicationScalePlan(
+        plan_id=UUID(PLAN_ID),
+        collection="Article",
+        shard_scale_actions={
+            "shard-a": ShardScaleActions(
+                remove_nodes=[],
+                add_nodes=[
+                    ReplicaAddition(target_node="node3", source_node="node1"),
+                    ReplicaAddition(target_node="node3", source_node="node2"),
+                ],
+            )
+        },
+    )
+
+    weaviate_mock.log.clear()
+    with pytest.raises(WeaviateInvalidInputError) as exc:
+        weaviate_client.cluster.replications.apply_scale_plan(plan=plan)
+
+    assert "shard-a" in str(exc.value)
+    assert "node3" in str(exc.value)
+    assert weaviate_mock.log == []
+
+
+@pytest.mark.parametrize("method", ["GET", "POST"])
+@pytest.mark.parametrize(
+    ("server_version", "supported"),
+    [
+        ("1.31.19", False),
+        ("1.31.20", True),
+        ("1.32.16", False),
+        ("1.32.17", True),
+        ("1.33.4", False),
+        ("1.33.5", True),
+        ("1.34.0", False),
+        ("1.34.1", True),
+    ],
+)
+def test_scale_methods_enforce_minimum_versions(
+    weaviate_client: weaviate.WeaviateClient,
+    weaviate_mock: HTTPServer,
+    server_version: str,
+    supported: bool,
+    method: str,
+) -> None:
+    """Enforce each branch's backport boundary for both public methods."""
+    plan = ReplicationScalePlan(plan_id=UUID(PLAN_ID), collection="Article", shard_scale_actions={})
+    if method == "GET":
+        call = partial(
+            weaviate_client.cluster.replications.generate_scale_plan,
+            collection="Article",
+            replication_factor=3,
+        )
+        response = {"planId": PLAN_ID, "collection": "Article", "shardScaleActions": {}}
+        expected = plan
+    else:
+        call = partial(weaviate_client.cluster.replications.apply_scale_plan, plan=plan)
+        response = {"planId": PLAN_ID, "collection": "Article", "operationIds": []}
+        expected = ReplicationScaleApplyResult(
+            plan_id=UUID(PLAN_ID), collection="Article", operation_ids=[]
+        )
+
+    weaviate_mock.log.clear()
+    if supported:
+        weaviate_mock.expect_request(SCALE_PATH, method=method).respond_with_json(response)
+        assert call() == expected
+        assert any(request.path == SCALE_PATH for request, _ in weaviate_mock.log)
+        weaviate_mock.check_assertions()
+    else:
+        with pytest.raises(WeaviateUnsupportedFeatureError) as exc:
+            call()
+        message = str(exc.value)
+        assert server_version in message
+        for minimum in ("1.31.20", "1.32.17", "1.33.5", "1.34.1"):
+            assert minimum in message
+        assert weaviate_mock.log == []
