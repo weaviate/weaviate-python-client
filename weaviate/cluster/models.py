@@ -96,11 +96,10 @@ ReplicateOperations = Union[
 
 @dataclass(kw_only=True)
 class ReplicaAddition:
-    """One replica to add to a shard.
+    """Class representing a replica to add to a shard.
 
-    ``target_node`` receives the new replica. ``source_node`` names the node whose
-    shard data is copied; ``None`` creates an empty replica. A source node also
-    listed in the shard's ``remove_nodes`` turns the copy into a move.
+    The replica is copied from `source_node`, or created empty if it is None.
+    A source node also listed in the shard's `remove_nodes` makes this a move.
     """
 
     target_node: str
@@ -109,13 +108,9 @@ class ReplicaAddition:
 
 @dataclass
 class ShardScaleActions:
-    """Editable replica additions and removals for one shard.
+    """Class representing editable replica additions and removals for a shard.
 
-    ``remove_nodes`` lists the nodes whose replica of this shard is removed.
-    ``add_nodes`` lists the replicas to add, at most one per target node. On the
-    wire, ``add_nodes`` is the ``addNodes`` object keyed by target node; a
-    response that omits ``addNodes`` is represented by an empty list. The server
-    validates placement and whether the requested actions can be applied.
+    Target nodes in `add_nodes` must be unique within the shard.
     """
 
     remove_nodes: List[str]
@@ -124,12 +119,7 @@ class ShardScaleActions:
 
 @dataclass
 class ReplicationScalePlan:
-    """A collection's proposed replica changes, editable before application.
-
-    ``plan_id`` identifies the proposal. ``shard_scale_actions`` maps shard names
-    to their additions and removals. Pass this plan to ``apply_scale_plan`` to
-    submit its actions, including any caller edits.
-    """
+    """Class representing an editable replication scale plan for a collection."""
 
     plan_id: uuid.UUID
     collection: str
@@ -138,10 +128,9 @@ class ReplicationScalePlan:
 
 @dataclass
 class ReplicationScaleApplyResult:
-    """An accepted plan and the shard-copy operations it started.
+    """Class representing an accepted replication scale plan and its started operations.
 
-    ``operation_ids`` can be inspected with ``cluster.replications.get``.
-    Acceptance does not mean replication has completed. Removal-only plans may
+    Use `cluster.replications.get` to inspect operation status. Removal-only plans may
     have no operation IDs; inspect shard placement to confirm their completion.
     """
 

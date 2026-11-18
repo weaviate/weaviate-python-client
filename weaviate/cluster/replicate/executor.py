@@ -1,19 +1,24 @@
+import uuid
 from typing import Generic, Literal, Optional, overload
 
 from httpx import Response
 
 from weaviate.cluster.models import (
+    ReplicaAddition,
     ReplicateOperation,
     ReplicateOperations,
     ReplicateOperationWithHistory,
     ReplicateOperationWithoutHistory,
     ReplicationScaleApplyResult,
     ReplicationScalePlan,
+    ShardScaleActions,
     _ReplicateOperation,
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.types import UUID
+from weaviate.util import _capitalize_first_letter
 
 # Check each release branch with _ServerVersion.is_at_least_any so an older
 # branch's backport does not incorrectly enable an unpatched newer branch.
@@ -24,64 +29,136 @@ class _ReplicateExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
 
+    def __check_scale_plan_version(self) -> None:
+        version = self._connection._weaviate_version
+        if not version.is_at_least_any(*_SCALE_PLAN_MIN_VERSIONS):
+            minimum_versions = " or ".join(
+                ".".join(map(str, minimum)) for minimum in _SCALE_PLAN_MIN_VERSIONS
+            )
+            raise WeaviateUnsupportedFeatureError(
+                "Replication scale plans",
+                str(version),
+                f"{minimum_versions} on the corresponding release branch",
+            )
+
     def generate_scale_plan(
         self, *, collection: str, replication_factor: int
     ) -> executor.Result[ReplicationScalePlan]:
-        """Compute an editable plan for a collection's desired replica count.
+        """Generate a replication scale plan for a collection.
 
         Requires replica movement enabled and Weaviate 1.31.20+, 1.32.17+,
-        1.33.5+ or 1.34.1+ on the corresponding release branch. Newer minor
-        releases are supported. Generating a plan leaves replica placement
-        unchanged; submit it separately with ``apply_scale_plan`` after
-        inspection or editing.
+        1.33.5+ or 1.34.1+ on the corresponding release branch, or a newer minor release.
+        Generating a plan does not change replica placement. Submit the returned plan
+        with `apply_scale_plan`, with or without edits.
 
         Args:
-            collection: Collection name. Its first letter is capitalized.
-            replication_factor: Desired replicas per shard. The server rejects
+            collection: The name of the collection. Its first letter is capitalized.
+            replication_factor: The desired number of replicas per shard. The server rejects
                 values below one.
 
         Returns:
-            The server-computed plan with typed per-shard actions and a UUID ID.
+            An editable plan containing per-shard replica additions and removals.
 
         Raises:
-            WeaviateUnsupportedFeatureError: The server's release branch does not
-                include replication scale plans.
-            UnexpectedStatusCodeError: The server rejects the request, including
-                an invalid replication factor, a missing collection, or disabled
-                replica movement.
+            weaviate.exceptions.WeaviateUnsupportedFeatureError: If the server version
+                does not support replication scale plans.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate rejects the request.
         """
-        raise NotImplementedError("Replication scale plan generation is not implemented")
+        self.__check_scale_plan_version()
+
+        def resp(response: Response) -> ReplicationScalePlan:
+            json_response = response.json()
+            return ReplicationScalePlan(
+                plan_id=uuid.UUID(json_response["planId"]),
+                collection=json_response["collection"],
+                shard_scale_actions={
+                    shard: ShardScaleActions(
+                        remove_nodes=actions["removeNodes"],
+                        add_nodes=[
+                            ReplicaAddition(target_node=target_node, source_node=source_node)
+                            for target_node, source_node in actions.get("addNodes", {}).items()
+                        ],
+                    )
+                    for shard, actions in json_response["shardScaleActions"].items()
+                },
+            )
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path="/replication/scale",
+            params={
+                "collection": _capitalize_first_letter(collection),
+                "replicationFactor": replication_factor,
+            },
+            status_codes=_ExpectedStatusCodes(200, "generate replication scale plan"),
+            error_msg="Failed to generate replication scale plan",
+        )
 
     def apply_scale_plan(
         self, *, plan: ReplicationScalePlan
     ) -> executor.Result[ReplicationScaleApplyResult]:
-        """Submit a plan's replica changes, including caller edits.
+        """Apply a replication scale plan.
 
         Requires replica movement enabled and Weaviate 1.31.20+, 1.32.17+,
-        1.33.5+ or 1.34.1+ on the corresponding release branch. Newer minor
-        releases are supported. The supplied plan is submitted without mutation
-        or regeneration. The server validates its actions against the cluster
-        state.
+        1.33.5+ or 1.34.1+ on the corresponding release branch, or a newer minor release.
+        The plan is submitted without modification or regeneration. The server validates
+        its actions against the cluster state. This method does not wait for replication
+        to complete.
 
         Args:
-            plan: The plan to apply, including its ID, collection and shard actions.
-                ``plan.collection`` is sent as given, without capitalization;
-                plans from ``generate_scale_plan`` already carry the server's name.
+            plan: The plan to apply, including any edits. Its collection name is sent as given.
 
         Returns:
-            The accepted plan's identity and initiated shard-copy operation IDs.
-            This call does not wait for replication to complete. Inspect the IDs
-            with ``get``. A removal-only plan may return no operation IDs.
+            The accepted plan's ID and collection, and the started replication operation IDs.
+            Use `get` to inspect the operations. Removal-only plans may return no operation IDs.
 
         Raises:
-            WeaviateInvalidInputError: A shard lists the same target node in more
-                than one ``ReplicaAddition``.
-            WeaviateUnsupportedFeatureError: The server's release branch does not
-                include replication scale plans.
-            UnexpectedStatusCodeError: The server rejects the request, including
-                an invalid plan or disabled replica movement.
+            weaviate.exceptions.WeaviateInvalidInputError: If a shard lists the same target node
+                more than once.
+            weaviate.exceptions.WeaviateUnsupportedFeatureError: If the server version
+                does not support replication scale plans.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate rejects the request.
         """
-        raise NotImplementedError("Replication scale plan application is not implemented")
+        self.__check_scale_plan_version()
+
+        shard_scale_actions = {}
+        for shard, actions in plan.shard_scale_actions.items():
+            add_nodes: dict[str, Optional[str]] = {}
+            # Converting duplicate targets to a JSON object would silently drop an addition.
+            for addition in actions.add_nodes:
+                if addition.target_node in add_nodes:
+                    raise WeaviateInvalidInputError(
+                        f"Shard {shard!r} contains duplicate target node {addition.target_node!r}"
+                    )
+                add_nodes[addition.target_node] = addition.source_node
+            shard_scale_actions[shard] = {
+                "removeNodes": actions.remove_nodes,
+                "addNodes": add_nodes,
+            }
+
+        def resp(response: Response) -> ReplicationScaleApplyResult:
+            json_response = response.json()
+            return ReplicationScaleApplyResult(
+                plan_id=uuid.UUID(json_response["planId"]),
+                collection=json_response["collection"],
+                operation_ids=[
+                    uuid.UUID(operation_id) for operation_id in json_response["operationIds"] or []
+                ],
+            )
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.post,
+            path="/replication/scale",
+            weaviate_object={
+                "planId": str(plan.plan_id),
+                "collection": plan.collection,
+                "shardScaleActions": shard_scale_actions,
+            },
+            status_codes=_ExpectedStatusCodes(200, "apply replication scale plan"),
+            error_msg="Failed to apply replication scale plan",
+        )
 
     @overload
     def get(
