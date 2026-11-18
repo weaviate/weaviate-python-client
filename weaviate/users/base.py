@@ -46,7 +46,7 @@ def _parse_db_user(user: WeaviateDBUserRoleNames) -> UserDB:
         created_at=_parse_optional_timestamp(user.get("createdAt")),
         last_used_time=_parse_optional_timestamp(user.get("lastUsedAt")),
         api_key_first_letters=user.get("apiKeyFirstLetters"),
-        expires_at=_parse_optional_timestamp(user.get("expiresAt")),
+        user_expires_at=_parse_optional_timestamp(user.get("expiresAt")),
     )
 
 
@@ -165,7 +165,7 @@ class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     else {}
                 ),
                 groups=parsed["groups"] if "groups" in parsed else [],
-                expires_at=_parse_optional_timestamp(parsed.get("expiresAt")),
+                user_expires_at=_parse_optional_timestamp(parsed.get("expiresAt")),
             )
 
         return executor.execute(
@@ -314,7 +314,7 @@ class _UsersOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType])
 
 
 class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
-    def __check_expiration_version(self) -> None:
+    def __check_user_expiration_version(self) -> None:
         if self._connection._weaviate_version.is_lower_than(1, 41, 0):
             raise WeaviateUnsupportedFeatureError(
                 "DB user expiration",
@@ -388,21 +388,21 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         )
 
     def create(
-        self, *, user_id: str, expires_at: Optional[datetime] = None
+        self, *, user_id: str, user_expires_at: Optional[datetime] = None
     ) -> executor.Result[str]:
         """Create a new db user and return its API key.
 
         Args:
             user_id: The id of the new user.
-            expires_at: The future time at which the db user can no longer authenticate. Weaviate stores it in UTC to the millisecond. If None, the user never expires. Requires Weaviate 1.41+ and a Weaviate license key on the server.
+            user_expires_at: The future time at which the db user can no longer authenticate. Weaviate stores it in UTC to the millisecond. If None, the user never expires. Requires Weaviate 1.41+ and a Weaviate license key on the server.
 
         Returns:
             The API key of the newly created user. This key can not be retrieved later.
         """
         payload: Dict[str, Any] = {}
-        if expires_at is not None:
-            self.__check_expiration_version()
-            payload["expiresAt"] = _datetime_to_string(expires_at)
+        if user_expires_at is not None:
+            self.__check_user_expiration_version()
+            payload["expiresAt"] = _datetime_to_string(user_expires_at)
 
         def resp(res: Response) -> str:
             resp = _decode_json_response_dict(res, "Create user")
@@ -418,8 +418,8 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create user"),
         )
 
-    def update_expiration(
-        self, *, user_id: str, expires_at: Optional[datetime]
+    def update_user_expiration(
+        self, *, user_id: str, user_expires_at: Optional[datetime]
     ) -> executor.Result[None]:
         """Set or remove the time at which a db user can no longer authenticate.
 
@@ -427,13 +427,13 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
         Args:
             user_id: The id of the user.
-            expires_at: The future time at which the db user can no longer authenticate. Weaviate stores it in UTC to the millisecond. If None, the user never expires.
+            user_expires_at: The future time at which the db user can no longer authenticate. Weaviate stores it in UTC to the millisecond. If None, the user never expires.
         """
-        self.__check_expiration_version()
+        self.__check_user_expiration_version()
         payload: Dict[str, Any] = (
             {"neverExpires": True}
-            if expires_at is None
-            else {"expiresAt": _datetime_to_string(expires_at)}
+            if user_expires_at is None
+            else {"expiresAt": _datetime_to_string(user_expires_at)}
         )
 
         def resp(res: Response) -> None:
@@ -469,7 +469,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def rotate_key(self, *, user_id: str) -> executor.Result[str]:
         """Rotate the key of a new db user.
 
-        The user's expiration carries over to the new key. `update_expiration` changes it.
+        The user's expiration carries over to the new key. `update_user_expiration` changes it.
 
         Args:
             user_id: The id of the user.
@@ -533,7 +533,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     ) -> executor.Result[Optional[UserDB]]:
         """Get all information about an user.
 
-        `active` stays True after the user expires, so compare `expires_at` with the current time.
+        `active` stays True after the user expires, so compare `user_expires_at` with the current time.
 
         Args:
             user_id: The id of the user.
@@ -559,7 +559,7 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def list_all(self, *, include_last_used_time: bool = False) -> executor.Result[List[UserDB]]:
         """List all DB users.
 
-        `active` stays True after a user expires, so compare `expires_at` with the current time.
+        `active` stays True after a user expires, so compare `user_expires_at` with the current time.
 
         Args:
             include_last_used_time: If True, the last used time of each user will be included.

@@ -293,34 +293,34 @@ def test_user_expiration(client_factory: ClientFactory, request: SubRequest) -> 
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         _skip_unless_user_expiration(client)
         # admin-user is a static user from the server's env config, whose key never expires.
-        assert client.users.get_my_user().expires_at is None
+        assert client.users.get_my_user().user_expires_at is None
 
         user_id = _unique_user_id(request.node.name)
         in_one_day = _in_days(1)
-        api_key = client.users.db.create(user_id=user_id, expires_at=in_one_day)
+        api_key = client.users.db.create(user_id=user_id, user_expires_at=in_one_day)
         try:
             user = client.users.db.get(user_id=user_id)
             assert user is not None
-            assert user.expires_at == in_one_day
+            assert user.user_expires_at == in_one_day
             listed = next(u for u in client.users.db.list_all() if u.user_id == user_id)
-            assert listed.expires_at == in_one_day
+            assert listed.user_expires_at == in_one_day
             with weaviate.connect_to_local(
                 port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(api_key)
             ) as client2:
-                assert client2.users.get_my_user().expires_at == in_one_day
+                assert client2.users.get_my_user().user_expires_at == in_one_day
 
             in_two_days = _in_days(2)
-            client.users.db.update_expiration(user_id=user_id, expires_at=in_two_days)
+            client.users.db.update_user_expiration(user_id=user_id, user_expires_at=in_two_days)
             user = client.users.db.get(user_id=user_id)
             assert user is not None
-            assert user.expires_at == in_two_days
+            assert user.user_expires_at == in_two_days
 
-            client.users.db.update_expiration(user_id=user_id, expires_at=None)
+            client.users.db.update_user_expiration(user_id=user_id, user_expires_at=None)
             user = client.users.db.get(user_id=user_id)
             assert user is not None
-            assert user.expires_at is None
+            assert user.user_expires_at is None
             listed = next(u for u in client.users.db.list_all() if u.user_id == user_id)
-            assert listed.expires_at is None
+            assert listed.user_expires_at is None
         finally:
             client.users.db.delete(user_id=user_id)
 
@@ -334,27 +334,29 @@ async def test_user_expiration_async(request: SubRequest) -> None:
 
         user_id = _unique_user_id(request.node.name)
         in_one_day = _in_days(1)
-        await client.users.db.create(user_id=user_id, expires_at=in_one_day)
+        await client.users.db.create(user_id=user_id, user_expires_at=in_one_day)
         try:
             user = await client.users.db.get(user_id=user_id)
             assert user is not None
-            assert user.expires_at == in_one_day
+            assert user.user_expires_at == in_one_day
 
             in_two_days = _in_days(2)
-            await client.users.db.update_expiration(user_id=user_id, expires_at=in_two_days)
+            await client.users.db.update_user_expiration(
+                user_id=user_id, user_expires_at=in_two_days
+            )
             user = await client.users.db.get(user_id=user_id)
             assert user is not None
-            assert user.expires_at == in_two_days
+            assert user.user_expires_at == in_two_days
 
-            await client.users.db.update_expiration(user_id=user_id, expires_at=None)
+            await client.users.db.update_user_expiration(user_id=user_id, user_expires_at=None)
             user = await client.users.db.get(user_id=user_id)
             assert user is not None
-            assert user.expires_at is None
+            assert user.user_expires_at is None
         finally:
             await client.users.db.delete(user_id=user_id)
 
 
-def test_update_expiration_on_never_expiring_user(
+def test_update_user_expiration_on_never_expiring_user(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
@@ -365,21 +367,21 @@ def test_update_expiration_on_never_expiring_user(
         try:
             user = client.users.db.get(user_id=user_id)
             assert user is not None
-            assert user.expires_at is None
+            assert user.user_expires_at is None
             with weaviate.connect_to_local(
                 port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(api_key)
             ) as client2:
-                assert client2.users.get_my_user().expires_at is None
+                assert client2.users.get_my_user().user_expires_at is None
 
             in_one_day = _in_days(1)
-            client.users.db.update_expiration(user_id=user_id, expires_at=in_one_day)
+            client.users.db.update_user_expiration(user_id=user_id, user_expires_at=in_one_day)
             user = client.users.db.get(user_id=user_id)
             assert user is not None
-            assert user.expires_at == in_one_day
+            assert user.user_expires_at == in_one_day
             with weaviate.connect_to_local(
                 port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(api_key)
             ) as client2:
-                assert client2.users.get_my_user().expires_at == in_one_day
+                assert client2.users.get_my_user().user_expires_at == in_one_day
 
             new_api_key = client.users.db.rotate_key(user_id=user_id)
             with weaviate.connect_to_local(
@@ -387,26 +389,30 @@ def test_update_expiration_on_never_expiring_user(
                 grpc_port=RBAC_PORTS[1],
                 auth_credentials=Auth.api_key(new_api_key),
             ) as client2:
-                assert client2.users.get_my_user().expires_at == in_one_day
+                assert client2.users.get_my_user().user_expires_at == in_one_day
         finally:
             client.users.db.delete(user_id=user_id)
 
 
-def test_update_expiration_of_missing_user(client_factory: ClientFactory) -> None:
+def test_update_user_expiration_of_missing_user(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         _skip_unless_user_expiration(client)
 
         with pytest.raises(weaviate.exceptions.UnexpectedStatusCodeError):
-            client.users.db.update_expiration(user_id="I-do-not-exist", expires_at=_in_days(1))
+            client.users.db.update_user_expiration(
+                user_id="I-do-not-exist", user_expires_at=_in_days(1)
+            )
 
 
 @pytest.mark.parametrize(
     "call",
     [
-        lambda db: db.create(user_id="expiry-unsupported", expires_at=_in_days(1)),
-        lambda db: db.update_expiration(user_id="expiry-unsupported", expires_at=_in_days(1)),
+        lambda db: db.create(user_id="expiry-unsupported", user_expires_at=_in_days(1)),
+        lambda db: db.update_user_expiration(
+            user_id="expiry-unsupported", user_expires_at=_in_days(1)
+        ),
     ],
-    ids=["create", "update_expiration"],
+    ids=["create", "update_user_expiration"],
 )
 def test_user_expiration_unsupported_version(
     client_factory: ClientFactory, call: Callable[[_UsersDB], object]
