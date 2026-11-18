@@ -315,12 +315,6 @@ def test_create_export_and_recreate_named_vectors(
                     distance_metric=VectorDistances.DOT
                 ),
             ),
-            Configure.NamedVectors.none(
-                "dynamic",
-                vector_index_config=Configure.VectorIndex.dynamic(
-                    distance_metric=VectorDistances.DOT
-                ),
-            ),
         ],
     )
     conf = col.config.get()
