@@ -1,5 +1,5 @@
 import uuid as uuid_lib
-from typing import Any, Dict, List, Literal, Optional, cast, overload
+from typing import Any, Dict, List, Literal, Optional, Sequence, cast, overload
 
 from weaviate.collections.classes.filters import (
     FilterReturn,
@@ -18,6 +18,23 @@ from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2
 from weaviate.types import TIME
 from weaviate.util import _datetime_to_string
+
+
+def _to_value_list(value: FilterValues) -> Optional[List[Any]]:
+    """Return the filter value as a list if it holds multiple values, else `None`.
+
+    `FilterValuesList` is typed as a `Sequence`, so any sequence is valid user input.
+    `str` and `bytes` are sequences too, but are single filter values, not lists of them.
+
+    Args:
+        value: The filter value to normalise.
+
+    Returns:
+        The values as a list, or `None` if the filter value is a single value.
+    """
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return list(value)
+    return None
 
 
 class _FilterToGRPC:
@@ -40,7 +57,8 @@ class _FilterToGRPC:
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> base_pb2.Filters:
-        if isinstance(weav_filter.value, list) and len(weav_filter.value) == 0:
+        values = _to_value_list(weav_filter.value)
+        if values is not None and len(values) == 0:
             raise WeaviateInvalidInputError(
                 "Filtering on empty lists is not supported by Weaviate. "
                 "To filter by property length, use "
@@ -64,10 +82,10 @@ class _FilterToGRPC:
             if isinstance(weav_filter.value, int) and not isinstance(weav_filter.value, bool)
             else None,
             value_number=(weav_filter.value if isinstance(weav_filter.value, float) else None),
-            value_boolean_array=_FilterToGRPC.__filter_to_bool_list(weav_filter.value),
-            value_int_array=_FilterToGRPC.__filter_to_int_list(weav_filter.value),
-            value_number_array=_FilterToGRPC.__filter_to_float_list(weav_filter.value),
-            value_text_array=_FilterToGRPC.__filter_to_text_list(weav_filter.value),
+            value_boolean_array=_FilterToGRPC.__filter_to_bool_list(values),
+            value_int_array=_FilterToGRPC.__filter_to_int_list(values),
+            value_number_array=_FilterToGRPC.__filter_to_float_list(values),
+            value_text_array=_FilterToGRPC.__filter_to_text_list(values),
             value_geo=_FilterToGRPC.__filter_to_geo(weav_filter.value),
             target=target,
         )
@@ -121,52 +139,52 @@ class _FilterToGRPC:
         return _datetime_to_string(value)
 
     @staticmethod
-    def __filter_to_text_list(value: FilterValues) -> Optional[base_pb2.TextArray]:
-        if not isinstance(value, list) or len(value) == 0:
+    def __filter_to_text_list(values: Optional[List[Any]]) -> Optional[base_pb2.TextArray]:
+        if values is None or len(values) == 0:
             return None
         if not (
-            isinstance(value[0], TIME)
-            or isinstance(value[0], str)
-            or isinstance(value[0], uuid_lib.UUID)
+            isinstance(values[0], TIME)
+            or isinstance(values[0], str)
+            or isinstance(values[0], uuid_lib.UUID)
         ):
             return None
 
-        if isinstance(value[0], str):
-            value_list = value
-        elif isinstance(value[0], uuid_lib.UUID):
-            value_list = [str(uid) for uid in value]
+        if isinstance(values[0], str):
+            value_list = values
+        elif isinstance(values[0], uuid_lib.UUID):
+            value_list = [str(uid) for uid in values]
         else:
-            dates = cast(List[TIME], value)
+            dates = cast(List[TIME], values)
             value_list = [_datetime_to_string(date) for date in dates]
 
         return base_pb2.TextArray(values=cast(List[str], value_list))
 
     @staticmethod
-    def __filter_to_bool_list(value: FilterValues) -> Optional[base_pb2.BooleanArray]:
-        if not isinstance(value, list) or len(value) == 0 or not isinstance(value[0], bool):
+    def __filter_to_bool_list(values: Optional[List[Any]]) -> Optional[base_pb2.BooleanArray]:
+        if values is None or len(values) == 0 or not isinstance(values[0], bool):
             return None
 
-        return base_pb2.BooleanArray(values=cast(List[bool], value))
+        return base_pb2.BooleanArray(values=cast(List[bool], values))
 
     @staticmethod
-    def __filter_to_float_list(value: FilterValues) -> Optional[base_pb2.NumberArray]:
-        if not isinstance(value, list) or len(value) == 0 or not isinstance(value[0], float):
+    def __filter_to_float_list(values: Optional[List[Any]]) -> Optional[base_pb2.NumberArray]:
+        if values is None or len(values) == 0 or not isinstance(values[0], float):
             return None
 
-        return base_pb2.NumberArray(values=cast(List[float], value))
+        return base_pb2.NumberArray(values=cast(List[float], values))
 
     @staticmethod
-    def __filter_to_int_list(value: FilterValues) -> Optional[base_pb2.IntArray]:
+    def __filter_to_int_list(values: Optional[List[Any]]) -> Optional[base_pb2.IntArray]:
         # bool is a subclass of int in Python, so the check must ensure it's not a bool
         if (
-            not isinstance(value, list)
-            or len(value) == 0
-            or not isinstance(value[0], int)
-            or isinstance(value[0], bool)
+            values is None
+            or len(values) == 0
+            or not isinstance(values[0], int)
+            or isinstance(values[0], bool)
         ):
             return None
 
-        return base_pb2.IntArray(values=cast(List[int], value))
+        return base_pb2.IntArray(values=cast(List[int], values))
 
     @staticmethod
     def __and_or_not_filter(weav_filter: FilterReturn) -> Optional[base_pb2.Filters]:
@@ -232,25 +250,26 @@ class _FilterToREST:
             return {"valueInt": value}
         if isinstance(value, float):
             return {"valueNumber": value}
-        if isinstance(value, list):
-            if len(value) == 0:
+        values = _to_value_list(value)
+        if values is not None:
+            if len(values) == 0:
                 raise WeaviateInvalidInputError(
                     "Filtering on empty lists is not supported by Weaviate. "
                     "To filter by property length, use "
                     "Filter.by_property('prop', length=True).equal(0)"
                 )
-            if isinstance(value[0], str):
-                return {"valueTextArray": value}
-            if isinstance(value[0], uuid_lib.UUID):
-                return {"valueTextArray": [str(val) for val in value]}
-            if isinstance(value[0], TIME):
-                return {"valueDateArray": [_datetime_to_string(cast(TIME, val)) for val in value]}
-            if isinstance(value[0], bool):
-                return {"valueBooleanArray": value}
-            if isinstance(value[0], int):
-                return {"valueIntArray": value}
-            if isinstance(value[0], float):
-                return {"valueNumberArray": value}
+            if isinstance(values[0], str):
+                return {"valueTextArray": values}
+            if isinstance(values[0], uuid_lib.UUID):
+                return {"valueTextArray": [str(val) for val in values]}
+            if isinstance(values[0], TIME):
+                return {"valueDateArray": [_datetime_to_string(cast(TIME, val)) for val in values]}
+            if isinstance(values[0], bool):
+                return {"valueBooleanArray": values}
+            if isinstance(values[0], int):
+                return {"valueIntArray": values}
+            if isinstance(values[0], float):
+                return {"valueNumberArray": values}
         raise ValueError(f"Unknown filter value type: {type(value)}")
 
     @staticmethod
