@@ -1060,8 +1060,12 @@ class Permissions:
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
 
-        def _add_backup_permission(collection: Optional[str], role: Optional[str], user: Optional[str]) -> None:
-            permission = _BackupsPermission(collection=collection or "", role=role, user=user, actions=set())
+        def _add_backup_permission(
+            collection: Optional[str], role: Optional[str], user: Optional[str]
+        ) -> None:
+            permission = _BackupsPermission(
+                collection=collection or "", role=role, user=user, actions=set()
+            )
             if read:
                 permission.actions.add(BackupsAction.READ)
             if manage:
