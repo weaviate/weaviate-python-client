@@ -39,7 +39,7 @@ from weaviate.exceptions import (
 )
 from weaviate.proto.v1 import base_pb2, batch_pb2
 from weaviate.types import VECTORS
-from weaviate.util import _datetime_to_string, _ServerVersion
+from weaviate.util import _datetime_to_string, _ServerVersion, _to_python_number
 
 
 class _BatchGRPC(_BaseGRPC):
@@ -276,6 +276,12 @@ class _BatchGRPC(_BaseGRPC):
                 raise WeaviateInvalidInputError(f"Invalid reference: {ref}")
 
         for key, entry in data.items():
+            if isinstance(entry, list):
+                entry = [_to_python_number(v) for v in entry]
+            elif isinstance(entry, tuple):
+                entry = tuple(_to_python_number(v) for v in entry)
+            else:
+                entry = _to_python_number(entry)
             if isinstance(entry, dict):
                 parsed = self.__translate_properties_from_python_to_grpc(entry, {}, nested=True)
                 object_properties.append(

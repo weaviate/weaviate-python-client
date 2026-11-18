@@ -1,5 +1,6 @@
 import datetime
 import uuid as uuid_package
+from decimal import Decimal
 from typing import Any, Dict, Mapping, Optional, Sequence, Type, Union, get_origin
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -62,6 +63,7 @@ WeaviateField: TypeAlias = Union[
     bool,  # boolean
     int,  # int
     float,  # number
+    Decimal,  # number
     datetime.datetime,  # date
     uuid_package.UUID,  # uuid
     GeoCoordinate,  # geoCoordinates

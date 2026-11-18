@@ -1,10 +1,13 @@
+import struct
 import uuid
 from decimal import Decimal
+from typing import Any, Dict
 
+import numpy as np
 import pytest
 
 from weaviate.collections.batch.base import _RateLimitedBatching
-from weaviate.collections.batch.grpc_batch import _serialize_primitive, _validate_props
+from weaviate.collections.batch.grpc_batch import _BatchGRPC, _validate_props
 from weaviate.collections.classes.batch import (
     MAX_STORED_RESULTS,
     BatchObject,
@@ -13,8 +16,11 @@ from weaviate.collections.classes.batch import (
     BatchReferenceReturn,
     ErrorObject,
     ErrorReference,
+    _BatchObject,
 )
 from weaviate.exceptions import WeaviateInsertInvalidPropertyError, WeaviateInvalidInputError
+from weaviate.proto.v1 import batch_pb2
+from weaviate.util import _ServerVersion
 
 
 def _error_object(index: int) -> ErrorObject:
@@ -144,11 +150,85 @@ def test_validate_props_raises_for_nested_vector() -> None:
         _validate_props({"vector": [0.1, 0.2]}, nested=True)
 
 
-@pytest.mark.parametrize("value", [Decimal("9.99"), [1.5, Decimal("2.5")], object()])
-def test_serialize_primitive_raises_for_unsupported_type(value) -> None:
+def _grpc_object(properties: Dict[str, Any]) -> batch_pb2.BatchObject:
+    grpc = _BatchGRPC(_ServerVersion(1, 40, 0), None, None)
+    return grpc.grpc_object(
+        _BatchObject(
+            collection="Test",
+            properties=properties,
+            references=None,
+            uuid=None,
+            vector=None,
+            tenant=None,
+            index=0,
+        )
+    )
+
+
+def _number_array(obj: batch_pb2.BatchObject, name: str) -> list:
+    for prop in obj.properties.number_array_properties:
+        if prop.prop_name == name:
+            return list(struct.unpack(f"{len(prop.values_bytes) // 8}d", prop.values_bytes))
+    raise AssertionError(f"no number array named {name}")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [Decimal("9.99"), np.float32(9.99)],
+)
+def test_grpc_object_converts_scalar_numbers(value: Any) -> None:
+    obj = _grpc_object({"price": value})
+    assert obj.properties.non_ref_properties["price"] == pytest.approx(9.99, rel=1e-6)
+
+
+def test_grpc_object_converts_numpy_int() -> None:
+    obj = _grpc_object({"count": np.int64(3)})
+    assert obj.properties.non_ref_properties["count"] == 3
+
+
+def test_grpc_object_converts_nested_decimal() -> None:
+    obj = _grpc_object({"item": {"price": Decimal("9.99")}})
+    nested = obj.properties.object_properties[0]
+    assert nested.prop_name == "item"
+    assert nested.value.non_ref_properties["price"] == 9.99
+
+
+@pytest.mark.parametrize(
+    "value",
+    [[Decimal("1.5"), 2.5], [1.5, Decimal("2.5")], [Decimal("1.5"), Decimal("2.5")]],
+)
+def test_grpc_object_converts_decimals_in_lists(value: Any) -> None:
+    assert _number_array(_grpc_object({"prices": value}), "prices") == [1.5, 2.5]
+
+
+def test_grpc_object_converts_numpy_ints_in_lists() -> None:
+    obj = _grpc_object({"counts": [np.int64(1), np.int64(2)]})
+    assert list(obj.properties.int_array_properties[0].values) == [1, 2]
+
+
+def test_grpc_object_accepts_tuple_of_uuids() -> None:
+    obj = _grpc_object(
+        {
+            "ids": (
+                uuid.UUID("11111111-1111-1111-1111-111111111111"),
+                uuid.UUID("22222222-2222-2222-2222-222222222222"),
+            )
+        }
+    )
+    values = obj.properties.non_ref_properties["ids"]
+    assert list(values) == [
+        "11111111-1111-1111-1111-111111111111",
+        "22222222-2222-2222-2222-222222222222",
+    ]
+
+
+@pytest.mark.parametrize("value", [Decimal("NaN"), Decimal("1e400"), [1.5, Decimal("Infinity")]])
+def test_grpc_object_raises_for_non_finite_numbers(value: Any) -> None:
+    with pytest.raises(WeaviateInvalidInputError, match="non-finite"):
+        _grpc_object({"price": value})
+
+
+@pytest.mark.parametrize("value", [object(), {"inner": object()}, [object(), "a"]])
+def test_grpc_object_raises_for_unsupported_types(value: Any) -> None:
     with pytest.raises(WeaviateInvalidInputError, match="Cannot serialize value of type"):
-        _serialize_primitive(value)
-
-
-def test_serialize_primitive_keeps_tuples_working() -> None:
-    assert _serialize_primitive((1, "a", None)) == [1, "a", None]
+        _grpc_object({"value": value})

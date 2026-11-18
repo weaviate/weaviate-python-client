@@ -60,7 +60,7 @@ from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatus
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
-from weaviate.util import _datetime_to_string, _get_vector_v4
+from weaviate.util import _datetime_to_string, _get_vector_v4, _to_python_number
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
@@ -680,6 +680,7 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
         }
 
     def __serialize_primitive(self, value: WeaviateField) -> Any:
+        value = _to_python_number(value)
         if isinstance(value, str) or isinstance(value, int) or isinstance(value, float):
             return value
         if isinstance(value, uuid_package.UUID):
