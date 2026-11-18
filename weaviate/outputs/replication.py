@@ -1,11 +1,11 @@
 from weaviate.cluster.models import (
+    ReplicaAddition,
     ReplicateOperation,
     ReplicateOperations,
     ReplicateOperationState,
     ReplicateOperationStatus,
     ReplicateOperationWithHistory,
     ReplicateOperationWithoutHistory,
-    ReplicaAddition,
     ReplicationScaleApplyResult,
     ReplicationScalePlan,
     ShardScaleActions,
