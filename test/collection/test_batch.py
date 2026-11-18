@@ -1,9 +1,10 @@
 import uuid
+from decimal import Decimal
 
 import pytest
 
 from weaviate.collections.batch.base import _RateLimitedBatching
-from weaviate.collections.batch.grpc_batch import _validate_props
+from weaviate.collections.batch.grpc_batch import _serialize_primitive, _validate_props
 from weaviate.collections.classes.batch import (
     MAX_STORED_RESULTS,
     BatchObject,
@@ -13,7 +14,7 @@ from weaviate.collections.classes.batch import (
     ErrorObject,
     ErrorReference,
 )
-from weaviate.exceptions import WeaviateInsertInvalidPropertyError
+from weaviate.exceptions import WeaviateInsertInvalidPropertyError, WeaviateInvalidInputError
 
 
 def _error_object(index: int) -> ErrorObject:
@@ -141,3 +142,13 @@ def test_validate_props_raises_for_top_level_vector() -> None:
 def test_validate_props_raises_for_nested_vector() -> None:
     with pytest.raises(WeaviateInsertInvalidPropertyError):
         _validate_props({"vector": [0.1, 0.2]}, nested=True)
+
+
+@pytest.mark.parametrize("value", [Decimal("9.99"), [1.5, Decimal("2.5")], object()])
+def test_serialize_primitive_raises_for_unsupported_type(value) -> None:
+    with pytest.raises(WeaviateInvalidInputError, match="Cannot serialize value of type"):
+        _serialize_primitive(value)
+
+
+def test_serialize_primitive_keeps_tuples_working() -> None:
+    assert _serialize_primitive((1, "a", None)) == [1, "a", None]

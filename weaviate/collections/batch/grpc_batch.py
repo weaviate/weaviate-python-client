@@ -374,7 +374,8 @@ def _serialize_primitive(value: Any) -> Any:
         return str(value)
     if isinstance(value, datetime.datetime):
         return _datetime_to_string(value)
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):
         return [_serialize_primitive(val) for val in value]
-
-    return value
+    if value is None or isinstance(value, (str, bool, int, float, dict)):
+        return value
+    raise WeaviateInvalidInputError(f"Cannot serialize value of type {type(value)} to Weaviate.")
