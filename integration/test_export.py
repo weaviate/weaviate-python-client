@@ -101,7 +101,9 @@ def test_create_export_without_waiting(
             ExportStatus.SUCCESS,
         ]
         if status.status == ExportStatus.SUCCESS:
+            assert status.completed_at is not None
             break
+        assert status.completed_at is None
         time.sleep(0.1)
 
     assert status.export_id.lower() == export_id.lower()

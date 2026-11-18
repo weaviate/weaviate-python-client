@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 import pytest
@@ -39,3 +40,19 @@ def test_list_return_defaults_incremental_base_backup_id_to_none(entry: Dict[str
     # The server omits the field for non-incremental backups, and only populates
     # it for callers it has confirmed as root, so absent must not be an error.
     assert BackupListReturn(**entry).incremental_base_backup_id is None
+
+
+def test_list_return_maps_unset_completed_at_to_none() -> None:
+    # A running backup is listed with Go's zero time as its completedAt.
+    backup = BackupListReturn(
+        **_list_entry(status="STARTED", completedAt="0001-01-01T00:00:00.000Z")
+    )
+
+    assert backup.completed_at is None
+    assert backup.started_at == datetime(2026, 8, 1, 10, 0, tzinfo=timezone.utc)
+
+
+def test_list_return_keeps_set_completed_at() -> None:
+    backup = BackupListReturn(**_list_entry())
+
+    assert backup.completed_at == datetime(2026, 8, 1, 10, 5, tzinfo=timezone.utc)
