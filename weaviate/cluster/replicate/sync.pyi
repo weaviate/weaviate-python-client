@@ -3,6 +3,8 @@ from typing import Literal, Optional, overload
 from weaviate.cluster.models import (
     ReplicateOperationWithHistory,
     ReplicateOperationWithoutHistory,
+    ReplicationScaleApplyResult,
+    ReplicationScalePlan,
 )
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.types import UUID
@@ -10,6 +12,10 @@ from weaviate.types import UUID
 from .executor import _ReplicateExecutor
 
 class _Replicate(_ReplicateExecutor[ConnectionSync]):
+    def generate_scale_plan(
+        self, *, collection: str, replication_factor: int
+    ) -> ReplicationScalePlan: ...
+    def apply_scale_plan(self, *, plan: ReplicationScalePlan) -> ReplicationScaleApplyResult: ...
     @overload
     def get(
         self, *, uuid: UUID, include_history: Literal[False] = False

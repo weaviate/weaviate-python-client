@@ -7,16 +7,81 @@ from weaviate.cluster.models import (
     ReplicateOperations,
     ReplicateOperationWithHistory,
     ReplicateOperationWithoutHistory,
+    ReplicationScaleApplyResult,
+    ReplicationScalePlan,
     _ReplicateOperation,
 )
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
 from weaviate.types import UUID
 
+# Check each release branch with _ServerVersion.is_at_least_any so an older
+# branch's backport does not incorrectly enable an unpatched newer branch.
+_SCALE_PLAN_MIN_VERSIONS = ((1, 31, 20), (1, 32, 17), (1, 33, 5), (1, 34, 1))
+
 
 class _ReplicateExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
+
+    def generate_scale_plan(
+        self, *, collection: str, replication_factor: int
+    ) -> executor.Result[ReplicationScalePlan]:
+        """Compute an editable plan for a collection's desired replica count.
+
+        Requires replica movement enabled and Weaviate 1.31.20+, 1.32.17+,
+        1.33.5+ or 1.34.1+ on the corresponding release branch. Newer minor
+        releases are supported. Generating a plan leaves replica placement
+        unchanged; submit it separately with ``apply_scale_plan`` after
+        inspection or editing.
+
+        Args:
+            collection: Collection name. Its first letter is capitalized.
+            replication_factor: Desired replicas per shard. The server rejects
+                values below one.
+
+        Returns:
+            The server-computed plan with typed per-shard actions and a UUID ID.
+
+        Raises:
+            WeaviateUnsupportedFeatureError: The server's release branch does not
+                include replication scale plans.
+            UnexpectedStatusCodeError: The server rejects the request, including
+                an invalid replication factor, a missing collection, or disabled
+                replica movement.
+        """
+        raise NotImplementedError("Replication scale plan generation is not implemented")
+
+    def apply_scale_plan(
+        self, *, plan: ReplicationScalePlan
+    ) -> executor.Result[ReplicationScaleApplyResult]:
+        """Submit a plan's replica changes, including caller edits.
+
+        Requires replica movement enabled and Weaviate 1.31.20+, 1.32.17+,
+        1.33.5+ or 1.34.1+ on the corresponding release branch. Newer minor
+        releases are supported. The supplied plan is submitted without mutation
+        or regeneration. The server validates its actions against the cluster
+        state.
+
+        Args:
+            plan: The plan to apply, including its ID, collection and shard actions.
+                ``plan.collection`` is sent as given, without capitalization;
+                plans from ``generate_scale_plan`` already carry the server's name.
+
+        Returns:
+            The accepted plan's identity and initiated shard-copy operation IDs.
+            This call does not wait for replication to complete. Inspect the IDs
+            with ``get``. A removal-only plan may return no operation IDs.
+
+        Raises:
+            WeaviateInvalidInputError: A shard lists the same target node in more
+                than one ``ReplicaAddition``.
+            WeaviateUnsupportedFeatureError: The server's release branch does not
+                include replication scale plans.
+            UnexpectedStatusCodeError: The server rejects the request, including
+                an invalid plan or disabled replica movement.
+        """
+        raise NotImplementedError("Replication scale plan application is not implemented")
 
     @overload
     def get(

@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Generic, List, TypedDict, TypeVar, Union
+from typing import Any, Dict, Generic, List, Optional, TypedDict, TypeVar, Union
 
 
 class ReplicationType(str, Enum):
@@ -92,6 +92,62 @@ ReplicateOperation = Union[ReplicateOperationWithoutHistory, ReplicateOperationW
 ReplicateOperations = Union[
     List[ReplicateOperationWithoutHistory], List[ReplicateOperationWithHistory]
 ]
+
+
+@dataclass(kw_only=True)
+class ReplicaAddition:
+    """One replica to add to a shard.
+
+    ``target_node`` receives the new replica. ``source_node`` names the node whose
+    shard data is copied; ``None`` creates an empty replica. A source node also
+    listed in the shard's ``remove_nodes`` turns the copy into a move.
+    """
+
+    target_node: str
+    source_node: Optional[str] = None
+
+
+@dataclass
+class ShardScaleActions:
+    """Editable replica additions and removals for one shard.
+
+    ``remove_nodes`` lists the nodes whose replica of this shard is removed.
+    ``add_nodes`` lists the replicas to add, at most one per target node. On the
+    wire, ``add_nodes`` is the ``addNodes`` object keyed by target node; a
+    response that omits ``addNodes`` is represented by an empty list. The server
+    validates placement and whether the requested actions can be applied.
+    """
+
+    remove_nodes: List[str]
+    add_nodes: List[ReplicaAddition]
+
+
+@dataclass
+class ReplicationScalePlan:
+    """A collection's proposed replica changes, editable before application.
+
+    ``plan_id`` identifies the proposal. ``shard_scale_actions`` maps shard names
+    to their additions and removals. Pass this plan to ``apply_scale_plan`` to
+    submit its actions, including any caller edits.
+    """
+
+    plan_id: uuid.UUID
+    collection: str
+    shard_scale_actions: Dict[str, ShardScaleActions]
+
+
+@dataclass
+class ReplicationScaleApplyResult:
+    """An accepted plan and the shard-copy operations it started.
+
+    ``operation_ids`` can be inspected with ``cluster.replications.get``.
+    Acceptance does not mean replication has completed. Removal-only plans may
+    have no operation IDs; inspect shard placement to confirm their completion.
+    """
+
+    plan_id: uuid.UUID
+    collection: str
+    operation_ids: List[uuid.UUID]
 
 
 class _ReplicationShardReplicas(TypedDict):

@@ -5,6 +5,10 @@ from weaviate.cluster.models import (
     ReplicateOperationStatus,
     ReplicateOperationWithHistory,
     ReplicateOperationWithoutHistory,
+    ReplicaAddition,
+    ReplicationScaleApplyResult,
+    ReplicationScalePlan,
+    ShardScaleActions,
 )
 
 __all__ = [
@@ -14,4 +18,8 @@ __all__ = [
     "ReplicateOperationWithoutHistory",
     "ReplicateOperationState",
     "ReplicateOperationStatus",
+    "ReplicationScalePlan",
+    "ShardScaleActions",
+    "ReplicaAddition",
+    "ReplicationScaleApplyResult",
 ]

@@ -1,8 +1,14 @@
 import time
+from typing import Any, Iterator
+
 import pytest
-from integration.conftest import ClientFactory, CollectionFactory
 
 import weaviate
+from integration.conftest import ClientFactory, CollectionFactory
+from weaviate.cluster.replicate.executor import _SCALE_PLAN_MIN_VERSIONS
+from weaviate.collections import Collection
+from weaviate.outputs.replication import ReplicateOperationState
+from weaviate.util import _ServerVersion
 
 PORTS = (8087, 50058)
 
@@ -74,6 +80,76 @@ def cleanup_ops(replicate_client: weaviate.WeaviateClient):
         time.sleep(0.1)
 
 
+@pytest.fixture
+def scale_collection(
+    collection_factory: CollectionFactory, replicate_client: weaviate.WeaviateClient
+) -> Iterator[Collection[Any, Any]]:
+    """Yield a one-shard collection at factor 1.
+
+    Teardown removes its replication operations before collection_factory deletes it.
+    """
+    server_version = _ServerVersion.from_string(replicate_client.get_meta()["version"])
+    if not server_version.is_at_least_any(*_SCALE_PLAN_MIN_VERSIONS):
+        pytest.skip(
+            f"Replication scale plans are unavailable on this server version. Min. required versions: {_SCALE_PLAN_MIN_VERSIONS}"
+        )
+
+    collection = collection_factory(
+        properties=[
+            weaviate.classes.config.Property(
+                name="name", data_type=weaviate.classes.config.DataType.TEXT
+            )
+        ],
+        ports=PORTS,
+        sharding_config=weaviate.classes.config.Configure.sharding(desired_count=1),
+        replication_config=weaviate.classes.config.Configure.replication(factor=1),
+    )
+    try:
+        yield collection
+    finally:
+        for operation in replicate_client.cluster.replications.query(collection=collection.name):
+            replicate_client.cluster.replications.delete(uuid=operation.uuid)
+
+
+def test_generate_and_apply_scale_plan(
+    replicate_client: weaviate.WeaviateClient, scale_collection: Collection[Any, Any]
+) -> None:
+    desired_replicas = 3
+    object_id = scale_collection.data.insert({"name": "Alice"})
+
+    plan = replicate_client.cluster.replications.generate_scale_plan(
+        collection=scale_collection.name, replication_factor=desired_replicas
+    )
+    result = replicate_client.cluster.replications.apply_scale_plan(plan=plan)
+    assert len(result.operation_ids) == desired_replicas - 1
+
+    deadline = time.monotonic() + 60
+    pending = set(result.operation_ids)
+    while pending and time.monotonic() < deadline:
+        for operation_id in list(pending):
+            operation = replicate_client.cluster.replications.get(uuid=operation_id)
+            if operation is None:
+                continue
+            assert operation.status.errors == [], operation
+            assert operation.status.state != ReplicateOperationState.CANCELLED
+            if operation.status.state == ReplicateOperationState.READY:
+                pending.discard(operation_id)
+        time.sleep(0.1)
+    if pending:
+        pytest.fail(f"Scale operations did not reach READY within 60s: {pending!r}")
+
+    # READY follows the Raft placement update; this read goes to the leader.
+    state = replicate_client.cluster.query_sharding_state(collection=scale_collection.name)
+    assert state is not None
+    assert len(state.shards) == 1
+    assert len(state.shards[0].replicas) == desired_replicas
+
+    obj = scale_collection.query.fetch_object_by_id(object_id)
+    assert obj is not None
+    assert obj.uuid == object_id
+    assert obj.properties == {"name": "Alice"}
+
+
 def test_replicate_and_get(
     replicate_client: weaviate.WeaviateClient, collection_factory: CollectionFactory
 ):
@@ -138,7 +214,7 @@ def test_replicate_and_cancel(
     start = time.time()
     while (
         not replicate_client.cluster.replications.get(uuid=op_id).status.state  # type: ignore
-        == weaviate.outputs.replication.ReplicateOperationState.CANCELLED
+        == ReplicateOperationState.CANCELLED
     ):
         time.sleep(0.1)
         if time.time() - start > 10:
