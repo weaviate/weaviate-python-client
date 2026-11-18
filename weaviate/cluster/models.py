@@ -18,6 +18,7 @@ class ReplicateOperationState(str, Enum):
     HYDRATING = "HYDRATING"
     FINALIZING = "FINALIZING"
     DEHYDRATING = "DEHYDRATING"
+    INTEGRATING = "INTEGRATING"
     READY = "READY"
     CANCELLED = "CANCELLED"
 
@@ -33,7 +34,10 @@ class ReplicateOperationStatus:
     def _from_weaviate(cls, data: dict) -> "ReplicateOperationStatus":
         return cls(
             state=ReplicateOperationState(data["state"]),
-            errors=data["errors"] or [],
+            errors=[
+                error.get("message", "") if isinstance(error, dict) else error
+                for error in data["errors"] or []
+            ],
         )
 
 

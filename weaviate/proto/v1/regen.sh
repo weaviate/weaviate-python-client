@@ -21,7 +21,14 @@ if [ -d "$PROTO_VENV" ]; then
     rm -rf "$PROTO_VENV"
 fi
 
-python3 -m venv "$PROTO_VENV"
+# The pinned grpcio-tools versions below only ship wheels up to Python 3.12.
+PYTHON_BIN="${PYTHON_BIN:-python3.12}"
+if ! command -v "$PYTHON_BIN" >/dev/null; then
+    echo "Error: $PYTHON_BIN not found. Install it, or set PYTHON_BIN to a Python <= 3.12." >&2
+    exit 1
+fi
+
+"$PYTHON_BIN" -m venv "$PROTO_VENV"
 source "$PROTO_VENV/bin/activate"
 
 pip install --upgrade pip
@@ -35,6 +42,8 @@ compile_protos() {
 
     echo "Installing protobuf $pb_version and grpcio-tools..."
     pip install "grpcio-tools==$gt_version"
+    # grpc_tools.protoc imports pkg_resources, which setuptools 81 removed.
+    pip install "setuptools<81"
     pip install "protobuf==$pb_version"
 
     echo "Compiling protos for Protobuf $pb_version... in $output_dir"

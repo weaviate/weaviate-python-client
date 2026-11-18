@@ -97,12 +97,24 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
         This method is helpful for those making the v3 -> v4 migration and for those interfacing with any experimental
         Weaviate features that are not yet fully supported by the Weaviate Python client.
 
+        Vector entries whose index was dropped with `collection.config.delete_vector_index()` are
+        skipped with a warning: a vector cannot be created in that state, so the new collection
+        simply does not contain them (they can be added again with `collection.config.add_vector()`).
+        If every vector entry was dropped, the create is rejected with a
+        `WeaviateInvalidInputError` instead, because the server would fall back to its default
+        legacy vector index. This protection needs the dropped entries to still be present in the
+        dictionary: a dictionary exported after the drops already finished carries no vector fields
+        at all, is indistinguishable from a minimal legacy config, and is sent unchanged — the
+        server then applies its default vector index. `create_from_config()` rejects that shape too.
+
         Args:
             config: The dictionary representation of the collection's configuration.
 
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If every vector entry in the config was
+                dropped, see above.
         """
         raise NotImplementedError()
 
@@ -115,11 +127,21 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
     ]:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
 
+        Vector entries whose index was dropped with `collection.config.delete_vector_index()` are
+        skipped with a warning: a vector cannot be created in that state, so the new collection
+        simply does not contain them (they can be added again with `collection.config.add_vector()`).
+        If every vector entry was dropped, the create is rejected with a
+        `WeaviateInvalidInputError` instead, because the server would fall back to its default
+        legacy vector index.
+
         Args:
             config: The collection's configuration.
 
         Raises:
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If every vector of the collection was
+                dropped, including a config exported after the drops already finished (it carries
+                neither named vectors nor a legacy vectorizer), see above.
         """
         raise NotImplementedError()

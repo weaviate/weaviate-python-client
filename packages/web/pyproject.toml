@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=65", "setuptools_scm[toml] >6.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weaviate-client-web"
+description = "grpc-web / WASM (Pyodide) transport for the Weaviate Python client"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-3-Clause" }
+authors = [{ name = "Weaviate", email = "hello@weaviate.io" }]
+keywords = ["weaviate", "grpc-web", "pyodide", "wasm", "emscripten"]
+# Version comes from the repository's git tags via setuptools_scm (root below), so every
+# build carries the same version as weaviate-client; CI asserts the built wheels match.
+# Dependencies are computed in setup.py: the weaviate-client requirement is pinned to
+# that same version at build time, so mismatched pairs cannot resolve at install time.
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+Source = "https://github.com/weaviate/weaviate-python-client"
+Tracker = "https://github.com/weaviate/weaviate-python-client/issues"
+
+[tool.setuptools_scm]
+root = "../.."
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+weaviate_client_web = ["py.typed"]

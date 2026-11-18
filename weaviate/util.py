@@ -311,12 +311,14 @@ def get_vector(vector: Sequence) -> Sequence[float]:
         return vector
     try:
         # if vector is numpy.ndarray or torch.Tensor
-        return vector.squeeze().tolist()  # type: ignore
+        vector_list = vector.squeeze().tolist()  # type: ignore
+        return vector_list if isinstance(vector_list, list) else [vector_list]
     except AttributeError:
         pass
     try:
         # if vector is tf.Tensor or torch.Tensor
-        return vector.numpy().squeeze().tolist()  # type: ignore
+        vector_list = vector.numpy().squeeze().tolist()  # type: ignore
+        return vector_list if isinstance(vector_list, list) else [vector_list]
     except AttributeError:
         pass
     try:
@@ -607,6 +609,17 @@ class _ServerVersion:
                 f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
             )
 
+    def is_at_least_any(self, *minimums: Tuple[int, int, int]) -> bool:
+        """Check a minimum that was backported to several release branches.
+
+        Each entry is the first version on its own minor branch to carry the feature, in ascending
+        order; the server is checked against the newest branch that is not newer than itself.
+        """
+        for major, minor, patch in reversed(minimums):
+            if (self.major, self.minor) >= (major, minor):
+                return self >= _ServerVersion(major, minor, patch)
+        return False
+
     def check_is_at_least_1_25_0(self, feature: str) -> None:
         if not self >= _ServerVersion(1, 25, 0):
             raise WeaviateUnsupportedFeatureError(feature, str(self), "1.25.0")
@@ -672,7 +685,7 @@ def _get_valid_timeout_config(
     """
 
     def check_number(num: Union[NUMBER, Tuple[NUMBER, NUMBER], None]) -> bool:
-        return isinstance(num, float) or isinstance(num, int)
+        return isinstance(num, float) or (isinstance(num, int) and not isinstance(num, bool))
 
     if (isinstance(timeout_config, float) or isinstance(timeout_config, int)) and not isinstance(
         timeout_config, bool
@@ -750,7 +763,12 @@ def _datetime_to_string(value: TIME) -> str:
     return value.isoformat(sep="T", timespec="microseconds")
 
 
-def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+def _datetime_from_weaviate_str(string: str) -> Optional[datetime.datetime]:
+    # An unset date property arrives as null_value, never as "", so an empty string here
+    # can only be a malformed value from the server. Warn rather than drop it silently.
+    if not string:
+        _Warnings.datetime_empty_string()
+        return None
     if string[-1] != "Z":
         string = "".join(string.rsplit(":", 1))
 
@@ -769,6 +787,14 @@ def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
             _Warnings.datetime_year_zero(string)
             return datetime.datetime.min
         raise e
+
+
+def _zero_time_to_none(value: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+    # Weaviate sends Go's zero time (0001-01-01T00:00:00Z) for timestamps it has not set yet,
+    # for example `completedAt` while a backup or export is still running.
+    if value is not None and value.replace(tzinfo=None) == datetime.datetime.min:
+        return None
+    return value
 
 
 class _WeaviateUUIDInt(uuid_lib.UUID):

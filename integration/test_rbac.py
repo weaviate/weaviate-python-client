@@ -7,6 +7,7 @@ from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.classes.rbac import Actions, Permissions, RoleScope
 from weaviate.connect.helpers import connect_to_local
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.rbac.models import (
     AliasPermissionOutput,
     BackupsPermissionOutput,
@@ -52,6 +53,27 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 groups_permissions=[],
             ),
             None,
+        ),
+        (
+            Permissions.backup(collection="Test", read=True),
+            Role(
+                name="ReadBackups",
+                alias_permissions=[],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[
+                    BackupsPermissionOutput(collection="Test", actions={Actions.Backups.READ})
+                ],
+                mcp_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            ),
+            40,
         ),
         (
             Permissions.cluster(read=True),
@@ -352,31 +374,6 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             32,
         ),
         (
-            Permissions.alias(alias="", collection="*", read=True, delete=True),
-            Role(
-                name="AlliasRole2",
-                alias_permissions=[
-                    AliasPermissionOutput(
-                        alias="*",
-                        collection="*",
-                        actions={Actions.Alias.READ, Actions.Alias.DELETE},
-                    )
-                ],
-                cluster_permissions=[],
-                users_permissions=[],
-                collections_permissions=[],
-                roles_permissions=[],
-                data_permissions=[],
-                backups_permissions=[],
-                mcp_permissions=[],
-                nodes_permissions=[],
-                tenants_permissions=[],
-                replicate_permissions=[],
-                groups_permissions=[],
-            ),
-            32,  # Minimum version for alias permissions
-        ),
-        (
             Permissions.alias(alias="*", collection="*", read=True, delete=True),
             Role(
                 name="AlliasRole",
@@ -522,6 +519,53 @@ def test_create_role(
             client.roles.delete(expected.name)
 
 
+def test_create_role_with_empty_alias(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        version = client._connection._weaviate_version
+        if version.is_lower_than(1, 32, 0):
+            pytest.skip("Alias permissions require Weaviate 1.32.0 or higher")
+
+        role_name = "AlliasRole2"
+        permissions = Permissions.alias(alias="", collection="*", read=True, delete=True)
+        try:
+            client.roles.delete(role_name)
+
+            # Weaviate PR #13324 applies the collection-name rule to alias patterns, so these
+            # releases reject an empty alias; older servers store it as "*". Match only "alias"
+            # so a rewording of the server's message does not fail the test.
+            if version.is_at_least_any((1, 38, 19), (1, 39, 10), (1, 40, 0)):
+                with pytest.raises(UnexpectedStatusCodeError, match="alias"):
+                    client.roles.create(role_name=role_name, permissions=permissions)
+                return
+
+            client.roles.create(role_name=role_name, permissions=permissions)
+            role = client.roles.get(role_name)
+            assert role is not None
+            assert role == Role(
+                name=role_name,
+                alias_permissions=[
+                    AliasPermissionOutput(
+                        alias="*",
+                        collection="*",
+                        actions={Actions.Alias.READ, Actions.Alias.DELETE},
+                    )
+                ],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                mcp_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            )
+        finally:
+            client.roles.delete(role_name)
+
+
 def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
@@ -634,6 +678,11 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
             assert client.roles.has_permissions(permissions=required_permissions[0], role=role_name)
             assert client.roles.has_permissions(permissions=required_permissions[1], role=role_name)
             assert client.roles.has_permissions(permissions=required_permissions, role=role_name)
+            assert not client.roles.has_permissions(
+                permissions=required_permissions
+                + [Permissions.collections(collection="test", delete_collection=True)],
+                role=role_name,
+            )
         finally:
             client.roles.delete(role_name)
 
@@ -681,6 +730,7 @@ def test_get_assigned_users_db(client_factory: ClientFactory, request: SubReques
             permissions=Permissions.roles(role="test", read=True),
         )
 
+        client.users.db.delete(user_id=names)
         client.users.db.create(user_id=names)
 
         client.users.db.assign_roles(user_id=names, role_names=names)
@@ -688,6 +738,13 @@ def test_get_assigned_users_db(client_factory: ClientFactory, request: SubReques
         assert len(assigned_users) == 1
         assert assigned_users[0].user_id == names
         assert assigned_users[0].user_type == UserTypes.DB_DYNAMIC
+
+        # An OIDC user with the same id keeps the role when the db user's is revoked.
+        client.users.oidc.assign_roles(user_id=names, role_names=names)
+        client.users.db.revoke_roles(user_id=names, role_names=names)
+        assigned_users = client.roles.get_user_assignments(names)
+        assert len(assigned_users) == 1
+        assert assigned_users[0].user_type == UserTypes.OIDC
 
         client.roles.delete(names)
         client.users.db.delete(user_id=names)

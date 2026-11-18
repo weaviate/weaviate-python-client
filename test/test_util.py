@@ -2,6 +2,7 @@ import unittest
 import uuid as uuid_lib
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -458,10 +459,17 @@ def test_is_weaviate_too_old(version: str, too_old: bool):
         ),
         # Test handling year 0 (should return datetime.min)
         ("0000-01-15T14:30:45.123456Z", datetime.min),
+        # Test empty string (protobuf default for unset string field) -> None
+        ("", None),
     ],
 )
-def test_datetime_from_weaviate_str(input_str: str, expected: datetime) -> None:
+def test_datetime_from_weaviate_str(input_str: str, expected: Optional[datetime]) -> None:
     assert _datetime_from_weaviate_str(input_str) == expected
+
+
+def test_datetime_from_weaviate_str_empty_string_warns() -> None:
+    with pytest.warns(UserWarning, match="Con006"):
+        assert _datetime_from_weaviate_str("") is None
 
 
 @pytest.mark.parametrize(

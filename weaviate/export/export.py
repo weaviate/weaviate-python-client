@@ -4,9 +4,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from weaviate.backup.backup import BackupStorage
+from weaviate.util import _zero_time_to_none
 
 ExportStorage = BackupStorage
 
@@ -69,3 +70,8 @@ class ExportStatusReturn(ExportCreateReturn):
     )
     error: Optional[str] = None
     took_in_ms: Optional[int] = Field(alias="tookInMs", default=None)
+
+    @field_validator("completed_at")
+    @classmethod
+    def _completed_at_unset_to_none(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return _zero_time_to_none(v)

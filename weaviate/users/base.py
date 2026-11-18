@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
 
 from httpx import Response
@@ -19,17 +19,13 @@ from weaviate.users.users import (
     OwnUser,
     UserDB,
 )
-from weaviate.util import _decode_json_response_dict, escape_string
-
-# Go's zero time value, returned by the server when a timestamp is not set
-_GO_ZERO_TIME = datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc)
+from weaviate.util import _decode_json_response_dict, _zero_time_to_none, escape_string
 
 
-def _parse_last_used_at(value: Optional[str]) -> Optional[datetime]:
+def _parse_optional_timestamp(value: Optional[str]) -> Optional[datetime]:
     if value is None:
         return None
-    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    return None if dt == _GO_ZERO_TIME else dt
+    return _zero_time_to_none(datetime.fromisoformat(value.replace("Z", "+00:00")))
 
 
 class _BaseExecutor(Generic[ConnectionType]):
@@ -119,7 +115,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.post,
             path=path,
-            weaviate_object={"roles": roles},
+            weaviate_object=payload,
             error_msg=f"Could not revoke roles {roles} from user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Revoke roles from user"),
         )
@@ -477,18 +473,13 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 return None
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
-            created_at = parsed.get("createdAt")
             return UserDB(
                 user_id=parsed["userId"],
                 role_names=parsed["roles"],
                 active=parsed["active"],
                 user_type=UserTypes(parsed["dbUserType"]),
-                created_at=(
-                    datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                    if created_at is not None
-                    else None
-                ),
-                last_used_time=_parse_last_used_at(parsed.get("lastUsedAt")),
+                created_at=_parse_optional_timestamp(parsed.get("createdAt")),
+                last_used_time=_parse_optional_timestamp(parsed.get("lastUsedAt")),
                 api_key_first_letters=parsed.get("apiKeyFirstLetters"),
             )
 
@@ -517,12 +508,8 @@ class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                     role_names=user["roles"],
                     active=user["active"],
                     user_type=UserTypes(user["dbUserType"]),
-                    created_at=(
-                        datetime.fromisoformat(ca.replace("Z", "+00:00"))
-                        if (ca := user.get("createdAt")) is not None
-                        else None
-                    ),
-                    last_used_time=_parse_last_used_at(user.get("lastUsedAt")),
+                    created_at=_parse_optional_timestamp(user.get("createdAt")),
+                    last_used_time=_parse_optional_timestamp(user.get("lastUsedAt")),
                     api_key_first_letters=user.get("apiKeyFirstLetters"),
                 )
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)

@@ -2,7 +2,7 @@
 venv
 .idea
 dist/
-weaviate_client.egg-info
+*.egg-info/
 **/__pycache__
 tmp
 build/
@@ -27,3 +27,5 @@ scratch/
 *-test.sh
 *.hdf5
 *.jsonl
+ci/pyodide-e2e/node_modules/
+ci/pyodide-e2e/package-lock.json

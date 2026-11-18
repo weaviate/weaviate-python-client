@@ -1,6 +1,104 @@
 Changelog
 =========
 
+Version 4.24.1
+--------------
+This patch version includes:
+    - Deprecate ``client.graphql_raw_query()`` (Dep031), which will be removed in a release after May 1, 2027, when Weaviate retires the GraphQL API. Use the collection query methods or the REST Search API instead
+    - Bump the default embedded Weaviate version from 1.39.7 to 1.40.2
+    - Minor bug fixes and improvements:
+        - Fix ``ReplicateOperationStatus.errors`` holding the server's raw error objects instead of message strings
+        - Fix an exhausted ``collection.iterator()`` sending another request, and possibly yielding newly added objects, when advanced again; it now keeps raising ``StopIteration`` until restarted with ``iter()``, and likewise for the async iterator
+        - Fix embedded Weaviate reusing the cached binary of one custom download URL for a different URL
+
+Version 4.24.0
+--------------
+This minor version includes:
+    - Pyodide/WebAssembly support for the async client, so it runs in browser Python environments such as marimo notebooks:
+        - gRPC is routed over Weaviate's native ``/v1/grpc-web`` endpoint (server 1.38.3+) and REST over the browser's ``fetch``; install with the new ``grpc-web`` extra, which pulls in the ``weaviate-client-web`` companion package under Emscripten and is a no-op elsewhere
+        - Under Emscripten the async connection helpers route gRPC to the REST endpoint themselves, discarding a differing gRPC endpoint with a warning; the sync client, ``batch.stream()`` and embedded Weaviate raise immediately, since threads, bidirectional streaming and subprocesses are unavailable there
+    - Add ``include_roles`` and ``include_users`` to ``backup.create()`` (Weaviate 1.40+), with wildcard support; omitting them keeps backing up all roles and users
+    - Add ``collection.config.delete_vector_index()`` to drop a named vector's index — destructive, irreversible and applied asynchronously (the endpoint is experimental and may be disabled server-side)
+    - Add ``Configure.Generative.meta()`` and ``GenerativeConfig.meta()`` for the new ``generative-meta`` module
+    - Add the ``PATHSEER`` filter strategy (Weaviate 1.40+) to ``VectorFilterStrategy``, so reading a collection configured with it no longer raises
+    - Add ``Actions.Backups.READ`` and ``Permissions.backup(read=True)`` for the collection-scoped ``read_backups`` RBAC action (Weaviate 1.39+)
+    - ``wait_for_vector_indexing`` now waits on the per-node shard statuses reported by newer servers; ``ShardTypes`` gains ``LOADING``, ``LAZY_LOADING``, ``SHUTDOWN``, ``UNAVAILABLE`` and ``RECOVERING``
+    - Public names for every non-deprecated collection configuration type accepted by ``collections.create()`` and ``collections.config.update()``, exported from ``weaviate.classes.config`` — among them ``VectorConfigCreate``, ``InvertedIndexConfigUpdate``, ``ObjectTTLConfigCreate``, ``GenerativeProvider`` and the ``VectorIndexConfig*Create``/``Update`` families:
+        - Every ``_``-prefixed spelling remains importable from the module that defines it and is the same object, so existing imports and ``isinstance`` checks are unaffected; the types behind the deprecated ``vectorizer_config`` argument and ``Configure.NamedVectors`` stay private
+    - Deprecate the ``async_enabled`` argument of ``Configure.replication`` / ``Reconfigure.replication`` (Dep030): Weaviate 1.38+ removed the field and silently drops it
+    - Bump the default embedded Weaviate version from 1.30.5 to 1.39.7, and verify that every port embedded Weaviate needs is free before starting it
+    - Trust certifi's CA bundle on gRPC channels, the same roots httpx already uses for REST; a roots file set via ``GRPC_DEFAULT_SSL_ROOTS_FILE_PATH`` still takes precedence
+    - Minor bug fixes and improvements:
+        - Fix ``close()`` not stopping the OIDC token refresher and a reconnect leaving two refreshers running; the async client now refreshes in an asyncio task instead of a thread, and any refresh error is retried instead of silently ending the refresh
+        - Fix near-vector and hybrid queries silently retargeting when the vector dictionary's keys differ from ``target_vector``; mismatched names now raise ``WeaviateInvalidInputError``
+        - Fix ``roles.has_permissions()`` returning ``True`` for permissions the role does not hold
+        - Fix object TTL updates being written under the wrong schema key and dropping existing TTL fields, and an omitted ``ttl_offset`` being sent as an explicit zero
+        - Fix multi-vector settings being lost by ``CollectionConfig.to_dict()``, so an exported collection could not be recreated with ``create_from_dict()``
+        - Fix ``config.get()`` always returning ``multi_vector=None`` for HFresh vector indexes
+        - Fix an ``IndexError`` when the server returns an empty date string; the value now deserializes to ``None`` with a warning
+        - Fix ``import weaviate`` failing on Python 3.15
+        - Require ``authlib>=1.7.1`` and drop the client-side filter for its removed ``jose`` deprecation warning
+
+Version 4.23.1
+--------------
+This patch version includes:
+    - Add support for the new ``generative-digitalocean`` module
+    - Add support for the centered ``RQ4`` quantizer
+    - Add ``location`` to the ``generative-google`` collection and runtime configurations
+    - Add ``api_version`` to the ``generative-openai`` collection configuration for Azure deployments
+    - Add ``top_p`` to the ``generative-nvidia`` and ``base_url`` to the ``generative-anthropic`` collection configurations
+    - Add ``n`` to the ``generative-openai`` runtime configuration, for both the OpenAI and Azure factories
+    - Add ``frequency_penalty`` to the ``generative-cohere`` runtime configuration
+    - Minor bug fixes and improvements:
+        - Fix ``stop_sequences`` being dropped by the ``generative-aws`` runtime configuration instead of being sent to the server
+        - Fix ``KeyError: 'pq'`` when updating the quantizer on an HFresh vector index
+        - Fix reference filter builders mutating their target path, so a builder could not be reused
+        - Fix client-side batching flushing early when only one of its two object counts was unchanged
+        - Fix rate-limit spacing for partial batches
+        - Accept a plain string API key in all sync and async connection helpers
+        - Document ``vectorize_collection_name`` as having no effect on the ``multi2vec`` factories
+
+Version 4.23.0
+--------------
+This minor version includes:
+    - Support for new 1.39 features:
+        - Add support for the cross-property ``And`` operator in keyword queries through ``BM25Operator.and_cross()``, where each query token must be matched by at least one of the searched properties instead of all tokens occurring within a single property
+    - Add support for diversity selection in ``hybrid`` queries via the ``diversity_selection`` parameter
+    - Add support for the new ``multi2vec-twelvelabs`` vectorizer module
+    - Add support for the new ``generative-deepseek`` module
+    - Add ``dimensions`` to the ``text2vec-aws`` vectorizer configuration
+    - Add ``location`` to the ``text2vec-google`` vectorizer configuration
+    - Add ``endpoint`` to the ``text2vec-openai`` and ``text2vec-morph`` vectorizer configurations
+    - Add ``incremental_base_backup_id`` to ``BackupListReturn``
+    - Add ``INTEGRATING`` to ``ReplicateOperationState``
+    - Minor bug fixes and improvements:
+        - Fix ``has_errors`` not being set on ``batch.stream`` returns when individual objects or references failed
+        - Fix ``tenants.activate()``, ``tenants.deactivate()`` and ``tenants.offload()`` not returning their result in the async client, so they could not be awaited properly
+        - Fix ``collections.exists()`` in the async client swallowing non-404 errors and returning ``False`` instead of raising
+        - Fix blocking of the event loop when the async client waits for Weaviate to become ready
+        - Include the gRPC status code in ``delete_many`` error messages
+        - Fix validation of ``Sequence[Union[...]]`` inputs, which previously passed if only one element matched
+        - Reject boolean values where an integer is expected in configuration and timeout validation
+
+Version 4.22.0
+--------------
+This minor version includes:
+    - Support for new 1.38 features:
+        - Add support for the new Boost API for fine-grained, query-time relevance tuning — a ``boost`` parameter is now available across the vector, keyword (``bm25``), and ``hybrid`` query and generative-query methods
+        - The ``Boost`` factory (exported from ``weaviate.classes.query`` alongside ``BoostReturn``) provides ``numeric_property``, ``filter``, ``numeric_decay``, ``time_decay``, and ``blend`` boosts, each with optional ``depth`` and ``weight`` controls
+
+Version 4.21.3
+--------------
+This patch version includes:
+    - Fixes a bug where client-side batching contexts did not respect user-supplied insert timeouts
+
+Version 4.21.2
+--------------
+This patch version includes:
+    - Fix aggregate metrics returning 0/0.0 instead of None for empty result sets
+    - Add text2vec-digitalocean vectorizer module
+    - Send empty vector index type on new Weaviate versions to support default vector index type configuration on the server side
+
 Version 4.21.1
 --------------
 This patch version includes:

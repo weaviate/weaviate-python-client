@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, TypeVar, Union, cast
 from urllib.parse import urlparse
 
+import certifi
 import grpc  # type: ignore
 from grpc import Channel as SyncChannel
 from grpc import ssl_channel_credentials
@@ -9,6 +10,7 @@ from grpc.aio import Channel as AsyncChannel  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import GrpcConfig, Proxies
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import NUMBER
 from weaviate.util import is_weaviate_domain
 
@@ -18,6 +20,27 @@ from weaviate.util import is_weaviate_domain
 JSONPayload = Union[Mapping[str, Any], Sequence[Any]]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
+# first Weaviate release serving grpc-web on the REST endpoint
+GRPC_WEB_MIN_SERVER_VERSION = "1.38.3"
+# Weaviate's grpc-web path prefix
+GRPC_WEB_SERVER_PATH_PREFIX = "/v1/grpc-web"
+
+
+def _grpc_web_shim_active() -> bool:
+    """Whether weaviate-client-web's grpc shim is installed (unary grpc-web RPCs, no streaming)."""
+    return getattr(grpc, "__weaviate_client_web_shim__", False) is True
+
+
+def _default_grpc_credentials() -> grpc.ChannelCredentials:
+    """SSL credentials trusting certifi's CA bundle, the same one httpx uses for REST.
+
+    grpcio's bundled roots only change with a grpcio release, so a CA distrust reaches
+    certifi first. A roots file set via GRPC_DEFAULT_SSL_ROOTS_FILE_PATH still wins.
+    """
+    if os.environ.get("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"):
+        return ssl_channel_credentials()
+    with open(certifi.where(), "rb") as f:
+        return ssl_channel_credentials(root_certificates=f.read())
 
 
 class ProtocolParams(BaseModel):
@@ -47,9 +70,18 @@ T = TypeVar("T", bound="ConnectionParams")
 class ConnectionParams(BaseModel):
     http: ProtocolParams
     grpc: ProtocolParams
+    # grpc-web path prefix (e.g. "/v1/grpc-web"); None/"" = native gRPC. When set, gRPC may
+    # share the REST host:port.
+    grpc_path_prefix: Optional[str] = None
 
     @classmethod
-    def from_url(cls, url: str, grpc_port: int, grpc_secure: bool = False) -> "ConnectionParams":
+    def from_url(
+        cls,
+        url: str,
+        grpc_port: int,
+        grpc_secure: bool = False,
+        grpc_path_prefix: Optional[str] = None,
+    ) -> "ConnectionParams":
         parsed_url = urlparse(url)
         if parsed_url.scheme not in ["http", "https"]:
             raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
@@ -69,6 +101,7 @@ class ConnectionParams(BaseModel):
                 port=grpc_port,
                 secure=grpc_secure or parsed_url.scheme == "https",
             ),
+            grpc_path_prefix=grpc_path_prefix,
         )
 
     @classmethod
@@ -80,6 +113,7 @@ class ConnectionParams(BaseModel):
         grpc_host: str,
         grpc_port: int,
         grpc_secure: bool,
+        grpc_path_prefix: Optional[str] = None,
     ) -> "ConnectionParams":
         return cls(
             http=ProtocolParams(
@@ -92,6 +126,7 @@ class ConnectionParams(BaseModel):
                 port=grpc_port,
                 secure=grpc_secure,
             ),
+            grpc_path_prefix=grpc_path_prefix,
         )
 
     def is_gcp_on_wcd(self) -> bool:
@@ -99,7 +134,8 @@ class ConnectionParams(BaseModel):
 
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:
-        if self.http.host == self.grpc.host and self.http.port == self.grpc.port:
+        same_endpoint = self.http.host == self.grpc.host and self.http.port == self.grpc.port
+        if same_endpoint and self._grpc_web_path_prefix == "":
             raise ValueError("http.port and grpc.port must be different if using the same host")
         return self
 
@@ -110,6 +146,39 @@ class ConnectionParams(BaseModel):
     @property
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
+
+    @property
+    def _grpc_web_path_prefix(self) -> str:
+        """Normalized grpc-web path prefix; "" means native gRPC.
+
+        One leading slash, no trailing slash ("grpc-web/" -> "/grpc-web"); empty or
+        None -> "".
+        """
+        cleaned = (self.grpc_path_prefix or "").strip("/")
+        return f"/{cleaned}" if cleaned else ""
+
+    def _check_grpc_web_usable(self, is_async: bool) -> None:
+        """Raise if a grpc-web prefix is set but unusable (sync client, or no grpc shim).
+
+        grpcio would ignore the prefix option.
+        """
+        if self._grpc_web_path_prefix == "":
+            return
+        if not is_async:
+            raise WeaviateInvalidInputError(
+                "grpc_path_prefix (grpc-web) is only supported for async clients; "
+                "use use_async_with_custom(...) / WeaviateAsyncClient"
+            )
+        if not _grpc_web_shim_active():
+            raise WeaviateInvalidInputError(
+                "grpc_path_prefix enables grpc-web, which requires the "
+                "'weaviate-client-web' package (it installs a grpc shim before "
+                "'import weaviate'); it is not active in this environment. grpc-web is "
+                "only available under WebAssembly/Pyodide, where a plain `import "
+                "weaviate` activates it (install the companion with "
+                "micropip.install('weaviate-client[grpc-web]')); on CPython use native "
+                "gRPC instead."
+            )
 
     def _grpc_channel(
         self,
@@ -134,6 +203,9 @@ class ConnectionParams(BaseModel):
         if grpc_config is not None and grpc_config.channel_options is not None:
             options.extend(grpc_config.channel_options)
 
+        if (prefix := self._grpc_web_path_prefix) != "":
+            options.append(("grpc-web.path_prefix", prefix))
+
         if is_async:
             mod = grpc.aio
         else:
@@ -142,7 +214,7 @@ class ConnectionParams(BaseModel):
             if grpc_config is not None and grpc_config.credentials is not None:
                 creds = grpc_config.credentials
             else:
-                creds = ssl_channel_credentials()
+                creds = _default_grpc_credentials()
             return mod.secure_channel(
                 target=self._grpc_target,
                 credentials=creds,

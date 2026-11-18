@@ -2,9 +2,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from weaviate.backup.backup_location import _BackupLocationConfig
+from weaviate.util import _zero_time_to_none
 
 STORAGE_NAMES = {
     "filesystem",
@@ -104,3 +105,11 @@ class BackupListReturn(BaseModel):
     started_at: Optional[datetime] = Field(alias="startedAt", default=None)
     completed_at: Optional[datetime] = Field(alias="completedAt", default=None)
     size: float = Field(default=0)
+    # None when the backup is not incremental, and also when the server omits the
+    # field: it is only returned to callers Weaviate has confirmed as root.
+    incremental_base_backup_id: Optional[str] = Field(default=None)
+
+    @field_validator("completed_at")
+    @classmethod
+    def _completed_at_unset_to_none(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return _zero_time_to_none(v)

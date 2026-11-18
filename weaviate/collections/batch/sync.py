@@ -177,7 +177,7 @@ class _BatchBaseSync:
                     # wait for more objects to be added up to the batch size
                     time.sleep(refresh_time)
                     if time.time() - start >= 1 and (
-                        len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
+                        len_o == len(self.__batch_objects) and len_r == len(self.__batch_references)
                     ):
                         # no new objects were added in the last second, exit the loop
                         break
@@ -356,6 +356,8 @@ class _BatchBaseSync:
                         try:
                             with self.__objs_cache_lock:
                                 cached = self.__objs_cache.pop(error.uuid)
+                            with self.__uuid_lookup_lock:
+                                self.__uuid_lookup.discard(error.uuid)
                         except KeyError:
                             continue
                         err = ErrorObject(
