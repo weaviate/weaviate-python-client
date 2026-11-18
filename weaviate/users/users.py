@@ -30,7 +30,7 @@ class UserBase:
 @dataclass
 class UserDB(UserBase):
     user_type: UserTypes
-    active: bool
+    active: bool  # Administratively enabled; expiration does not change this value.
     created_at: Optional[datetime] = field(default=None)
     last_used_time: Optional[datetime] = field(default=None)
     api_key_first_letters: Optional[str] = field(default=None)
