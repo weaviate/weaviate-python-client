@@ -16,6 +16,7 @@ from weaviate.collections.batch.base import (
     _BatchStreamRequest,
     _BgThreads,
     _ClusterBatch,
+    _publish_results,
 )
 from weaviate.collections.batch.grpc_batch import _BatchGRPC
 from weaviate.collections.classes.batch import (
@@ -141,16 +142,12 @@ class _BatchBaseSync:
             raise WeaviateBatchStreamError(
                 "Background batch threads did not terminate after forced shutdown."
             ) from e
-
-        # copy the results to the public results
-        self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
-        self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
-        self.__results_for_wrapper_backup.failed_references = (
-            self.__results_for_wrapper.failed_references
-        )
-        self.__results_for_wrapper_backup.imported_shards = (
-            self.__results_for_wrapper.imported_shards
-        )
+        finally:
+            # publish the results, also when the join above was cut short by an interrupt
+            # (e.g. Ctrl-C in a notebook): the errors gathered so far are the only record of
+            # what did not make it into Weaviate
+            with self.__results_lock:
+                _publish_results(self.__results_for_wrapper, self.__results_for_wrapper_backup)
 
     def _shutdown(self) -> None:
         # Shutdown the current batch and wait for all requests to be finished
