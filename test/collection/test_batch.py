@@ -1,8 +1,12 @@
+import gc
 import uuid
+import warnings
+from unittest.mock import MagicMock
 
 import pytest
 
 from weaviate.collections.batch.base import _RateLimitedBatching
+from weaviate.collections.batch.batch_wrapper import _ContextManagerAsync, _ContextManagerSync
 from weaviate.collections.batch.grpc_batch import _validate_props
 from weaviate.collections.classes.batch import (
     MAX_STORED_RESULTS,
@@ -141,3 +145,19 @@ def test_validate_props_raises_for_top_level_vector() -> None:
 def test_validate_props_raises_for_nested_vector() -> None:
     with pytest.raises(WeaviateInsertInvalidPropertyError):
         _validate_props({"vector": [0.1, 0.2]}, nested=True)
+
+
+@pytest.mark.parametrize("context_manager_type", [_ContextManagerSync, _ContextManagerAsync])
+def test_batch_context_manager_warns_when_not_entered(context_manager_type: type) -> None:
+    # Mirrors `collection.batch.rate_limit(100)` called without `with`.
+    with pytest.warns(UserWarning, match="Bat006"):
+        context_manager_type(MagicMock())
+        gc.collect()
+
+
+def test_batch_context_manager_does_not_warn_after_with_block() -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with _ContextManagerSync(MagicMock()):
+            pass
+        gc.collect()
