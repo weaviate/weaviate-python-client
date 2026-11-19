@@ -1,4 +1,6 @@
 import datetime
+import uuid
+from typing import Any, List
 
 import pytest
 
@@ -208,3 +210,54 @@ def test_reuse_by_ref_builder_for_independent_filters() -> None:
 )
 def test_operator_to_grpc(operator: _Operator, want: base_pb2.Filters.Operator) -> None:
     assert operator._to_grpc() == want, "wrong pb operator"
+
+
+# (values, gRPC array field) for each supported filter value type
+SEQUENCE_FILTER_VALUES = [
+    (["a", "b"], "value_text_array"),
+    ([1, 2], "value_int_array"),
+    ([1.5, 2.5], "value_number_array"),
+    ([True, False], "value_boolean_array"),
+    ([uuid.UUID(int=1), uuid.UUID(int=2)], "value_text_array"),
+    (
+        [
+            datetime.datetime(2023, 1, 1, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+        ],
+        "value_text_array",
+    ),
+]
+SEQUENCE_FILTER_IDS = ["text", "int", "float", "bool", "uuid", "date"]
+
+
+@pytest.mark.parametrize("method", ["contains_any", "contains_all", "contains_none"])
+@pytest.mark.parametrize("values,grpc_field", SEQUENCE_FILTER_VALUES, ids=SEQUENCE_FILTER_IDS)
+def test_sequence_filter_values_to_grpc(method: str, values: List[Any], grpc_field: str) -> None:
+    from_list = getattr(wvc.query.Filter.by_property("test"), method)(values)
+    from_tuple = getattr(wvc.query.Filter.by_property("test"), method)(tuple(values))
+
+    as_list = _FilterToGRPC.convert(from_list)
+    as_tuple = _FilterToGRPC.convert(from_tuple)
+
+    assert as_list.HasField(grpc_field), "the list form must send the values"
+    assert as_tuple == as_list, "a tuple must serialise like the equivalent list"
+
+
+@pytest.mark.parametrize("value", ["test", ""])
+def test_string_filter_values_are_not_sequences(value: str) -> None:
+    filter_ = wvc.query.Filter.by_property("test").equal(value)
+
+    assert _FilterToGRPC.convert(filter_).value_text == value
+
+
+def test_empty_tuple_grpc_conversion() -> None:
+    """Ensure the gRPC converter treats an empty tuple like an empty list."""
+    fv = _FilterValue(target="test", value=(), operator=_Operator.EQUAL)
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        _FilterToGRPC.convert(fv)
+
+
+@pytest.mark.parametrize("method", ["contains_any", "contains_all", "contains_none"])
+def test_empty_tuple_input(method: str) -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        getattr(wvc.query.Filter.by_property("test"), method)(())

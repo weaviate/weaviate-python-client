@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
 
 from httpx import Response
@@ -23,18 +23,15 @@ from weaviate.users.users import (
 from weaviate.util import (
     _datetime_to_string,
     _decode_json_response_dict,
+    _zero_time_to_none,
     escape_string,
 )
-
-# Go's zero time value, returned by the server when a timestamp is not set
-_GO_ZERO_TIME = datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc)
 
 
 def _parse_optional_timestamp(value: Optional[str]) -> Optional[datetime]:
     if value is None:
         return None
-    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    return None if dt == _GO_ZERO_TIME else dt
+    return _zero_time_to_none(datetime.fromisoformat(value.replace("Z", "+00:00")))
 
 
 def _parse_db_user(user: WeaviateDBUserRoleNames) -> UserDB:
@@ -137,7 +134,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.post,
             path=path,
-            weaviate_object={"roles": roles},
+            weaviate_object=payload,
             error_msg=f"Could not revoke roles {roles} from user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Revoke roles from user"),
         )

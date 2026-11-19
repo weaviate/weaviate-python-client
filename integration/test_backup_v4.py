@@ -647,6 +647,9 @@ def test_list_backup(client: weaviate.WeaviateClient, request: SubRequest) -> No
 
     backups = client.backup.list_backups(backend=BACKEND)
     assert backup_id.lower() in [b.backup_id.lower() for b in backups]
+    backup = next(b for b in backups if b.backup_id.lower() == backup_id.lower())
+    if backup.status in (BackupStatus.STARTED, BackupStatus.TRANSFERRING):
+        assert backup.completed_at is None
 
     # wait until created
     while True:

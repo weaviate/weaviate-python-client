@@ -741,6 +741,14 @@ def _datetime_from_weaviate_str(string: str) -> Optional[datetime.datetime]:
         raise e
 
 
+def _zero_time_to_none(value: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+    # Weaviate sends Go's zero time (0001-01-01T00:00:00Z) for timestamps it has not set yet,
+    # for example `completedAt` while a backup or export is still running.
+    if value is not None and value.replace(tzinfo=None) == datetime.datetime.min:
+        return None
+    return value
+
+
 class _WeaviateUUIDInt(uuid_lib.UUID):
     def __init__(self, hex_: int) -> None:
         object.__setattr__(self, "int", hex_)
