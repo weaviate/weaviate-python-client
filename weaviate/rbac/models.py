@@ -419,7 +419,7 @@ class _BackupsPermission(_Permission[BackupsAction]):
             backups["role"] = self.role
         elif self.user is not None:
             backups["user"] = self.user
-        elif self.collection != "":
+        else:
             backups["collection"] = _capitalize_first_letter(self.collection)
         return [
             {
