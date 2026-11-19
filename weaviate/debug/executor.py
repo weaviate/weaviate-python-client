@@ -1,11 +1,11 @@
-from typing import Dict, Generic, Optional
+from typing import Dict, Generic, List, Optional
 
 from httpx import Response
 
 from weaviate.classes.config import ConsistencyLevel
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
-from weaviate.debug.types import DebugRESTObject
+from weaviate.debug.types import DebugRESTObject, DistributedTask
 from weaviate.types import UUID
 
 
@@ -49,4 +49,25 @@ class _DebugExecutor(Generic[ConnectionType]):
             params=params,
             error_msg="Object was not retrieved",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get object"),
+        )
+
+    def list_tasks(self) -> executor.Result[Dict[str, List[DistributedTask]]]:
+        """Use the REST API endpoint /tasks to list all distributed tasks currently active or available in the cluster.
+
+        Distributed tasks are long-running background operations, such as reindexing, that are tracked
+        across the cluster's nodes. The returned mapping is keyed by task namespace.
+        """
+
+        def resp(response: Response) -> Dict[str, List[DistributedTask]]:
+            return {
+                namespace: [DistributedTask(**task) for task in tasks]
+                for namespace, tasks in response.json().items()
+            }
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path="/tasks",
+            error_msg="Distributed tasks were not retrieved",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="list distributed tasks"),
         )
