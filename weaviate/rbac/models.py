@@ -76,9 +76,10 @@ class PermissionNodes(TypedDict):
 
 
 class PermissionBackup(TypedDict):
-    collection: Optional[str]
-    role: Optional[str]
-    user: Optional[str]
+    # At most one of these is set: a backup permission targets collections, roles or users.
+    collection: NotRequired[str]
+    role: NotRequired[str]
+    user: NotRequired[str]
 
 
 class PermissionReplicate(TypedDict):
@@ -411,16 +412,19 @@ class _BackupsPermission(_Permission[BackupsAction]):
     user: Optional[str] = None
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
+        # Only the targeted field is sent: the server rejects a permission that sets more than
+        # one of collection, role and user, and servers predating role/user ignore unknown keys.
+        backups: PermissionBackup = {}
+        if self.role is not None:
+            backups["role"] = self.role
+        elif self.user is not None:
+            backups["user"] = self.user
+        elif self.collection != "":
+            backups["collection"] = _capitalize_first_letter(self.collection)
         return [
             {
                 "action": action,
-                "backups": {
-                    "collection": _capitalize_first_letter(self.collection)
-                    if self.collection != ""
-                    else None,
-                    "role": self.role,
-                    "user": self.user,
-                },
+                "backups": backups,
             }
             for action in self.actions
         ]
