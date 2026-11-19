@@ -20,7 +20,7 @@ def test_import_weaviate_under_shim():
     assert weaviate_client_web.is_installed()
     assert weaviate_client_web.install() is True  # idempotent, reports the shim in place
     assert getattr(grpc, "__weaviate_client_web_shim__", False) is True
-    assert grpc.__version__ == "1.72.1"
+    assert grpc.__version__ == FAKE_GRPC_VERSION
     assert grpc._utilities.first_version_is_lower("1.0.0", "2.0.0") is False  # type: ignore[attr-defined]
     from grpc.aio._typing import ChannelArgumentType  # noqa: F401
 

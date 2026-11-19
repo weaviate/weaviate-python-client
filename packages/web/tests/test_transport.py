@@ -1,14 +1,17 @@
-"""GrpcWebChannel tests through fake senders (no network, no Weaviate)."""
+"""GrpcWebChannel and pyfetch_sender tests through fake senders and a fake pyfetch (no network)."""
 
 import asyncio
 import struct
 import sys
-from typing import Dict, List, Optional, Tuple
+import types
+from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
 
+import weaviate_client_web._sender as _sender_mod
 from weaviate_client_web import GrpcWebChannel, set_sender
 from weaviate_client_web._channel import _body_excerpt, _encode_timeout
+from weaviate_client_web._httpx_fetch import _MAX_ABORT_SIGNAL_MS
 from weaviate_client_web._sender import pyfetch_sender
 from weaviate_client_web._shim import (
     AioChannel,
@@ -167,7 +170,7 @@ async def test_weaviate_404_json_names_both_candidate_causes():
     assert "malformed grpc-web response" not in details
 
 
-async def test_nginx_502_maps_to_unavailable_so_the_client_retries():
+async def test_nginx_502_maps_to_unavailable():
     # weaviate/retry.py retries only UNAVAILABLE
     err = await _details_of(502, NGINX_502_HTML)
     assert err.code() is StatusCode.UNAVAILABLE
@@ -202,7 +205,7 @@ async def test_405_names_the_wrong_prefix():
     assert "method POST is not allowed" in err.details()
 
 
-async def test_truncated_grpc_web_body_is_reported_as_truncated_not_as_wrong_prefix():
+async def test_truncated_body_is_reported_as_truncated():
     # a valid frame header with a cut-short payload: the endpoint is grpc-web, so no
     # SPA / path-prefix hint
     body = _ok_response(b"reply-bytes")[:-6]
@@ -229,6 +232,14 @@ async def test_message_frame_after_trailer_is_internal():
     assert "malformed grpc-web response" in err.details()
     assert "after the trailer" in err.details()
     assert "single-page-app" not in err.details()
+
+
+async def test_conflicting_grpc_status_in_one_trailer_is_internal():
+    body = _frame(b"r") + _frame(b"grpc-status:13\r\ngrpc-message:x\r\ngrpc-status:0\r\n", 0x80)
+    err = await _details_of(200, body)
+    assert err.code() is StatusCode.INTERNAL
+    assert "malformed grpc-web response" in err.details()
+    assert "conflicting grpc-status" in err.details()
 
 
 async def test_multiple_message_frames_in_unary_response_is_internal():
@@ -329,19 +340,46 @@ def test_stream_stream_raises_clear_error():
         mc(request_iterator=iter([]), timeout=5, metadata=None)
 
 
-async def test_timeout_maps_to_deadline_exceeded():
-    async def slow_sender(url, headers, body, timeout):
-        await asyncio.sleep(0.5)
-        return 200, {}, _ok_response(b"x")
+@pytest.mark.parametrize("error", [TimeoutError, asyncio.TimeoutError])
+async def test_sender_timeout_maps_to_deadline_exceeded(error):
+    # senders enforce the deadline and raise TimeoutError when it expires
+    async def expired(url, headers, body, timeout):
+        raise error("deadline")
 
-    channel = GrpcWebChannel("h:1", secure=False, sender=slow_sender)
+    channel = GrpcWebChannel("h:1", secure=False, sender=expired)
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
     with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q", timeout=0.01)
     assert excinfo.value.code() is StatusCode.DEADLINE_EXCEEDED
+    assert excinfo.value.details() == "grpc-web request to /svc/M timed out after 0.01s"
 
 
-async def test_transport_exception_maps_to_unavailable():
+@pytest.mark.parametrize("timeout", [0, -1])
+async def test_zero_or_negative_timeout_fails_at_once_without_sending(timeout):
+    sender = FakeSender(body=_ok_response(b"x"))
+    mc = _channel(sender).unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        await mc(b"q", timeout=timeout)
+    assert excinfo.value.code() is StatusCode.DEADLINE_EXCEEDED
+    assert excinfo.value.details() == f"grpc-web request to /svc/M timed out after {timeout}s"
+    assert sender.calls == []
+
+
+async def test_cancellation_while_sending_propagates_unchanged():
+    # CancelledError is a BaseException: it must not become a retried UNAVAILABLE
+    async def cancelled(url, headers, body, timeout):
+        raise asyncio.CancelledError()
+
+    mc = GrpcWebChannel("h:1", secure=False, sender=cancelled).unary_unary(
+        "/svc/M", lambda x: x, lambda b: b
+    )
+    with pytest.raises(asyncio.CancelledError):
+        await mc(b"q", timeout=5)
+
+
+async def test_transport_exception_before_any_response_is_unknown():
+    # a first-call fetch rejection is usually deterministic (CORS, wrong host/port):
+    # UNKNOWN fails at once instead of entering the UNAVAILABLE retry loop
     async def boom(url, headers, body, timeout):
         raise ConnectionError("connection refused")
 
@@ -349,8 +387,62 @@ async def test_transport_exception_maps_to_unavailable():
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
     with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
-    assert excinfo.value.code() is StatusCode.UNAVAILABLE
+    assert excinfo.value.code() is StatusCode.UNKNOWN
     assert "ConnectionError: connection refused" in str(excinfo.value.details())
+
+
+def _scripted_sender(*outcomes: Any):
+    remaining = list(outcomes)
+
+    async def sender(url, headers, body, timeout):
+        outcome = remaining.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+    return sender
+
+
+async def test_transport_exception_after_a_response_is_unavailable():
+    # once the channel has reached the server, a drop is transient and stays retryable
+    sender = _scripted_sender((200, {}, _ok_response(b"x")), ConnectionError("gone"))
+    mc = GrpcWebChannel("h:1", secure=False, sender=sender).unary_unary(
+        "/svc/M", lambda x: x, lambda b: b
+    )
+    assert await mc(b"q") == b"x"
+    with pytest.raises(AioRpcError) as excinfo:
+        await mc(b"q")
+    assert excinfo.value.code() is StatusCode.UNAVAILABLE
+
+
+async def test_an_error_response_also_counts_as_reaching_the_server():
+    sender = _scripted_sender((404, {}, b"not found"), ConnectionError("gone"))
+    mc = GrpcWebChannel("h:1", secure=False, sender=sender).unary_unary(
+        "/svc/M", lambda x: x, lambda b: b
+    )
+    with pytest.raises(AioRpcError):
+        await mc(b"q")
+    with pytest.raises(AioRpcError) as excinfo:
+        await mc(b"q")
+    assert excinfo.value.code() is StatusCode.UNAVAILABLE
+
+
+@pytest.mark.parametrize("platform,expect_hint", [("emscripten", True), ("linux", False)])
+async def test_fetch_rejection_mentions_cors_under_emscripten(monkeypatch, platform, expect_hint):
+    # a CORS block and a dead port reject fetch identically; name CORS as a possibility
+    async def boom(url, headers, body, timeout):
+        raise OSError("TypeError: fetch failed")
+
+    monkeypatch.setattr(sys, "platform", platform)
+    channel = GrpcWebChannel("h:1", secure=False, sender=boom, path_prefix="/v1/grpc-web")
+    mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(AioRpcError) as excinfo:
+        await mc(b"q")
+    details = excinfo.value.details()
+    assert "fetch failed" in details
+    assert ("CORS_ALLOW_ORIGIN" in details) is expect_hint
+    assert ("CORS_ALLOW_HEADERS" in details) is expect_hint
+    assert ("fetch failed. In a browser" in details) is expect_hint
 
 
 async def test_transport_exception_with_empty_str_keeps_type():
@@ -386,7 +478,7 @@ async def test_empty_ok_response_with_grpc_status_has_no_cors_hint():
     assert "Access-Control-Expose-Headers" not in str(excinfo.value.details())
 
 
-async def test_message_frame_without_grpc_status_is_internal_not_success():
+async def test_message_frame_without_grpc_status_is_internal():
     # a message frame without grpc-status (dropped trailer) is INTERNAL
     channel = _channel(FakeSender(status=200, headers={}, body=_frame(b"reply-bytes")))
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
@@ -513,7 +605,38 @@ async def test_crlf_in_metadata_rejected(bad):
     assert sender.calls == []
 
 
-async def _unavailable_details(monkeypatch, path_prefix, platform):
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("x-name", "caf\u00e9"),  # Latin-1: fetch accepts it, gRPC does not
+        ("x-name", "\u2603"),  # not Latin-1: Request.new would throw synchronously
+        ("x-name", "tab\there"),
+        ("x key", "v"),
+        ("x-key:", "v"),
+        ("", "v"),
+    ],
+)
+async def test_metadata_outside_the_grpc_spec_is_a_value_error_before_sending(key, value):
+    sender = FakeSender(body=_ok_response(b"x"))
+    mc = _channel(sender).unary_unary("/svc/M", lambda x: x, lambda b: b)
+    with pytest.raises(ValueError, match="Illegal character"):
+        await mc(b"q", metadata=[(key, value)])
+    assert sender.calls == []
+
+
+async def test_metadata_with_printable_ascii_and_binary_values_is_sent():
+    sender = FakeSender(body=_ok_response(b"x"))
+    mc = _channel(sender).unary_unary("/svc/M", lambda x: x, lambda b: b)
+    await mc(
+        b"q",
+        metadata=[("X-OpenAI-Api-Key", "sk-A_b.c ~!"), ("name-bin", "caf\u00e9".encode())],
+    )
+    headers = sender.calls[0][1]
+    assert headers["x-openai-api-key"] == "sk-A_b.c ~!"
+    assert headers["name-bin"] == "Y2Fmw6k="
+
+
+async def _transport_error_details(monkeypatch, path_prefix, platform):
     async def boom(url, headers, body, timeout):
         raise ConnectionError("Failed to fetch")
 
@@ -522,31 +645,29 @@ async def _unavailable_details(monkeypatch, path_prefix, platform):
     mc = channel.unary_unary("/svc/M", lambda x: x, lambda b: b)
     with pytest.raises(AioRpcError) as excinfo:
         await mc(b"q")
-    assert excinfo.value.code() is StatusCode.UNAVAILABLE
+    assert excinfo.value.code() is StatusCode.UNKNOWN  # fresh channel: no response yet
     return excinfo.value.details()
 
 
-async def test_unavailable_without_path_prefix_under_emscripten_hints_at_grpc_path_prefix(
-    monkeypatch,
-):
+async def test_transport_error_without_prefix_hints_prefix_under_emscripten(monkeypatch):
     # the connect helpers always set the prefix under Emscripten, so a prefix-less channel
     # here means hand-built ConnectionParams; the error must say what to do instead
-    details = await _unavailable_details(monkeypatch, path_prefix="", platform="emscripten")
+    details = await _transport_error_details(monkeypatch, path_prefix="", platform="emscripten")
     assert "grpc_path_prefix='/v1/grpc-web'" in details
     assert "1.38.3" in details
     assert "connect helpers" in details
 
 
-async def test_unavailable_with_path_prefix_has_no_prefix_hint(monkeypatch):
-    details = await _unavailable_details(
+async def test_transport_error_with_prefix_has_no_prefix_hint(monkeypatch):
+    details = await _transport_error_details(
         monkeypatch, path_prefix="/v1/grpc-web", platform="emscripten"
     )
     assert "no grpc_path_prefix" not in details
 
 
-async def test_unavailable_without_path_prefix_off_emscripten_has_no_prefix_hint(monkeypatch):
+async def test_transport_error_without_prefix_off_emscripten_has_no_prefix_hint(monkeypatch):
     # off Emscripten an empty prefix against a transcoder is the normal configuration
-    details = await _unavailable_details(monkeypatch, path_prefix="", platform="linux")
+    details = await _transport_error_details(monkeypatch, path_prefix="", platform="linux")
     assert "no grpc_path_prefix" not in details
 
 
@@ -572,6 +693,9 @@ async def test_path_prefix_prepended_to_url():
         ("/grpc-web/", "http://h:1/grpc-web/svc/M"),
         ("/a/b", "http://h:1/a/b/svc/M"),
         ("", "http://h:1/svc/M"),
+        ("  ", "http://h:1/svc/M"),
+        ("//a//b/", "http://h:1/a/b/svc/M"),
+        (" grpc-web/ ", "http://h:1/grpc-web/svc/M"),
     ],
 )
 async def test_path_prefix_normalized_in_url(raw, expected_url):
@@ -629,3 +753,154 @@ async def test_metadata_cannot_replace_protocol_headers():
     assert headers["x-grpc-web"] == "1"
     assert headers["x-user-agent"] == "weaviate-client-web"
     assert headers["x-custom"] == "kept"
+
+
+# --- the default pyfetch sender: deadline via AbortController ----------------------
+
+
+class _FakeSignal:
+    def __init__(self) -> None:
+        self.aborted = False
+
+
+class _FakeController:
+    def __init__(self) -> None:
+        self.signal = _FakeSignal()
+        # JS: controller.abort.bind(controller)
+        self.abort = types.SimpleNamespace(bind=lambda _this: self._do_abort)
+
+    def _do_abort(self) -> None:
+        self.signal.aborted = True
+
+
+class _FakeJs:
+    """Stand-in for the ``js`` module: records timers and fires them on demand."""
+
+    def __init__(self) -> None:
+        self.controllers: List[_FakeController] = []
+        self.timers: Dict[int, Any] = {}
+        self.delays: List[int] = []
+        self._next = 0
+        self.AbortController = types.SimpleNamespace(new=self._new_controller)
+
+    def _new_controller(self) -> _FakeController:
+        controller = _FakeController()
+        self.controllers.append(controller)
+        return controller
+
+    def setTimeout(self, callback: Any, delay: int) -> int:  # noqa: N802 - JS name
+        self._next += 1
+        self.timers[self._next] = callback
+        self.delays.append(delay)
+        return self._next
+
+    def clearTimeout(self, timer: int) -> None:  # noqa: N802 - JS name
+        self.timers.pop(timer, None)
+
+    def fire_all(self) -> None:
+        for callback in list(self.timers.values()):
+            callback()
+
+
+@pytest.fixture
+def fake_js(monkeypatch) -> _FakeJs:
+    js = _FakeJs()
+    js_mod = types.ModuleType("js")
+    for name in ("AbortController", "setTimeout", "clearTimeout"):
+        setattr(js_mod, name, getattr(js, name))
+    monkeypatch.setitem(sys.modules, "js", js_mod)
+    return js
+
+
+class _FakeFetchResponse:
+    status = 200
+    headers: Dict[str, str] = {}
+
+    async def bytes(self) -> bytes:  # noqa: A003 - mirrors pyodide's FetchResponse
+        return _ok_response(b"ok")
+
+
+def _install_pyfetch(monkeypatch, behaviour) -> List[Dict[str, Any]]:
+    calls: List[Dict[str, Any]] = []
+
+    async def fake_pyfetch(url: str, **kwargs: Any) -> Any:
+        calls.append({"url": url, **kwargs})
+        return await behaviour()
+
+    monkeypatch.setattr(_sender_mod, "pyfetch", fake_pyfetch)
+    return calls
+
+
+async def _ok() -> _FakeFetchResponse:
+    return _FakeFetchResponse()
+
+
+async def test_pyfetch_sender_aborts_via_signal_and_clears_its_timer(monkeypatch, fake_js):
+    calls = _install_pyfetch(monkeypatch, _ok)
+    status, _, body = await pyfetch_sender("http://h/svc/M", {}, b"q", 30)
+    assert status == 200 and body == _ok_response(b"ok")
+    assert fake_js.delays == [30_000]
+    assert calls[0]["signal"] is fake_js.controllers[0].signal
+    assert fake_js.timers == {}  # cleared: no JS timer outlives the request
+
+
+async def test_pyfetch_sender_caps_the_timer_at_int32_ms(monkeypatch, fake_js):
+    # setTimeout delays above 2^31-1 ms overflow and fire at once
+    _install_pyfetch(monkeypatch, _ok)
+    await pyfetch_sender("http://h/svc/M", {}, b"q", 1e9)
+    assert fake_js.delays == [_MAX_ABORT_SIGNAL_MS]
+    assert fake_js.timers == {}
+
+
+async def test_pyfetch_sender_without_deadline_sets_no_timer(monkeypatch, fake_js):
+    calls = _install_pyfetch(monkeypatch, _ok)
+    await pyfetch_sender("http://h/svc/M", {}, b"q", None)
+    assert fake_js.delays == []
+    assert "signal" not in calls[0]
+
+
+async def test_pyfetch_sender_raises_timeout_error_when_its_timer_fires(monkeypatch, fake_js):
+    async def aborted():
+        fake_js.fire_all()  # the deadline passes while the fetch is in flight
+        raise OSError("AbortError: signal is aborted without reason")
+
+    _install_pyfetch(monkeypatch, aborted)
+    with pytest.raises(TimeoutError):
+        await pyfetch_sender("http://h/svc/M", {}, b"q", 0.5)
+    assert fake_js.timers == {}
+
+
+async def test_pyfetch_sender_keeps_other_fetch_failures_and_clears_its_timer(monkeypatch, fake_js):
+    async def rejected():
+        raise OSError("TypeError: fetch failed")
+
+    _install_pyfetch(monkeypatch, rejected)
+    with pytest.raises(OSError, match="fetch failed") as excinfo:
+        await pyfetch_sender("http://h/svc/M", {}, b"q", 30)
+    assert not isinstance(excinfo.value, TimeoutError)
+    assert fake_js.timers == {}
+
+
+async def test_pyfetch_sender_clears_its_timer_when_cancelled(monkeypatch, fake_js):
+    async def cancelled():
+        raise asyncio.CancelledError()
+
+    _install_pyfetch(monkeypatch, cancelled)
+    with pytest.raises(asyncio.CancelledError):
+        await pyfetch_sender("http://h/svc/M", {}, b"q", 30)
+    assert fake_js.timers == {}
+
+
+async def test_channel_deadline_through_pyfetch_sender_is_deadline_exceeded(monkeypatch, fake_js):
+    async def aborted():
+        fake_js.fire_all()
+        raise OSError("AbortError: signal is aborted without reason")
+
+    _install_pyfetch(monkeypatch, aborted)
+    mc = GrpcWebChannel("h:1", secure=False, sender=pyfetch_sender).unary_unary(
+        "/svc/M", lambda x: x, lambda b: b
+    )
+    with pytest.raises(AioRpcError) as excinfo:
+        await mc(b"q", timeout=0.5)
+    assert excinfo.value.code() is StatusCode.DEADLINE_EXCEEDED
+    assert excinfo.value.details() == "grpc-web request to /svc/M timed out after 0.5s"
