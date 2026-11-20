@@ -1,10 +1,20 @@
-from typing import AsyncGenerator, Generator, List
+import threading
+import uuid as uuid_package
+from decimal import Decimal
+from typing import AsyncGenerator, Dict, Generator, List
 
 import grpc
 import pytest
 import pytest_asyncio
 import weaviate
+from weaviate.collections.batch.async_ import _BatchBaseAsync
+from weaviate.collections.batch.base import _BatchDataWrapper
+from weaviate.collections.batch.grpc_batch import _BatchGRPC
+from weaviate.collections.batch.sync import _BatchBaseSync
+from weaviate.collections.classes.batch import BatchObject, _BatchObject
+from weaviate.exceptions import WeaviateInsertManyAllFailedError
 from weaviate.proto.v1 import batch_pb2, weaviate_pb2_grpc
+from weaviate.util import _ServerVersion
 from .conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, mock_class, HTTPServer
 
 HOW_MANY = 1000
@@ -160,3 +170,126 @@ def test_ssb_stream_reports_has_errors(
             batch.add_object({"name": f"Object {i}"})
     assert len(failed_object_stream.batch.failed_objects) == 2
     assert failed_object_stream.batch.results.objs.has_errors
+
+
+# --- regression tests for #2266: one unencodable object must not fail the batch ---
+
+
+def _internal_obj(i: int, bad: bool = False) -> _BatchObject:
+    props: Dict[str, object] = {"name": f"Object {i}"}
+    if bad:
+        # a Decimal property cannot be encoded into a protobuf Struct on main
+        props["price"] = Decimal("1.5")
+    return _BatchObject(
+        collection="Test",
+        properties=props,  # type: ignore[arg-type]
+        references={},
+        uuid=str(uuid_package.uuid4()),
+        vector=None,
+        tenant=None,
+        index=i,
+    )
+
+
+class _StubConnection:
+    def __init__(self, errors: Dict[int, str] | None = None) -> None:
+        self.received: int | None = None
+        self._errors = errors or {}
+
+    def grpc_batch_objects(self, request, timeout, max_retries):  # noqa: ANN001, ANN202
+        self.received = len(request.objects)
+        return self._errors
+
+
+def test_grpc_objects_one_unencodable_object_does_not_fail_the_batch() -> None:
+    grpc_batch = _BatchGRPC(_ServerVersion.from_string("1.40.0"), None, None)
+    objs = [_internal_obj(i, bad=(i == 37)) for i in range(100)]
+    conn = _StubConnection()
+    res = grpc_batch.objects(connection=conn, objects=objs, timeout=10, max_retries=0)  # type: ignore[arg-type]
+    assert conn.received == 99
+    assert len(res.uuids) == 99
+    assert list(res.errors.keys()) == [37]
+    assert str(objs[37].uuid) in res.errors[37].message
+    assert res.has_errors
+
+
+def test_grpc_objects_server_error_is_translated_past_an_encoding_failure() -> None:
+    # object 0 fails to encode, so the server's error at request position 0
+    # belongs to the caller's object 1, not object 0
+    grpc_batch = _BatchGRPC(_ServerVersion.from_string("1.40.0"), None, None)
+    objs = [_internal_obj(i, bad=(i == 0)) for i in range(3)]
+    conn = _StubConnection(errors={0: "server error"})
+    res = grpc_batch.objects(connection=conn, objects=objs, timeout=10, max_retries=0)  # type: ignore[arg-type]
+    assert conn.received == 2
+    assert sorted(res.errors.keys()) == [0, 1]
+    assert res.errors[1].message == "server error"
+    assert list(res.uuids.keys()) == [2]
+
+
+def test_grpc_objects_all_unencodable_raises_all_failed() -> None:
+    grpc_batch = _BatchGRPC(_ServerVersion.from_string("1.40.0"), None, None)
+    objs = [_internal_obj(i, bad=True) for i in range(3)]
+    conn = _StubConnection()
+    with pytest.raises(WeaviateInsertManyAllFailedError):
+        grpc_batch.objects(connection=conn, objects=objs, timeout=10, max_retries=0)  # type: ignore[arg-type]
+    assert conn.received is None
+
+
+def _batch_object(i: int, bad: bool = False) -> BatchObject:
+    props: Dict[str, object] = {"name": f"Object {i}"}
+    if bad:
+        props["price"] = Decimal("1.5")
+    return BatchObject(
+        collection="Test",
+        properties=props,  # type: ignore[arg-type]
+        references=None,
+        uuid=uuid_package.uuid4(),
+        vector=None,
+        tenant=None,
+        index=i,
+    )
+
+
+def test_sync_stream_skips_unencodable_object_and_records_error() -> None:
+    batch = object.__new__(_BatchBaseSync)
+    batch._BatchBaseSync__batch_grpc = _BatchGRPC(  # type: ignore[attr-defined]
+        _ServerVersion.from_string("1.40.0"), None, None
+    )
+    objs = [_batch_object(i, bad=(i == 1)) for i in range(3)]
+    batch._BatchBaseSync__objs_cache = {str(o.uuid): o for o in objs}  # type: ignore[attr-defined]
+    batch._BatchBaseSync__uuid_lookup = {str(o.uuid) for o in objs}  # type: ignore[attr-defined]
+    batch._BatchBaseSync__objs_cache_lock = threading.Lock()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__uuid_lookup_lock = threading.Lock()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__results_lock = threading.Lock()  # type: ignore[attr-defined]
+    batch._BatchBaseSync__results_for_wrapper = _BatchDataWrapper()  # type: ignore[attr-defined]
+
+    requests = list(batch._BatchBaseSync__generate_stream_requests(objs, []))  # type: ignore[attr-defined]
+    sent = [o for req in requests for o in req.proto.data.objects.values]
+    assert len(sent) == 2
+
+    wrapper = batch._BatchBaseSync__results_for_wrapper  # type: ignore[attr-defined]
+    assert len(wrapper.failed_objects) == 1
+    assert wrapper.failed_objects[0].object_.index == 1
+    assert str(objs[1].uuid) in wrapper.failed_objects[0].message
+    assert str(objs[1].uuid) not in batch._BatchBaseSync__objs_cache  # type: ignore[attr-defined]
+    assert str(objs[1].uuid) not in batch._BatchBaseSync__uuid_lookup  # type: ignore[attr-defined]
+
+
+def test_async_stream_skips_unencodable_object_and_records_error() -> None:
+    batch = object.__new__(_BatchBaseAsync)
+    batch._BatchBaseAsync__batch_grpc = _BatchGRPC(  # type: ignore[attr-defined]
+        _ServerVersion.from_string("1.40.0"), None, None
+    )
+    objs = [_batch_object(i, bad=(i == 1)) for i in range(3)]
+    batch._BatchBaseAsync__objs_cache = {str(o.uuid): o for o in objs}  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__uuid_lookup = {str(o.uuid) for o in objs}  # type: ignore[attr-defined]
+    batch._BatchBaseAsync__results_for_wrapper = _BatchDataWrapper()  # type: ignore[attr-defined]
+
+    requests = list(batch._BatchBaseAsync__generate_stream_requests(objs, []))  # type: ignore[attr-defined]
+    sent = [o for req in requests for o in req.proto.data.objects.values]
+    assert len(sent) == 2
+
+    wrapper = batch._BatchBaseAsync__results_for_wrapper  # type: ignore[attr-defined]
+    assert len(wrapper.failed_objects) == 1
+    assert wrapper.failed_objects[0].object_.index == 1
+    assert str(objs[1].uuid) not in batch._BatchBaseAsync__objs_cache  # type: ignore[attr-defined]

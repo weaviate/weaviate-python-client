@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Tuple,
     Union,
     cast,
 )
@@ -94,6 +95,29 @@ class _BatchGRPC(_BaseGRPC):
     def grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
         return [self.grpc_object(obj) for obj in objects]
 
+    def __encode_objects(
+        self, objects: List[_BatchObject]
+    ) -> Tuple[List[batch_pb2.BatchObject], List[int], Dict[int, str]]:
+        """Encode objects one by one so one unencodable object cannot fail the whole batch.
+
+        Returns the encoded objects, the original position of each encoded object, and
+        an error message keyed by original position for every object that failed to encode.
+        """
+        encoded: List[batch_pb2.BatchObject] = []
+        positions: List[int] = []
+        errors: Dict[int, str] = {}
+        for pos, obj in enumerate(objects):
+            try:
+                encoded_obj = self.grpc_object(obj)
+            except Exception as e:
+                errors[pos] = (
+                    f"Failed to encode object with uuid {obj.uuid} for batch insertion: {e!r}"
+                )
+            else:
+                positions.append(pos)
+                encoded.append(encoded_obj)
+        return encoded, positions, errors
+
     def grpc_reference(self, reference: _BatchReference) -> batch_pb2.BatchReference:
         ref = BatchReference._from_internal(reference)
         return batch_pb2.BatchReference(
@@ -127,44 +151,59 @@ class _BatchGRPC(_BaseGRPC):
             timeout: The timeout in seconds for the request.
             max_retries: The maximum number of retries in case of a failure.
         """
-        weaviate_objs = self.grpc_objects(objects)
+        weaviate_objs, positions, encoding_errors = self.__encode_objects(objects)
         start = time.time()
 
+        if len(weaviate_objs) == 0:
+            # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: pylance
+            raise WeaviateInsertManyAllFailedError(
+                "Here is the set of all errors: {}".format(
+                    "\n".join(err for err in set(encoding_errors.values()))
+                )
+            )
+
         def resp(errors: Dict[int, str]) -> BatchObjectReturn:
-            if len(errors) == len(weaviate_objs):
+            # `errors` is keyed by position within the request, so translate those
+            # positions back to the caller's objects and merge them with the
+            # client-side encoding errors recorded before the request was sent
+            merged_errors: Dict[int, str] = dict(encoding_errors)
+            for sent_idx, message in errors.items():
+                merged_errors[positions[sent_idx]] = message
+
+            if len(merged_errors) == len(objects):
                 # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: pylance
                 raise WeaviateInsertManyAllFailedError(
                     "Here is the set of all errors: {}".format(
-                        "\n".join(err for err in set(errors.values()))
+                        "\n".join(err for err in set(merged_errors.values()))
                     )
                 )
 
             elapsed_time = time.time() - start
             all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
                 List[Union[uuid_package.UUID, ErrorObject]],
-                list(range(len(weaviate_objs))),
+                list(range(len(objects))),
             )
             return_success: Dict[int, uuid_package.UUID] = {}
             return_errors: Dict[int, ErrorObject] = {}
-            for idx, weav_obj in enumerate(weaviate_objs):
-                obj = objects[idx]
-                if idx in errors:
+            sent_positions = {pos: sent_idx for sent_idx, pos in enumerate(positions)}
+            for idx, obj in enumerate(objects):
+                if idx in merged_errors:
                     error = ErrorObject(
-                        errors[idx],
+                        merged_errors[idx],
                         BatchObject._from_internal(obj),
                         original_uuid=obj.uuid,
                     )
                     return_errors[obj.index] = error
                     all_responses[idx] = error
                 else:
-                    success = uuid_package.UUID(weav_obj.uuid)
+                    success = uuid_package.UUID(weaviate_objs[sent_positions[idx]].uuid)
                     return_success[obj.index] = success
                     all_responses[idx] = success
 
             return BatchObjectReturn(
                 uuids=return_success,
                 errors=return_errors,
-                has_errors=len(errors) > 0,
+                has_errors=len(merged_errors) > 0,
                 _all_responses=all_responses,
                 elapsed_seconds=elapsed_time,
             )

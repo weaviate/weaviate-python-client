@@ -278,6 +278,36 @@ class _BatchBaseAsync:
                 return
             await asyncio.sleep(refresh_time)
 
+    def __record_encoding_error(self, object_: BatchObject, e: Exception) -> None:
+        """Record one object's client-side encoding failure as its own error.
+
+        The object is dropped from the stream, but every other object is still
+        sent: previously this exception killed the background send loop and
+        silently lost every object that had not been sent yet. This generator
+        is consumed synchronously by the batch loop, so no other task can run
+        while these collections are mutated here.
+        """
+        err = ErrorObject(
+            message=(
+                f"Failed to encode object with uuid {object_.uuid} for batch insertion: {e!r}"
+            ),
+            object_=object_,
+        )
+        self.__objs_cache.pop(str(object_.uuid), None)
+        self.__uuid_lookup.discard(str(object_.uuid))
+        self.__results_for_wrapper.results.objs += BatchObjectReturn(
+            _all_responses=[err],
+            errors={object_.index: err},
+        )
+        self.__results_for_wrapper.failed_objects.append(err)
+        logger.error(
+            {
+                "error": err.message,
+                "object": str(object_.uuid),
+                "action": "use {client,collection}.batch.failed_objects to access this error",
+            }
+        )
+
     def __generate_stream_requests(
         self,
         objects: List[BatchObject],
@@ -293,7 +323,11 @@ class _BatchBaseAsync:
 
         uuids, beacons = set(), set()
         for object_ in objects:
-            obj = self.__batch_grpc.grpc_object(object_._to_internal())
+            try:
+                obj = self.__batch_grpc.grpc_object(object_._to_internal())
+            except Exception as e:
+                self.__record_encoding_error(object_, e)
+                continue
             obj_size = obj.ByteSize() + per_object_overhead
 
             if obj_size > self.__batch_grpc.grpc_max_msg_size:
