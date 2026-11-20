@@ -1585,7 +1585,7 @@ class _Reranker:
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default (`jev-latest`).
-            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default (`https://api.typesafe.ai`).
+            base_url: The host to send the reranker requests to, without a path: the server appends `/v1/systemone`. Defaults to `None`, which uses the server-defined default (`https://api.typesafe.ai`).
         """
         return _RerankerTypeSafeAIConfig(model=model, baseURL=base_url)
 
@@ -1601,7 +1601,7 @@ class _Reranker:
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default (`gpt-6-luna`).
-            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default (`https://api.openai.com`).
+            base_url: The host to send the reranker requests to, without a path: the server appends `/v1/decisions`, so a URL ending in `/v1` fails. Defaults to `None`, which uses the server-defined default (`https://api.openai.com`).
         """
         return _RerankerOpenAIConfig(model=model, baseURL=base_url)
 

@@ -1364,11 +1364,11 @@ TEST_CONFIG_WITH_RERANKER = [
         },
     ),
     (
-        Configure.Reranker.openai(model="gpt-6-luna", base_url="https://api.openai.com/v1"),
+        Configure.Reranker.openai(model="gpt-6-luna", base_url="https://api.openai.com"),
         {
             "reranker-openai": {
                 "model": "gpt-6-luna",
-                "baseURL": "https://api.openai.com/v1",
+                "baseURL": "https://api.openai.com/",
             },
         },
     ),
