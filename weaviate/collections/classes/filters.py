@@ -222,7 +222,7 @@ class _FilterByProperty(_FilterBase):
 
     def equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is equal to the given value."""
-        if isinstance(val, list) and len(val) == 0:
+        if isinstance(val, Sequence) and not isinstance(val, (str, bytes)) and len(val) == 0:
             raise WeaviateInvalidInputError(
                 "Filtering on empty lists is not supported by Weaviate. "
                 "To filter by property length, use "
@@ -232,7 +232,7 @@ class _FilterByProperty(_FilterBase):
 
     def not_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is not equal to the given value."""
-        if isinstance(val, list) and len(val) == 0:
+        if isinstance(val, Sequence) and not isinstance(val, (str, bytes)) and len(val) == 0:
             raise WeaviateInvalidInputError(
                 "Filtering on empty lists is not supported by Weaviate. "
                 "To filter by property length, use "
@@ -242,7 +242,7 @@ class _FilterByProperty(_FilterBase):
 
     def less_than(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is less than the given value."""
-        if isinstance(val, list) and len(val) == 0:
+        if isinstance(val, Sequence) and not isinstance(val, (str, bytes)) and len(val) == 0:
             raise WeaviateInvalidInputError(
                 "Filtering on empty lists is not supported by Weaviate. "
                 "To filter by property length, use "
@@ -252,7 +252,7 @@ class _FilterByProperty(_FilterBase):
 
     def less_or_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is less than or equal to the given value."""
-        if isinstance(val, list) and len(val) == 0:
+        if isinstance(val, Sequence) and not isinstance(val, (str, bytes)) and len(val) == 0:
             raise WeaviateInvalidInputError(
                 "Filtering on empty lists is not supported by Weaviate. "
                 "To filter by property length, use "
@@ -266,7 +266,7 @@ class _FilterByProperty(_FilterBase):
 
     def greater_than(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is greater than the given value."""
-        if isinstance(val, list) and len(val) == 0:
+        if isinstance(val, Sequence) and not isinstance(val, (str, bytes)) and len(val) == 0:
             raise WeaviateInvalidInputError(
                 "Filtering on empty lists is not supported by Weaviate. "
                 "To filter by property length, use "
@@ -280,7 +280,7 @@ class _FilterByProperty(_FilterBase):
 
     def greater_or_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is greater than or equal to the given value."""
-        if isinstance(val, list) and len(val) == 0:
+        if isinstance(val, Sequence) and not isinstance(val, (str, bytes)) and len(val) == 0:
             raise WeaviateInvalidInputError(
                 "Filtering on empty lists is not supported by Weaviate. "
                 "To filter by property length, use "
