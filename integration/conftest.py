@@ -28,6 +28,7 @@ from weaviate.collections.classes.config import (
     Configure,
     DataType,
     Property,
+    ShardingConfigCreate,
     _GenerativeProvider,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
@@ -70,6 +71,7 @@ class CollectionFactory(Protocol):
             Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
         ] = None,
         object_ttl: Optional[_ObjectTTLConfigCreate] = None,
+        sharding_config: Optional[ShardingConfigCreate] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -145,6 +147,7 @@ def collection_factory(
             Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]]
         ] = None,
         object_ttl: Optional[_ObjectTTLConfigCreate] = None,
+        sharding_config: Optional[ShardingConfigCreate] = None,
     ) -> Collection[Any, Any]:
         try:
             nonlocal client_fixture, name_fixtures, call_counter  # noqa: F824
@@ -178,6 +181,7 @@ def collection_factory(
                 reranker_config=reranker_config,
                 vector_config=vector_config,
                 object_ttl_config=object_ttl,
+                sharding_config=sharding_config,
             )
             return collection
         except Exception as e:

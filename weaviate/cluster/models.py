@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Generic, List, TypedDict, TypeVar, Union
+from typing import Any, Dict, Generic, List, Optional, TypedDict, TypeVar, Union
 
 
 class ReplicationType(str, Enum):
@@ -62,13 +62,16 @@ class _ReplicateOperation(Generic[H]):
         data: dict,
         include_history: bool,
     ):
+        # Weaviate 1.31 uses Id-suffixed shard/node fields and transferType.
         common = {
             "collection": data["collection"],
-            "shard": data["shard"],
-            "source_node": data["sourceNode"],
+            "shard": data["shard"] if "shard" in data else data["shardId"],
+            "source_node": data["sourceNode"] if "sourceNode" in data else data["sourceNodeId"],
             "status": ReplicateOperationStatus._from_weaviate(data["status"]),
-            "target_node": data["targetNode"],
-            "transfer_type": ReplicationType(data["type"]),
+            "target_node": data["targetNode"] if "targetNode" in data else data["targetNodeId"],
+            "transfer_type": ReplicationType(
+                data["type"] if "type" in data else data["transferType"]
+            ),
             "uuid": uuid.UUID(data["id"]),
         }
         if include_history and data["statusHistory"] is not None:
@@ -92,6 +95,51 @@ ReplicateOperation = Union[ReplicateOperationWithoutHistory, ReplicateOperationW
 ReplicateOperations = Union[
     List[ReplicateOperationWithoutHistory], List[ReplicateOperationWithHistory]
 ]
+
+
+@dataclass(kw_only=True)
+class ReplicaAddition:
+    """Class representing a replica to add to a shard.
+
+    The replica is copied from `source_node`, or created empty if it is None.
+    A source node also listed in the shard's `remove_nodes` makes this a move.
+    """
+
+    target_node: str
+    source_node: Optional[str] = None
+
+
+@dataclass
+class ShardScaleActions:
+    """Class representing editable replica additions and removals for a shard.
+
+    Target nodes in `add_nodes` must be unique within the shard.
+    """
+
+    remove_nodes: List[str]
+    add_nodes: List[ReplicaAddition]
+
+
+@dataclass
+class ReplicationScalePlan:
+    """Class representing an editable replication scale plan for a collection."""
+
+    plan_id: uuid.UUID
+    collection: str
+    shard_scale_actions: Dict[str, ShardScaleActions]
+
+
+@dataclass
+class ReplicationScaleApplyResult:
+    """Class representing an accepted replication scale plan and its started operations.
+
+    Use `cluster.replications.get` to inspect operation status. Removal-only plans may
+    have no operation IDs; inspect shard placement to confirm their completion.
+    """
+
+    plan_id: uuid.UUID
+    collection: str
+    operation_ids: List[uuid.UUID]
 
 
 class _ReplicationShardReplicas(TypedDict):
