@@ -14,8 +14,10 @@ from weaviate.util import _ServerVersion
     [
         ("digitalocean", generative_pb2.GenerativeDigitalOceanMetadata),
         ("meta", generative_pb2.GenerativeMetaMetadata),
+        ("xai", generative_pb2.GenerativeXAIMetadata),
+        ("deepseek", generative_pb2.GenerativeDeepseekMetadata),
     ],
-    ids=["digitalocean", "meta"],
+    ids=["digitalocean", "meta", "xai", "deepseek"],
 )
 @pytest.mark.parametrize("grouped", [False, True], ids=["single", "grouped"])
 def test_metadata_is_preserved_in_generative_results(
@@ -24,6 +26,8 @@ def test_metadata_is_preserved_in_generative_results(
     metadata_type: Union[
         Type[generative_pb2.GenerativeDigitalOceanMetadata],
         Type[generative_pb2.GenerativeMetaMetadata],
+        Type[generative_pb2.GenerativeXAIMetadata],
+        Type[generative_pb2.GenerativeDeepseekMetadata],
     ],
     grouped: bool,
 ) -> None:

@@ -205,6 +205,8 @@ class _BaseExecutor(Generic[ConnectionType]):
             return metadata.cohere
         if metadata.HasField("databricks"):
             return metadata.databricks
+        if metadata.HasField("deepseek"):
+            return metadata.deepseek
         if metadata.HasField("digitalocean"):
             return metadata.digitalocean
         if metadata.HasField("dummy"):
@@ -223,6 +225,8 @@ class _BaseExecutor(Generic[ConnectionType]):
             return metadata.ollama
         if metadata.HasField("openai"):
             return metadata.openai
+        if metadata.HasField("xai"):
+            return metadata.xai
         return None
 
     def __extract_generative_single_from_generative(
