@@ -18,7 +18,7 @@ from weaviate.collections.classes.grpc import (
     NearVectorInputType,
     Rerank,
     TargetVectorJoinType,
-    VectorSearchParams,
+    VectorSearchParamsType,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -71,7 +71,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeReturn[Properties, References]]: ...
 
     @overload
@@ -98,7 +98,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -125,7 +125,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeReturn[Properties, TReferences]]: ...
 
     @overload
@@ -152,7 +152,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, References]]: ...
 
     @overload
@@ -179,7 +179,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -206,7 +206,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, TReferences]]: ...
 
     ### GroupBy ###
@@ -234,7 +234,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, References]]: ...
 
     @overload
@@ -261,7 +261,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -288,7 +288,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, TReferences]]: ...
 
     @overload
@@ -315,7 +315,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, References]]: ...
 
     @overload
@@ -342,7 +342,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -369,7 +369,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, TReferences]]: ...
 
     ### DEFAULT ###
@@ -397,7 +397,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[
         GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -425,7 +425,7 @@ class _NearVectorGenerateExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParams] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[
         GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
     ]:
@@ -450,7 +450,7 @@ class _NearVectorGenerateExecutor(
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
             diversity_selection: Apply diversity selection (e.g. MMR) to the results. Requires Weaviate >= 1.37.0.
-            vector_search_params: Per-request vector index tuning, e.g. ``VectorSearchParams(ef=...)`` to override the collection's HNSW ``ef`` for this query only. Ignored by flat and HFresh indexes. Requires Weaviate >= 1.41.0.
+            vector_search_params: Per-request vector index tuning. A single ``VectorSearchParams`` (e.g. ``VectorSearchParams.hnsw(ef=...)``) applies to every target vector; a mapping ``{target_vector_name: VectorSearchParams}`` tunes each target of a multi-target search separately. Each index honours only the knobs it knows (HNSW: ``ef``, ``filter_strategy``; HFresh: ``search_probe``; flat: none). Requires Weaviate >= 1.41.0.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.

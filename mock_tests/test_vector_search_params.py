@@ -103,6 +103,65 @@ def test_generate_near_object_sends_ef(
     assert req.vector_search_params.ef == 16
 
 
+def test_query_near_vector_sends_every_knob(
+    capture_collection: Tuple[weaviate.collections.Collection, _SearchRequestCapture],
+) -> None:
+    collection, service = capture_collection
+    collection.query.near_vector(
+        [1.0, 0.0],
+        vector_search_params=VectorSearchParams(ef=64, search_probe=8, filter_strategy="acorn"),
+    )
+
+    (req,) = service.requests
+    assert req.vector_search_params.ef == 64
+    assert req.vector_search_params.search_probe == 8
+    assert req.vector_search_params.filter_strategy == search_get_pb2.FILTER_STRATEGY_ACORN
+    assert len(req.vector_search_params_for_targets) == 0
+
+
+def test_query_near_vector_mapping_sends_per_target_entries(
+    capture_collection: Tuple[weaviate.collections.Collection, _SearchRequestCapture],
+) -> None:
+    collection, service = capture_collection
+    collection.query.near_vector(
+        [1.0, 0.0],
+        target_vector=["title", "body"],
+        vector_search_params={
+            "title": VectorSearchParams.hnsw(ef=16, filter_strategy="pathseer"),
+            "body": VectorSearchParams.hfresh(search_probe=4),
+        },
+    )
+
+    (req,) = service.requests
+    assert not req.HasField("vector_search_params")
+    by_target = {e.target: e.params for e in req.vector_search_params_for_targets}
+    assert set(by_target) == {"title", "body"}
+    assert by_target["title"].ef == 16
+    assert by_target["title"].filter_strategy == search_get_pb2.FILTER_STRATEGY_PATHSEER
+    assert by_target["body"].search_probe == 4
+    assert not by_target["body"].HasField("ef")
+
+
+def test_generate_hybrid_mapping_sends_per_target_entries(
+    capture_collection: Tuple[weaviate.collections.Collection, _SearchRequestCapture],
+) -> None:
+    collection, service = capture_collection
+    collection.generate.hybrid(
+        "cats",
+        vector=HybridVector.near_vector([1.0, 0.0]),
+        target_vector=["title"],
+        single_prompt="Say hi to {name}",
+        vector_search_params={"title": VectorSearchParams(ef=24)},
+    )
+
+    (req,) = service.requests
+    assert req.HasField("generative")
+    assert req.HasField("hybrid_search")
+    (entry,) = req.vector_search_params_for_targets
+    assert entry.target == "title"
+    assert entry.params.ef == 24
+
+
 def test_old_server_rejected_before_any_request(
     weaviate_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
 ) -> None:

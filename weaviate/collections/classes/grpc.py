@@ -270,11 +270,24 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+FilterStrategyName = Literal["sweeping", "acorn", "pathseer"]
+"""HNSW strategy for a filtered search, as accepted by ``VectorSearchParams.filter_strategy``."""
+
+
 class VectorSearchParams(_WeaviateInput):
     """Per-request tuning of the vector index search.
 
     Lets a single query trade recall for latency without changing the collection's vector index
-    configuration. Only HNSW indexes honour it; flat and HFresh indexes accept and ignore it.
+    configuration. One flat set of knobs covers every index type: each index reads the fields it
+    knows and ignores the rest. ``ef`` and ``filter_strategy`` apply to HNSW (and to the HNSW stage of
+    a dynamic index), ``search_probe`` to HFresh; a flat index ignores all of them. Any field left as
+    ``None`` keeps the collection's configured value. Use the ``hnsw()``, ``hfresh()`` and ``dynamic()``
+    constructors to build params for a given index type without remembering which knob belongs where.
+
+    Pass a single instance to ``vector_search_params`` to apply it to every target vector of the
+    request, or a mapping ``{target_vector_name: VectorSearchParams}`` to tune each target of a
+    multi-target search separately. Per-target entries override only the fields they set.
+
     Requires Weaviate >= 1.41.0; on older servers the client raises
     ``WeaviateUnsupportedFeatureError`` before sending the request, whatever the values.
 
@@ -285,9 +298,59 @@ class VectorSearchParams(_WeaviateInput):
             rejects values above its ``HNSW_MAX_SEARCH_EF`` cap (``QUERY_MAXIMUM_RESULTS``, 10000 by
             default) with ``WeaviateQueryError``. Must fit the ``uint32`` wire type. Applies to
             every vector search, including the vector leg of a hybrid search.
+        search_probe: Number of HFresh centroid postings visited for this request only. ``None`` or
+            ``0`` keeps the collection's configured ``searchProbe``. Floored at the request's
+            ``limit`` and rejected above the server's ``HFRESH_MAX_SEARCH_PROBE`` cap with
+            ``WeaviateQueryError``. Must fit the ``uint32`` wire type.
+        filter_strategy: HNSW strategy for the filtered layer-0 walk of this request:
+            ``"sweeping"``, ``"acorn"`` or ``"pathseer"``. ``None`` keeps the collection's
+            ``filterStrategy``. Has no effect without a filter.
     """
 
     ef: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
+    search_probe: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
+    filter_strategy: Optional[FilterStrategyName] = Field(default=None)
+
+    @classmethod
+    def hnsw(
+        cls,
+        ef: Optional[int] = None,
+        filter_strategy: Optional[FilterStrategyName] = None,
+    ) -> "VectorSearchParams":
+        """Params for an HNSW index: ``ef`` and ``filter_strategy``.
+
+        Args:
+            ef: HNSW layer-0 beam width for this request only. See the class docstring.
+            filter_strategy: HNSW strategy for a filtered search. See the class docstring.
+        """
+        return cls(ef=ef, filter_strategy=filter_strategy)
+
+    @classmethod
+    def hfresh(cls, search_probe: Optional[int] = None) -> "VectorSearchParams":
+        """Params for an HFresh index: ``search_probe``.
+
+        Args:
+            search_probe: Number of centroid postings visited for this request only. See the class docstring.
+        """
+        return cls(search_probe=search_probe)
+
+    @classmethod
+    def dynamic(cls, hnsw: Optional["VectorSearchParams"] = None) -> "VectorSearchParams":
+        """Params for a dynamic index, which forwards them to its HNSW stage once it has switched.
+
+        While the dynamic index is still in its flat stage the params are accepted and ignored.
+
+        Args:
+            hnsw: Params for the HNSW stage, typically built with ``VectorSearchParams.hnsw(...)``. Only
+                ``ef`` and ``filter_strategy`` are forwarded.
+        """
+        if hnsw is None:
+            return cls()
+        return cls(ef=hnsw.ef, filter_strategy=hnsw.filter_strategy)
+
+
+VectorSearchParamsType = Union[VectorSearchParams, Mapping[str, VectorSearchParams]]
+"""Either one ``VectorSearchParams`` for every target vector or a mapping from target vector name to its params."""
 
 
 @dataclass
