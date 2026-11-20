@@ -1,9 +1,12 @@
+import time
+from decimal import Decimal
 from typing import AsyncGenerator, Generator, List
 
 import grpc
 import pytest
 import pytest_asyncio
 import weaviate
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import batch_pb2, weaviate_pb2_grpc
 from .conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, mock_class, HTTPServer
 
@@ -160,3 +163,54 @@ def test_ssb_stream_reports_has_errors(
             batch.add_object({"name": f"Object {i}"})
     assert len(failed_object_stream.batch.failed_objects) == 2
     assert failed_object_stream.batch.results.objs.has_errors
+
+
+class MockRecordingWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    def __init__(self) -> None:
+        self.objects: List[batch_pb2.BatchObject] = []
+
+    def BatchStream(
+        self,
+        request_iterator: Generator[batch_pb2.BatchStreamRequest, None, None],
+        context: grpc.ServicerContext,
+    ) -> Generator[batch_pb2.BatchStreamReply, None, None]:
+        yield batch_pb2.BatchStreamReply(started=batch_pb2.BatchStreamReply.Started())
+        for request in request_iterator:
+            if request.HasField("data"):
+                self.objects.extend(request.data.objects.values)
+                uuids = [obj.uuid for obj in request.data.objects.values]
+                yield batch_pb2.BatchStreamReply(acks=batch_pb2.BatchStreamReply.Acks(uuids=uuids))
+            if request.HasField("stop"):
+                return
+
+
+@pytest.fixture(scope="function")
+def recording_stream(
+    canceled_stream_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+):
+    service = MockRecordingWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return canceled_stream_client.collections.use(mock_class["class"]), service
+
+
+def test_ssb_stream_converts_decimal(
+    recording_stream: tuple[weaviate.collections.Collection, MockRecordingWeaviateService],
+) -> None:
+    collection, service = recording_stream
+    with collection.batch.stream() as batch:
+        batch.add_object({"name": "Object 1", "price": Decimal("9.99")})
+    assert len(service.objects) == 1
+    assert service.objects[0].properties.non_ref_properties["price"] == 9.99
+
+
+def test_ssb_stream_raises_for_unsupported_type(
+    recording_stream: tuple[weaviate.collections.Collection, MockRecordingWeaviateService],
+) -> None:
+    collection, service = recording_stream
+    with pytest.raises(WeaviateInvalidInputError, match="Cannot serialize value of type"):
+        with collection.batch.stream() as batch:
+            batch.add_object({"name": "Object 1", "price": object()})
+            for _ in range(100):
+                time.sleep(0.1)
+                batch.add_object({"name": "Object 2"})
+    assert len(service.objects) == 0

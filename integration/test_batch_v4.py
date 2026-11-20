@@ -1,6 +1,7 @@
 import concurrent.futures
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Callable, Generator, List, Optional, Protocol, Tuple
 
 import pytest
@@ -25,6 +26,7 @@ from weaviate.collections.classes.internal import (
     _CrossReference,
 )
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import UUID, VECTORS
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
@@ -215,6 +217,41 @@ def test_add_object(
         batch.add_object(collection=name, properties={}, uuid=uid, vector=vector)
     objs = client.collections.use(name).query.fetch_objects().objects
     assert len(objs) == 1
+
+
+def test_add_objects_with_decimal(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    collection = client.collections.use(name)
+    collection.config.add_property(Property(name="price", data_type=DataType.NUMBER))
+    with client.batch.fixed_size() as batch:
+        for i in range(99):
+            batch.add_object(collection=name, properties={"price": float(i)})
+        batch.add_object(collection=name, properties={"price": Decimal("9.99")})
+    assert len(client.batch.failed_objects) == 0
+    assert len(collection) == 100
+
+    collection.data.insert_many([{"price": Decimal("1.5")}])
+    uid = collection.data.insert({"price": Decimal("2.5")})
+    assert len(collection) == 102
+    obj = collection.query.fetch_object_by_id(uid)
+    assert obj is not None
+    assert obj.properties["price"] == 2.5
+
+
+def test_add_objects_with_unsupported_type(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    collection = client.collections.use(name)
+    collection.config.add_property(Property(name="price", data_type=DataType.NUMBER))
+    with client.batch.fixed_size() as batch:
+        for i in range(99):
+            batch.add_object(collection=name, properties={"price": float(i)})
+        batch.add_object(collection=name, properties={"price": object()})
+    failed = client.batch.failed_objects
+    assert len(failed) == 100
+    assert "Cannot serialize value of type" in failed[0].message
+
+    with pytest.raises(WeaviateInvalidInputError, match="Cannot serialize value of type"):
+        collection.data.insert_many([{"price": object()}])
 
 
 @pytest.mark.parametrize("from_object_uuid", [UUID1, str(UUID2), UUID3.hex])
