@@ -121,14 +121,23 @@ def test_wrong_type_rejected_client_side(bad: object) -> None:
 
 @pytest.mark.parametrize(
     "bad_ef",
-    [-1, True, "64", 1.5, 64.0],
-    ids=["negative", "bool", "str", "float", "integral-float"],
+    [-1, 2**32, True, "64", 1.5, 64.0],
+    ids=["negative", "above-uint32", "bool", "str", "float", "integral-float"],
 )
-def test_ef_must_be_a_non_negative_int(bad_ef: object) -> None:
-    # uint32 on the wire: negative values are unrepresentable; bool/str/float would be silently
-    # coerced by lax pydantic, so the field is strict.
+def test_ef_must_be_a_uint32(bad_ef: object) -> None:
+    # uint32 on the wire: negative or >= 2**32 values are unrepresentable and would otherwise fail
+    # inside protobuf with a bare ValueError; bool/str/float would be silently coerced by lax
+    # pydantic, so the field is strict.
     with pytest.raises(ValidationError):
         VectorSearchParams(ef=bad_ef)  # type: ignore[arg-type]
+
+
+def test_uint32_max_is_sent_for_the_server_to_reject() -> None:
+    # The last representable value is legal on the wire; the HNSW_MAX_SEARCH_EF cap is the server's.
+    req = _builder().near_vector(
+        near_vector=[1.0, 0.0, 0.0], vector_search_params=VectorSearchParams(ef=2**32 - 1)
+    )
+    assert req.vector_search_params.ef == 2**32 - 1
 
 
 def test_unknown_params_rejected() -> None:
