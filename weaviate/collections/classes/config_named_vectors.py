@@ -235,7 +235,7 @@ class _NamedVectors:
         Args:
             name: The name of the named vector.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
@@ -530,7 +530,7 @@ class _NamedVectors:
         Args:
             name: The name of the named vector.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             image_fields: The image fields to use in vectorization.
             text_fields: The text fields to use in vectorization.
             inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
@@ -569,7 +569,7 @@ class _NamedVectors:
         Args:
             name: The name of the named vector.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             location: Where the model runs. REQUIRED.
             project_id: The project ID to use, REQUIRED.
             audio_fields: The audio fields to use in vectorization.
@@ -625,7 +625,7 @@ class _NamedVectors:
             thermal_fields: The thermal fields to use in vectorization.
             video_fields: The video fields to use in vectorization.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -662,7 +662,7 @@ class _NamedVectors:
         Args:
             name: The name of the named vector.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
@@ -707,7 +707,7 @@ class _NamedVectors:
         Args:
             name: The name of the named vector.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
@@ -1073,7 +1073,7 @@ class _NamedVectors:
         Args:
             name: The name of the named vector.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Deprecated, has no effect.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
