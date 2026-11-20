@@ -16,6 +16,7 @@ from weaviate.collections.classes.grpc import (
     NearMediaType,
     Rerank,
     TargetVectorJoinType,
+    VectorSearchParamsType,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -60,6 +61,7 @@ class _NearMediaGenerate(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeReturn[Properties, References]: ...
     @overload
     def near_media(
@@ -86,6 +88,7 @@ class _NearMediaGenerate(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeReturn[Properties, CrossReferences]: ...
     @overload
     def near_media(
@@ -112,6 +115,7 @@ class _NearMediaGenerate(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeReturn[Properties, TReferences]: ...
     @overload
     def near_media(
@@ -138,6 +142,7 @@ class _NearMediaGenerate(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeReturn[TProperties, References]: ...
     @overload
     def near_media(
@@ -164,6 +169,7 @@ class _NearMediaGenerate(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeReturn[TProperties, CrossReferences]: ...
     @overload
     def near_media(
@@ -190,6 +196,7 @@ class _NearMediaGenerate(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeReturn[TProperties, TReferences]: ...
     @overload
     def near_media(
@@ -216,6 +223,7 @@ class _NearMediaGenerate(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeGroupByReturn[Properties, References]: ...
     @overload
     def near_media(
@@ -242,6 +250,7 @@ class _NearMediaGenerate(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeGroupByReturn[Properties, CrossReferences]: ...
     @overload
     def near_media(
@@ -268,6 +277,7 @@ class _NearMediaGenerate(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeGroupByReturn[Properties, TReferences]: ...
     @overload
     def near_media(
@@ -294,6 +304,7 @@ class _NearMediaGenerate(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeGroupByReturn[TProperties, References]: ...
     @overload
     def near_media(
@@ -320,6 +331,7 @@ class _NearMediaGenerate(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeGroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def near_media(
@@ -346,6 +358,7 @@ class _NearMediaGenerate(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeGroupByReturn[TProperties, TReferences]: ...
     @overload
     def near_media(
@@ -372,4 +385,5 @@ class _NearMediaGenerate(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...

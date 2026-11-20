@@ -10,6 +10,7 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     Rerank,
     TargetVectorJoinType,
+    VectorSearchParamsType,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -48,6 +49,7 @@ class _NearImageQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
     def near_image(
@@ -69,6 +71,7 @@ class _NearImageQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     def near_image(
@@ -90,6 +93,7 @@ class _NearImageQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
     def near_image(
@@ -111,6 +115,7 @@ class _NearImageQuery(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> QueryReturn[TProperties, References]: ...
     @overload
     def near_image(
@@ -132,6 +137,7 @@ class _NearImageQuery(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
     def near_image(
@@ -153,6 +159,7 @@ class _NearImageQuery(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> QueryReturn[TProperties, TReferences]: ...
     @overload
     def near_image(
@@ -174,6 +181,7 @@ class _NearImageQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
     def near_image(
@@ -195,6 +203,7 @@ class _NearImageQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
     def near_image(
@@ -216,6 +225,7 @@ class _NearImageQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
     def near_image(
@@ -237,6 +247,7 @@ class _NearImageQuery(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GroupByReturn[TProperties, References]: ...
     @overload
     def near_image(
@@ -258,6 +269,7 @@ class _NearImageQuery(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def near_image(
@@ -279,6 +291,7 @@ class _NearImageQuery(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> GroupByReturn[TProperties, TReferences]: ...
     @overload
     def near_image(
@@ -300,4 +313,5 @@ class _NearImageQuery(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_search_params: Optional[VectorSearchParamsType] = None,
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...

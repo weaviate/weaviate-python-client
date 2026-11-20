@@ -20,6 +20,7 @@ from weaviate.collections.classes.grpc import (
     Rerank,
     Sort,
     TargetVectors,
+    VectorSearchParams,
 )
 from weaviate.collections.classes.types import GeoCoordinate
 
@@ -45,4 +46,5 @@ __all__ = [
     "Rerank",
     "Sort",
     "TargetVectors",
+    "VectorSearchParams",
 ]
