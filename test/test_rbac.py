@@ -1,5 +1,25 @@
+from typing import Any, List
+
+import pytest
+from httpx import Response
+
 from weaviate.classes.rbac import Actions, Permissions
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
+from weaviate.rbac.executor import _RolesExecutor
 from weaviate.rbac.models import Role
+from weaviate.util import _ServerVersion
+
+
+class _StubConnection:
+    """Records POST payloads instead of sending them; only what the roles executor touches."""
+
+    def __init__(self, version: str) -> None:
+        self._weaviate_version = _ServerVersion.from_string(version)
+        self.posted: List[Any] = []
+
+    def post(self, path: str, weaviate_object: Any, **kwargs: Any) -> Response:
+        self.posted.append(weaviate_object)
+        return Response(201 if path == "/authz/roles" else 200, json={})
 
 
 def test_permissions_roles_only_manage_false() -> None:
@@ -72,4 +92,49 @@ def test_role_parses_backups_on_roles_and_users() -> None:
         ("", "r1", None),
         ("", None, "u1"),
         ("*", None, None),
+    ]
+
+
+@pytest.mark.parametrize(
+    "permissions",
+    [
+        Permissions.backup(role="r1", manage=True),
+        Permissions.backup(user="u1", read=True),
+        Permissions.backup(collection="c1", role="r1", manage=True),
+    ],
+    ids=["role", "user", "collection-and-role"],
+)
+def test_roles_executor_rejects_backup_principals_on_old_server(permissions: Any) -> None:
+    # Before 1.42 the server ignores the role/user key and defaults the collection to "*",
+    # so the request must never leave the client.
+    conn = _StubConnection("1.41.5")
+    roles = _RolesExecutor(conn)  # type: ignore[arg-type]
+    with pytest.raises(WeaviateUnsupportedFeatureError, match="1.42.0"):
+        roles.create(role_name="r", permissions=permissions)
+    with pytest.raises(WeaviateUnsupportedFeatureError, match="1.42.0"):
+        roles.add_permissions(role_name="r", permissions=permissions)
+    assert conn.posted == []
+
+
+def test_roles_executor_sends_backup_principals_on_new_server() -> None:
+    conn = _StubConnection("1.42.0")
+    roles = _RolesExecutor(conn)  # type: ignore[arg-type]
+    roles.create(role_name="r", permissions=Permissions.backup(role="r1", manage=True))
+    roles.add_permissions(role_name="r", permissions=Permissions.backup(user="u1", manage=True))
+    assert conn.posted == [
+        {"name": "r", "permissions": [{"action": "manage_backups", "backups": {"role": "r1"}}]},
+        {"permissions": [{"action": "manage_backups", "backups": {"user": "u1"}}]},
+    ]
+
+
+def test_roles_executor_allows_collection_backup_permission_on_old_server() -> None:
+    # Collection-scoped backup permissions predate the gate and must keep working.
+    conn = _StubConnection("1.39.0")
+    roles = _RolesExecutor(conn)  # type: ignore[arg-type]
+    roles.create(role_name="r", permissions=Permissions.backup(collection="c1", manage=True))
+    assert conn.posted == [
+        {
+            "name": "r",
+            "permissions": [{"action": "manage_backups", "backups": {"collection": "C1"}}],
+        }
     ]

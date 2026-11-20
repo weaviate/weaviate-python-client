@@ -7,6 +7,7 @@ from typing_extensions import deprecated
 
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.rbac.models import (
     GroupAssignment,
     GroupTypes,
@@ -17,6 +18,7 @@ from weaviate.rbac.models import (
     UserTypes,
     WeaviatePermission,
     WeaviateRole,
+    _BackupsPermission,
     _Permission,
 )
 
@@ -40,6 +42,22 @@ def _flatten_permissions(
 class _RolesExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
+
+    def __check_backup_principals_supported(self, permissions: List[_Permission]) -> None:
+        # Servers predating backup permissions on roles and users drop the unknown key and fall
+        # back to collection "*", which would silently grant backups of every collection.
+        if not any(
+            isinstance(perm, _BackupsPermission)
+            and (perm.role is not None or perm.user is not None)
+            for perm in permissions
+        ):
+            return
+        if self._connection._weaviate_version.is_lower_than(1, 42, 0):
+            raise WeaviateUnsupportedFeatureError(
+                "Backup permission on a role or user",
+                str(self._connection._weaviate_version),
+                "1.42.0",
+            )
 
     def list_all(self) -> executor.Result[Dict[str, Role]]:
         """Get all roles.
@@ -136,8 +154,11 @@ class _RolesExecutor(Generic[ConnectionType]):
         """
         path = "/authz/roles"
 
+        flattened = _flatten_permissions(permissions)
+        self.__check_backup_principals_supported(flattened)
+
         perms = []
-        for perm in _flatten_permissions(permissions):
+        for perm in flattened:
             perms.extend(perm._to_weaviate())
 
         role: WeaviateRole = {
@@ -276,8 +297,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         """
         path = f"/authz/roles/{role_name}/add-permissions"
 
-        if isinstance(permissions, _Permission):
-            permissions = [permissions]
+        flattened = _flatten_permissions(permissions)
+        self.__check_backup_principals_supported(flattened)
 
         def resp(res: Response) -> None:
             return None
@@ -288,9 +309,7 @@ class _RolesExecutor(Generic[ConnectionType]):
             path=path,
             weaviate_object={
                 "permissions": [
-                    weav_perm
-                    for perm in _flatten_permissions(permissions)
-                    for weav_perm in perm._to_weaviate()
+                    weav_perm for perm in flattened for weav_perm in perm._to_weaviate()
                 ]
             },
             error_msg="Could not add permissions",

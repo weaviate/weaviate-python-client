@@ -522,7 +522,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 replicate_permissions=[],
                 groups_permissions=[],
             ),
-            39,  # Minimum version for backup users/roles permissions
+            42,  # Minimum version for backup users/roles permissions
         ),
         (
             Permissions.backup(role="MyRole", manage=True),
@@ -546,7 +546,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 replicate_permissions=[],
                 groups_permissions=[],
             ),
-            39,  # Minimum version for backup permissions
+            42,  # Minimum version for backup permissions on roles and users
         ),
         (
             Permissions.backup(user="MyUser", manage=True),
@@ -570,7 +570,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 replicate_permissions=[],
                 groups_permissions=[],
             ),
-            39,  # Minimum version for backup permissions
+            42,  # Minimum version for backup permissions on roles and users
         ),
     ],
 )
