@@ -11,15 +11,12 @@ from weaviate.util import _ServerVersion
 
 
 def _query(version: str) -> _QueryGRPC:
-    weaviate_version = _ServerVersion.from_string(version)
     return _QueryGRPC(
-        weaviate_version=weaviate_version,
+        weaviate_version=_ServerVersion.from_string(version),
         name="Documents",
         tenant=None,
         consistency_level=None,
         validate_arguments=True,
-        uses_125_api=weaviate_version.is_at_least(1, 25, 0),
-        uses_127_api=weaviate_version.is_at_least(1, 27, 0),
     )
 
 
