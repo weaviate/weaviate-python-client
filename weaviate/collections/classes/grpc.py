@@ -148,6 +148,12 @@ class _MetadataQuery:
     def from_public(
         cls, public: Optional[MetadataQuery], include_vector: INCLUDE_VECTOR
     ) -> "_MetadataQuery":
+        # The branches below test only for `bool` and `list`, so a bare `str` or a tuple of names
+        # would otherwise request no vector at all and the caller would get none back, with no error.
+        if isinstance(include_vector, str):
+            include_vector = [include_vector]
+        elif isinstance(include_vector, tuple):
+            include_vector = list(include_vector)
         return (
             cls(
                 vector=include_vector if isinstance(include_vector, bool) else False,
