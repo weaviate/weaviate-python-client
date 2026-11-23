@@ -17,15 +17,23 @@ from weaviate.exceptions import WeaviateQueryError
 _MIN_VERSION = (1, 41, 0)
 
 
+def _skip_if_unsupported(collection_factory: CollectionFactory) -> None:
+    # Gate on a throwaway collection before creating the real one: older servers reject some of
+    # the index configs used here (hfresh is unknown before 1.35 and experimental-only in 1.35),
+    # so checking the version after creation would turn a skip into a failure.
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
+        pytest.skip("vector_search_params requires Weaviate >= 1.41.0")
+
+
 def _hnsw_collection(collection_factory: CollectionFactory, n: int = 50):
+    _skip_if_unsupported(collection_factory)
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vector_config=Configure.Vectors.self_provided(
             vector_index_config=Configure.VectorIndex.hnsw()
         ),
     )
-    if collection._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
-        pytest.skip("vector_search_params requires Weaviate >= 1.41.0")
     collection.data.insert_many(
         [
             DataObject(properties={"text": f"obj-{i}"}, vector=[1.0, float(i) / n, float(i % 7)])
@@ -84,12 +92,11 @@ def test_hybrid_accepts_vector_search_params(collection_factory: CollectionFacto
 
 
 def test_near_text_accepts_vector_search_params(collection_factory: CollectionFactory) -> None:
+    _skip_if_unsupported(collection_factory)
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
     )
-    if collection._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
-        pytest.skip("vector_search_params requires Weaviate >= 1.41.0")
     for name in ["banana", "apple", "orange", "car", "truck", "bike"]:
         collection.data.insert({"name": name})
 
@@ -111,14 +118,13 @@ def test_ef_above_server_cap_is_rejected(collection_factory: CollectionFactory) 
 
 
 def test_flat_index_ignores_vector_search_params(collection_factory: CollectionFactory) -> None:
+    _skip_if_unsupported(collection_factory)
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vector_config=Configure.Vectors.self_provided(
             vector_index_config=Configure.VectorIndex.flat()
         ),
     )
-    if collection._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
-        pytest.skip("vector_search_params requires Weaviate >= 1.41.0")
     collection.data.insert_many(
         [DataObject(properties={"text": str(i)}, vector=[1.0, float(i)]) for i in range(5)]
     )
@@ -161,14 +167,13 @@ def test_hnsw_ignores_search_probe(collection_factory: CollectionFactory) -> Non
 
 
 def _hfresh_collection(collection_factory: CollectionFactory, n: int = 50):
+    _skip_if_unsupported(collection_factory)
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vector_config=Configure.Vectors.self_provided(
             vector_index_config=Configure.VectorIndex.hfresh()
         ),
     )
-    if collection._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
-        pytest.skip("vector_search_params requires Weaviate >= 1.41.0")
     collection.data.insert_many(
         [
             DataObject(properties={"text": f"obj-{i}"}, vector=[1.0, float(i) / n, float(i % 7)])
@@ -219,6 +224,7 @@ def test_hfresh_ignores_hnsw_knobs(collection_factory: CollectionFactory) -> Non
 
 
 def _multi_vector_collection(collection_factory: CollectionFactory, n: int = 50):
+    _skip_if_unsupported(collection_factory)
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vector_config=[
@@ -230,8 +236,6 @@ def _multi_vector_collection(collection_factory: CollectionFactory, n: int = 50)
             ),
         ],
     )
-    if collection._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
-        pytest.skip("vector_search_params requires Weaviate >= 1.41.0")
     collection.data.insert_many(
         [
             DataObject(
@@ -336,12 +340,11 @@ def test_per_target_params_rejected_on_legacy_collection(
     collection_factory: CollectionFactory,
 ) -> None:
     # A legacy single-vector collection has no target names to address.
+    _skip_if_unsupported(collection_factory)
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    if collection._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
-        pytest.skip("vector_search_params requires Weaviate >= 1.41.0")
     collection.data.insert_many(
         [DataObject(properties={"text": str(i)}, vector=[1.0, float(i)]) for i in range(5)]
     )
