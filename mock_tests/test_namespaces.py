@@ -11,7 +11,7 @@ and are responsible for catching:
 - Regressions in response parsing, including the boundary case where the
   server returns ``null`` for an empty namespace list.
 - A future contributor accidentally lowering the version requirement guard
-  on namespace endpoints (currently 1.38.0+).
+  on namespace endpoints (currently 1.41.0+).
 """
 
 import json
@@ -28,7 +28,7 @@ from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.namespaces.models import Namespace
 from weaviate.users.users import UserDB
 
-NAMESPACES_MIN_VERSION = "1.38.0"
+NAMESPACES_MIN_VERSION = "1.41.0"
 
 
 def _setup_meta(server: HTTPServer, version: str) -> None:
@@ -52,7 +52,7 @@ def _setup_meta(server: HTTPServer, version: str) -> None:
 def ns_client(
     ready_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> Generator[Tuple[weaviate.WeaviateClient, HTTPServer], None, None]:
-    """Client connected against a mock server reporting Weaviate ``1.38.0``."""
+    """Client connected against a mock server reporting Weaviate ``1.41.0``."""
     _setup_meta(ready_mock, NAMESPACES_MIN_VERSION)
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
@@ -65,8 +65,8 @@ def ns_client(
 def ns_client_old(
     ready_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> Generator[weaviate.WeaviateClient, None, None]:
-    """Client connected against a server reporting an older version (1.37.99)."""
-    _setup_meta(ready_mock, "1.37.99")
+    """Client connected against a server reporting an older version (1.40.0)."""
+    _setup_meta(ready_mock, "1.40.0")
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
@@ -100,18 +100,18 @@ def test_namespaces_create_sends_post_and_parses_response(
 
     assert isinstance(ns, Namespace)
     assert ns.name == "myns"
-    assert ns.home_node is None
+    assert ns.home_nodes == []
     assert ns.state is None
     assert captured["body"] == {}
     server.check_assertions()
 
 
-def test_namespaces_create_sends_home_node_when_provided(
+def test_namespaces_create_sends_home_nodes_when_provided(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:
-    """When ``home_node`` is provided, ``create`` must carry it in the request body.
+    """When ``home_nodes`` is provided, ``create`` must carry it in the request body.
 
-    Dropping ``body['home_node'] = home_node`` would silently ignore the caller's
+    Dropping ``body['home_nodes'] = home_nodes`` would silently ignore the caller's
     placement choice and let the server auto-select instead.
     """
     client, server = ns_client
@@ -120,18 +120,25 @@ def test_namespaces_create_sends_home_node_when_provided(
     def handler(request: Request) -> Response:
         captured["body"] = json.loads(request.get_data(as_text=True) or "{}")
         return Response(
-            json.dumps({"name": "myns", "home_node": "node1", "state": "active"}),
+            json.dumps(
+                {
+                    "name": "myns",
+                    "home_node": "node1",
+                    "home_nodes": ["node1", "node2"],
+                    "state": "active",
+                }
+            ),
             status=201,
         )
 
     server.expect_request("/v1/namespaces/myns", method="POST").respond_with_handler(handler)
 
-    ns = client.namespaces.create(name="myns", home_node="node1")
+    ns = client.namespaces.create(name="myns", home_nodes=["node1", "node2"])
 
     assert ns.name == "myns"
-    assert ns.home_node == "node1"
+    assert ns.home_nodes == ["node1", "node2"]
     assert ns.state == "active"
-    assert captured["body"] == {"home_node": "node1"}
+    assert captured["body"] == {"home_nodes": ["node1", "node2"]}
     server.check_assertions()
 
 
@@ -143,9 +150,9 @@ def test_namespaces_create_sends_home_node_when_provided(
 def test_namespaces_update_sends_put_and_parses_response(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:
-    """``update`` must PUT ``{"home_node": ...}`` and return the updated namespace.
+    """``update`` must PUT ``{"home_nodes": [...]}`` and return the updated namespace.
 
-    The server requires ``home_node`` in the body; sending anything else (or the
+    The server requires ``home_nodes`` in the body; sending anything else (or the
     wrong HTTP verb) would break the modify-placement contract.
     """
     client, server = ns_client
@@ -154,19 +161,19 @@ def test_namespaces_update_sends_put_and_parses_response(
     def handler(request: Request) -> Response:
         captured["body"] = json.loads(request.get_data(as_text=True) or "{}")
         return Response(
-            json.dumps({"name": "myns", "home_node": "node2", "state": "active"}),
+            json.dumps({"name": "myns", "home_nodes": ["node2"], "state": "active"}),
             status=200,
         )
 
     server.expect_request("/v1/namespaces/myns", method="PUT").respond_with_handler(handler)
 
-    ns = client.namespaces.update(name="myns", home_node="node2")
+    ns = client.namespaces.update(name="myns", home_nodes=["node2"])
 
     assert isinstance(ns, Namespace)
     assert ns.name == "myns"
-    assert ns.home_node == "node2"
+    assert ns.home_nodes == ["node2"]
     assert ns.state == "active"
-    assert captured["body"] == {"home_node": "node2"}
+    assert captured["body"] == {"home_nodes": ["node2"]}
     server.check_assertions()
 
 
@@ -187,30 +194,50 @@ def test_namespaces_get_returns_namespace_when_found(
 
     assert ns is not None
     assert ns.name == "customer1"
-    assert ns.home_node is None
+    assert ns.home_nodes == []
     assert ns.state is None
     server.check_assertions()
 
 
-def test_namespaces_get_parses_home_node_and_state(
+def test_namespaces_get_parses_home_nodes_and_state(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:
-    """``get`` must surface the ``home_node`` and ``state`` fields from the response.
+    """``get`` must surface the ``home_nodes`` and ``state`` fields from the response.
 
     These fields were added to the server's namespace object after the client's
     initial implementation; this guards against the parser silently ignoring them.
     """
     client, server = ns_client
     server.expect_request("/v1/namespaces/customer1", method="GET").respond_with_json(
-        {"name": "customer1", "home_node": "node1", "state": "deleting"}, status=200
+        {"name": "customer1", "home_nodes": ["node1"], "state": "deleting"}, status=200
     )
 
     ns = client.namespaces.get(name="customer1")
 
     assert ns is not None
     assert ns.name == "customer1"
-    assert ns.home_node == "node1"
+    assert ns.home_nodes == ["node1"]
     assert ns.state == "deleting"
+    server.check_assertions()
+
+
+def test_namespaces_get_parses_suspended_state(
+    ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
+) -> None:
+    client, server = ns_client
+    server.expect_request("/v1/namespaces/customer1", method="GET").respond_with_json(
+        {
+            "name": "customer1",
+            "home_node": "node1",
+            "home_nodes": ["node1", "node2"],
+            "state": "suspended",
+        },
+        status=200,
+    )
+
+    ns = client.namespaces.get(name="customer1")
+
+    assert ns == Namespace(name="customer1", home_nodes=["node1", "node2"], state="suspended")
     server.check_assertions()
 
 
@@ -251,14 +278,14 @@ def test_namespaces_list_all_parses_array(
     server.check_assertions()
 
 
-def test_namespaces_list_all_parses_home_node_and_state(
+def test_namespaces_list_all_parses_home_nodes_and_state(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:
-    """``list_all`` must surface ``home_node`` and ``state`` for each namespace."""
+    """``list_all`` must surface ``home_nodes`` and ``state`` for each namespace."""
     client, server = ns_client
     server.expect_request("/v1/namespaces", method="GET").respond_with_json(
         [
-            {"name": "ns1", "home_node": "node1", "state": "active"},
+            {"name": "ns1", "home_nodes": ["node1"], "state": "active"},
             {"name": "ns2"},
         ],
         status=200,
@@ -266,9 +293,9 @@ def test_namespaces_list_all_parses_home_node_and_state(
 
     namespaces = client.namespaces.list_all()
 
-    assert namespaces[0].home_node == "node1"
+    assert namespaces[0].home_nodes == ["node1"]
     assert namespaces[0].state == "active"
-    assert namespaces[1].home_node is None
+    assert namespaces[1].home_nodes == []
     assert namespaces[1].state is None
     server.check_assertions()
 
@@ -320,7 +347,25 @@ def test_namespaces_delete_accepts_202(
 
 
 # ---------------------------------------------------------------------------
-# Version guard — 1.38.0 minimum
+# suspend / resume
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("action", ["suspend", "resume"])
+def test_namespaces_suspend_resume_post_and_accept_202(
+    ns_client: Tuple[weaviate.WeaviateClient, HTTPServer], action: str
+) -> None:
+    client, server = ns_client
+    server.expect_request(f"/v1/namespaces/myns/{action}", method="POST").respond_with_response(
+        Response(status=202)
+    )
+
+    assert getattr(client.namespaces, action)(name="myns") is None
+    server.check_assertions()
+
+
+# ---------------------------------------------------------------------------
+# Version guard — 1.41.0 minimum
 # ---------------------------------------------------------------------------
 
 
@@ -328,18 +373,20 @@ def test_namespaces_delete_accepts_202(
     "method_call",
     [
         lambda c: c.namespaces.create(name="x"),
-        lambda c: c.namespaces.update(name="x", home_node="n"),
+        lambda c: c.namespaces.update(name="x", home_nodes=["n"]),
         lambda c: c.namespaces.get(name="x"),
         lambda c: c.namespaces.list_all(),
         lambda c: c.namespaces.delete(name="x"),
+        lambda c: c.namespaces.suspend(name="x"),
+        lambda c: c.namespaces.resume(name="x"),
     ],
-    ids=["create", "update", "get", "list_all", "delete"],
+    ids=["create", "update", "get", "list_all", "delete", "suspend", "resume"],
 )
-def test_namespaces_methods_require_1_38(
+def test_namespaces_methods_require_1_41(
     ns_client_old: weaviate.WeaviateClient,
     method_call: Callable[[weaviate.WeaviateClient], object],
 ) -> None:
-    """Every public namespace method must guard with ``check_is_at_least_1_38_0``.
+    """Every public namespace method must guard with ``check_is_at_least_1_41_0``.
 
     A new public method that forgets the guard would fail this test, alerting
     the contributor before the request hits an older server and surfaces an

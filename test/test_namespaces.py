@@ -113,14 +113,14 @@ def test_actions_namespaces_enum_accessible() -> None:
 def test_namespace_optional_fields_default_to_none() -> None:
     ns = Namespace(name="customer1")
     assert ns.name == "customer1"
-    assert ns.home_node is None
+    assert ns.home_nodes == []
     assert ns.state is None
 
 
 def test_namespace_all_fields_set() -> None:
-    ns = Namespace(name="customer1", home_node="node1", state="active")
+    ns = Namespace(name="customer1", home_nodes=["node1", "node2"], state="active")
     assert ns.name == "customer1"
-    assert ns.home_node == "node1"
+    assert ns.home_nodes == ["node1", "node2"]
     assert ns.state == "active"
 
 
