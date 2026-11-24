@@ -443,7 +443,7 @@ class _HybridQueryExecutor(
             rerank: How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             boost: A `Boost` that re-scores the search candidates to promote or demote objects without removing them.
             diversity_selection: An `MMR` selection applied to the fused results to diversify the returned objects. Requires Weaviate >= 1.38.6.
-            vector_search_params: Per-request vector index tuning. A single ``VectorSearchParams`` (e.g. ``VectorSearchParams.hnsw(ef=...)``) applies to every target vector; a mapping ``{target_vector_name: VectorSearchParams}`` tunes each target of a multi-target search separately. Each index honours only the knobs it knows (HNSW: ``ef``, ``filter_strategy``; HFresh: ``search_probe``; flat: none). Requires Weaviate >= 1.41.0.
+            vector_search_params: Per-request vector index tuning. A single ``VectorSearchParams`` (e.g. ``VectorSearchParams.hnsw(ef=...)``) applies to every target vector; a mapping ``{target_vector_name: VectorSearchParams}`` tunes each target of a multi-target search separately. Each index honours only the knobs it knows (HNSW: ``ef``, ``filter_strategy``; HFresh: ``search_probe``; flat: none). Requires Weaviate >= 1.42.0.
             target_vector: The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
             include_vector: Whether to include the vector in the results. If not specified, this is set to False.
             return_metadata: The metadata to return for each object, defaults to `None`.

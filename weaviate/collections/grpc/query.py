@@ -72,7 +72,7 @@ _PyValue: TypeAlias = Union[
 
 # Servers below this version drop the unknown proto field and search with the collection ef,
 # so the option would be a silent no-op there.
-_VECTOR_SEARCH_PARAMS_MIN_VERSION = (1, 41, 0)
+_VECTOR_SEARCH_PARAMS_MIN_VERSION = (1, 42, 0)
 
 
 @dataclass

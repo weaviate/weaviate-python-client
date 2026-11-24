@@ -20,7 +20,7 @@ from weaviate.proto.v1 import search_get_pb2
 from weaviate.util import _ServerVersion
 
 _UUID = "00000000-0000-0000-0000-000000000001"
-_DEFAULT_VERSION = _ServerVersion(1, 41, 0)
+_DEFAULT_VERSION = _ServerVersion(1, 42, 0)
 
 
 def _builder(version: _ServerVersion = _DEFAULT_VERSION) -> _QueryGRPC:
@@ -164,28 +164,28 @@ def test_not_offered_on_keyword_only_searches() -> None:
 def test_rejected_on_servers_without_the_feature(
     build: Callable[[_QueryGRPC, dict], search_get_pb2.SearchRequest],
 ) -> None:
-    # A pre-1.41 server would drop the unknown field and silently search with the collection ef.
-    with pytest.raises(WeaviateUnsupportedFeatureError, match="1.41.0"):
+    # A pre-1.42 server would drop the unknown field and silently search with the collection ef.
+    with pytest.raises(WeaviateUnsupportedFeatureError, match="1.42.0"):
         build(
-            _builder(_ServerVersion(1, 40, 2)), {"vector_search_params": VectorSearchParams(ef=64)}
+            _builder(_ServerVersion(1, 41, 0)), {"vector_search_params": VectorSearchParams(ef=64)}
         )
 
 
 def test_mapping_rejected_on_servers_without_the_feature() -> None:
-    with pytest.raises(WeaviateUnsupportedFeatureError, match="1.41.0"):
-        _builder(_ServerVersion(1, 40, 2)).near_vector(
+    with pytest.raises(WeaviateUnsupportedFeatureError, match="1.42.0"):
+        _builder(_ServerVersion(1, 41, 0)).near_vector(
             near_vector=[1.0, 0.0, 0.0],
             vector_search_params={"title": VectorSearchParams(ef=64)},
         )
 
 
 def test_old_server_fine_without_the_option() -> None:
-    req = _builder(_ServerVersion(1, 40, 2)).near_vector(near_vector=[1.0, 0.0, 0.0])
+    req = _builder(_ServerVersion(1, 41, 0)).near_vector(near_vector=[1.0, 0.0, 0.0])
     assert not req.HasField("vector_search_params")
 
 
 def test_release_candidate_of_minimum_version_accepted() -> None:
-    req = _builder(_ServerVersion.from_string("1.41.0-rc.0")).near_vector(
+    req = _builder(_ServerVersion.from_string("1.42.0-rc.0")).near_vector(
         near_vector=[1.0, 0.0, 0.0], vector_search_params=VectorSearchParams(ef=64)
     )
     assert req.vector_search_params.ef == 64

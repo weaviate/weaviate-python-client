@@ -1,4 +1,4 @@
-"""Per-request vector search params via ``vector_search_params`` (Weaviate 1.41+).
+"""Per-request vector search params via ``vector_search_params`` (Weaviate 1.42+).
 
 The client's job is to deliver the option to the server unchanged, request-wide or per target
 vector; the index semantics (flooring at ``k``, the ``HNSW_MAX_SEARCH_EF`` / ``HFRESH_MAX_SEARCH_PROBE``
@@ -14,7 +14,7 @@ from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 from weaviate.exceptions import WeaviateQueryError
 
-_MIN_VERSION = (1, 41, 0)
+_MIN_VERSION = (1, 42, 0)
 
 
 def _skip_if_unsupported(collection_factory: CollectionFactory) -> None:
@@ -23,7 +23,7 @@ def _skip_if_unsupported(collection_factory: CollectionFactory) -> None:
     # so checking the version after creation would turn a skip into a failure.
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
-        pytest.skip("vector_search_params requires Weaviate >= 1.41.0")
+        pytest.skip("vector_search_params requires Weaviate >= 1.42.0")
 
 
 def _hnsw_collection(collection_factory: CollectionFactory, n: int = 50):

@@ -30,11 +30,11 @@ class _SearchRequestCapture(weaviate_pb2_grpc.WeaviateServicer):
 
 
 @pytest.fixture(scope="function")
-def weaviate_client_1_41(
+def weaviate_client_1_42(
     ready_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> Generator[weaviate.WeaviateClient, None, None]:
-    # Same as conftest's weaviate_client, but the shared mock reports 1.36 and the option is gated on 1.41.
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.41.0"})
+    # Same as conftest's weaviate_client, but the shared mock reports 1.36 and the option is gated on 1.42.
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.42.0"})
     ready_mock.expect_request("/v1/nodes").respond_with_json(
         {"nodes": [{"gitHash": "ABC", "status": "HEALTHY"}]}
     )
@@ -45,11 +45,11 @@ def weaviate_client_1_41(
 
 @pytest.fixture(scope="function")
 def capture_collection(
-    weaviate_client_1_41: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+    weaviate_client_1_42: weaviate.WeaviateClient, start_grpc_server: grpc.Server
 ) -> Tuple[weaviate.collections.Collection, _SearchRequestCapture]:
     service = _SearchRequestCapture()
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
-    return weaviate_client_1_41.collections.use("VectorSearchParamsCollection"), service
+    return weaviate_client_1_42.collections.use("VectorSearchParamsCollection"), service
 
 
 def test_query_near_vector_sends_ef(

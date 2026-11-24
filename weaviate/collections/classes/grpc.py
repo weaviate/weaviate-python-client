@@ -288,7 +288,7 @@ class VectorSearchParams(_WeaviateInput):
     request, or a mapping ``{target_vector_name: VectorSearchParams}`` to tune each target of a
     multi-target search separately. Per-target entries override only the fields they set.
 
-    Requires Weaviate >= 1.41.0; on older servers the client raises
+    Requires Weaviate >= 1.42.0; on older servers the client raises
     ``WeaviateUnsupportedFeatureError`` before sending the request, whatever the values.
 
     Args:
