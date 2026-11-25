@@ -23,6 +23,8 @@ services:
       NAMESPACE_CLEANUP_INTERVAL: "2s"
       REPLICATION_MAXIMUM_FACTOR: "1"
       DISABLE_GRAPHQL: "true"
+      # Namespace requests are refused without a valid license key (empty on forks).
+      LICENSE_KEY: ${WEAVIATE_LICENSE_KEY:-}
       # Static API key auth (operator-level access)
       AUTHENTICATION_APIKEY_ENABLED: "true"
       AUTHENTICATION_APIKEY_ALLOWED_KEYS: "admin-key,custom-key"

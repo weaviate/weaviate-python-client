@@ -14,24 +14,30 @@ class _NamespacesExecutor(Generic[ConnectionType]):
 
     @staticmethod
     def _ns_from_dict(data: Dict[str, Any]) -> Namespace:
+        home_nodes = data.get("home_nodes") or []
+        # Older servers return only the single "home_node" field.
+        if not home_nodes and data.get("home_node"):
+            home_nodes = [data["home_node"]]
         return Namespace(
             name=data["name"],
-            home_node=data.get("home_node"),
+            home_nodes=home_nodes,
             state=cast(Optional[NamespaceState], data.get("state")),
         )
 
-    def create(self, *, name: str, home_node: Optional[str] = None) -> executor.Result[Namespace]:
+    def create(
+        self, *, name: str, home_nodes: Optional[List[str]] = None
+    ) -> executor.Result[Namespace]:
         """Create a new namespace.
 
         Args:
             name: The namespace name. Must be 3-36 lowercase alphanumeric characters starting with a letter.
-            home_node: The cluster node to place this namespace's shards on. Must be a current storage
-                candidate. When omitted, the cluster picks one automatically.
+            home_nodes: The cluster nodes to place this namespace's shards on, in placement order. Each
+                must be a current storage candidate. When omitted, the cluster picks them automatically.
 
         Returns:
             The created Namespace.
         """
-        self._connection._weaviate_version.check_is_at_least_1_38_0("namespaces")
+        self._connection._weaviate_version.check_is_at_least_1_41_0("namespaces")
 
         def resp(res: Response) -> Namespace:
             parsed = _decode_json_response_dict(res, "Create namespace")
@@ -39,8 +45,8 @@ class _NamespacesExecutor(Generic[ConnectionType]):
             return self._ns_from_dict(parsed)
 
         body: Dict[str, Any] = {}
-        if home_node is not None:
-            body["home_node"] = home_node
+        if home_nodes is not None:
+            body["home_nodes"] = home_nodes
 
         return executor.execute(
             response_callback=resp,
@@ -51,20 +57,21 @@ class _NamespacesExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create namespace"),
         )
 
-    def update(self, *, name: str, home_node: str) -> executor.Result[Namespace]:
-        """Update the home node of an existing namespace.
+    def update(self, *, name: str, home_nodes: List[str]) -> executor.Result[Namespace]:
+        """Update the home nodes of an existing namespace.
 
-        Changing the home node only affects future placement decisions; existing live shards
+        Changing the home nodes only affects future placement decisions; existing live shards
         are not moved.
 
         Args:
             name: The name of the namespace to update.
-            home_node: The cluster node to use for future placements. Must be a current storage candidate.
+            home_nodes: The cluster nodes to use for future placements, in placement order. Must not be
+                empty, and each must be a current storage candidate.
 
         Returns:
             The updated Namespace.
         """
-        self._connection._weaviate_version.check_is_at_least_1_38_0("namespaces")
+        self._connection._weaviate_version.check_is_at_least_1_41_0("namespaces")
 
         def resp(res: Response) -> Namespace:
             parsed = _decode_json_response_dict(res, "Update namespace")
@@ -75,7 +82,7 @@ class _NamespacesExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.put,
             path=f"/namespaces/{name}",
-            weaviate_object={"home_node": home_node},
+            weaviate_object={"home_nodes": home_nodes},
             error_msg=f"Could not update namespace '{name}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Update namespace"),
         )
@@ -89,7 +96,7 @@ class _NamespacesExecutor(Generic[ConnectionType]):
         Returns:
             The Namespace, or None if it does not exist.
         """
-        self._connection._weaviate_version.check_is_at_least_1_38_0("namespaces")
+        self._connection._weaviate_version.check_is_at_least_1_41_0("namespaces")
 
         def resp(res: Response) -> Optional[Namespace]:
             if res.status_code == 404:
@@ -112,7 +119,7 @@ class _NamespacesExecutor(Generic[ConnectionType]):
         Returns:
             A list of Namespace objects.
         """
-        self._connection._weaviate_version.check_is_at_least_1_38_0("namespaces")
+        self._connection._weaviate_version.check_is_at_least_1_41_0("namespaces")
 
         def resp(res: Response) -> List[Namespace]:
             parsed = _decode_json_response_list(res, "List namespaces")
@@ -136,7 +143,7 @@ class _NamespacesExecutor(Generic[ConnectionType]):
         Args:
             name: The name of the namespace to delete.
         """
-        self._connection._weaviate_version.check_is_at_least_1_38_0("namespaces")
+        self._connection._weaviate_version.check_is_at_least_1_41_0("namespaces")
 
         def resp(res: Response) -> None:
             pass
@@ -147,4 +154,49 @@ class _NamespacesExecutor(Generic[ConnectionType]):
             path=f"/namespaces/{name}",
             error_msg=f"Could not delete namespace '{name}'",
             status_codes=_ExpectedStatusCodes(ok_in=[202], error="Delete namespace"),
+        )
+
+    def suspend(self, *, name: str) -> executor.Result[None]:
+        """Suspend a namespace.
+
+        Its users can no longer authenticate and it accepts no new resources. Everything it
+        owns is kept. Suspending an already suspended namespace is a no-op.
+
+        Args:
+            name: The name of the namespace to suspend.
+        """
+        self._connection._weaviate_version.check_is_at_least_1_41_0("namespaces")
+
+        def resp(res: Response) -> None:
+            pass
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.post,
+            path=f"/namespaces/{name}/suspend",
+            weaviate_object={},
+            error_msg=f"Could not suspend namespace '{name}'",
+            status_codes=_ExpectedStatusCodes(ok_in=[202], error="Suspend namespace"),
+        )
+
+    def resume(self, *, name: str) -> executor.Result[None]:
+        """Return a suspended namespace to the active state.
+
+        Resuming an already active namespace is a no-op.
+
+        Args:
+            name: The name of the namespace to resume.
+        """
+        self._connection._weaviate_version.check_is_at_least_1_41_0("namespaces")
+
+        def resp(res: Response) -> None:
+            pass
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.post,
+            path=f"/namespaces/{name}/resume",
+            weaviate_object={},
+            error_msg=f"Could not resume namespace '{name}'",
+            status_codes=_ExpectedStatusCodes(ok_in=[202], error="Resume namespace"),
         )

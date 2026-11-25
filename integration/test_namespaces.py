@@ -1,3 +1,4 @@
+import os
 import time
 
 import pytest
@@ -11,17 +12,19 @@ from weaviate.rbac.models import Permissions
 NS_PORTS = (8094, 50064)
 ADMIN_KEY = Auth.api_key("admin-key")
 
-_MINIMUM_VERSION = (1, 38, 0)
+_MINIMUM_VERSION = (1, 41, 0)
 
 
 def _skip_if_unsupported(client: weaviate.WeaviateClient) -> None:
     major, minor, patch = _MINIMUM_VERSION
     if client._connection._weaviate_version.is_lower_than(major, minor, patch):
         pytest.skip(f"Namespaces require Weaviate {major}.{minor}.{patch}+")
+    if not os.environ.get("WEAVIATE_LICENSE_KEY"):
+        pytest.skip("This test requires WEAVIATE_LICENSE_KEY, the server's license key")
 
 
 def _a_storage_candidate(client: weaviate.WeaviateClient) -> str:
-    """Return a node name usable as a ``home_node`` (must be a real storage candidate)."""
+    """Return a node name usable in ``home_nodes`` (must be a real storage candidate)."""
     nodes = client.cluster.nodes()
     assert nodes, "expected at least one cluster node"
     return nodes[0].name
@@ -46,15 +49,15 @@ def test_create_namespace_with_home_node(client_factory: ClientFactory) -> None:
         _skip_if_unsupported(client)
 
         home_node = _a_storage_candidate(client)
-        ns = client.namespaces.create(name="homenodens", home_node=home_node)
+        ns = client.namespaces.create(name="homenodens", home_nodes=[home_node])
         try:
             assert ns.name == "homenodens"
-            assert ns.home_node == home_node
+            assert ns.home_nodes == [home_node]
             assert ns.state == "active"
 
             fetched = client.namespaces.get(name="homenodens")
             assert fetched is not None
-            assert fetched.home_node == home_node
+            assert fetched.home_nodes == [home_node]
         finally:
             client.namespaces.delete(name="homenodens")
 
@@ -64,16 +67,16 @@ def test_update_namespace_home_node(client_factory: ClientFactory) -> None:
         _skip_if_unsupported(client)
 
         home_node = _a_storage_candidate(client)
-        # Create without a home_node so the cluster auto-selects, then pin it explicitly.
+        # Create without home_nodes so the cluster auto-selects, then pin them explicitly.
         client.namespaces.create(name="updatens")
         try:
-            updated = client.namespaces.update(name="updatens", home_node=home_node)
+            updated = client.namespaces.update(name="updatens", home_nodes=[home_node])
             assert updated.name == "updatens"
-            assert updated.home_node == home_node
+            assert updated.home_nodes == [home_node]
 
             fetched = client.namespaces.get(name="updatens")
             assert fetched is not None
-            assert fetched.home_node == home_node
+            assert fetched.home_nodes == [home_node]
         finally:
             client.namespaces.delete(name="updatens")
 
@@ -119,6 +122,25 @@ def test_delete_namespace(client_factory: ClientFactory) -> None:
             time.sleep(0.5)
             fetched = client.namespaces.get(name="deletens")
         assert fetched is None
+
+
+def test_suspend_and_resume_namespace(client_factory: ClientFactory) -> None:
+    with client_factory(ports=NS_PORTS, auth_credentials=ADMIN_KEY) as client:
+        _skip_if_unsupported(client)
+
+        client.namespaces.create(name="suspendns")
+        try:
+            client.namespaces.suspend(name="suspendns")
+            suspended = client.namespaces.get(name="suspendns")
+            assert suspended is not None
+            assert suspended.state == "suspended"
+
+            client.namespaces.resume(name="suspendns")
+            resumed = client.namespaces.get(name="suspendns")
+            assert resumed is not None
+            assert resumed.state == "active"
+        finally:
+            client.namespaces.delete(name="suspendns")
 
 
 def test_create_namespaced_user(client_factory: ClientFactory) -> None:

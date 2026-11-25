@@ -1,11 +1,11 @@
-from dataclasses import dataclass
-from typing import Literal, Optional
+from dataclasses import dataclass, field
+from typing import List, Literal, Optional
 
-NamespaceState = Literal["active", "deleting"]
+NamespaceState = Literal["active", "suspended", "resuming", "deleting"]
 
 
 @dataclass
 class Namespace:
     name: str
-    home_node: Optional[str] = None
+    home_nodes: List[str] = field(default_factory=list)
     state: Optional[NamespaceState] = None

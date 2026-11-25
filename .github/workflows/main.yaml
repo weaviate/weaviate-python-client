@@ -344,8 +344,12 @@ jobs:
           pip install weaviate_client-*.whl
       - run: rm -r weaviate
       - name: start weaviate
+        env:
+          WEAVIATE_LICENSE_KEY: ${{ secrets.WEAVIATE_LICENSE_KEY }}
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.version }}
       - name: Run integration tests without auth secrets (auth tests ran in previous job)
+        env:
+          WEAVIATE_LICENSE_KEY: ${{ secrets.WEAVIATE_LICENSE_KEY }}
         run: pytest -v -n auto --dist loadgroup integration
 
   build-and-publish:
