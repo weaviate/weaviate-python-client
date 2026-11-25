@@ -241,6 +241,21 @@ def test_namespaces_get_parses_suspended_state(
     server.check_assertions()
 
 
+def test_namespaces_get_falls_back_to_home_node(
+    ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
+) -> None:
+    """An older node answers with only ``home_node``; it must surface as ``home_nodes``."""
+    client, server = ns_client
+    server.expect_request("/v1/namespaces/customer1", method="GET").respond_with_json(
+        {"name": "customer1", "home_node": "node1", "state": "active"}, status=200
+    )
+
+    ns = client.namespaces.get(name="customer1")
+
+    assert ns == Namespace(name="customer1", home_nodes=["node1"], state="active")
+    server.check_assertions()
+
+
 def test_namespaces_get_returns_none_on_404(
     ns_client: Tuple[weaviate.WeaviateClient, HTTPServer],
 ) -> None:

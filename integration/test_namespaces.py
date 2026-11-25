@@ -1,3 +1,4 @@
+import os
 import time
 
 import pytest
@@ -18,6 +19,8 @@ def _skip_if_unsupported(client: weaviate.WeaviateClient) -> None:
     major, minor, patch = _MINIMUM_VERSION
     if client._connection._weaviate_version.is_lower_than(major, minor, patch):
         pytest.skip(f"Namespaces require Weaviate {major}.{minor}.{patch}+")
+    if not os.environ.get("WEAVIATE_LICENSE_KEY"):
+        pytest.skip("This test requires WEAVIATE_LICENSE_KEY, the server's license key")
 
 
 def _a_storage_candidate(client: weaviate.WeaviateClient) -> str:
@@ -119,6 +122,25 @@ def test_delete_namespace(client_factory: ClientFactory) -> None:
             time.sleep(0.5)
             fetched = client.namespaces.get(name="deletens")
         assert fetched is None
+
+
+def test_suspend_and_resume_namespace(client_factory: ClientFactory) -> None:
+    with client_factory(ports=NS_PORTS, auth_credentials=ADMIN_KEY) as client:
+        _skip_if_unsupported(client)
+
+        client.namespaces.create(name="suspendns")
+        try:
+            client.namespaces.suspend(name="suspendns")
+            suspended = client.namespaces.get(name="suspendns")
+            assert suspended is not None
+            assert suspended.state == "suspended"
+
+            client.namespaces.resume(name="suspendns")
+            resumed = client.namespaces.get(name="suspendns")
+            assert resumed is not None
+            assert resumed.state == "active"
+        finally:
+            client.namespaces.delete(name="suspendns")
 
 
 def test_create_namespaced_user(client_factory: ClientFactory) -> None:

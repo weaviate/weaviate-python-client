@@ -14,9 +14,13 @@ class _NamespacesExecutor(Generic[ConnectionType]):
 
     @staticmethod
     def _ns_from_dict(data: Dict[str, Any]) -> Namespace:
+        home_nodes = data.get("home_nodes") or []
+        # Older servers return only the single "home_node" field.
+        if not home_nodes and data.get("home_node"):
+            home_nodes = [data["home_node"]]
         return Namespace(
             name=data["name"],
-            home_nodes=data.get("home_nodes") or [],
+            home_nodes=home_nodes,
             state=cast(Optional[NamespaceState], data.get("state")),
         )
 
