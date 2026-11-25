@@ -9,7 +9,8 @@ they prove the fields arrived.
 import pytest
 
 from integration.conftest import CollectionFactory
-from weaviate.classes.query import Filter, FilterStrategyName, HybridVector, VectorSearchParams
+from weaviate.classes.config import VectorFilterStrategy
+from weaviate.classes.query import Filter, HybridVector, VectorSearchParams
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 from weaviate.exceptions import WeaviateQueryError
@@ -137,9 +138,9 @@ def test_flat_index_ignores_vector_search_params(collection_factory: CollectionF
 # --- all knobs, per index type --------------------------------------------------------------
 
 
-@pytest.mark.parametrize("strategy", ["sweeping", "acorn", "pathseer"])
+@pytest.mark.parametrize("strategy", list(VectorFilterStrategy))
 def test_filter_strategy_with_filter_matches_default(
-    collection_factory: CollectionFactory, strategy: FilterStrategyName
+    collection_factory: CollectionFactory, strategy: VectorFilterStrategy
 ) -> None:
     collection = _hnsw_collection(collection_factory)
     filters = Filter.by_property("text").like("obj-1*")
@@ -215,7 +216,9 @@ def test_hfresh_ignores_hnsw_knobs(collection_factory: CollectionFactory) -> Non
     res = collection.query.near_vector(
         [1.0, 0.5, 3.0],
         limit=3,
-        vector_search_params=VectorSearchParams.hnsw(ef=1, filter_strategy="acorn"),
+        vector_search_params=VectorSearchParams.hnsw(
+            ef=1, filter_strategy=VectorFilterStrategy.ACORN
+        ),
     )
     assert len(res.objects) == 3
 
@@ -265,7 +268,9 @@ def test_per_target_params_on_multi_target_search(collection_factory: Collection
         limit=limit,
         vector_search_params={
             "first": VectorSearchParams.hnsw(ef=1),
-            "second": VectorSearchParams.hnsw(ef=512, filter_strategy="sweeping"),
+            "second": VectorSearchParams.hnsw(
+                ef=512, filter_strategy=VectorFilterStrategy.SWEEPING
+            ),
         },
     ).objects
 

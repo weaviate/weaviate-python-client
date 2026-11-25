@@ -8,12 +8,13 @@ only what the wire format cannot express (types, sign, unknown strategy names); 
 checks and the bm25 rule stay server-side so their error text comes from one place.
 """
 
-from typing import Callable
+from typing import Callable, Union
 
 import pytest
 from pydantic import ValidationError
 
-from weaviate.classes.query import FilterStrategyName, HybridVector, VectorSearchParams
+from weaviate.classes.config import VectorFilterStrategy
+from weaviate.classes.query import HybridVector, VectorSearchParams
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import search_get_pb2
@@ -162,7 +163,7 @@ def test_assignment_is_validated(field: str, bad: object) -> None:
 def test_valid_assignment_is_sent() -> None:
     params = VectorSearchParams(ef=1)
     params.ef = 64
-    params.filter_strategy = "acorn"
+    params.filter_strategy = VectorFilterStrategy.ACORN
     req = _builder().near_vector(near_vector=[1.0, 0.0, 0.0], vector_search_params=params)
     assert req.vector_search_params.ef == 64
     assert req.vector_search_params.filter_strategy == search_get_pb2.FILTER_STRATEGY_ACORN
@@ -234,7 +235,9 @@ def test_release_candidate_of_minimum_version_accepted() -> None:
 def test_all_fields_are_sent_together() -> None:
     req = _builder().near_vector(
         near_vector=[1.0, 0.0, 0.0],
-        vector_search_params=VectorSearchParams(ef=64, search_probe=8, filter_strategy="acorn"),
+        vector_search_params=VectorSearchParams(
+            ef=64, search_probe=8, filter_strategy=VectorFilterStrategy.ACORN
+        ),
     )
     params = req.vector_search_params
     assert params.ef == 64
@@ -258,12 +261,19 @@ def test_search_probe_alone_leaves_hnsw_fields_unset() -> None:
         ("sweeping", search_get_pb2.FILTER_STRATEGY_SWEEPING),
         ("acorn", search_get_pb2.FILTER_STRATEGY_ACORN),
         ("pathseer", search_get_pb2.FILTER_STRATEGY_PATHSEER),
+        (VectorFilterStrategy.SWEEPING, search_get_pb2.FILTER_STRATEGY_SWEEPING),
+        (VectorFilterStrategy.ACORN, search_get_pb2.FILTER_STRATEGY_ACORN),
+        (VectorFilterStrategy.PATHSEER, search_get_pb2.FILTER_STRATEGY_PATHSEER),
     ],
 )
-def test_filter_strategy_maps_to_enum(name: FilterStrategyName, expected: int) -> None:
+def test_filter_strategy_maps_to_enum(
+    name: Union[str, VectorFilterStrategy], expected: int
+) -> None:
+    # Plain strings are accepted at runtime (pydantic coerces them to the enum) even though the
+    # annotation names the enum; both spellings must reach the wire as the same value.
     req = _builder().near_vector(
         near_vector=[1.0, 0.0, 0.0],
-        vector_search_params=VectorSearchParams(filter_strategy=name),
+        vector_search_params=VectorSearchParams(filter_strategy=name),  # type: ignore[arg-type]
     )
     assert req.vector_search_params.HasField("filter_strategy")
     assert req.vector_search_params.filter_strategy == expected
@@ -292,8 +302,8 @@ def test_search_probe_must_be_a_uint32(bad: object) -> None:
 
 
 def test_hnsw_constructor_sets_only_hnsw_knobs() -> None:
-    params = VectorSearchParams.hnsw(ef=32, filter_strategy="pathseer")
-    assert params == VectorSearchParams(ef=32, filter_strategy="pathseer")
+    params = VectorSearchParams.hnsw(ef=32, filter_strategy=VectorFilterStrategy.PATHSEER)
+    assert params == VectorSearchParams(ef=32, filter_strategy=VectorFilterStrategy.PATHSEER)
     assert params.search_probe is None
     assert VectorSearchParams.hnsw() == VectorSearchParams()
 
@@ -359,7 +369,9 @@ def test_mapping_preserves_insertion_order() -> None:
 def test_mapping_entry_sets_only_its_fields() -> None:
     req = _builder().near_vector(
         near_vector=[1.0, 0.0, 0.0],
-        vector_search_params={"title": VectorSearchParams(filter_strategy="sweeping")},
+        vector_search_params={
+            "title": VectorSearchParams(filter_strategy=VectorFilterStrategy.SWEEPING)
+        },
     )
     (entry,) = req.vector_search_params_for_targets
     assert entry.target == "title"
@@ -466,6 +478,6 @@ def test_public_types_are_exported() -> None:
     import weaviate.classes.query as query
     from weaviate.collections.classes import grpc
 
-    for name in ("VectorSearchParams", "FilterStrategyName", "VectorSearchParamsType"):
+    for name in ("VectorSearchParams", "VectorSearchParamsType"):
         assert name in query.__all__
         assert getattr(query, name) is getattr(grpc, name)

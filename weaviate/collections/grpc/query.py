@@ -17,6 +17,7 @@ from typing import (
 from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.config_vector_index import VectorFilterStrategy
 from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.grpc import (
     MMR,
@@ -599,9 +600,9 @@ class _QueryGRPC(_BaseGRPC):
     }
 
     _FILTER_STRATEGY_TO_GRPC = {
-        "sweeping": search_get_pb2.FILTER_STRATEGY_SWEEPING,
-        "acorn": search_get_pb2.FILTER_STRATEGY_ACORN,
-        "pathseer": search_get_pb2.FILTER_STRATEGY_PATHSEER,
+        VectorFilterStrategy.SWEEPING: search_get_pb2.FILTER_STRATEGY_SWEEPING,
+        VectorFilterStrategy.ACORN: search_get_pb2.FILTER_STRATEGY_ACORN,
+        VectorFilterStrategy.PATHSEER: search_get_pb2.FILTER_STRATEGY_PATHSEER,
     }
 
     def __vector_search_params_to_grpc(

@@ -18,6 +18,7 @@ from typing import (
 from pydantic import ConfigDict, Field
 from typing_extensions import ClassVar, TypeAlias, TypeGuard, TypeVar
 
+from weaviate.collections.classes.config_vector_index import VectorFilterStrategy
 from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -270,50 +271,21 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
-FilterStrategyName = Literal["sweeping", "acorn", "pathseer"]
-"""HNSW strategy for a filtered search, as accepted by ``VectorSearchParams.filter_strategy``."""
-
-
 class VectorSearchParams(_WeaviateInput):
     """Per-request tuning of the vector index search.
 
-    Lets a single query trade recall for latency without changing the collection's vector index
-    configuration. One flat set of knobs covers every index type: each index reads the fields it
-    knows and ignores the rest. ``ef`` and ``filter_strategy`` apply to HNSW (and to the HNSW stage of
-    a dynamic index), ``search_probe`` to HFresh; a flat index ignores all of them. Any field left as
-    ``None`` keeps the collection's configured value. Use the ``hnsw()`` and ``hfresh()`` constructors
-    to build params for a given index type without remembering which knob belongs where.
+    Overrides the collection's vector index settings for one query only. One object covers every
+    index type and each index reads the fields it knows: ``ef`` and ``filter_strategy`` apply to
+    HNSW (and to the HNSW stage of a dynamic index), ``search_probe`` to HFresh; a flat index ignores
+    all of them. ``None`` keeps the collection's configured value. Build it with ``hnsw()`` or
+    ``hfresh()``.
 
-    Pass a single instance to ``vector_search_params`` to apply it to every target vector of the
-    request, or a mapping ``{target_vector_name: VectorSearchParams}`` to tune each target of a
-    multi-target search separately. Each entry overrides only the fields it sets and cannot unset a
-    value: unset fields, and targets missing from the mapping, keep the collection's configuration
-    (the client never sends a request-wide value together with a mapping). An empty mapping is the
-    same as ``None``.
+    Pass one instance to ``vector_search_params`` to apply it to every target vector, or a mapping
+    ``{target_vector_name: VectorSearchParams}`` to tune the targets of a multi-target search
+    separately; targets missing from the mapping keep the collection's configuration.
 
     Requires Weaviate >= 1.42.0; on older servers the client raises
-    ``WeaviateUnsupportedFeatureError`` before sending the request, whatever the values. Any 1.42.0
-    pre-release (for example ``1.42.0-dev-<sha>``) passes this check, so a dev build from before the
-    feature landed silently ignores the params.
-
-    Args:
-        ef: HNSW layer-0 beam width for this request only. ``None`` or ``0`` keeps the collection's
-            configured ``ef`` (or dynamic ef). The server floors the value at the request's
-            ``limit`` (``max(ef, limit)``), so a small ``ef`` never truncates the results, and
-            rejects values above its ``HNSW_MAX_SEARCH_EF`` cap (``QUERY_MAXIMUM_RESULTS``, 10000 by
-            default) with ``WeaviateQueryError``. Must fit the ``uint32`` wire type. Applies to
-            every vector search, including the vector leg of a hybrid search. On a compressed index
-            ``ef`` also caps how many candidates are rescored, including in the flat search used
-            when a filter matches fewer objects than ``flatSearchCutoff``, so a low ``ef`` can lower
-            recall there.
-        search_probe: Number of HFresh centroid postings visited for this request only. ``None`` or
-            ``0`` keeps the collection's configured ``searchProbe``. Floored at the request's
-            ``limit`` and rejected above the server's ``HFRESH_MAX_SEARCH_PROBE`` cap with
-            ``WeaviateQueryError``. Must fit the ``uint32`` wire type.
-        filter_strategy: HNSW strategy for the filtered layer-0 walk of this request:
-            ``"sweeping"``, ``"acorn"`` or ``"pathseer"``. ``None`` keeps the collection's
-            ``filterStrategy``. Has no effect without a filter, or when the filter matches fewer
-            objects than ``flatSearchCutoff`` (the search is then flat).
+    ``WeaviateUnsupportedFeatureError`` before sending the request.
     """
 
     # Validate on assignment too, so a bad value fails where it is set rather than at query time.
@@ -321,28 +293,36 @@ class VectorSearchParams(_WeaviateInput):
 
     ef: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
     search_probe: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
-    filter_strategy: Optional[FilterStrategyName] = Field(default=None)
+    filter_strategy: Optional[VectorFilterStrategy] = Field(default=None)
 
     @classmethod
     def hnsw(
         cls,
+        *,
         ef: Optional[int] = None,
-        filter_strategy: Optional[FilterStrategyName] = None,
+        filter_strategy: Optional[VectorFilterStrategy] = None,
     ) -> "VectorSearchParams":
-        """Params for an HNSW index: ``ef`` and ``filter_strategy``.
+        """Params for an HNSW index (or the HNSW stage of a dynamic index).
 
         Args:
-            ef: HNSW layer-0 beam width for this request only. See the class docstring.
-            filter_strategy: HNSW strategy for a filtered search. See the class docstring.
+            ef: Layer-0 beam width for this request. The server uses ``max(ef, limit)``, so a small
+                value never truncates the results, and rejects values above its
+                ``HNSW_MAX_SEARCH_EF`` cap (``QUERY_MAXIMUM_RESULTS``, 10000 by default) with
+                ``WeaviateQueryError``. ``None`` or ``0`` keeps the collection's ``ef``.
+            filter_strategy: ``VectorFilterStrategy`` for the filtered graph walk of this request.
+                ``None`` keeps the collection's ``filterStrategy``; it has no effect without a filter.
         """
         return cls(ef=ef, filter_strategy=filter_strategy)
 
     @classmethod
-    def hfresh(cls, search_probe: Optional[int] = None) -> "VectorSearchParams":
-        """Params for an HFresh index: ``search_probe``.
+    def hfresh(cls, *, search_probe: Optional[int] = None) -> "VectorSearchParams":
+        """Params for an HFresh index.
 
         Args:
-            search_probe: Number of centroid postings visited for this request only. See the class docstring.
+            search_probe: Number of centroid postings visited for this request. The server uses
+                ``max(search_probe, limit)`` and rejects values above its
+                ``HFRESH_MAX_SEARCH_PROBE`` cap with ``WeaviateQueryError``. ``None`` or ``0`` keeps
+                the collection's ``searchProbe``.
         """
         return cls(search_probe=search_probe)
 
