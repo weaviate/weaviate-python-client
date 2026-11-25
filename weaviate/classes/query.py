@@ -8,6 +8,7 @@ from weaviate.collections.classes.grpc import (
     Boost,
     BoostReturn,
     Diversity,
+    FilterStrategyName,
     GroupBy,
     HybridFusion,
     HybridVector,
@@ -21,6 +22,7 @@ from weaviate.collections.classes.grpc import (
     Sort,
     TargetVectors,
     VectorSearchParams,
+    VectorSearchParamsType,
 )
 from weaviate.collections.classes.types import GeoCoordinate
 
@@ -28,6 +30,7 @@ __all__ = [
     "Diversity",
     "Filter",
     "FilterReturn",
+    "FilterStrategyName",
     "GeoCoordinate",
     "GenerativeConfig",
     "GroupBy",
@@ -47,4 +50,5 @@ __all__ = [
     "Sort",
     "TargetVectors",
     "VectorSearchParams",
+    "VectorSearchParamsType",
 ]

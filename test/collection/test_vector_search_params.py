@@ -13,7 +13,7 @@ from typing import Callable
 import pytest
 from pydantic import ValidationError
 
-from weaviate.classes.query import HybridVector, VectorSearchParams
+from weaviate.classes.query import FilterStrategyName, HybridVector, VectorSearchParams
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import search_get_pb2
@@ -260,10 +260,10 @@ def test_search_probe_alone_leaves_hnsw_fields_unset() -> None:
         ("pathseer", search_get_pb2.FILTER_STRATEGY_PATHSEER),
     ],
 )
-def test_filter_strategy_maps_to_enum(name: str, expected: int) -> None:
+def test_filter_strategy_maps_to_enum(name: FilterStrategyName, expected: int) -> None:
     req = _builder().near_vector(
         near_vector=[1.0, 0.0, 0.0],
-        vector_search_params=VectorSearchParams(filter_strategy=name),  # type: ignore[arg-type]
+        vector_search_params=VectorSearchParams(filter_strategy=name),
     )
     assert req.vector_search_params.HasField("filter_strategy")
     assert req.vector_search_params.filter_strategy == expected
@@ -459,3 +459,13 @@ def test_mapping_other_fields_untouched() -> None:
     assert with_params.SerializeToString(deterministic=True) == without.SerializeToString(
         deterministic=True
     )
+
+
+def test_public_types_are_exported() -> None:
+    # Callers annotating a strategy or a params argument held in a variable need these names.
+    import weaviate.classes.query as query
+    from weaviate.collections.classes import grpc
+
+    for name in ("VectorSearchParams", "FilterStrategyName", "VectorSearchParamsType"):
+        assert name in query.__all__
+        assert getattr(query, name) is getattr(grpc, name)

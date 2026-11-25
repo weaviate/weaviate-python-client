@@ -9,7 +9,7 @@ they prove the fields arrived.
 import pytest
 
 from integration.conftest import CollectionFactory
-from weaviate.classes.query import Filter, HybridVector, VectorSearchParams
+from weaviate.classes.query import Filter, FilterStrategyName, HybridVector, VectorSearchParams
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 from weaviate.exceptions import WeaviateQueryError
@@ -139,7 +139,7 @@ def test_flat_index_ignores_vector_search_params(collection_factory: CollectionF
 
 @pytest.mark.parametrize("strategy", ["sweeping", "acorn", "pathseer"])
 def test_filter_strategy_with_filter_matches_default(
-    collection_factory: CollectionFactory, strategy: str
+    collection_factory: CollectionFactory, strategy: FilterStrategyName
 ) -> None:
     collection = _hnsw_collection(collection_factory)
     filters = Filter.by_property("text").like("obj-1*")
@@ -149,7 +149,7 @@ def test_filter_strategy_with_filter_matches_default(
         [1.0, 0.5, 3.0],
         limit=5,
         filters=filters,
-        vector_search_params=VectorSearchParams.hnsw(filter_strategy=strategy),  # type: ignore[arg-type]
+        vector_search_params=VectorSearchParams.hnsw(filter_strategy=strategy),
     ).objects
 
     # 11 of 50 objects match the filter; any strategy on a 50-node graph is exhaustive.
