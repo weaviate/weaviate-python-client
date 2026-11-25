@@ -204,12 +204,11 @@ def test_apply_scale_plan_rejects_duplicate_target_nodes(
     assert weaviate_mock.log == []
 
 
+# TODO - remove pairs as supported versions change; remove entirely once supported minor versions exceed 1.34
 @pytest.mark.parametrize("method", ["GET", "POST"])
 @pytest.mark.parametrize(
     ("server_version", "supported"),
     [
-        ("1.31.19", False),
-        ("1.31.20", True),
         ("1.32.16", False),
         ("1.32.17", True),
         ("1.33.4", False),
