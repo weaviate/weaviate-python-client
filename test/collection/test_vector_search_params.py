@@ -139,6 +139,41 @@ def test_ef_must_be_a_uint32(bad_ef: object) -> None:
         VectorSearchParams(ef=bad_ef)  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("ef", -5),
+        ("ef", 2**32),
+        ("ef", "64"),
+        ("search_probe", -1),
+        ("search_probe", 1.5),
+        ("filter_strategy", "ACORN"),
+    ],
+)
+def test_assignment_is_validated(field: str, bad: object) -> None:
+    # Without validate_assignment a bad value would only surface at query time as a bare protobuf
+    # ValueError (or be sent as-is).
+    params = VectorSearchParams(ef=1)
+    with pytest.raises(ValidationError):
+        setattr(params, field, bad)
+    assert params == VectorSearchParams(ef=1)
+
+
+def test_valid_assignment_is_sent() -> None:
+    params = VectorSearchParams(ef=1)
+    params.ef = 64
+    params.filter_strategy = "acorn"
+    req = _builder().near_vector(near_vector=[1.0, 0.0, 0.0], vector_search_params=params)
+    assert req.vector_search_params.ef == 64
+    assert req.vector_search_params.filter_strategy == search_get_pb2.FILTER_STRATEGY_ACORN
+
+
+def test_unknown_field_assignment_rejected() -> None:
+    params = VectorSearchParams()
+    with pytest.raises(ValueError):
+        params.efConstruction = 3  # type: ignore[attr-defined]
+
+
 def test_uint32_max_is_sent_for_the_server_to_reject() -> None:
     # The last representable value is legal on the wire; the HNSW_MAX_SEARCH_EF cap is the server's.
     req = _builder().near_vector(

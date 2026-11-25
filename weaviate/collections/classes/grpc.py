@@ -307,6 +307,9 @@ class VectorSearchParams(_WeaviateInput):
             ``filterStrategy``. Has no effect without a filter.
     """
 
+    # Validate on assignment too, so a bad value fails where it is set rather than at query time.
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
     ef: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
     search_probe: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
     filter_strategy: Optional[FilterStrategyName] = Field(default=None)
