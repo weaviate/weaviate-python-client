@@ -286,10 +286,15 @@ class VectorSearchParams(_WeaviateInput):
 
     Pass a single instance to ``vector_search_params`` to apply it to every target vector of the
     request, or a mapping ``{target_vector_name: VectorSearchParams}`` to tune each target of a
-    multi-target search separately. Per-target entries override only the fields they set.
+    multi-target search separately. Each entry overrides only the fields it sets and cannot unset a
+    value: unset fields, and targets missing from the mapping, keep the collection's configuration
+    (the client never sends a request-wide value together with a mapping). An empty mapping is the
+    same as ``None``.
 
     Requires Weaviate >= 1.42.0; on older servers the client raises
-    ``WeaviateUnsupportedFeatureError`` before sending the request, whatever the values.
+    ``WeaviateUnsupportedFeatureError`` before sending the request, whatever the values. Any 1.42.0
+    pre-release (for example ``1.42.0-dev-<sha>``) passes this check, so a dev build from before the
+    feature landed silently ignores the params.
 
     Args:
         ef: HNSW layer-0 beam width for this request only. ``None`` or ``0`` keeps the collection's
@@ -297,14 +302,18 @@ class VectorSearchParams(_WeaviateInput):
             ``limit`` (``max(ef, limit)``), so a small ``ef`` never truncates the results, and
             rejects values above its ``HNSW_MAX_SEARCH_EF`` cap (``QUERY_MAXIMUM_RESULTS``, 10000 by
             default) with ``WeaviateQueryError``. Must fit the ``uint32`` wire type. Applies to
-            every vector search, including the vector leg of a hybrid search.
+            every vector search, including the vector leg of a hybrid search. On a compressed index
+            ``ef`` also caps how many candidates are rescored, including in the flat search used
+            when a filter matches fewer objects than ``flatSearchCutoff``, so a low ``ef`` can lower
+            recall there.
         search_probe: Number of HFresh centroid postings visited for this request only. ``None`` or
             ``0`` keeps the collection's configured ``searchProbe``. Floored at the request's
             ``limit`` and rejected above the server's ``HFRESH_MAX_SEARCH_PROBE`` cap with
             ``WeaviateQueryError``. Must fit the ``uint32`` wire type.
         filter_strategy: HNSW strategy for the filtered layer-0 walk of this request:
             ``"sweeping"``, ``"acorn"`` or ``"pathseer"``. ``None`` keeps the collection's
-            ``filterStrategy``. Has no effect without a filter.
+            ``filterStrategy``. Has no effect without a filter, or when the filter matches fewer
+            objects than ``flatSearchCutoff`` (the search is then flat).
     """
 
     # Validate on assignment too, so a bad value fails where it is set rather than at query time.

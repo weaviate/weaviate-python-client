@@ -454,7 +454,7 @@ class _NearImageGenerateExecutor(
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
             diversity_selection: Apply diversity selection (e.g. MMR) to the results. Requires Weaviate >= 1.37.0.
-            vector_search_params: Per-request vector index tuning. A single ``VectorSearchParams`` (e.g. ``VectorSearchParams.hnsw(ef=...)``) applies to every target vector; a mapping ``{target_vector_name: VectorSearchParams}`` tunes each target of a multi-target search separately. Each index honours only the knobs it knows (HNSW: ``ef``, ``filter_strategy``; HFresh: ``search_probe``; flat: none). Requires Weaviate >= 1.42.0.
+            vector_search_params: Per-request vector index tuning. A single ``VectorSearchParams`` (e.g. ``VectorSearchParams.hnsw(ef=...)``) applies to every target vector; a mapping ``{target_vector_name: VectorSearchParams}`` tunes each target of a multi-target search separately; each entry overrides only the fields it sets and cannot unset a value. See ``VectorSearchParams`` for the field semantics. Each index honours only the knobs it knows (HNSW: ``ef``, ``filter_strategy``; HFresh: ``search_probe``; flat: none). Requires Weaviate >= 1.42.0.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
