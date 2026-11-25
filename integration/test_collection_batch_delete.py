@@ -677,7 +677,7 @@ def test_delete_many_limit(
     assert ret.matches == 1
     assert ret.successful == 1
     assert ret.failed == 0
-    if collection._connection._weaviate_version.is_lower_than(1, 39, 0):
+    if collection._connection._weaviate_version.is_lower_than(1, 39, 7):
         assert ret.limit is None
     else:
         assert ret.limit is not None
