@@ -613,10 +613,26 @@ class _QueryGRPC(_BaseGRPC):
         """Map the public option onto the two wire fields.
 
         A single ``VectorSearchParams`` goes into the request-wide field; a mapping keyed by target
-        vector name becomes one per-target entry each and leaves the request-wide field unset.
+        vector name becomes one per-target entry each and leaves the request-wide field unset. An
+        empty mapping tunes nothing and is treated exactly like ``None``. Types are checked here too
+        because ``validate_arguments=False`` skips the argument validation.
         """
         if params is None:
             return None, None
+        if not isinstance(params, (VectorSearchParams, Mapping)):
+            raise WeaviateInvalidInputError(
+                "Argument 'vector_search_params' must be a VectorSearchParams or a mapping of target "
+                f"vector names (str) to VectorSearchParams, but got {type(params)}"
+            )
+        if isinstance(params, Mapping):
+            for target, target_params in params.items():
+                if not isinstance(target, str) or not isinstance(target_params, VectorSearchParams):
+                    raise WeaviateInvalidInputError(
+                        "Argument 'vector_search_params' must map target vector names (str) to VectorSearchParams, "
+                        f"but got {type(target)} -> {type(target_params)}"
+                    )
+            if len(params) == 0:
+                return None, None
         if self._weaviate_version.is_lower_than(*_VECTOR_SEARCH_PARAMS_MIN_VERSION):
             raise WeaviateUnsupportedFeatureError(
                 "vector_search_params",
@@ -625,20 +641,13 @@ class _QueryGRPC(_BaseGRPC):
             )
         if isinstance(params, VectorSearchParams):
             return self.__single_vector_search_params_to_grpc(params), None
-        for_targets: List[search_get_pb2.VectorSearchParamsForTarget] = []
-        for target, target_params in params.items():
-            if not isinstance(target, str) or not isinstance(target_params, VectorSearchParams):
-                raise WeaviateInvalidInputError(
-                    "Argument 'vector_search_params' must map target vector names (str) to VectorSearchParams, "
-                    f"but got {type(target)} -> {type(target_params)}"
-                )
-            for_targets.append(
-                search_get_pb2.VectorSearchParamsForTarget(
-                    target=target,
-                    params=self.__single_vector_search_params_to_grpc(target_params),
-                )
+        return None, [
+            search_get_pb2.VectorSearchParamsForTarget(
+                target=target,
+                params=self.__single_vector_search_params_to_grpc(target_params),
             )
-        return None, for_targets
+            for target, target_params in params.items()
+        ]
 
     def __single_vector_search_params_to_grpc(
         self, params: VectorSearchParams

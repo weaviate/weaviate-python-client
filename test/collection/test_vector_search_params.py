@@ -23,13 +23,15 @@ _UUID = "00000000-0000-0000-0000-000000000001"
 _DEFAULT_VERSION = _ServerVersion(1, 42, 0)
 
 
-def _builder(version: _ServerVersion = _DEFAULT_VERSION) -> _QueryGRPC:
+def _builder(
+    version: _ServerVersion = _DEFAULT_VERSION, validate_arguments: bool = True
+) -> _QueryGRPC:
     return _QueryGRPC(
         weaviate_version=version,
         name="Dummy",
         tenant=None,
         consistency_level=None,
-        validate_arguments=True,
+        validate_arguments=validate_arguments,
         uses_125_api=True,
         uses_127_api=True,
     )
@@ -341,10 +343,23 @@ def test_mapping_entry_with_nothing_set_is_sent() -> None:
     assert entry.HasField("params")
 
 
-def test_empty_mapping_sends_neither_field() -> None:
-    req = _builder().near_vector(near_vector=[1.0, 0.0, 0.0], vector_search_params={})
-    assert not req.HasField("vector_search_params")
-    assert len(req.vector_search_params_for_targets) == 0
+@pytest.mark.parametrize(
+    "version",
+    [_ServerVersion(1, 41, 0), _ServerVersion(1, 42, 0)],
+    ids=["below-1.42", "1.42"],
+)
+@pytest.mark.parametrize("build", _VECTOR_SEARCHES.values(), ids=_VECTOR_SEARCHES.keys())
+def test_empty_mapping_behaves_like_none(
+    build: Callable[[_QueryGRPC, dict], search_get_pb2.SearchRequest], version: _ServerVersion
+) -> None:
+    # An empty mapping tunes nothing, so it must neither send a field nor trip the version gate.
+    omitted = build(_builder(version), {})
+    empty = build(_builder(version), {"vector_search_params": {}})
+    assert not empty.HasField("vector_search_params")
+    assert len(empty.vector_search_params_for_targets) == 0
+    assert empty.SerializeToString(deterministic=True) == omitted.SerializeToString(
+        deterministic=True
+    )
 
 
 def test_target_names_are_not_validated_client_side() -> None:
@@ -371,6 +386,28 @@ def test_target_names_are_not_validated_client_side() -> None:
 def test_mapping_with_wrong_types_rejected_client_side(bad: object) -> None:
     with pytest.raises(WeaviateInvalidInputError, match="vector_search_params"):
         _builder().near_vector(near_vector=[1.0, 0.0, 0.0], vector_search_params=bad)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [[VectorSearchParams(ef=64)], (VectorSearchParams(ef=64),), [], 64, "title", {"ef": 64}],
+    ids=["list", "tuple", "empty-list", "int", "str", "dict-of-fields"],
+)
+@pytest.mark.parametrize(
+    "version",
+    [_ServerVersion(1, 41, 0), _ServerVersion(1, 42, 0)],
+    ids=["below-1.42", "1.42"],
+)
+def test_wrong_type_rejected_without_argument_validation(
+    bad: object, version: _ServerVersion
+) -> None:
+    # validate_arguments=False skips _ValidateArgument; the mapping code must still not crash with
+    # an AttributeError on a non-Mapping.
+    with pytest.raises(WeaviateInvalidInputError, match="vector_search_params"):
+        _builder(version, validate_arguments=False).near_vector(
+            near_vector=[1.0, 0.0, 0.0],
+            vector_search_params=bad,  # type: ignore[arg-type]
+        )
 
 
 def test_mapping_other_fields_untouched() -> None:
