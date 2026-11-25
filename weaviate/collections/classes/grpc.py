@@ -281,8 +281,8 @@ class VectorSearchParams(_WeaviateInput):
     configuration. One flat set of knobs covers every index type: each index reads the fields it
     knows and ignores the rest. ``ef`` and ``filter_strategy`` apply to HNSW (and to the HNSW stage of
     a dynamic index), ``search_probe`` to HFresh; a flat index ignores all of them. Any field left as
-    ``None`` keeps the collection's configured value. Use the ``hnsw()``, ``hfresh()`` and ``dynamic()``
-    constructors to build params for a given index type without remembering which knob belongs where.
+    ``None`` keeps the collection's configured value. Use the ``hnsw()`` and ``hfresh()`` constructors
+    to build params for a given index type without remembering which knob belongs where.
 
     Pass a single instance to ``vector_search_params`` to apply it to every target vector of the
     request, or a mapping ``{target_vector_name: VectorSearchParams}`` to tune each target of a
@@ -333,20 +333,6 @@ class VectorSearchParams(_WeaviateInput):
             search_probe: Number of centroid postings visited for this request only. See the class docstring.
         """
         return cls(search_probe=search_probe)
-
-    @classmethod
-    def dynamic(cls, hnsw: Optional["VectorSearchParams"] = None) -> "VectorSearchParams":
-        """Params for a dynamic index, which forwards them to its HNSW stage once it has switched.
-
-        While the dynamic index is still in its flat stage the params are accepted and ignored.
-
-        Args:
-            hnsw: Params for the HNSW stage, typically built with ``VectorSearchParams.hnsw(...)``. Only
-                ``ef`` and ``filter_strategy`` are forwarded.
-        """
-        if hnsw is None:
-            return cls()
-        return cls(ef=hnsw.ef, filter_strategy=hnsw.filter_strategy)
 
 
 VectorSearchParamsType = Union[VectorSearchParams, Mapping[str, VectorSearchParams]]

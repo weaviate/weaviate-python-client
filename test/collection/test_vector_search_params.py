@@ -268,16 +268,10 @@ def test_hfresh_constructor_sets_only_search_probe() -> None:
     assert VectorSearchParams.hfresh() == VectorSearchParams()
 
 
-def test_dynamic_constructor_forwards_hnsw_knobs() -> None:
-    assert VectorSearchParams.dynamic() == VectorSearchParams()
-    assert VectorSearchParams.dynamic(hnsw=VectorSearchParams.hnsw(ef=48)) == VectorSearchParams(
-        ef=48
-    )
-    # A dynamic index has no HFresh stage: a stray search_probe is not forwarded.
-    forwarded = VectorSearchParams.dynamic(
-        hnsw=VectorSearchParams(ef=48, search_probe=5, filter_strategy="acorn")
-    )
-    assert forwarded == VectorSearchParams(ef=48, filter_strategy="acorn")
+def test_no_dynamic_constructor() -> None:
+    # A dynamic index forwards the params to its HNSW stage, so hnsw() already covers it; a
+    # separate dynamic() would only be a way to silently drop search_probe.
+    assert not hasattr(VectorSearchParams, "dynamic")
 
 
 @pytest.mark.parametrize("bad", [-1, "32", 1.5])
