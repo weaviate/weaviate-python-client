@@ -411,7 +411,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             number_of_objects=res.number_of_objects,
             min_distance=res.min_distance,
             max_distance=res.max_distance,
-            rerank_score=res.rerank.score if res.rerank is not None else None,
+            rerank_score=res.rerank.score if res.HasField("rerank") else None,
         )
 
     def __result_to_generative_group(
@@ -428,8 +428,8 @@ class _BaseExecutor(Generic[ConnectionType]):
             number_of_objects=res.number_of_objects,
             min_distance=res.min_distance,
             max_distance=res.max_distance,
-            rerank_score=res.rerank.score if res.rerank is not None else None,
-            generated=res.generative.result if res.generative is not None else None,
+            rerank_score=res.rerank.score if res.HasField("rerank") else None,
+            generated=res.generative.result if res.HasField("generative") else None,
         )
 
     def __result_to_group_by_object(
