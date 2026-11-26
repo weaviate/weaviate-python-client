@@ -656,3 +656,29 @@ def test_delete_many_with_consistency_level(
     collection.data.delete_many(where=Filter.by_id().equal(UUID1))
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
+
+
+@pytest.mark.parametrize("verbose", [False, True])
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_delete_many_limit(
+    collection_factory: CollectionFactory, verbose: bool, dry_run: bool
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+    )
+    collection.data.insert_many([{"name": "match"}, {"name": "keep"}])
+
+    ret = collection.data.delete_many(
+        where=Filter.by_property("name").equal("match"),
+        verbose=verbose,
+        dry_run=dry_run,
+    )
+
+    assert ret.matches == 1
+    assert ret.successful == 1
+    assert ret.failed == 0
+    if collection._connection._weaviate_version.is_lower_than(1, 39, 7):
+        assert ret.limit is None
+    else:
+        assert ret.limit is not None
+        assert ret.limit > 0

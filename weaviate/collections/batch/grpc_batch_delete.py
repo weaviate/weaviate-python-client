@@ -37,6 +37,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
         def resp(
             res: batch_delete_pb2.BatchDeleteReply,
         ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
+            limit = res.limit if res.HasField("limit") else None
             if verbose:
                 objects: List[DeleteManyObject] = [
                     DeleteManyObject(
@@ -51,6 +52,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     successful=res.successful,
                     matches=res.matches,
                     objects=objects,
+                    limit=limit,
                 )
             else:
                 return DeleteManyReturn(
@@ -58,6 +60,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     successful=res.successful,
                     matches=res.matches,
                     objects=None,
+                    limit=limit,
                 )
 
         request = batch_delete_pb2.BatchDeleteRequest(

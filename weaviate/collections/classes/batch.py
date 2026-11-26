@@ -335,9 +335,21 @@ T = TypeVar("T")
 
 @dataclass
 class DeleteManyReturn(Generic[T]):
-    """This class contains the results of a `delete_many` operation.."""
+    """This class contains the results of a `delete_many` operation.
+
+    Attributes:
+        failed: The number of objects that failed to be deleted.
+        matches: The number of matched objects reported by the server.
+        objects: The individual deletion results when `verbose=True`, otherwise `None`.
+        successful: The number of objects that were successfully deleted.
+        limit: The server's per-call deletion cap (`QUERY_MAXIMUM_RESULTS`), or `None` if the
+            connected server does not report it (Weaviate < 1.39.7). When `limit` is not `None`
+            and `matches > limit`, the call was capped and matching objects remain; when
+            `matches <= limit`, all matching objects were processed.
+    """
 
     failed: int
     matches: int
     objects: T
     successful: int
+    limit: Optional[int] = None
