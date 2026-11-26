@@ -33,8 +33,8 @@ from weaviate.collections.classes.grpc import (
     QueryNested,
     Rerank,
     TargetVectorJoinType,
-    VectorSearchParamsType,
-    _VectorSearchParams,
+    VectorIndexParamsType,
+    _VectorIndexParams,
     _Boost,
     _BoostCurve,
     _BoostModifier,
@@ -73,7 +73,7 @@ _PyValue: TypeAlias = Union[
 
 # Servers below this version drop the unknown proto field and search with the collection ef,
 # so the option would be a silent no-op there.
-_VECTOR_SEARCH_PARAMS_MIN_VERSION = (1, 42, 0)
+_VECTOR_INDEX_PARAMS_MIN_VERSION = (1, 42, 0)
 
 
 @dataclass
@@ -184,7 +184,7 @@ class _QueryGRPC(_BaseGRPC):
         boost: Optional[_Boost] = None,
         diversity_selection: Optional[MMR] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -280,7 +280,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -323,7 +323,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -368,7 +368,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -414,7 +414,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -453,7 +453,7 @@ class _QueryGRPC(_BaseGRPC):
         boost: Optional[_Boost] = None,
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
         near_vector: Optional[base_search_pb2.NearVector] = None,
         sort_by: Optional[Sequence[search_get_pb2.SortBy]] = None,
         hybrid_search: Optional[base_search_pb2.Hybrid] = None,
@@ -480,7 +480,7 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([int, None], "autocut", autocut),
                     _ValidateArgument([_GroupBy, None], "group_by", group_by),
                     _ValidateArgument(
-                        [_VectorSearchParams, Mapping, None],
+                        [_VectorIndexParams, Mapping, None],
                         "vector_index_params",
                         vector_index_params,
                     ),
@@ -525,8 +525,8 @@ class _QueryGRPC(_BaseGRPC):
 
         return_properties_parsed = self.__parse_return_properties(return_properties)
 
-        vector_search_params_grpc, vector_search_params_for_targets = (
-            self.__vector_search_params_to_grpc(vector_index_params)
+        vector_index_params_grpc, vector_index_params_for_targets = (
+            self.__vector_index_params_to_grpc(vector_index_params)
         )
 
         return search_get_pb2.SearchRequest(
@@ -555,8 +555,8 @@ class _QueryGRPC(_BaseGRPC):
                 else None
             ),
             boost=self.__boost_to_grpc(boost),
-            vector_search_params=vector_search_params_grpc,
-            vector_search_params_for_targets=vector_search_params_for_targets,
+            vector_index_params=vector_index_params_grpc,
+            vector_index_params_for_targets=vector_index_params_for_targets,
             near_vector=near_vector,
             sort_by=sort_by,
             hybrid_search=hybrid_search,
@@ -605,11 +605,11 @@ class _QueryGRPC(_BaseGRPC):
         VectorFilterStrategy.PATHSEER: search_get_pb2.FILTER_STRATEGY_PATHSEER,
     }
 
-    def __vector_search_params_to_grpc(
-        self, params: Optional[VectorSearchParamsType]
+    def __vector_index_params_to_grpc(
+        self, params: Optional[VectorIndexParamsType]
     ) -> Tuple[
-        Optional[search_get_pb2.VectorSearchParams],
-        Optional[List[search_get_pb2.VectorSearchParamsForTarget]],
+        Optional[search_get_pb2.VectorIndexParams],
+        Optional[List[search_get_pb2.VectorIndexParamsForTarget]],
     ]:
         """Map the public option onto the two wire fields.
 
@@ -620,45 +620,43 @@ class _QueryGRPC(_BaseGRPC):
         """
         if params is None:
             return None, None
-        if not isinstance(params, (_VectorSearchParams, Mapping)):
+        if not isinstance(params, (_VectorIndexParams, Mapping)):
             raise WeaviateInvalidInputError(
-                "Argument 'vector_index_params' must be built with VectorSearchParams.hnsw() or "
-                "VectorSearchParams.hfresh(), or be a mapping of target vector names (str) to such "
+                "Argument 'vector_index_params' must be built with VectorIndexParams.hnsw() or "
+                "VectorIndexParams.hfresh(), or be a mapping of target vector names (str) to such "
                 f"params, but got {type(params)}"
             )
         if isinstance(params, Mapping):
             for target, target_params in params.items():
-                if not isinstance(target, str) or not isinstance(
-                    target_params, _VectorSearchParams
-                ):
+                if not isinstance(target, str) or not isinstance(target_params, _VectorIndexParams):
                     raise WeaviateInvalidInputError(
                         "Argument 'vector_index_params' must map target vector names (str) to params "
-                        "built with VectorSearchParams.hnsw() or VectorSearchParams.hfresh(), "
+                        "built with VectorIndexParams.hnsw() or VectorIndexParams.hfresh(), "
                         f"but got {type(target)} -> {type(target_params)}"
                     )
             if len(params) == 0:
                 return None, None
-        if self._weaviate_version.is_lower_than(*_VECTOR_SEARCH_PARAMS_MIN_VERSION):
+        if self._weaviate_version.is_lower_than(*_VECTOR_INDEX_PARAMS_MIN_VERSION):
             raise WeaviateUnsupportedFeatureError(
                 "vector_index_params",
                 str(self._weaviate_version),
-                ".".join(str(v) for v in _VECTOR_SEARCH_PARAMS_MIN_VERSION),
+                ".".join(str(v) for v in _VECTOR_INDEX_PARAMS_MIN_VERSION),
             )
-        if isinstance(params, _VectorSearchParams):
-            return self.__single_vector_search_params_to_grpc(params), None
+        if isinstance(params, _VectorIndexParams):
+            return self.__single_vector_index_params_to_grpc(params), None
         return None, [
-            search_get_pb2.VectorSearchParamsForTarget(
+            search_get_pb2.VectorIndexParamsForTarget(
                 target=target,
-                params=self.__single_vector_search_params_to_grpc(target_params),
+                params=self.__single_vector_index_params_to_grpc(target_params),
             )
             for target, target_params in params.items()
         ]
 
-    def __single_vector_search_params_to_grpc(
-        self, params: _VectorSearchParams
-    ) -> search_get_pb2.VectorSearchParams:
+    def __single_vector_index_params_to_grpc(
+        self, params: _VectorIndexParams
+    ) -> search_get_pb2.VectorIndexParams:
         # None leaves the proto field unset, which the server reads as the collection default.
-        return search_get_pb2.VectorSearchParams(
+        return search_get_pb2.VectorIndexParams(
             ef=params.ef,
             search_probe=params.search_probe,
             filter_strategy=(

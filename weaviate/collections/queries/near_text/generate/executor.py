@@ -18,7 +18,7 @@ from weaviate.collections.classes.grpc import (
     Move,
     Rerank,
     TargetVectorJoinType,
-    VectorSearchParamsType,
+    VectorIndexParamsType,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -73,7 +73,7 @@ class _NearTextGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeReturn[Properties, References]]: ...
 
     @overload
@@ -102,7 +102,7 @@ class _NearTextGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -131,7 +131,7 @@ class _NearTextGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeReturn[Properties, TReferences]]: ...
 
     @overload
@@ -160,7 +160,7 @@ class _NearTextGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, References]]: ...
 
     @overload
@@ -189,7 +189,7 @@ class _NearTextGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -218,7 +218,7 @@ class _NearTextGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, TReferences]]: ...
 
     ### GroupBy ###
@@ -248,7 +248,7 @@ class _NearTextGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, References]]: ...
 
     @overload
@@ -277,7 +277,7 @@ class _NearTextGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -306,7 +306,7 @@ class _NearTextGenerateExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[Properties, TReferences]]: ...
 
     @overload
@@ -335,7 +335,7 @@ class _NearTextGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, References]]: ...
 
     @overload
@@ -364,7 +364,7 @@ class _NearTextGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -393,7 +393,7 @@ class _NearTextGenerateExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GenerativeGroupByReturn[TProperties, TReferences]]: ...
 
     ### DEFAULT ###
@@ -423,7 +423,7 @@ class _NearTextGenerateExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[
         GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -453,7 +453,7 @@ class _NearTextGenerateExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[
         GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
     ]:
@@ -481,7 +481,7 @@ class _NearTextGenerateExecutor(
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
             diversity_selection: Apply diversity selection (e.g. MMR) to the results. Requires Weaviate >= 1.37.0.
-            vector_index_params: Per-request vector index tuning built with ``VectorSearchParams.hnsw(...)`` or ``VectorSearchParams.hfresh(...)``, applied to every target vector; a mapping ``{target_vector_name: params}`` tunes each target of a multi-target search separately and leaves the others on the collection's configuration. Each index honours only the knobs it knows. Requires Weaviate >= 1.42.0.
+            vector_index_params: Per-request vector index tuning built with ``VectorIndexParams.hnsw(...)`` or ``VectorIndexParams.hfresh(...)``, applied to every target vector; a mapping ``{target_vector_name: params}`` tunes each target of a multi-target search separately and leaves the others on the collection's configuration. Each index honours only the knobs it knows. Requires Weaviate >= 1.42.0.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.

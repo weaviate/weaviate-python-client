@@ -16,7 +16,7 @@ from weaviate.collections.classes.grpc import (
     NearMediaType,
     Rerank,
     TargetVectorJoinType,
-    VectorSearchParamsType,
+    VectorIndexParamsType,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -61,7 +61,7 @@ class _NearMediaGenerateAsync(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeReturn[Properties, References]: ...
     @overload
     async def near_media(
@@ -88,7 +88,7 @@ class _NearMediaGenerateAsync(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeReturn[Properties, CrossReferences]: ...
     @overload
     async def near_media(
@@ -115,7 +115,7 @@ class _NearMediaGenerateAsync(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeReturn[Properties, TReferences]: ...
     @overload
     async def near_media(
@@ -142,7 +142,7 @@ class _NearMediaGenerateAsync(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeReturn[TProperties, References]: ...
     @overload
     async def near_media(
@@ -169,7 +169,7 @@ class _NearMediaGenerateAsync(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeReturn[TProperties, CrossReferences]: ...
     @overload
     async def near_media(
@@ -196,7 +196,7 @@ class _NearMediaGenerateAsync(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeReturn[TProperties, TReferences]: ...
     @overload
     async def near_media(
@@ -223,7 +223,7 @@ class _NearMediaGenerateAsync(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeGroupByReturn[Properties, References]: ...
     @overload
     async def near_media(
@@ -250,7 +250,7 @@ class _NearMediaGenerateAsync(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeGroupByReturn[Properties, CrossReferences]: ...
     @overload
     async def near_media(
@@ -277,7 +277,7 @@ class _NearMediaGenerateAsync(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeGroupByReturn[Properties, TReferences]: ...
     @overload
     async def near_media(
@@ -304,7 +304,7 @@ class _NearMediaGenerateAsync(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeGroupByReturn[TProperties, References]: ...
     @overload
     async def near_media(
@@ -331,7 +331,7 @@ class _NearMediaGenerateAsync(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeGroupByReturn[TProperties, CrossReferences]: ...
     @overload
     async def near_media(
@@ -358,7 +358,7 @@ class _NearMediaGenerateAsync(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeGroupByReturn[TProperties, TReferences]: ...
     @overload
     async def near_media(
@@ -385,5 +385,5 @@ class _NearMediaGenerateAsync(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_index_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...

@@ -20,9 +20,9 @@ from weaviate.collections.classes.grpc import (
     Rerank,
     Sort,
     TargetVectors,
-    VectorSearchParams,
-    VectorSearchParamsReturn,
-    VectorSearchParamsType,
+    VectorIndexParams,
+    VectorIndexParamsReturn,
+    VectorIndexParamsType,
 )
 from weaviate.collections.classes.types import GeoCoordinate
 
@@ -48,7 +48,7 @@ __all__ = [
     "Rerank",
     "Sort",
     "TargetVectors",
-    "VectorSearchParams",
-    "VectorSearchParamsReturn",
-    "VectorSearchParamsType",
+    "VectorIndexParams",
+    "VectorIndexParamsReturn",
+    "VectorIndexParamsType",
 ]

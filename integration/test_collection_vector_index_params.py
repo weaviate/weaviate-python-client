@@ -10,7 +10,7 @@ import pytest
 
 from integration.conftest import CollectionFactory
 from weaviate.classes.config import VectorFilterStrategy
-from weaviate.classes.query import Filter, HybridVector, VectorSearchParams
+from weaviate.classes.query import Filter, HybridVector, VectorIndexParams
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 from weaviate.exceptions import WeaviateQueryError
@@ -24,7 +24,7 @@ def _skip_if_unsupported(collection_factory: CollectionFactory) -> None:
     # so checking the version after creation would turn a skip into a failure.
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(*_MIN_VERSION):
-        pytest.skip("vector_search_params requires Weaviate >= 1.42.0")
+        pytest.skip("vector_index_params requires Weaviate >= 1.42.0")
 
 
 def _hnsw_collection(collection_factory: CollectionFactory, n: int = 50):
@@ -52,7 +52,7 @@ def test_near_vector_ef_below_limit_is_floored_by_server(
 
     baseline = collection.query.near_vector([1.0, 0.5, 3.0], limit=limit).objects
     with_ef = collection.query.near_vector(
-        [1.0, 0.5, 3.0], limit=limit, vector_index_params=VectorSearchParams.hnsw(ef=1)
+        [1.0, 0.5, 3.0], limit=limit, vector_index_params=VectorIndexParams.hnsw(ef=1)
     ).objects
 
     # The server applies max(ef, k), so a tiny ef never truncates the result set.
@@ -65,34 +65,34 @@ def test_near_vector_high_ef_matches_default(collection_factory: CollectionFacto
     collection = _hnsw_collection(collection_factory)
     baseline = collection.query.near_vector([1.0, 0.2, 1.0], limit=5).objects
     with_ef = collection.query.near_vector(
-        [1.0, 0.2, 1.0], limit=5, vector_index_params=VectorSearchParams.hnsw(ef=512)
+        [1.0, 0.2, 1.0], limit=5, vector_index_params=VectorIndexParams.hnsw(ef=512)
     ).objects
     assert [o.uuid for o in with_ef] == [o.uuid for o in baseline]
 
 
-def test_near_object_accepts_vector_search_params(collection_factory: CollectionFactory) -> None:
+def test_near_object_accepts_vector_index_params(collection_factory: CollectionFactory) -> None:
     collection = _hnsw_collection(collection_factory)
     anchor = next(iter(collection.query.fetch_objects(limit=1).objects)).uuid
     res = collection.query.near_object(
-        anchor, limit=3, vector_index_params=VectorSearchParams.hnsw(ef=64)
+        anchor, limit=3, vector_index_params=VectorIndexParams.hnsw(ef=64)
     )
     assert len(res.objects) == 3
     assert res.objects[0].uuid == anchor
 
 
-def test_hybrid_accepts_vector_search_params(collection_factory: CollectionFactory) -> None:
+def test_hybrid_accepts_vector_index_params(collection_factory: CollectionFactory) -> None:
     collection = _hnsw_collection(collection_factory)
     res = collection.query.hybrid(
         "obj",
         vector=HybridVector.near_vector([1.0, 0.5, 3.0]),
         alpha=0.5,
         limit=5,
-        vector_index_params=VectorSearchParams.hnsw(ef=64),
+        vector_index_params=VectorIndexParams.hnsw(ef=64),
     )
     assert len(res.objects) == 5
 
 
-def test_near_text_accepts_vector_search_params(collection_factory: CollectionFactory) -> None:
+def test_near_text_accepts_vector_index_params(collection_factory: CollectionFactory) -> None:
     _skip_if_unsupported(collection_factory)
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -102,7 +102,7 @@ def test_near_text_accepts_vector_search_params(collection_factory: CollectionFa
         collection.data.insert({"name": name})
 
     res = collection.query.near_text(
-        "fruit", limit=3, vector_index_params=VectorSearchParams.hnsw(ef=64)
+        "fruit", limit=3, vector_index_params=VectorIndexParams.hnsw(ef=64)
     )
     assert len(res.objects) == 3
 
@@ -113,12 +113,12 @@ def test_ef_above_server_cap_is_rejected(collection_factory: CollectionFactory) 
     collection = _hnsw_collection(collection_factory, n=5)
     with pytest.raises(WeaviateQueryError) as exc:
         collection.query.near_vector(
-            [1.0, 0.0, 0.0], vector_index_params=VectorSearchParams.hnsw(ef=10_000_001)
+            [1.0, 0.0, 0.0], vector_index_params=VectorIndexParams.hnsw(ef=10_000_001)
         )
     assert "HNSW_MAX_SEARCH_EF" in str(exc.value)
 
 
-def test_flat_index_ignores_vector_search_params(collection_factory: CollectionFactory) -> None:
+def test_flat_index_ignores_vector_index_params(collection_factory: CollectionFactory) -> None:
     _skip_if_unsupported(collection_factory)
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
@@ -130,7 +130,7 @@ def test_flat_index_ignores_vector_search_params(collection_factory: CollectionF
         [DataObject(properties={"text": str(i)}, vector=[1.0, float(i)]) for i in range(5)]
     )
     res = collection.query.near_vector(
-        [1.0, 0.0], limit=2, vector_index_params=VectorSearchParams.hnsw(ef=7)
+        [1.0, 0.0], limit=2, vector_index_params=VectorIndexParams.hnsw(ef=7)
     )
     assert len(res.objects) == 2
 
@@ -150,7 +150,7 @@ def test_filter_strategy_with_filter_matches_default(
         [1.0, 0.5, 3.0],
         limit=5,
         filters=filters,
-        vector_index_params=VectorSearchParams.hnsw(filter_strategy=strategy),
+        vector_index_params=VectorIndexParams.hnsw(filter_strategy=strategy),
     ).objects
 
     # 11 of 50 objects match the filter; any strategy on a 50-node graph is exhaustive.
@@ -162,7 +162,7 @@ def test_filter_strategy_with_filter_matches_default(
 def test_hnsw_ignores_search_probe(collection_factory: CollectionFactory) -> None:
     collection = _hnsw_collection(collection_factory)
     res = collection.query.near_vector(
-        [1.0, 0.5, 3.0], limit=3, vector_index_params=VectorSearchParams.hfresh(search_probe=1)
+        [1.0, 0.5, 3.0], limit=3, vector_index_params=VectorIndexParams.hfresh(search_probe=1)
     )
     assert len(res.objects) == 3
 
@@ -193,7 +193,7 @@ def test_hfresh_search_probe_below_limit_is_floored_by_server(
     tuned = collection.query.near_vector(
         [1.0, 0.5, 3.0],
         limit=limit,
-        vector_index_params=VectorSearchParams.hfresh(search_probe=1),
+        vector_index_params=VectorIndexParams.hfresh(search_probe=1),
     ).objects
     # The server applies max(search_probe, k), so a tiny probe never truncates the result set.
     assert len(tuned) == limit
@@ -206,7 +206,7 @@ def test_hfresh_search_probe_above_server_cap_is_rejected(
     collection = _hfresh_collection(collection_factory, n=5)
     with pytest.raises(WeaviateQueryError) as exc:
         collection.query.near_vector(
-            [1.0, 0.0, 0.0], vector_index_params=VectorSearchParams.hfresh(search_probe=10_000_001)
+            [1.0, 0.0, 0.0], vector_index_params=VectorIndexParams.hfresh(search_probe=10_000_001)
         )
     assert "HFRESH_MAX_SEARCH_PROBE" in str(exc.value)
 
@@ -216,7 +216,7 @@ def test_hfresh_ignores_hnsw_knobs(collection_factory: CollectionFactory) -> Non
     res = collection.query.near_vector(
         [1.0, 0.5, 3.0],
         limit=3,
-        vector_index_params=VectorSearchParams.hnsw(
+        vector_index_params=VectorIndexParams.hnsw(
             ef=1, filter_strategy=VectorFilterStrategy.ACORN
         ),
     )
@@ -267,10 +267,8 @@ def test_per_target_params_on_multi_target_search(collection_factory: Collection
         target_vector=["first", "second"],
         limit=limit,
         vector_index_params={
-            "first": VectorSearchParams.hnsw(ef=1),
-            "second": VectorSearchParams.hnsw(
-                ef=512, filter_strategy=VectorFilterStrategy.SWEEPING
-            ),
+            "first": VectorIndexParams.hnsw(ef=1),
+            "second": VectorIndexParams.hnsw(ef=512, filter_strategy=VectorFilterStrategy.SWEEPING),
         },
     ).objects
 
@@ -285,7 +283,7 @@ def test_per_target_params_for_a_subset_of_targets(collection_factory: Collectio
         {"first": [1.0, 0.5, 3.0], "second": [1.0, 1.0, 0.5]},
         target_vector=["first", "second"],
         limit=5,
-        vector_index_params={"second": VectorSearchParams.hnsw(ef=64)},
+        vector_index_params={"second": VectorIndexParams.hnsw(ef=64)},
     )
     assert len(res.objects) == 5
 
@@ -297,7 +295,7 @@ def test_per_target_params_on_single_named_vector(collection_factory: Collection
         [1.0, 0.5, 3.0],
         target_vector="first",
         limit=5,
-        vector_index_params={"first": VectorSearchParams.hnsw(ef=1)},
+        vector_index_params={"first": VectorIndexParams.hnsw(ef=1)},
     ).objects
     assert {o.uuid for o in tuned} == {o.uuid for o in baseline}
 
@@ -310,7 +308,7 @@ def test_per_target_params_on_hybrid(collection_factory: CollectionFactory) -> N
         target_vector="first",
         alpha=0.5,
         limit=5,
-        vector_index_params={"first": VectorSearchParams.hnsw(ef=64)},
+        vector_index_params={"first": VectorIndexParams.hnsw(ef=64)},
     )
     assert len(res.objects) == 5
 
@@ -322,7 +320,7 @@ def test_unknown_target_is_rejected_by_server(collection_factory: CollectionFact
         collection.query.near_vector(
             [1.0, 0.5, 3.0],
             target_vector="first",
-            vector_index_params={"nope": VectorSearchParams.hnsw(ef=8)},
+            vector_index_params={"nope": VectorIndexParams.hnsw(ef=8)},
         )
     assert "nope" in str(exc.value)
 
@@ -336,7 +334,7 @@ def test_target_not_in_request_is_rejected_by_server(
         collection.query.near_vector(
             [1.0, 0.5, 3.0],
             target_vector="first",
-            vector_index_params={"second": VectorSearchParams.hnsw(ef=8)},
+            vector_index_params={"second": VectorIndexParams.hnsw(ef=8)},
         )
     assert "second" in str(exc.value)
 
@@ -357,12 +355,12 @@ def test_per_target_params_rejected_on_legacy_collection(
     assert (
         len(
             collection.query.near_vector(
-                [1.0, 0.0], limit=2, vector_index_params=VectorSearchParams.hnsw(ef=16)
+                [1.0, 0.0], limit=2, vector_index_params=VectorIndexParams.hnsw(ef=16)
             ).objects
         )
         == 2
     )
     with pytest.raises(WeaviateQueryError):
         collection.query.near_vector(
-            [1.0, 0.0], limit=2, vector_index_params={"default": VectorSearchParams.hnsw(ef=16)}
+            [1.0, 0.0], limit=2, vector_index_params={"default": VectorIndexParams.hnsw(ef=16)}
         )

@@ -271,9 +271,9 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
-class _VectorSearchParams(_WeaviateInput):
+class _VectorIndexParams(_WeaviateInput):
     """The per-request vector index knobs as sent on the wire; build one with
-    ``VectorSearchParams.hnsw()`` or ``VectorSearchParams.hfresh()``."""
+    ``VectorIndexParams.hnsw()`` or ``VectorIndexParams.hfresh()``."""
 
     # Validate on assignment too, so a bad value fails where it is set rather than at query time.
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
@@ -283,11 +283,11 @@ class _VectorSearchParams(_WeaviateInput):
     filter_strategy: Optional[VectorFilterStrategy] = Field(default=None)
 
 
-VectorSearchParamsReturn: TypeAlias = _VectorSearchParams
-"""What ``VectorSearchParams.hnsw()`` and ``VectorSearchParams.hfresh()`` return; the type of ``vector_index_params``."""
+VectorIndexParamsReturn: TypeAlias = _VectorIndexParams
+"""What ``VectorIndexParams.hnsw()`` and ``VectorIndexParams.hfresh()`` return; the type of ``vector_index_params``."""
 
 
-class VectorSearchParams:
+class VectorIndexParams:
     """Per-request tuning of the vector index search, passed as ``vector_index_params``.
 
     Overrides the collection's vector index settings for one query only. Build the params with the
@@ -305,8 +305,8 @@ class VectorSearchParams:
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         raise TypeError(
-            "VectorSearchParams cannot be instantiated. "
-            "Use VectorSearchParams.hnsw(...) or VectorSearchParams.hfresh(...)."
+            "VectorIndexParams cannot be instantiated. "
+            "Use VectorIndexParams.hnsw(...) or VectorIndexParams.hfresh(...)."
         )
 
     @staticmethod
@@ -314,7 +314,7 @@ class VectorSearchParams:
         *,
         ef: Optional[int] = None,
         filter_strategy: Optional[VectorFilterStrategy] = None,
-    ) -> VectorSearchParamsReturn:
+    ) -> VectorIndexParamsReturn:
         """Params for an HNSW index (or the HNSW stage of a dynamic index).
 
         Args:
@@ -325,10 +325,10 @@ class VectorSearchParams:
             filter_strategy: ``VectorFilterStrategy`` for the filtered graph walk of this request.
                 ``None`` keeps the collection's ``filterStrategy``; it has no effect without a filter.
         """
-        return _VectorSearchParams(ef=ef, filter_strategy=filter_strategy)
+        return _VectorIndexParams(ef=ef, filter_strategy=filter_strategy)
 
     @staticmethod
-    def hfresh(*, search_probe: Optional[int] = None) -> VectorSearchParamsReturn:
+    def hfresh(*, search_probe: Optional[int] = None) -> VectorIndexParamsReturn:
         """Params for an HFresh index.
 
         Args:
@@ -337,10 +337,10 @@ class VectorSearchParams:
                 ``HFRESH_MAX_SEARCH_PROBE`` cap with ``WeaviateQueryError``. ``None`` or ``0`` keeps
                 the collection's ``searchProbe``.
         """
-        return _VectorSearchParams(search_probe=search_probe)
+        return _VectorIndexParams(search_probe=search_probe)
 
 
-VectorSearchParamsType = Union[VectorSearchParamsReturn, Mapping[str, VectorSearchParamsReturn]]
+VectorIndexParamsType = Union[VectorIndexParamsReturn, Mapping[str, VectorIndexParamsReturn]]
 """Either one params object for every target vector or a mapping from target vector name to its params."""
 
 
