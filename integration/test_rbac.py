@@ -490,6 +490,88 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             ),
             None,
         ),
+        (
+            Permissions.backup(
+                collection="MyCollection", role="MyRole", user="MyUser", manage=True
+            ),
+            Role(
+                name="BackupRoleAll",
+                alias_permissions=[],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[
+                    BackupsPermissionOutput(
+                        collection="MyCollection",
+                        actions={Actions.Backups.MANAGE},
+                    ),
+                    BackupsPermissionOutput(
+                        role="MyRole",
+                        actions={Actions.Backups.MANAGE},
+                    ),
+                    BackupsPermissionOutput(
+                        user="MyUser",
+                        actions={Actions.Backups.MANAGE},
+                    ),
+                ],
+                mcp_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            ),
+            42,  # Minimum version for backup users/roles permissions
+        ),
+        (
+            Permissions.backup(role="MyRole", manage=True),
+            Role(
+                name="BackupRoleRole",
+                alias_permissions=[],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[
+                    BackupsPermissionOutput(
+                        role="MyRole",
+                        actions={Actions.Backups.MANAGE},
+                    ),
+                ],
+                mcp_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            ),
+            42,  # Minimum version for backup permissions on roles and users
+        ),
+        (
+            Permissions.backup(user="MyUser", manage=True),
+            Role(
+                name="BackupRoleUser",
+                alias_permissions=[],
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[
+                    BackupsPermissionOutput(
+                        user="MyUser",
+                        actions={Actions.Backups.MANAGE},
+                    ),
+                ],
+                mcp_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+                replicate_permissions=[],
+                groups_permissions=[],
+            ),
+            42,  # Minimum version for backup permissions on roles and users
+        ),
     ],
 )
 def test_create_role(

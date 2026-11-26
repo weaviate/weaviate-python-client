@@ -182,6 +182,9 @@ class _ConnectionBase:
         self._headers = {
             "content-type": "application/json",
             "X-Weaviate-Client": client_header,
+            # Set compatability header for roles requests
+            # TODO(daniel/tommy): remove once v1.41 is the minimum supported version
+            "X-Weaviate-Accept-Backup-Principals": "true",
         }
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:
