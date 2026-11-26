@@ -72,10 +72,45 @@ def test_insufficient_permissions(
     weaviate_mock.check_assertions()
 
 
-def test_old_version(ready_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.23.4"})
-    with pytest.raises(WeaviateStartUpError):
-        weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, skip_init_checks=True)
+@pytest.mark.parametrize("version,supported", [("1.31.0", False), ("1.32.0", True)])
+def test_min_version(
+    ready_mock: HTTPServer, start_grpc_server: grpc.Server, version: str, supported: bool
+) -> None:
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": version})
+    if supported:
+        client = weaviate.connect_to_local(
+            port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+        )
+        assert client.is_connected()
+        client.close()
+    else:
+        with pytest.raises(WeaviateStartUpError) as e:
+            weaviate.connect_to_local(
+                port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+            )
+        assert "1.32.0 or higher" in e.value.message
+    ready_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("version,supported", [("1.31.0", False), ("1.32.0", True)])
+async def test_min_version_async(
+    ready_mock: HTTPServer, start_grpc_server: grpc.Server, version: str, supported: bool
+) -> None:
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": version})
+    client = weaviate.use_async_with_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    )
+    try:
+        if supported:
+            await client.connect()
+            assert client.is_connected()
+        else:
+            with pytest.raises(WeaviateStartUpError) as e:
+                await client.connect()
+            assert "1.32.0 or higher" in e.value.message
+    finally:
+        await client.close()
     ready_mock.check_assertions()
 
 

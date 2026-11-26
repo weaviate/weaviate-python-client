@@ -1,6 +1,6 @@
 # run:
-# - profiling: pytest -m profiling profiling/test_profiling.py --profile-svg
-# - benchmark: pytest profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
+# - profiling: pytest -m profiling profiling_tests/test_profiling.py --profile-svg
+# - benchmark: pytest profiling_tests/test_profiling.py --benchmark-only --benchmark-disable-gc
 import concurrent.futures
 import math
 import uuid

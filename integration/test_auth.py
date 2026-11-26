@@ -1,4 +1,5 @@
 import os
+import socket
 import time
 import warnings
 from typing import Callable, Dict, Optional
@@ -61,14 +62,6 @@ def test_authentication_client_credentials(
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port,scope,warning",
     [
-        (  # WCS keycloak times out too often
-            "WCS",
-            "oidc-test-user@weaviate.io",
-            "WCS_DUMMY_CI_PW",
-            WCS_PORT,
-            None,
-            False,
-        ),
         (
             "okta",
             "test@test.de",
@@ -103,10 +96,7 @@ def test_authentication_user_pw(
     if pw is None:
         pytest.skip(f"No login data for {name} found.")
 
-    if scope is not None:
-        auth = wvc.init.Auth.client_password(username=user, password=pw, scope=scope)
-    else:
-        auth = wvc.init.Auth.client_password(username=user, password=pw)
+    auth = wvc.init.Auth.client_password(username=user, password=pw, scope=scope)
 
     with weaviate.connect_to_local(port=port, auth_credentials=auth) as client:
         client.collections.list_all()  # no exception
@@ -154,7 +144,6 @@ def _request_with_backoff(send: Callable[[], httpx.Response]) -> httpx.Response:
 
 
 def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
-    # get an access token with WCS user and pw.
     weaviate_open_id_config = httpx.get("http://" + url + "/v1/.well-known/openid-configuration")
     response_json = weaviate_open_id_config.json()
     client_id = response_json["clientId"]
@@ -179,15 +168,34 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
     return resp_typed
 
 
+def test_authentication_with_mock_oidc_bearer_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert is_auth_enabled(f"localhost:{WCS_PORT}")
+    response = httpx.get("http://127.0.0.1:48003/tokens", params={"subject": "admin-user"})
+    response.raise_for_status()
+    tokens = response.json()
+
+    # The token's issuer is a Compose hostname. Resolve it to its published port
+    # for host-side discovery without changing the issuer or the signed token.
+    resolve = socket.getaddrinfo
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda host, *args, **kwargs: resolve(
+            "127.0.0.1" if host == "mock-oidc" else host, *args, **kwargs
+        ),
+    )
+    auth = wvc.init.Auth.bearer_token(
+        access_token=tokens["accessToken"], refresh_token=tokens["refreshToken"]
+    )
+    with weaviate.connect_to_local(
+        port=WCS_PORT, grpc_port=WCS_PORT_GRPC, auth_credentials=auth
+    ) as client:
+        client.collections.list_all()
+
+
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port",
     [
-        (  # WCS keycloak times out too often
-            "WCS",
-            "oidc-test-user@weaviate.io",
-            "WCS_DUMMY_CI_PW",
-            WCS_PORT,
-        ),
         (
             "okta",
             "test@test.de",

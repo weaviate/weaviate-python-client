@@ -10,10 +10,8 @@ import pytest
 from test.util import check_error_message
 from weaviate.exceptions import SchemaValidationException
 from weaviate.util import (
-    MINIMUM_NO_WARNING_VERSION,
     _datetime_from_weaviate_str,
     _is_sub_schema,
-    _sanitize_str,
     generate_uuid5,
     get_domain_from_weaviate_url,
     get_valid_uuid,
@@ -23,7 +21,6 @@ from weaviate.util import (
     is_object_url,
     is_weaviate_client_too_old,
     is_weaviate_object_url,
-    is_weaviate_too_old,
     parse_version_string,
 )
 
@@ -405,35 +402,6 @@ class TestUtil(unittest.TestCase):
         assert parse_version_string("v2.05.5") == (2, 5)
 
 
-MINIMUM_NO_WARNING_VERSION_MAJOR, MINIMUM_NO_WARNING_VERSION_MINOR = parse_version_string(
-    MINIMUM_NO_WARNING_VERSION
-)
-MINIMUM_NO_WARNING_VERSION_MAJOR = int(MINIMUM_NO_WARNING_VERSION_MAJOR)
-MINIMUM_NO_WARNING_VERSION_MINOR = int(MINIMUM_NO_WARNING_VERSION_MINOR)
-
-
-@pytest.mark.parametrize(
-    "version,too_old",
-    [
-        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR - 1}.{MINIMUM_NO_WARNING_VERSION_MINOR - 1}.1", True),
-        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR - 1}.{MINIMUM_NO_WARNING_VERSION_MINOR + 1}.2", True),
-        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR}.{MINIMUM_NO_WARNING_VERSION_MINOR - 1}.3", True),
-        (MINIMUM_NO_WARNING_VERSION, False),
-        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR}.{MINIMUM_NO_WARNING_VERSION_MINOR + 1}.0", False),
-        (
-            f"v{MINIMUM_NO_WARNING_VERSION_MAJOR + 1}.{MINIMUM_NO_WARNING_VERSION_MINOR - 1}.0",
-            False,
-        ),
-        (
-            f"v{MINIMUM_NO_WARNING_VERSION_MAJOR + 1}.{MINIMUM_NO_WARNING_VERSION_MINOR + 1}.0",
-            False,
-        ),
-    ],
-)
-def test_is_weaviate_too_old(version: str, too_old: bool):
-    assert is_weaviate_too_old(version) is too_old
-
-
 @pytest.mark.parametrize(
     "input_str,expected",
     [
@@ -487,19 +455,3 @@ def test_datetime_from_weaviate_str_empty_string_warns() -> None:
 )
 def test_is_weaviate_client_too_old(current_version: str, latest_version: str, too_old: bool):
     assert is_weaviate_client_too_old(current_version, latest_version) is too_old
-
-
-@pytest.mark.parametrize(
-    "in_str, out_str",
-    [
-        ('"', '\\"'),
-        ('"', '\\"'),
-        ('\\"', '\\"'),
-        ('\\"', '\\"'),
-        ('\\\\"', '\\\\\\"'),
-        ('\\\\"', '\\\\\\"'),
-        ('\\\\\\"', '\\\\\\"'),
-    ],
-)
-def test_sanitize_str(in_str: str, out_str: str) -> None:
-    assert _sanitize_str(in_str) == f'"{out_str}"'

@@ -459,10 +459,7 @@ def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> Non
     collection.data.replace(properties={"name": "other name"}, uuid=uuid)
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "other name"
-    if collection._connection._weaviate_version.is_lower_than(1, 27, 0):
-        assert len(obj.vector["default"]) == 0
-    else:
-        assert "default" not in obj.vector
+    assert "default" not in obj.vector
 
     collection.data.replace(properties={"name": "real name"}, uuid=uuid, vector=[2, 3, 4])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
@@ -1167,12 +1164,6 @@ def test_near_text_error(collection_factory: CollectionFactory) -> None:
 
 
 def test_near_text_group_by_argument(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
-        pytest.skip(
-            'Vectors not passed to GroupByHit in servers for versions < 1.27.0. Therefore `assert "default" in ret.objects[i].vector` fails always.'
-        )
-
     collection = collection_factory(
         vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
         properties=[Property(name="value", data_type=DataType.TEXT)],
@@ -1744,9 +1735,6 @@ def test_bm25_operators(collection_factory: CollectionFactory) -> None:
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-
-    if collection._connection._weaviate_version.is_lower_than(1, 31, 0):
-        pytest.skip("bm25 operators are only supported in versions higher than 1.31.0")
 
     uuid1 = collection.data.insert({"name": "banana one"})
     uuid2 = collection.data.insert({"name": "banana two"})

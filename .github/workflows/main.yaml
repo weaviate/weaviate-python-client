@@ -18,11 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WEAVIATE_127: 1.27.27
-  WEAVIATE_128: 1.28.16
-  WEAVIATE_129: 1.29.11
-  WEAVIATE_130: 1.30.23
-  WEAVIATE_131: 1.31.22
   WEAVIATE_132: 1.32.27
   WEAVIATE_133: 1.33.18
   WEAVIATE_134: 1.34.20
@@ -32,6 +27,7 @@ env:
   WEAVIATE_138: 1.38.22
   WEAVIATE_139: 1.39.13
   WEAVIATE_140: 1.40.2
+  WEAVIATE_141: 1.41.0
 
 jobs:
   lint-and-format:
@@ -67,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         folder: ["weaviate", "integration", "integration_embedded"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -88,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -100,7 +96,7 @@ jobs:
       - name: Run unittests
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main')
+        if: matrix.version == '3.11' && (github.ref_name != 'main')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-${{ matrix.folder }}
@@ -172,8 +168,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        grpc: ["1.59.5", "1.63.0", "1.65.0", "1.66.0", "1.68.0", "1.72.1", "1.73.0", "1.74.0"]
-        protobuf: ["4.25.8", "5.26.0", "5.27.4", "5.28.3", "5.29.0", "6.30.0", "6.31.1", "6.32.0"]
+        grpc: ["1.59.5", "1.63.0", "1.65.0", "1.66.0", "1.68.0", "1.72.1", "1.73.0", "1.74.0", "1.83.0", "1.85.0"]
+        protobuf: ["4.25.8", "5.26.0", "5.27.4", "5.28.3", "5.29.0", "6.30.0", "6.31.1", "6.32.0", "6.33.6", "7.34.0", "7.36.2"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -192,7 +188,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -210,7 +206,7 @@ jobs:
         if: ${{ !github.event.pull_request.head.repo.fork }}
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
       - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main') && !github.event.pull_request.head.repo.fork
+        if: matrix.version == '3.11' && (github.ref_name != 'main') && !github.event.pull_request.head.repo.fork
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-integration-embedded
@@ -224,11 +220,13 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_140, grpc: "1.59.0"},
-          { py: "3.11", weaviate: $WEAVIATE_140, grpc: "1.66.0"},
-          { py: "3.12", weaviate: $WEAVIATE_140, grpc: "1.70.0"},
-          { py: "3.13", weaviate: $WEAVIATE_140, grpc: "1.72.1"},
-          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0"}
+          { py: "3.11", weaviate: $WEAVIATE_140, grpc: "1.59.5", protobuf: "4.25.9"},
+          { py: "3.12", weaviate: $WEAVIATE_140, grpc: "1.70.0", protobuf: "5.29.6"},
+          { py: "3.13", weaviate: $WEAVIATE_140, grpc: "1.72.1", protobuf: "6.33.6"},
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.76.0", protobuf: "6.33.6"},
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.85.0", protobuf: "6.33.6"},
+          { py: "3.14", weaviate: $WEAVIATE_140, grpc: "1.85.0", protobuf: "7.36.2"},
+          { py: "3.15", weaviate: $WEAVIATE_140, grpc: "1.85.0", protobuf: "7.36.2"}
         ]
         optional_dependencies: [false]
     steps:
@@ -248,7 +246,7 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
           pip install -r requirements-test.txt
-          pip install grpcio==${{ matrix.versions.grpc }} grpcio-tools==${{ matrix.versions.grpc }} grpcio-health-checking==${{ matrix.versions.grpc }}
+          pip install grpcio==${{ matrix.versions.grpc }} protobuf==${{ matrix.versions.protobuf }}
           pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
@@ -256,7 +254,6 @@ jobs:
         if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         env:
           OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
-          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
 #          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
         run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
@@ -264,7 +261,7 @@ jobs:
         if: ${{ github.event.pull_request.head.repo.fork || github.triggering_actor == 'dependabot[bot]' }}
         run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
-        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
+        if: matrix.versions.py == '3.11' && (github.ref_name != 'main')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-integration
@@ -280,18 +277,18 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.10", weaviate: $WEAVIATE_140},
           { py: "3.11", weaviate: $WEAVIATE_140},
           { py: "3.12", weaviate: $WEAVIATE_140},
           { py: "3.13", weaviate: $WEAVIATE_140},
-          { py: "3.14", weaviate: $WEAVIATE_140}
+          { py: "3.14", weaviate: $WEAVIATE_140},
+          { py: "3.15", weaviate: $WEAVIATE_140}
         ]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
@@ -374,11 +371,6 @@ jobs:
       fail-fast: false
       matrix:
         version: [
-          $WEAVIATE_127,
-          $WEAVIATE_128,
-          $WEAVIATE_129,
-          $WEAVIATE_130,
-          $WEAVIATE_131,
           $WEAVIATE_132,
           $WEAVIATE_133,
           $WEAVIATE_134,
@@ -387,7 +379,8 @@ jobs:
           $WEAVIATE_137,
           $WEAVIATE_138,
           $WEAVIATE_139,
-          $WEAVIATE_140
+          $WEAVIATE_140,
+          $WEAVIATE_141
         ]
     steps:
       - name: Checkout
@@ -413,8 +406,14 @@ jobs:
           pip install weaviate_client-*.whl
       - run: rm -r weaviate
       - name: start weaviate
+        env:
+          # ci/docker-compose-rbac.yml passes it to Weaviate as LICENSE_KEY.
+          WEAVIATE_LICENSE_KEY: ${{ secrets.WEAVIATE_LICENSE_KEY }}
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.version }}
       - name: Run integration tests without auth secrets (auth tests ran in previous job)
+        env:
+          # The DB user expiration tests skip where it is empty, as on forks.
+          WEAVIATE_LICENSE_KEY: ${{ secrets.WEAVIATE_LICENSE_KEY }}
         run: pytest -v -n auto --dist loadgroup integration
 
   build-and-publish:

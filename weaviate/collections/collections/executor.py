@@ -245,7 +245,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
 
         Raises:
             weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
-            weaviate.exceptions.WeaviateUnsupportedFeatureError: If the Weaviate version is lower than 1.24.0 and named vectorizers are provided.
+            weaviate.exceptions.WeaviateUnsupportedFeatureError: If the Weaviate version is lower than 1.37.0 and property text analyzers or stopword presets are provided.
             weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """

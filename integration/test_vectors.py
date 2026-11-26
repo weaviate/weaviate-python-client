@@ -203,8 +203,6 @@ def test_query(collection_factory: CollectionFactory) -> None:
 
 def test_generate(openai_collection: OpenAICollection) -> None:
     collection = openai_collection("dummy")
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = openai_collection(
         vector_config=[
             wvc.config.Configure.Vectors.text2vec_openai(
@@ -450,8 +448,6 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
 #     collection_factory: CollectionFactory,
 # ) -> None:
 #     collection = collection_factory("dummy")
-#     if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-#         pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
 #     collection = collection_factory(
 #         properties=[
 #             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
@@ -522,10 +518,6 @@ def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
 def test_named_vector_multi_target(
     collection_factory: CollectionFactory, target_vector: Union[List[str], _MultiTargetVectorJoin]
 ) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
-
     collection = collection_factory(
         properties=[],
         vector_config=[
@@ -542,10 +534,6 @@ def test_named_vector_multi_target(
 
 
 def test_named_vector_multi_target_vector_per_target(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
-
     collection = collection_factory(
         properties=[],
         vector_config=[
@@ -564,10 +552,6 @@ def test_named_vector_multi_target_vector_per_target(collection_factory: Collect
 
 
 def test_multi_query_error_no_target_vector(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
-
     collection = collection_factory(
         properties=[],
         vector_config=[
@@ -576,16 +560,9 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
         ],
     )
 
-    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
-        # gets checked in the client for validity
-        with pytest.raises(WeaviateInvalidInputError):
-            collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
-        with pytest.raises(WeaviateInvalidInputError):
-            collection.query.near_vector([[[1.0, 0.0], [1.0, 0.0]], [1.0, 0.0, 0.0]])  # type: ignore
-    else:
-        # throws an error in the server instead as implicit multi vector is understood now as using multi-vectors
-        with pytest.raises(WeaviateQueryError):
-            collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
+    # throws an error in the server instead as implicit multi vector is understood now as using multi-vectors
+    with pytest.raises(WeaviateQueryError):
+        collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.query.near_vector({"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]})
@@ -611,10 +588,6 @@ def test_same_target_vector_multiple_input(
     target_vector: Union[List[str], _MultiTargetVectorJoin],
     distances: List[float],
 ) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
-        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
-
     collection = collection_factory(
         properties=[],
         vector_config=[
@@ -663,10 +636,6 @@ def test_same_target_vector_multiple_input_combinations(
     near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]], _ListOfVectorsQuery]],
     target_vector: List[str],
 ) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
-        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
-
     collection = collection_factory(
         properties=[],
         vector_config=[
@@ -684,43 +653,6 @@ def test_same_target_vector_multiple_input_combinations(
     assert sorted([obj.uuid for obj in objs]) == sorted([uuid2, uuid1])
 
 
-def test_deprecated_syntax(collection_factory: CollectionFactory):
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_at_least(
-        1, 29, 0
-    ) or dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
-        pytest.skip(
-            "Syntax was deprecated between 1.27 and 1.29. Now it's allowed for multivector (colbert) searches"
-        )
-
-    collection = collection_factory(
-        properties=[],
-        vector_config=[
-            wvc.config.Configure.Vectors.self_provided(name="first"),
-            wvc.config.Configure.Vectors.self_provided(name="second"),
-        ],
-    )
-
-    collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
-    collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
-
-    with pytest.raises(WeaviateInvalidInputError) as e:
-        collection.query.near_vector(
-            [[0.0, 1.0], [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]],  # # type: ignore
-            target_vector=["first", "second", "second"],
-            return_metadata=wvc.query.MetadataQuery.full(),
-        )
-    assert "This input appears to be a nested list of embeddings." in str(e)
-
-    with pytest.raises(WeaviateInvalidInputError) as e:
-        collection.query.near_vector(
-            [[0.0, 1.0], [1.0, 0.0, 0.0]],
-            target_vector=["first", "second"],
-            return_metadata=wvc.query.MetadataQuery.full(),
-        )
-    assert "This input appears to be a nested list of embeddings." in str(e)
-
-
 @pytest.mark.parametrize(
     "include_vector, expected",
     [
@@ -733,12 +665,6 @@ def test_include_vector_on_references(
     collection_factory: CollectionFactory, include_vector: INCLUDE_VECTOR, expected: dict
 ) -> None:
     """Test include vector on reference."""
-    dummy = collection_factory()
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip(
-            "https://github.com/weaviate/weaviate/issues/6279 was resolved in >1.26.0 only."
-        )
-
     ref_collection = collection_factory(
         name="Target",
         vectorizer_config=[
@@ -766,10 +692,6 @@ def test_include_vector_on_references(
 
 
 def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory()
-    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
-        pytest.skip("ColBERT vectors are only supported in Weaviate v1.29.0 and higher.")
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(
@@ -867,11 +789,9 @@ def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
     if api_key is None:
         pytest.skip("No JinaAI API key found.")
 
-    dummy = collection_factory(ports=(8086, 50057), headers={"X-Jinaai-Api-Key": api_key})
-    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
-        pytest.skip("ColBERT vectors are only supported in Weaviate v1.29.0 and higher.")
-
     collection = collection_factory(
+        ports=(8086, 50057),
+        headers={"X-Jinaai-Api-Key": api_key},
         properties=[
             wvc.config.Property(
                 name="title",

@@ -134,11 +134,13 @@ def __get_quantizer_config(
         quantizer = _BQConfig(
             cache=config["bq"].get("cache"),
             rescore_limit=config["bq"].get("rescoreLimit"),
+            rescore_factor=config["bq"].get("rescoreFactor"),
         )
     elif "sq" in config and config["sq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _SQConfig(
             rescore_limit=config["sq"].get("rescoreLimit"),
+            rescore_factor=config["sq"].get("rescoreFactor"),
             training_limit=config["sq"].get("trainingLimit"),
         )
     elif "pq" in config and config["pq"].get("enabled"):
@@ -153,12 +155,15 @@ def __get_quantizer_config(
                     config["pq"].get("encoder", {}).get("distribution")
                 ),
             ),
+            rescore_limit=config["pq"].get("rescoreLimit"),
+            rescore_factor=config["pq"].get("rescoreFactor"),
         )
     elif "rq" in config and config["rq"].get("enabled"):
         quantizer = _RQConfig(
             cache=config["rq"].get("cache"),
             bits=config["rq"].get("bits"),
             rescore_limit=config["rq"].get("rescoreLimit"),
+            rescore_factor=config["rq"].get("rescoreFactor"),
             centering=config["rq"].get("centering"),
             training_limit=config["rq"].get("trainingLimit"),
         )

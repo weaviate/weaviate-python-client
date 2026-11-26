@@ -30,11 +30,7 @@ _skip_if_incompatible = pytest.mark.skipif(
 
 
 def test_proto_import():
-    grpc_ver = version.parse(metadata_version("grpcio"))
-    pb_ver = version.parse(metadata_version("protobuf"))
-    if (pb_ver >= version.parse("6.30.0") and grpc_ver < version.parse("1.72.0")) or (
-        pb_ver >= version.parse("5.26.1") and grpc_ver < version.parse("1.63.0")
-    ):
+    if _versions_incompatible():
         with pytest.raises(Exception) as e:
             import weaviate
 
@@ -60,7 +56,7 @@ def test_grpcio_metadata_fallback_under_emscripten(monkeypatch):
     monkeypatch.setattr(mod, "metadata_version", raises)
     monkeypatch.setattr("sys.platform", "emscripten")
 
-    assert str(mod.get_version("grpcio")) == "1.72.1"
+    assert str(mod.get_version("grpcio")) == "1.83.0"
     with pytest.raises(PackageNotFoundError):
         mod.get_version("protobuf")
 

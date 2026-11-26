@@ -1,7 +1,23 @@
 ---
 version: '3.4'
+include:
+  - mock-oidc.yml
 services:
+  mock-oidc-helper:
+    image: weaviate-python-test-oidc:local
+    pull_policy: never
+    command: /bin/helper
+    environment:
+      MOCK_HOSTNAME: mock-oidc:48001
+    ports:
+      - '127.0.0.1:48003:8080'
+    depends_on:
+      mock-oidc:
+        condition: service_healthy
   weaviate-auth-wcs:
+    depends_on:
+      mock-oidc:
+        condition: service_healthy
     command:
       - --host
       - 0.0.0.0
@@ -19,15 +35,15 @@ services:
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
       AUTHENTICATION_OIDC_ENABLED: 'true'
-      AUTHENTICATION_OIDC_CLIENT_ID: 'Peuc12y02UA0eAED1dqSjE5HtGUrpBsx'
-      AUTHENTICATION_OIDC_ISSUER: 'https://auth.weaviate.cloud/Peuc12y02UA0eAED1dqSjE5HtGUrpBsx'
-      AUTHENTICATION_OIDC_USERNAME_CLAIM: 'email'
-      AUTHENTICATION_OIDC_GROUPS_CLAIM: 'roles'
+      AUTHENTICATION_OIDC_CLIENT_ID: 'mock-oidc-test'
+      AUTHENTICATION_OIDC_ISSUER: 'http://mock-oidc:48001/oidc'
+      AUTHENTICATION_OIDC_USERNAME_CLAIM: 'sub'
+      AUTHENTICATION_OIDC_GROUPS_CLAIM: 'groups'
       AUTHORIZATION_ADMINLIST_ENABLED: 'true'
-      AUTHORIZATION_ADMINLIST_USERS: 'oidc-test-user@weaviate.io'
-      AUTHENTICATION_OIDC_SCOPES: 'openid,email'
+      AUTHORIZATION_ADMINLIST_USERS: 'admin-user'
+      AUTHENTICATION_OIDC_SCOPES: 'openid,groups'
       AUTHENTICATION_APIKEY_ENABLED: 'true'
       AUTHENTICATION_APIKEY_ALLOWED_KEYS: 'my-secret-key'
-      AUTHENTICATION_APIKEY_USERS: 'oidc-test-user@weaviate.io'
+      AUTHENTICATION_APIKEY_USERS: 'admin-user'
       DISABLE_TELEMETRY: 'true'
 ...
