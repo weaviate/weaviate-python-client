@@ -110,6 +110,12 @@ class _BatchBaseSync:
         # thereby using too much buffer in case of server-side shutdown
         self.__reqs: Queue[Optional[_BatchStreamRequest]] = Queue(maxsize=1)
 
+        # bumped by __recv every time a new stream is started; a __send generator
+        # whose generation is no longer current belongs to a dead stream and must
+        # not consume requests from the queue (#2261)
+        self.__stream_generation = 0
+        self.__generation_lock = threading.Lock()
+
     @property
     def number_errors(self) -> int:
         """Return the number of errors in the batch."""
@@ -271,9 +277,23 @@ class _BatchBaseSync:
         if len(request.data.objects.values) > 0 or len(request.data.references.values) > 0:
             yield _BatchStreamRequest(request, uuids, beacons)
 
-    def __send(
-        self,
-    ) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
+    def __current_generation(self) -> int:
+        with self.__generation_lock:
+            return self.__stream_generation
+
+    def __put_back(self, req: Optional[_BatchStreamRequest]) -> None:
+        # return a request taken by a stale sender to the queue so the live
+        # stream's sender can deliver it; the queue has maxsize=1 and this sender
+        # just freed its slot, but __loop may have refilled it in the meantime,
+        # so retry until there is room or the batch is being torn down anyway
+        while self.__bg_exception is None and not self.__shutdown_loop.is_set():
+            try:
+                self.__reqs.put(req, timeout=0.1)
+                return
+            except Full:
+                continue
+
+    def __send(self, generation: int) -> Generator[batch_pb2.BatchStreamRequest, None, None]:
         yield batch_pb2.BatchStreamRequest(
             start=batch_pb2.BatchStreamRequest.Start(
                 consistency_level=self.__batch_grpc._consistency_level,
@@ -292,6 +312,17 @@ class _BatchBaseSync:
                     return
             try:
                 req = self.__reqs.get(timeout=1)
+                if generation != self.__current_generation() or self.__is_hungup.is_set():
+                    # this sender belongs to a stream that hung up and may already
+                    # have been replaced by a fast reconnect, which clears the
+                    # hung-up flag before this sender wakes: do not yield the
+                    # request into the dead call, where gRPC drops it and its
+                    # uuids stay in __inflight_objs forever (#2261)
+                    logger.info(
+                        "Stale batch sender returning its request to the queue for the live stream"
+                    )
+                    self.__put_back(req)
+                    return
                 if req is None:
                     logger.info(
                         "Batching finished, stopping and closing the client-side of the stream"
@@ -319,12 +350,15 @@ class _BatchBaseSync:
         logger.info("Batch send thread exiting due to exception...")
 
     def __recv(self) -> None:
+        with self.__generation_lock:
+            self.__stream_generation += 1
+            generation = self.__stream_generation
         self.__is_renewing_stream.clear()
         self.__is_shutting_down.clear()
         self.__is_hungup.clear()
         for message in self.__batch_grpc.stream(
             connection=self.__connection,
-            requests=self.__send(),
+            requests=self.__send(generation),
         ):
             if message.HasField("started"):
                 logger.info("Batch stream started successfully")
