@@ -13,6 +13,7 @@ from weaviate.collections.classes.grpc import (
     NearVectorInputType,
     Rerank,
     TargetVectorJoinType,
+    VectorIndexParamsType,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -60,6 +61,7 @@ class _NearVectorQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
     @overload
@@ -82,6 +84,7 @@ class _NearVectorQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -104,6 +107,7 @@ class _NearVectorQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
     @overload
@@ -126,6 +130,7 @@ class _NearVectorQueryExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[QueryReturn[TProperties, References]]: ...
 
     @overload
@@ -148,6 +153,7 @@ class _NearVectorQueryExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[QueryReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -170,6 +176,7 @@ class _NearVectorQueryExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[QueryReturn[TProperties, TReferences]]: ...
 
     ### GroupBy ###
@@ -194,6 +201,7 @@ class _NearVectorQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GroupByReturn[Properties, References]]: ...
 
     @overload
@@ -216,6 +224,7 @@ class _NearVectorQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -238,6 +247,7 @@ class _NearVectorQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GroupByReturn[Properties, TReferences]]: ...
 
     @overload
@@ -260,6 +270,7 @@ class _NearVectorQueryExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GroupByReturn[TProperties, References]]: ...
 
     @overload
@@ -282,6 +293,7 @@ class _NearVectorQueryExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GroupByReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -304,6 +316,7 @@ class _NearVectorQueryExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[GroupByReturn[TProperties, TReferences]]: ...
 
     ### DEFAULT ###
@@ -327,6 +340,7 @@ class _NearVectorQueryExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[
         QuerySearchReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -350,6 +364,7 @@ class _NearVectorQueryExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> executor.Result[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
         """Search for objects by vector in this collection using and vector-based similarity search.
 
@@ -372,6 +387,7 @@ class _NearVectorQueryExecutor(
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
             diversity_selection: Apply diversity selection (e.g. MMR) to the results. Requires Weaviate >= 1.37.0.
+            vector_index_params: Per-request vector index tuning built with ``VectorIndexParams.hnsw(...)`` or ``VectorIndexParams.hfresh(...)``, applied to every target vector; a mapping ``{target_vector_name: params}`` tunes each target of a multi-target search separately and leaves the others on the collection's configuration. Each index honours only the knobs it knows. Requires Weaviate >= 1.42.0.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -416,6 +432,7 @@ class _NearVectorQueryExecutor(
             autocut=auto_limit,
             rerank=rerank,
             diversity_selection=diversity_selection,
+            vector_index_params=vector_index_params,
             boost=boost,
             target_vector=target_vector,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),

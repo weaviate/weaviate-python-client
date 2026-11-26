@@ -11,6 +11,7 @@ from weaviate.collections.classes.grpc import (
     NearMediaType,
     Rerank,
     TargetVectorJoinType,
+    VectorIndexParamsType,
 )
 from weaviate.collections.classes.internal import (
     CrossReferences,
@@ -50,6 +51,7 @@ class _NearMediaQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
     def near_media(
@@ -72,6 +74,7 @@ class _NearMediaQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     def near_media(
@@ -94,6 +97,7 @@ class _NearMediaQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
     def near_media(
@@ -116,6 +120,7 @@ class _NearMediaQuery(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> QueryReturn[TProperties, References]: ...
     @overload
     def near_media(
@@ -138,6 +143,7 @@ class _NearMediaQuery(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
     def near_media(
@@ -160,6 +166,7 @@ class _NearMediaQuery(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> QueryReturn[TProperties, TReferences]: ...
     @overload
     def near_media(
@@ -182,6 +189,7 @@ class _NearMediaQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
     def near_media(
@@ -204,6 +212,7 @@ class _NearMediaQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
     def near_media(
@@ -226,6 +235,7 @@ class _NearMediaQuery(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
     def near_media(
@@ -248,6 +258,7 @@ class _NearMediaQuery(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GroupByReturn[TProperties, References]: ...
     @overload
     def near_media(
@@ -270,6 +281,7 @@ class _NearMediaQuery(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def near_media(
@@ -292,6 +304,7 @@ class _NearMediaQuery(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> GroupByReturn[TProperties, TReferences]: ...
     @overload
     def near_media(
@@ -314,4 +327,5 @@ class _NearMediaQuery(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
+        vector_index_params: Optional[VectorIndexParamsType] = None,
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...

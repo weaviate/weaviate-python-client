@@ -2,6 +2,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from typing import (
+    Any,
     Dict,
     Generic,
     List,
@@ -17,6 +18,7 @@ from typing import (
 from pydantic import ConfigDict, Field
 from typing_extensions import ClassVar, TypeAlias, TypeGuard, TypeVar
 
+from weaviate.collections.classes.config_vector_index import VectorFilterStrategy
 from weaviate.collections.classes.filters import FilterReturn
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -258,6 +260,81 @@ class Rerank(_WeaviateInput):
 
     prop: str
     query: Optional[str] = Field(default=None)
+
+
+class _VectorIndexParams(_WeaviateInput):
+    """The per-request vector index knobs as sent on the wire.
+
+    Build one with ``VectorIndexParams.hnsw()`` or ``VectorIndexParams.hfresh()``.
+    """
+
+    # Validate on assignment too, so a bad value fails where it is set rather than at query time.
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+    ef: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
+    search_probe: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
+    filter_strategy: Optional[VectorFilterStrategy] = Field(default=None)
+
+
+VectorIndexParamsReturn: TypeAlias = _VectorIndexParams
+"""What ``VectorIndexParams.hnsw()`` and ``VectorIndexParams.hfresh()`` return; the type of ``vector_index_params``."""
+
+
+class VectorIndexParams:
+    """Per-request tuning of the vector index search, passed as ``vector_index_params``.
+
+    Overrides the collection's vector index settings for one query only. Build the params with the
+    constructor named after the collection's index type: ``hnsw()`` for an HNSW index (and for the
+    HNSW stage of a dynamic index), ``hfresh()`` for an HFresh index; a flat index has no per-request
+    knobs. ``None`` keeps the collection's configured value.
+
+    Pass one object to ``vector_index_params`` to apply it to every target vector, or a mapping
+    ``{target_vector_name: params}`` to tune the targets of a multi-target search separately;
+    targets missing from the mapping keep the collection's configuration.
+
+    Requires Weaviate >= 1.42.0; on older servers the client raises
+    ``WeaviateUnsupportedFeatureError`` before sending the request.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        raise TypeError(
+            "VectorIndexParams cannot be instantiated. "
+            "Use VectorIndexParams.hnsw(...) or VectorIndexParams.hfresh(...)."
+        )
+
+    @staticmethod
+    def hnsw(
+        *,
+        ef: Optional[int] = None,
+        filter_strategy: Optional[VectorFilterStrategy] = None,
+    ) -> VectorIndexParamsReturn:
+        """Params for an HNSW index (or the HNSW stage of a dynamic index).
+
+        Args:
+            ef: Layer-0 beam width for this request. The server uses ``max(ef, limit)``, so a small
+                value never truncates the results, and rejects values above its
+                ``HNSW_MAX_SEARCH_EF`` cap (10000 by default) with
+                ``WeaviateQueryError``. ``None`` or ``0`` keeps the collection's ``ef``.
+            filter_strategy: ``VectorFilterStrategy`` for the filtered graph walk of this request.
+                ``None`` keeps the collection's ``filterStrategy``; it has no effect without a filter.
+        """
+        return _VectorIndexParams(ef=ef, filter_strategy=filter_strategy)
+
+    @staticmethod
+    def hfresh(*, search_probe: Optional[int] = None) -> VectorIndexParamsReturn:
+        """Params for an HFresh index.
+
+        Args:
+            search_probe: Number of centroid postings visited for this request. The server uses
+                ``max(search_probe, limit)`` and rejects values above its
+                ``HFRESH_MAX_SEARCH_PROBE`` cap with ``WeaviateQueryError``. ``None`` or ``0`` keeps
+                the collection's ``searchProbe``.
+        """
+        return _VectorIndexParams(search_probe=search_probe)
+
+
+VectorIndexParamsType = Union[VectorIndexParamsReturn, Mapping[str, VectorIndexParamsReturn]]
+"""Either one params object for every target vector or a mapping from target vector name to its params."""
 
 
 @dataclass
