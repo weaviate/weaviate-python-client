@@ -4,11 +4,27 @@ Changelog
 Version 4.25.0
 --------------
 This minor version includes:
+    - Support for Weaviate 1.41:
+        - Set ``user_expires_at`` in ``client.users.db.create()`` to expire a DB user's access. Use ``client.users.db.update_user_expiration()`` to change the expiration or clear it with ``None``. Expiration requires a Weaviate license key on the server
+        - Set ``rescore_factor`` when creating or updating PQ, BQ, SQ and RQ quantizers. PQ also accepts ``rescore_limit``. Both settings are available when reading the collection configuration
+        - Add ``Configure.Reranker.typesafeai()`` and ``Configure.Reranker.openai()`` to rerank objects by the probability that they satisfy the query condition
+    - Add ``client.cluster.replications.generate_scale_plan()`` to preview and edit per-shard replica changes before submitting them with ``apply_scale_plan()``. Replica movement must be enabled on the server
     - Remove support for Weaviate versions < 1.32.0. Connecting to an older server now raises ``WeaviateStartUpError`` even with ``skip_init_checks=True``. Please update your Weaviate instances
-    - Support ``protobuf`` 7
+    - Support ``protobuf`` 7 and raise the ``grpcio`` upper bound from ``<1.80.0`` to ``<2.0.0``
     - Remove support for Python 3.10, which reached its end of life in October 2026. The client now requires Python 3.11 or newer
     - Support Python 3.15
     - Remove the legacy GraphQL aggregation path together with the ``weaviate.gql`` and ``weaviate.error_msgs`` modules, ``weaviate.util.is_weaviate_too_old`` and ``weaviate.util.MINIMUM_NO_WARNING_VERSION``, and the ``weaviate.AdditionalProperties`` and ``weaviate.LinkTo`` attributes (which already pointed at names that did not exist). Aggregations always use gRPC now. ``client.graphql_raw_query()`` is unchanged
+    - Remove the deprecated ``palm()``, ``text2vec_palm()`` and ``multi2vec_palm()`` configuration methods. Use the corresponding Google factories instead. Google vectorizers now write ``text2vec-google`` and ``multi2vec-google``; the client can still read the old PaLM names
+    - Add ``WeaviateGenerativeQueryError`` for gRPC search errors on generative requests. Existing ``WeaviateQueryError`` handlers still catch it
+    - Minor bug fixes and improvements:
+        - Honor the connection's proxy and ``trust_env`` settings for OIDC requests and stop leaking sessions when refreshing client-credentials tokens
+        - Preserve the user type when revoking roles so a DB user and an OIDC user with the same ID can be managed independently
+        - Return ``None`` instead of a year-one timestamp for unset DB user creation times and unset backup or export completion times
+        - Accept non-list sequences such as tuples as filter values, and preserve single-component array and tensor vectors as lists instead of converting them to scalars
+        - Request top occurrences in text aggregations when ``top_occurrences_value=True``, even if occurrence counts were not requested
+        - Stop leaving references queued behind a failed object in streaming batches
+        - Warn when a property sets ``skip_vectorization`` with ``vector_config``, where it has no effect. Use the vector's ``source_properties`` instead
+        - Include the existing data path in embedded startup timeout errors when reusing data created on another HTTP port may be the cause
 
 Version 4.24.1
 --------------
