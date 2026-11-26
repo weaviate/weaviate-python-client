@@ -108,7 +108,7 @@ def test_near_text_accepts_vector_index_params(collection_factory: CollectionFac
 
 
 def test_ef_above_server_cap_is_rejected(collection_factory: CollectionFactory) -> None:
-    # HNSW_MAX_SEARCH_EF defaults to QUERY_MAXIMUM_RESULTS (10000); the server answers
+    # HNSW_MAX_SEARCH_EF defaults to 10000; the server answers
     # InvalidArgument, which the client surfaces as a query error rather than truncating.
     collection = _hnsw_collection(collection_factory, n=5)
     with pytest.raises(WeaviateQueryError) as exc:

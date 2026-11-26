@@ -320,7 +320,7 @@ class VectorIndexParams:
         Args:
             ef: Layer-0 beam width for this request. The server uses ``max(ef, limit)``, so a small
                 value never truncates the results, and rejects values above its
-                ``HNSW_MAX_SEARCH_EF`` cap (``QUERY_MAXIMUM_RESULTS``, 10000 by default) with
+                ``HNSW_MAX_SEARCH_EF`` cap (10000 by default) with
                 ``WeaviateQueryError``. ``None`` or ``0`` keeps the collection's ``ef``.
             filter_strategy: ``VectorFilterStrategy`` for the filtered graph walk of this request.
                 ``None`` keeps the collection's ``filterStrategy``; it has no effect without a filter.
