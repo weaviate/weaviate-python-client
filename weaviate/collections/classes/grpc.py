@@ -2,7 +2,6 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from typing import (
-    Any,
     Dict,
     Generic,
     List,
@@ -24,7 +23,6 @@ from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_search_pb2
 from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, NUMBER, UUID
-from weaviate.util import _ServerVersion
 
 
 class HybridFusion(str, BaseEnum):
@@ -72,14 +70,6 @@ class Move:
     @property
     def _concepts_list(self) -> Optional[List[str]]:
         return self.__concepts
-
-    def _to_gql_payload(self) -> dict:
-        payload: dict = {"force": self.force}
-        if self.__objects is not None:
-            payload["objects"] = [{"id": obj} for obj in self.__objects]
-        if self.__concepts is not None:
-            payload["concepts"] = self.__concepts
-        return payload
 
 
 class MetadataQuery(_WeaviateInput):
@@ -653,8 +643,7 @@ class Diversity:
 
 @dataclass
 class BM25OperatorOptions:
-    # replace with ClassVar[base_search_pb2.SearchOperatorOptions.Operator] once python 3.10 is removed
-    operator: ClassVar[Any]
+    operator: ClassVar[base_search_pb2.SearchOperatorOptions.Operator]
 
 
 @dataclass
@@ -833,7 +822,7 @@ class _MultiTargetVectorJoin:
     target_vectors: List[str]
     weights: Optional[Dict[str, Union[float, List[float]]]] = None
 
-    def to_grpc_target_vector(self, version: _ServerVersion) -> base_search_pb2.Targets:
+    def to_grpc_target_vector(self) -> base_search_pb2.Targets:
         combination = self.combination
         if combination == _MultiTargetVectorJoinEnum.AVERAGE:
             combination_grpc = base_search_pb2.COMBINATION_METHOD_TYPE_AVERAGE

@@ -19,7 +19,6 @@ Subpackages
    weaviate.collections
    weaviate.connect
    weaviate.debug
-   weaviate.gql
    weaviate.outputs
    weaviate.rbac
    weaviate.users

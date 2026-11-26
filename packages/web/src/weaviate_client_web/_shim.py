@@ -10,7 +10,7 @@ import types
 from typing import Any, Optional
 
 # grpc.__version__ under the shim; kept equal to weaviate.proto.v1._GRPCIO_FALLBACK_VERSION.
-FAKE_GRPC_VERSION = "1.72.1"
+FAKE_GRPC_VERSION = "1.83.0"
 
 _SHIM_MARKER = "__weaviate_client_web_shim__"
 

@@ -15,7 +15,7 @@ Welcome to Weaviate Python Client's documentation!
 
 |build-status| |pypi-version|
 
-The Weaviate Python client makes it easy to work with `Weaviate <https://weaviate.io/>`_, an AI Native vector database. The client is tested for Python 3.8 and higher.
+The Weaviate Python client makes it easy to work with `Weaviate <https://weaviate.io/>`_, an AI Native vector database. The client is tested for Python 3.11 and higher.
 
 The current major version is **v4** while the older **v3** client is deprecated and should be avoided. You can find further documentation for both versions:
 

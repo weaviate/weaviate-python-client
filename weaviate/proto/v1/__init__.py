@@ -16,9 +16,10 @@ from importlib.metadata import PackageNotFoundError, version as metadata_version
 
 from weaviate.exceptions import WeaviateProtobufIncompatibility
 
-# grpcio version assumed under Emscripten, where weaviate-client-web provides grpc; must be
-# >= 1.72.0, or the protobuf >= 6.30 check below raises.
-_GRPCIO_FALLBACK_VERSION = "1.72.1"
+# grpcio version assumed under Emscripten, where weaviate-client-web provides grpc. The shim's
+# stub version check always passes, so this only steers the selector below: 1.83.0 picks v7351
+# on protobuf 7.35.1+, and anything under 1.72.0 raises on protobuf 6.30+.
+_GRPCIO_FALLBACK_VERSION = "1.83.0"
 
 def get_version(pkg: str) -> version.Version:
     try:
@@ -29,7 +30,12 @@ def get_version(pkg: str) -> version.Version:
         raise
 
 pb_version, grpc_version = get_version("protobuf"), get_version("grpcio")
-if pb_version >= version.parse("6.30.0"):
+# The v7351 stubs refuse grpcio < 1.83.0, the grpcio-tools version that generated them. Every
+# other protobuf 7 (7.34.x, or 7.35.1+ on an older grpcio) falls through to the v6300 gencode,
+# which a protobuf 7 runtime still accepts.
+if pb_version >= version.parse("7.35.1") and grpc_version >= version.parse("1.83.0"):
+    from weaviate.proto.v1.v7351.v1 import weaviate_pb2_grpc, aggregate_pb2, base_pb2, base_search_pb2, batch_delete_pb2, batch_pb2, generative_pb2, health_weaviate_pb2, health_weaviate_pb2_grpc, properties_pb2, search_get_pb2, tenants_pb2
+elif pb_version >= version.parse("6.30.0"):
     if grpc_version < version.parse("1.72.0"):
         raise WeaviateProtobufIncompatibility(pb_version, grpc_version)
     from weaviate.proto.v1.v6300.v1 import weaviate_pb2_grpc, aggregate_pb2, base_pb2, base_search_pb2, batch_delete_pb2, batch_pb2, generative_pb2, health_weaviate_pb2, health_weaviate_pb2_grpc, properties_pb2, search_get_pb2, tenants_pb2

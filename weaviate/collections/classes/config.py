@@ -267,6 +267,8 @@ class Rerankers(str, BaseEnum):
         VOYAGEAI: Weaviate module backed by VoyageAI reranking models.
         JINAAI: Weaviate module backed by JinaAI reranking models.
         NVIDIA: Weaviate module backed by NVIDIA reranking models.
+        TYPESAFEAI: Weaviate module backed by TypeSafe AI decision models.
+        OPENAI: Weaviate module backed by OpenAI decision models.
     """
 
     NONE = "none"
@@ -276,6 +278,8 @@ class Rerankers(str, BaseEnum):
     VOYAGEAI = "reranker-voyageai"
     JINAAI = "reranker-jinaai"
     NVIDIA = "reranker-nvidia"
+    TYPESAFEAI = "reranker-typesafeai"
+    OPENAI = "reranker-openai"
 
 
 class StopwordsPreset(str, BaseEnum):
@@ -724,6 +728,34 @@ class _RerankerVoyageAIConfig(RerankerProvider):
 class _RerankerNvidiaConfig(RerankerProvider):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.NVIDIA, frozen=True, exclude=True
+    )
+    model: Optional[str] = Field(default=None)
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _RerankerTypeSafeAIConfig(RerankerProvider):
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.TYPESAFEAI, frozen=True, exclude=True
+    )
+    model: Optional[str] = Field(default=None)
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _RerankerOpenAIConfig(RerankerProvider):
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.OPENAI, frozen=True, exclude=True
     )
     model: Optional[str] = Field(default=None)
     baseURL: Optional[AnyHttpUrl]
@@ -1542,6 +1574,38 @@ class _Reranker:
         return _RerankerNvidiaConfig(model=model, baseURL=base_url)
 
     @staticmethod
+    def typesafeai(
+        model: Optional[str] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> RerankerProvider:
+        """Create a `_RerankerTypeSafeAIConfig` object for use when reranking using the `reranker-typesafeai` module.
+
+        The rerank query is a condition that the model judges about each object, for example
+        "The customer is about to churn". `rerank_score` is the probability that the condition holds.
+
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default (`jev-latest`).
+            base_url: The host to send the reranker requests to, without a path: the server appends `/v1/systemone`. Defaults to `None`, which uses the server-defined default (`https://api.typesafe.ai`).
+        """
+        return _RerankerTypeSafeAIConfig(model=model, baseURL=base_url)
+
+    @staticmethod
+    def openai(
+        model: Optional[str] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> RerankerProvider:
+        """Create a `_RerankerOpenAIConfig` object for use when reranking using the `reranker-openai` module.
+
+        The rerank query is a condition that the model judges about each object, for example
+        "The customer is about to churn". `rerank_score` is the probability that the condition holds.
+
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default (`gpt-6-luna`).
+            base_url: The host to send the reranker requests to, without a path: the server appends `/v1/decisions`, so a URL ending in `/v1` fails. Defaults to `None`, which uses the server-defined default (`https://api.openai.com`).
+        """
+        return _RerankerOpenAIConfig(model=model, baseURL=base_url)
+
+    @staticmethod
     def contextualai(
         model: Optional[str] = None,
         instruction: Optional[str] = None,
@@ -2016,6 +2080,8 @@ class _PQConfig(_ConfigBase):
     centroids: int
     training_limit: int
     encoder: PQEncoderConfig
+    rescore_limit: Optional[int]
+    rescore_factor: Optional[float]
 
     @property
     def bit_compression(self) -> bool:
@@ -2030,11 +2096,13 @@ PQConfig = _PQConfig
 class _BQConfig(_ConfigBase):
     cache: Optional[bool]
     rescore_limit: int
+    rescore_factor: Optional[float]
 
 
 @dataclass
 class _SQConfig(_ConfigBase):
     rescore_limit: int
+    rescore_factor: Optional[float]
     training_limit: int
 
 
@@ -2043,6 +2111,7 @@ class _RQConfig(_ConfigBase):
     cache: Optional[bool]
     bits: Optional[int]
     rescore_limit: int
+    rescore_factor: Optional[float]
     centering: Optional[bool]
     training_limit: Optional[int]
 
@@ -3056,6 +3125,8 @@ class _VectorIndexQuantizerUpdate:
         segments: Optional[int] = None,
         training_limit: Optional[int] = None,
         enabled: bool = True,
+        rescore_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _PQConfigUpdate:
         """Create a `_PQConfigUpdate` object to be used when updating the product quantization (PQ) configuration of Weaviate.
 
@@ -3077,10 +3148,16 @@ class _VectorIndexQuantizerUpdate:
                 if encoder_type is not None or encoder_distribution is not None
                 else None
             ),
+            rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
         )
 
     @staticmethod
-    def bq(rescore_limit: Optional[int] = None, enabled: bool = True) -> _BQConfigUpdate:
+    def bq(
+        rescore_limit: Optional[int] = None,
+        enabled: bool = True,
+        rescore_factor: Optional[float] = None,
+    ) -> _BQConfigUpdate:
         """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
@@ -3088,13 +3165,16 @@ class _VectorIndexQuantizerUpdate:
         Args:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _BQConfigUpdate(rescoreLimit=rescore_limit, enabled=enabled)
+        return _BQConfigUpdate(
+            rescoreLimit=rescore_limit, rescoreFactor=rescore_factor, enabled=enabled
+        )
 
     @staticmethod
     def sq(
         rescore_limit: Optional[int] = None,
         training_limit: Optional[int] = None,
         enabled: bool = True,
+        rescore_factor: Optional[float] = None,
     ) -> _SQConfigUpdate:
         """Create a `_SQConfigUpdate` object to be used when updating the scalar quantization (SQ) configuration of Weaviate.
 
@@ -3104,7 +3184,10 @@ class _VectorIndexQuantizerUpdate:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _SQConfigUpdate(
-            enabled=enabled, rescoreLimit=rescore_limit, trainingLimit=training_limit
+            enabled=enabled,
+            rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
+            trainingLimit=training_limit,
         )
 
     @staticmethod
@@ -3114,6 +3197,7 @@ class _VectorIndexQuantizerUpdate:
         bits: Optional[int] = None,
         centering: Optional[bool] = None,
         training_limit: Optional[int] = None,
+        rescore_factor: Optional[float] = None,
     ) -> _RQConfigUpdate:
         """Create a `_RQConfigUpdate` object to be used when updating the Rotational quantization (RQ) configuration of Weaviate.
 
@@ -3125,6 +3209,7 @@ class _VectorIndexQuantizerUpdate:
         return _RQConfigUpdate(
             enabled=enabled,
             rescoreLimit=rescore_limit,
+            rescoreFactor=rescore_factor,
             bits=bits,
             centering=centering,
             trainingLimit=training_limit,

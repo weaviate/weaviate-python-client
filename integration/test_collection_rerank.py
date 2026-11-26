@@ -7,26 +7,6 @@ import weaviate.classes as wvc
 from .conftest import CollectionFactory
 
 
-def test_query_using_rerank_with_old_server(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        reranker_config=wvc.config.Configure.Reranker.custom("reranker-dummy"),
-        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
-        properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
-    )
-    if collection._connection._weaviate_version.is_at_least(1, 23, 1):
-        pytest.skip("Reranking works with 1.23.1 or higher so no need to test this")
-
-    collection.data.insert_many([{"text": "This is a test"}, {"text": "This is another test"}])
-
-    with pytest.warns(UserWarning):
-        objs = collection.query.bm25(
-            "test", rerank=wvc.query.Rerank(prop="text", query="another")
-        ).objects
-        assert len(objs) == 2
-        assert objs[0].metadata.rerank_score is None
-        assert objs[1].metadata.rerank_score is None
-
-
 def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
     api_key = os.environ.get("COHERE_APIKEY")
     if api_key is None:
@@ -40,8 +20,6 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
         headers={"X-Cohere-Api-Key": api_key},
         ports=(8086, 50057),
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
-        pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
     insert = collection.data.insert_many(
         [{"text": "This is a test"}, {"text": "This is another test"}]
@@ -96,8 +74,6 @@ def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory)
         headers={"X-Cohere-Api-Key": api_key},
         ports=(8086, 50057),
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
-        pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
     insert = collection.data.insert_many(
         [{"text": "This is a test"}, {"text": "This is another test"}]
@@ -157,8 +133,6 @@ def test_queries_with_rerank_contextualai(collection_factory: CollectionFactory)
         headers={"X-Contextual-Api-Key": api_key},
         ports=(8086, 50057),
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 23, 1):
-        pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
     insert = collection.data.insert_many(
         [{"text": "This is a test"}, {"text": "This is another test"}]

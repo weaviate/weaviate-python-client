@@ -20,10 +20,10 @@ from weaviate.collections.collection.async_ import CollectionAsync
 
 
 def get_file_path(file_name: str) -> str:
-    if not os.path.exists(file_name) and not os.path.exists("profiling/" + file_name):
+    if not os.path.exists(file_name) and not os.path.exists("profiling_tests/" + file_name):
         pytest.skip("data does not exist")
-    if os.path.exists("profiling/" + file_name):
-        file_name = "profiling/" + file_name
+    if os.path.exists("profiling_tests/" + file_name):
+        file_name = "profiling_tests/" + file_name
     return file_name
 
 

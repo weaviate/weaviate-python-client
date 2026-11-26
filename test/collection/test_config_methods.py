@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 import pytest
 
 from weaviate.collections.classes.config import (
+    Rerankers,
     VectorIndexType,
     _MultiVectorConfig,
     _MuveraConfig,
@@ -507,3 +508,52 @@ def test_collection_config_stopword_presets_absent() -> None:
     schema = _full_schema("TestNoStopwordPresets")
     full = _collection_config_from_json(schema)
     assert full.inverted_index_config.stopword_presets is None
+
+
+@pytest.mark.parametrize("rescore_factor", [None, -1, 2.5])
+def test_collection_config_from_json_quantizer_rescore_factor(
+    rescore_factor: Optional[float],
+) -> None:
+    index_config = dict(HFRESH_CONFIG)
+    if rescore_factor is not None:
+        index_config["rq"] = {**HFRESH_CONFIG["rq"], "rescoreFactor": rescore_factor}
+    schema = _schema_with_vector_config(
+        {
+            "vec": {
+                "vectorizer": {"none": {}},
+                "vectorIndexType": "hfresh",
+                "vectorIndexConfig": index_config,
+            }
+        }
+    )
+
+    config = _collection_config_from_json(schema)
+
+    assert config.vector_config is not None
+    quantizer = config.vector_config["vec"].vector_index_config.quantizer
+    assert quantizer is not None
+    assert quantizer.rescore_limit == 350
+    assert quantizer.rescore_factor == rescore_factor
+
+
+@pytest.mark.parametrize(
+    "parser", [_collection_config_from_json, _collection_config_simple_from_json]
+)
+@pytest.mark.parametrize(
+    "module,expected,model",
+    [
+        ("reranker-typesafeai", Rerankers.TYPESAFEAI, "jev-latest"),
+        ("reranker-openai", Rerankers.OPENAI, "gpt-6-luna"),
+    ],
+)
+def test_collection_config_from_json_with_decision_rerankers(
+    parser: Any, module: str, expected: Rerankers, model: str
+) -> None:
+    """The typesafeai and openai reranker modules parse to their `Rerankers` member and keep the model."""
+    schema = _full_schema("TestDecisionRerankers")
+    schema["moduleConfig"] = {module: {"model": model}}
+
+    parsed = parser(schema)
+
+    assert parsed.reranker_config.reranker is expected
+    assert parsed.reranker_config.model == {"model": model}
