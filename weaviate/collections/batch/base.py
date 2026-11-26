@@ -706,19 +706,25 @@ class _BatchBase:
 
                 self.__batch_objects.prepend(readd_objects)
 
+                readded_set = set(readded_objects)
                 new_errors = {
-                    i: err for i, err in response_obj.errors.items() if i not in readded_objects
+                    i: err for i, err in response_obj.errors.items() if i not in readded_set
+                }
+                # `errors` is keyed by the object's original index while
+                # `all_responses` is ordered by the object's position in this
+                # request, so map the re-added objects to positions first.
+                readded_indices = {response_obj.errors[i].object_.index for i in readded_set}
+                readded_positions = {
+                    pos for pos, obj in enumerate(objs) if obj.index in readded_indices
                 }
                 response_obj = BatchObjectReturn(
-                    uuids={
-                        i: uid for i, uid in response_obj.uuids.items() if i not in readded_objects
-                    },
+                    uuids={i: uid for i, uid in response_obj.uuids.items() if i not in readded_set},
                     errors=new_errors,
                     has_errors=len(new_errors) > 0,
                     _all_responses=[
-                        err
-                        for i, err in enumerate(response_obj.all_responses)
-                        if i not in readded_objects
+                        resp
+                        for pos, resp in enumerate(response_obj._all_responses)
+                        if pos not in readded_positions
                     ],
                     elapsed_seconds=response_obj.elapsed_seconds,
                 )
