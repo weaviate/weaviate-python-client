@@ -34,8 +34,6 @@ def _builder(
         tenant=None,
         consistency_level=None,
         validate_arguments=validate_arguments,
-        uses_125_api=True,
-        uses_127_api=True,
     )
 
 

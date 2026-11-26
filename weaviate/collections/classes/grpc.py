@@ -2,6 +2,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from typing import (
+    Any,
     Dict,
     Generic,
     List,
@@ -262,8 +263,10 @@ class Rerank(_WeaviateInput):
 
 
 class _VectorIndexParams(_WeaviateInput):
-    """The per-request vector index knobs as sent on the wire; build one with
-    ``VectorIndexParams.hnsw()`` or ``VectorIndexParams.hfresh()``."""
+    """The per-request vector index knobs as sent on the wire.
+
+    Build one with ``VectorIndexParams.hnsw()`` or ``VectorIndexParams.hfresh()``.
+    """
 
     # Validate on assignment too, so a bad value fails where it is set rather than at query time.
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
