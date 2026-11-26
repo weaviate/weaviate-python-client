@@ -271,22 +271,9 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
-class VectorSearchParams(_WeaviateInput):
-    """Per-request tuning of the vector index search.
-
-    Overrides the collection's vector index settings for one query only. One object covers every
-    index type and each index reads the fields it knows: ``ef`` and ``filter_strategy`` apply to
-    HNSW (and to the HNSW stage of a dynamic index), ``search_probe`` to HFresh; a flat index ignores
-    all of them. ``None`` keeps the collection's configured value. Build it with ``hnsw()`` or
-    ``hfresh()``.
-
-    Pass one instance to ``vector_search_params`` to apply it to every target vector, or a mapping
-    ``{target_vector_name: VectorSearchParams}`` to tune the targets of a multi-target search
-    separately; targets missing from the mapping keep the collection's configuration.
-
-    Requires Weaviate >= 1.42.0; on older servers the client raises
-    ``WeaviateUnsupportedFeatureError`` before sending the request.
-    """
+class _VectorSearchParams(_WeaviateInput):
+    """The per-request vector index knobs as sent on the wire; build one with
+    ``VectorSearchParams.hnsw()`` or ``VectorSearchParams.hfresh()``."""
 
     # Validate on assignment too, so a bad value fails where it is set rather than at query time.
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
@@ -295,13 +282,39 @@ class VectorSearchParams(_WeaviateInput):
     search_probe: Optional[int] = Field(default=None, ge=0, le=2**32 - 1, strict=True)
     filter_strategy: Optional[VectorFilterStrategy] = Field(default=None)
 
-    @classmethod
+
+VectorSearchParamsReturn: TypeAlias = _VectorSearchParams
+"""What ``VectorSearchParams.hnsw()`` and ``VectorSearchParams.hfresh()`` return; the type of ``vector_index_params``."""
+
+
+class VectorSearchParams:
+    """Per-request tuning of the vector index search, passed as ``vector_index_params``.
+
+    Overrides the collection's vector index settings for one query only. Build the params with the
+    constructor named after the collection's index type: ``hnsw()`` for an HNSW index (and for the
+    HNSW stage of a dynamic index), ``hfresh()`` for an HFresh index; a flat index has no per-request
+    knobs. ``None`` keeps the collection's configured value.
+
+    Pass one object to ``vector_index_params`` to apply it to every target vector, or a mapping
+    ``{target_vector_name: params}`` to tune the targets of a multi-target search separately;
+    targets missing from the mapping keep the collection's configuration.
+
+    Requires Weaviate >= 1.42.0; on older servers the client raises
+    ``WeaviateUnsupportedFeatureError`` before sending the request.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        raise TypeError(
+            "VectorSearchParams cannot be instantiated. "
+            "Use VectorSearchParams.hnsw(...) or VectorSearchParams.hfresh(...)."
+        )
+
+    @staticmethod
     def hnsw(
-        cls,
         *,
         ef: Optional[int] = None,
         filter_strategy: Optional[VectorFilterStrategy] = None,
-    ) -> "VectorSearchParams":
+    ) -> VectorSearchParamsReturn:
         """Params for an HNSW index (or the HNSW stage of a dynamic index).
 
         Args:
@@ -312,10 +325,10 @@ class VectorSearchParams(_WeaviateInput):
             filter_strategy: ``VectorFilterStrategy`` for the filtered graph walk of this request.
                 ``None`` keeps the collection's ``filterStrategy``; it has no effect without a filter.
         """
-        return cls(ef=ef, filter_strategy=filter_strategy)
+        return _VectorSearchParams(ef=ef, filter_strategy=filter_strategy)
 
-    @classmethod
-    def hfresh(cls, *, search_probe: Optional[int] = None) -> "VectorSearchParams":
+    @staticmethod
+    def hfresh(*, search_probe: Optional[int] = None) -> VectorSearchParamsReturn:
         """Params for an HFresh index.
 
         Args:
@@ -324,11 +337,11 @@ class VectorSearchParams(_WeaviateInput):
                 ``HFRESH_MAX_SEARCH_PROBE`` cap with ``WeaviateQueryError``. ``None`` or ``0`` keeps
                 the collection's ``searchProbe``.
         """
-        return cls(search_probe=search_probe)
+        return _VectorSearchParams(search_probe=search_probe)
 
 
-VectorSearchParamsType = Union[VectorSearchParams, Mapping[str, VectorSearchParams]]
-"""Either one ``VectorSearchParams`` for every target vector or a mapping from target vector name to its params."""
+VectorSearchParamsType = Union[VectorSearchParamsReturn, Mapping[str, VectorSearchParamsReturn]]
+"""Either one params object for every target vector or a mapping from target vector name to its params."""
 
 
 @dataclass

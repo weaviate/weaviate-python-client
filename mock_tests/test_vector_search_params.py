@@ -1,11 +1,11 @@
-"""``vector_search_params`` reaches the wire through the public collection API.
+"""``vector_index_params`` reaches the wire through the public collection API.
 
 The unit tests in ``test/collection/test_vector_search_params.py`` cover the request builder;
 these go through ``collection.query`` / ``collection.generate`` against a gRPC server stub that
 records the ``SearchRequest`` it receives.
 """
 
-from typing import Generator, List, Tuple
+from typing import Callable, Generator, List, Tuple
 
 import grpc
 import pytest
@@ -13,7 +13,9 @@ from pytest_httpserver import HTTPServer
 
 import weaviate
 from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
-from weaviate.classes.query import HybridVector, VectorSearchParams
+from weaviate.classes.config import VectorFilterStrategy
+from weaviate.classes.query import HybridVector, NearMediaType, VectorSearchParams
+from weaviate.collections.classes.grpc import VectorSearchParamsReturn
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.proto.v1 import search_get_pb2, weaviate_pb2_grpc
 
@@ -56,7 +58,7 @@ def test_query_near_vector_sends_ef(
     capture_collection: Tuple[weaviate.collections.Collection, _SearchRequestCapture],
 ) -> None:
     collection, service = capture_collection
-    collection.query.near_vector([1.0, 0.0], vector_search_params=VectorSearchParams(ef=128))
+    collection.query.near_vector([1.0, 0.0], vector_index_params=VectorSearchParams.hnsw(ef=128))
 
     (req,) = service.requests
     assert req.HasField("vector_search_params")
@@ -80,7 +82,7 @@ def test_query_hybrid_sends_ef(
     collection.query.hybrid(
         "cats",
         vector=HybridVector.near_vector([1.0, 0.0]),
-        vector_search_params=VectorSearchParams(ef=32),
+        vector_index_params=VectorSearchParams.hnsw(ef=32),
     )
 
     (req,) = service.requests
@@ -95,7 +97,7 @@ def test_generate_near_object_sends_ef(
     collection.generate.near_object(
         "00000000-0000-0000-0000-000000000001",
         single_prompt="Say hi to {name}",
-        vector_search_params=VectorSearchParams(ef=16),
+        vector_index_params=VectorSearchParams.hnsw(ef=16),
     )
 
     (req,) = service.requests
@@ -103,18 +105,20 @@ def test_generate_near_object_sends_ef(
     assert req.vector_search_params.ef == 16
 
 
-def test_query_near_vector_sends_every_knob(
+def test_query_near_vector_sends_every_hnsw_knob(
     capture_collection: Tuple[weaviate.collections.Collection, _SearchRequestCapture],
 ) -> None:
     collection, service = capture_collection
     collection.query.near_vector(
         [1.0, 0.0],
-        vector_search_params=VectorSearchParams(ef=64, search_probe=8, filter_strategy="acorn"),
+        vector_index_params=VectorSearchParams.hnsw(
+            ef=64, filter_strategy=VectorFilterStrategy.ACORN
+        ),
     )
 
     (req,) = service.requests
     assert req.vector_search_params.ef == 64
-    assert req.vector_search_params.search_probe == 8
+    assert not req.vector_search_params.HasField("search_probe")
     assert req.vector_search_params.filter_strategy == search_get_pb2.FILTER_STRATEGY_ACORN
     assert len(req.vector_search_params_for_targets) == 0
 
@@ -126,8 +130,8 @@ def test_query_near_vector_mapping_sends_per_target_entries(
     collection.query.near_vector(
         [1.0, 0.0],
         target_vector=["title", "body"],
-        vector_search_params={
-            "title": VectorSearchParams.hnsw(ef=16, filter_strategy="pathseer"),
+        vector_index_params={
+            "title": VectorSearchParams.hnsw(ef=16, filter_strategy=VectorFilterStrategy.PATHSEER),
             "body": VectorSearchParams.hfresh(search_probe=4),
         },
     )
@@ -151,7 +155,7 @@ def test_generate_hybrid_mapping_sends_per_target_entries(
         vector=HybridVector.near_vector([1.0, 0.0]),
         target_vector=["title"],
         single_prompt="Say hi to {name}",
-        vector_search_params={"title": VectorSearchParams(ef=24)},
+        vector_index_params={"title": VectorSearchParams.hnsw(ef=24)},
     )
 
     (req,) = service.requests
@@ -160,6 +164,61 @@ def test_generate_hybrid_mapping_sends_per_target_entries(
     (entry,) = req.vector_search_params_for_targets
     assert entry.target == "title"
     assert entry.params.ef == 24
+
+
+_UUID = "00000000-0000-0000-0000-000000000001"
+_PROMPT = "Say hi to {name}"
+
+# Every public entry point that accepts the option, so a dropped kwarg in one executor forward
+# cannot pass unnoticed.
+_ENTRY_POINTS: dict[
+    str, Callable[[weaviate.collections.Collection, VectorSearchParamsReturn], object]
+] = {
+    "query.near_vector": lambda c, p: c.query.near_vector([1.0, 0.0], vector_index_params=p),
+    "query.near_object": lambda c, p: c.query.near_object(_UUID, vector_index_params=p),
+    "query.near_text": lambda c, p: c.query.near_text("cats", vector_index_params=p),
+    "query.near_image": lambda c, p: c.query.near_image("YWJj", vector_index_params=p),
+    "query.near_media": lambda c, p: c.query.near_media(
+        "YWJj", NearMediaType.IMAGE, vector_index_params=p
+    ),
+    "query.hybrid": lambda c, p: c.query.hybrid(
+        "cats", vector=HybridVector.near_vector([1.0, 0.0]), vector_index_params=p
+    ),
+    "generate.near_vector": lambda c, p: c.generate.near_vector(
+        [1.0, 0.0], single_prompt=_PROMPT, vector_index_params=p
+    ),
+    "generate.near_object": lambda c, p: c.generate.near_object(
+        _UUID, single_prompt=_PROMPT, vector_index_params=p
+    ),
+    "generate.near_text": lambda c, p: c.generate.near_text(
+        "cats", single_prompt=_PROMPT, vector_index_params=p
+    ),
+    "generate.near_image": lambda c, p: c.generate.near_image(
+        "YWJj", single_prompt=_PROMPT, vector_index_params=p
+    ),
+    "generate.near_media": lambda c, p: c.generate.near_media(
+        "YWJj", NearMediaType.IMAGE, single_prompt=_PROMPT, vector_index_params=p
+    ),
+    "generate.hybrid": lambda c, p: c.generate.hybrid(
+        "cats",
+        vector=HybridVector.near_vector([1.0, 0.0]),
+        single_prompt=_PROMPT,
+        vector_index_params=p,
+    ),
+}
+
+
+@pytest.mark.parametrize("entry_point", list(_ENTRY_POINTS), ids=list(_ENTRY_POINTS))
+def test_every_entry_point_forwards_the_option(
+    capture_collection: Tuple[weaviate.collections.Collection, _SearchRequestCapture],
+    entry_point: str,
+) -> None:
+    collection, service = capture_collection
+    _ENTRY_POINTS[entry_point](collection, VectorSearchParams.hnsw(ef=48))
+
+    (req,) = service.requests
+    assert req.HasField("vector_search_params"), entry_point
+    assert req.vector_search_params.ef == 48
 
 
 def test_old_server_rejected_before_any_request(
@@ -171,7 +230,9 @@ def test_old_server_rejected_before_any_request(
     collection = weaviate_client.collections.use("VectorSearchParamsCollection")
 
     with pytest.raises(WeaviateUnsupportedFeatureError):
-        collection.query.near_vector([1.0, 0.0], vector_search_params=VectorSearchParams(ef=128))
+        collection.query.near_vector(
+            [1.0, 0.0], vector_index_params=VectorSearchParams.hnsw(ef=128)
+        )
     assert service.requests == []
 
     # Without the option the same client still searches.

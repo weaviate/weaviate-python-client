@@ -63,7 +63,7 @@ class _NearMediaQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
     @overload
@@ -87,7 +87,7 @@ class _NearMediaQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -111,7 +111,7 @@ class _NearMediaQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
     @overload
@@ -135,7 +135,7 @@ class _NearMediaQueryExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[QueryReturn[TProperties, References]]: ...
 
     @overload
@@ -159,7 +159,7 @@ class _NearMediaQueryExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[QueryReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -183,7 +183,7 @@ class _NearMediaQueryExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[QueryReturn[TProperties, TReferences]]: ...
 
     ### GroupBy ###
@@ -209,7 +209,7 @@ class _NearMediaQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GroupByReturn[Properties, References]]: ...
 
     @overload
@@ -233,7 +233,7 @@ class _NearMediaQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -257,7 +257,7 @@ class _NearMediaQueryExecutor(
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GroupByReturn[Properties, TReferences]]: ...
 
     @overload
@@ -281,7 +281,7 @@ class _NearMediaQueryExecutor(
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GroupByReturn[TProperties, References]]: ...
 
     @overload
@@ -305,7 +305,7 @@ class _NearMediaQueryExecutor(
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GroupByReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -329,7 +329,7 @@ class _NearMediaQueryExecutor(
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[GroupByReturn[TProperties, TReferences]]: ...
 
     ### DEFAULT ###
@@ -354,7 +354,7 @@ class _NearMediaQueryExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[
         QuerySearchReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -379,7 +379,7 @@ class _NearMediaQueryExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         diversity_selection: Optional[MMR] = None,
-        vector_search_params: Optional[VectorSearchParamsType] = None,
+        vector_index_params: Optional[VectorSearchParamsType] = None,
     ) -> executor.Result[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
         """Search for objects by audio in this collection using an audio-capable vectorization module and vector-based similarity search.
 
@@ -406,7 +406,7 @@ class _NearMediaQueryExecutor(
             return_properties: The properties to return for each object.
             return_references: The references to return for each object.
             diversity_selection: Apply diversity selection (e.g. MMR) to the results. Requires Weaviate >= 1.37.0.
-            vector_search_params: Per-request vector index tuning. A single ``VectorSearchParams`` (e.g. ``VectorSearchParams.hnsw(ef=...)``) applies to every target vector; a mapping ``{target_vector_name: VectorSearchParams}`` tunes each target of a multi-target search separately; each entry overrides only the fields it sets and cannot unset a value. See ``VectorSearchParams`` for the field semantics. Each index honours only the knobs it knows (HNSW: ``ef``, ``filter_strategy``; HFresh: ``search_probe``; flat: none). Requires Weaviate >= 1.42.0.
+            vector_index_params: Per-request vector index tuning built with ``VectorSearchParams.hnsw(...)`` or ``VectorSearchParams.hfresh(...)``, applied to every target vector; a mapping ``{target_vector_name: params}`` tunes each target of a multi-target search separately and leaves the others on the collection's configuration. Each index honours only the knobs it knows. Requires Weaviate >= 1.42.0.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -449,7 +449,7 @@ class _NearMediaQueryExecutor(
             group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
             diversity_selection=diversity_selection,
-            vector_search_params=vector_search_params,
+            vector_index_params=vector_index_params,
             boost=boost,
             target_vector=target_vector,
             limit=limit,

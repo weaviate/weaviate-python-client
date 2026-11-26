@@ -21,6 +21,7 @@ from weaviate.collections.classes.grpc import (
     Sort,
     TargetVectors,
     VectorSearchParams,
+    VectorSearchParamsReturn,
     VectorSearchParamsType,
 )
 from weaviate.collections.classes.types import GeoCoordinate
@@ -48,5 +49,6 @@ __all__ = [
     "Sort",
     "TargetVectors",
     "VectorSearchParams",
+    "VectorSearchParamsReturn",
     "VectorSearchParamsType",
 ]
