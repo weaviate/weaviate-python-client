@@ -70,7 +70,7 @@ pytest mock_tests
 
 To run the integration tests:
 
-1. Ensure that you have Docker installed.
+1. Install Docker with a version of Compose that supports [`include`](https://docs.docker.com/reference/compose-file/include/).
 2. Start the Weaviate instances, changing `WEAVIATE_VERSION` to your Weaviate Docker image target.
 
 ```shell

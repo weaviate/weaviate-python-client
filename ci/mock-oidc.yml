@@ -1,0 +1,19 @@
+services:
+  mock-oidc:
+    build: ./mock-oidc
+    image: weaviate-python-test-oidc:local
+    pull_policy: build
+    environment:
+      MOCK_HOSTNAME: mock-oidc
+    ports:
+      - '127.0.0.1:48001:48001'
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -qO
+        - /dev/null
+        - http://mock-oidc:48001/oidc/.well-known/openid-configuration
+      interval: 2s
+      timeout: 2s
+      retries: 30
