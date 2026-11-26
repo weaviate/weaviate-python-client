@@ -96,10 +96,7 @@ def test_authentication_user_pw(
     if pw is None:
         pytest.skip(f"No login data for {name} found.")
 
-    if scope is not None:
-        auth = wvc.init.Auth.client_password(username=user, password=pw, scope=scope)
-    else:
-        auth = wvc.init.Auth.client_password(username=user, password=pw)
+    auth = wvc.init.Auth.client_password(username=user, password=pw, scope=scope)
 
     with weaviate.connect_to_local(port=port, auth_credentials=auth) as client:
         client.collections.list_all()  # no exception
@@ -172,6 +169,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 
 
 def test_authentication_with_mock_oidc_bearer_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert is_auth_enabled(f"localhost:{WCS_PORT}")
     response = httpx.get("http://127.0.0.1:48003/tokens", params={"subject": "admin-user"})
     response.raise_for_status()
     tokens = response.json()
