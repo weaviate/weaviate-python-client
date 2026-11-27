@@ -1,0 +1,89 @@
+name: Release
+
+# Runs from main, never from the tagged commit, so whoever pushes the tag
+# can't change these checks. PyPI's Trusted Publisher names this file.
+on:
+  workflow_run:
+    workflows: [Main]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  # One job, so a re-run re-checks before it publishes.
+  publish:
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.path == '.github/workflows/main.yaml' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/weaviate-client/
+    permissions:
+      contents: read
+      actions: read     # download the files from the Main run
+      id-token: write   # Trusted Publishing
+    env:
+      # The pusher picks the tag name: pass it via env, never into the script.
+      TAG: ${{ github.event.workflow_run.head_branch }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: The tag points at the tested commit; a final release's commit is on main
+        run: |
+          git fetch --no-tags origin "+refs/tags/${TAG}:refs/tags/${TAG}"
+          sha=$(git rev-parse "refs/tags/${TAG}^{commit}")
+          test "$sha" = "$HEAD_SHA"
+          if [[ $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            git merge-base --is-ancestor "$sha" origin/main
+          fi
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: weaviate-python-client-dist
+          path: dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Only a tag on main publishes a final version
+        # Off main, the tagged commit's own main.yaml built these files, so check the
+        # versions they carry, not only the tag name.
+        run: |
+          final='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          pre='^[0-9]+(\.[0-9]+)*((a|b|rc)[0-9]+|\.dev[0-9]+)$'
+          for f in dist/*; do
+            v=$(basename "$f"); v=${v#*-}; v=${v%%-*}; v=${v%.tar.gz}
+            if [[ $TAG =~ $final ]]; then
+              [[ $v == "${TAG#v}" ]] || { echo "::error::$f is $v, tag is $TAG"; exit 1; }
+            else
+              [[ $v =~ $pre ]] || { echo "::error::$f is $v, not a pre-release"; exit 1; }
+            fi
+          done
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
+
+  gh-release:
+    needs: [publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # create the draft release
+      actions: read     # download the files from the Main run
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: weaviate-python-client-dist
+          path: dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          # github.ref is main here, so name the tag.
+          tag_name: ${{ github.event.workflow_run.head_branch }}
+          generate_release_notes: true
+          draft: true
+          files: dist/*.whl
