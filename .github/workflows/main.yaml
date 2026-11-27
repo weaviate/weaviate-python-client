@@ -17,6 +17,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   WEAVIATE_132: 1.32.27
   WEAVIATE_133: 1.33.18
@@ -349,18 +352,27 @@ jobs:
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
-          cache: 'pip' # caching pip dependencies
-      - name: Install dependencies
-        run: pip install -r requirements-test.txt -r requirements-devel.txt
-      - name: Build binary wheels (base client + grpc-web companion)
+      # release.yaml publishes this job's artifact, so it installs only build.
+      - run: pip install build
+      - name: Build distributions (base client + grpc-web companion)
+        # weaviate-client-web is wheel-only: its version comes from git tags, which an
+        # sdist lacks.
         run: |
           python -m build
           python -m build --wheel --outdir dist packages/web
-      - name: Create Wheel Artifacts
+      - name: Assert both packages carry the same version
+        # weaviate-client-web pins weaviate-client==<own version>; a mismatch leaves the
+        # [grpc-web] extra unresolvable.
+        run: |
+          base=$(basename dist/weaviate_client-*.whl); base=${base#weaviate_client-}; base=${base%%-*}
+          web=$(basename dist/weaviate_client_web-*.whl); web=${web#weaviate_client_web-}; web=${web%%-*}
+          echo "weaviate-client=$base weaviate-client-web=$web"
+          test "$base" = "$web"
+      - name: Upload distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          path: "dist/*.whl"
-          name: weaviate-python-client-wheel
+          path: "dist/*"
+          name: weaviate-python-client-dist
           retention-days: 30
 
   test-package:
@@ -397,10 +409,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: 'pip' # caching pip dependencies
-      - name: Download build artifact to append to release
+      - name: Download the built distributions
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: weaviate-python-client-wheel
+          name: weaviate-python-client-dist
       - run: |
           pip install -r requirements-test.txt  # install test dependencies
           pip install weaviate_client-*.whl
@@ -415,60 +427,3 @@ jobs:
           # The DB user expiration tests skip where it is empty, as on forks.
           WEAVIATE_LICENSE_KEY: ${{ secrets.WEAVIATE_LICENSE_KEY }}
         run: pytest -v -n auto --dist loadgroup integration
-
-  build-and-publish:
-    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    needs: [integration-tests, unit-tests, lint-and-format, type-checking, test-package, proto-test, pyodide-e2e]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-      - name: Set up Python 3.11
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.11"
-          cache: 'pip' # caching pip dependencies
-      - name: Install dependencies
-        run: pip install -r requirements-devel.txt
-      - name: Build distributions (base client + grpc-web companion)
-        # weaviate-client-web is wheel-only: its version comes from git tags, which an
-        # sdist lacks.
-        run: |
-          python -m build
-          python -m build --wheel --outdir dist packages/web
-      - name: Assert both packages carry the same version
-        # weaviate-client-web pins weaviate-client==<own version>; a mismatch leaves the
-        # [grpc-web] extra unresolvable.
-        run: |
-          base=$(basename dist/weaviate_client-*.whl); base=${base#weaviate_client-}; base=${base%%-*}
-          web=$(basename dist/weaviate_client_web-*.whl); web=${web#weaviate_client_web-}; web=${web%%-*}
-          echo "weaviate-client=$base weaviate-client-web=$web"
-          test "$base" = "$web"
-      - name: Publish distributions 📦 to PyPI on new tags
-        if: startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
-        with:
-          verbose: true
-          password: ${{ secrets.PYPI_API_TOKEN }}
-
-  gh-release:
-    name: Create a GitHub Release on new tags
-    if: startsWith(github.ref, 'refs/tags')
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [build-and-publish]
-    steps:
-      - name: Download build artifact to append to release
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: weaviate-python-client-wheel
-          path: dist
-      - name: Release
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-        with:
-          generate_release_notes: true
-          draft: true
-          files: dist/*.whl
