@@ -10,7 +10,7 @@ UUIDS = Union[Sequence[UUID], UUID]
 NUMBER = Union[int, float]
 GEO_COORDINATES = Tuple[float, float]
 VECTORS = Union[Mapping[str, Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]], Sequence[NUMBER]]
-INCLUDE_VECTOR = Union[bool, str, List[str]]
+INCLUDE_VECTOR = Union[bool, str, Sequence[str]]
 BLOB_INPUT = Union[str, Path, BufferedReader]
 
 BEACON = "weaviate://localhost/"
