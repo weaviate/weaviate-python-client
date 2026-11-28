@@ -41,41 +41,53 @@ def test_empty_input_contains_all() -> None:
         wvc.query.Filter.by_property("test").contains_all([])
 
 
-def test_empty_list_equal() -> None:
+@pytest.mark.parametrize("empty_val", [[], ()])
+def test_empty_list_equal(empty_val: Any) -> None:
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
-        wvc.query.Filter.by_property("test").equal([])
+        wvc.query.Filter.by_property("test").equal(empty_val)
 
 
-def test_empty_list_not_equal() -> None:
+@pytest.mark.parametrize("empty_val", [[], ()])
+def test_empty_list_not_equal(empty_val: Any) -> None:
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
-        wvc.query.Filter.by_property("test").not_equal([])
+        wvc.query.Filter.by_property("test").not_equal(empty_val)
 
 
-def test_empty_list_less_than() -> None:
+@pytest.mark.parametrize("empty_val", [[], ()])
+def test_empty_list_less_than(empty_val: Any) -> None:
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
-        wvc.query.Filter.by_property("test").less_than([])
+        wvc.query.Filter.by_property("test").less_than(empty_val)
 
 
-def test_empty_list_less_or_equal() -> None:
+@pytest.mark.parametrize("empty_val", [[], ()])
+def test_empty_list_less_or_equal(empty_val: Any) -> None:
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
-        wvc.query.Filter.by_property("test").less_or_equal([])
+        wvc.query.Filter.by_property("test").less_or_equal(empty_val)
 
 
-def test_empty_list_greater_than() -> None:
+@pytest.mark.parametrize("empty_val", [[], ()])
+def test_empty_list_greater_than(empty_val: Any) -> None:
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
-        wvc.query.Filter.by_property("test").greater_than([])
+        wvc.query.Filter.by_property("test").greater_than(empty_val)
 
 
-def test_empty_list_greater_or_equal() -> None:
+@pytest.mark.parametrize("empty_val", [[], ()])
+def test_empty_list_greater_or_equal(empty_val: Any) -> None:
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
-        wvc.query.Filter.by_property("test").greater_or_equal([])
+        wvc.query.Filter.by_property("test").greater_or_equal(empty_val)
 
 
-def test_empty_list_grpc_conversion() -> None:
+@pytest.mark.parametrize("empty_val", [[], ()])
+def test_empty_list_grpc_conversion(empty_val: Any) -> None:
     """Ensure the gRPC converter raises WeaviateInvalidInputError for empty lists."""
-    fv = _FilterValue(target="test", value=[], operator=_Operator.EQUAL)
+    fv = _FilterValue(target="test", value=empty_val, operator=_Operator.EQUAL)
     with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
         _FilterToGRPC.convert(fv)
+
+
+def test_empty_string_allowed() -> None:
+    f = wvc.query.Filter.by_property("test").equal("")
+    assert f.value == ""
 
 
 def test_filter_lists() -> None:
