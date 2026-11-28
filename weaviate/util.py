@@ -5,10 +5,13 @@ import datetime
 import functools
 import io
 import json
+import math
+import numbers
 import os
 import re
 import uuid as uuid_lib
 import warnings as _warnings
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import quote
@@ -706,6 +709,19 @@ def _decode_json_response_list(
         except (httpx.DecodingError, json.decoder.JSONDecodeError):
             raise ResponseCannotBeDecodedError(location, response)
     raise UnexpectedStatusCodeError(location, response)
+
+
+def _to_python_number(value: Any) -> Any:
+    if isinstance(value, (bool, int, float)):
+        return value
+    if isinstance(value, numbers.Integral):
+        return int(value)
+    if isinstance(value, (numbers.Real, Decimal)):
+        converted = float(value)
+        if not math.isfinite(converted):
+            raise WeaviateInvalidInputError(f"Cannot send non-finite number {value!r} to Weaviate.")
+        return converted
+    return value
 
 
 def _datetime_to_string(value: TIME) -> str:
