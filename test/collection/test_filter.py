@@ -71,6 +71,23 @@ def test_empty_list_greater_or_equal() -> None:
         wvc.query.Filter.by_property("test").greater_or_equal([])
 
 
+@pytest.mark.parametrize(
+    "method",
+    ["equal", "not_equal", "less_than", "less_or_equal", "greater_than", "greater_or_equal"],
+)
+def test_empty_tuple_raises(method: str) -> None:
+    """An empty tuple must be rejected at build time, the same as an empty list."""
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        getattr(wvc.query.Filter.by_property("test"), method)(())
+
+
+def test_empty_string_equal_is_valid() -> None:
+    """Empty strings are valid filter values and must not be rejected as empty sequences."""
+    f = wvc.query.Filter.by_property("test").equal("")
+    assert isinstance(f, _FilterValue)
+    assert f.value == ""
+
+
 def test_empty_list_grpc_conversion() -> None:
     """Ensure the gRPC converter raises WeaviateInvalidInputError for empty lists."""
     fv = _FilterValue(target="test", value=[], operator=_Operator.EQUAL)
