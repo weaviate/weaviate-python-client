@@ -243,6 +243,40 @@ class _BatchDataWrapper:
     imported_shards: Set[Shard] = field(default_factory=set)
 
 
+def _publish_results(collected: _BatchDataWrapper, published: _BatchDataWrapper) -> None:
+    """Copy what a batch has collected onto the wrapper its public accessors read from.
+
+    Snapshots rather than aliases: when a batch is torn down by an interrupt its background
+    workers are still running, and publishing the live containers would hand the user an error
+    list that keeps growing while they inspect it. `BatchObjectReturn.__add__` and
+    `BatchReferenceReturn.__add__` both mutate the left-hand side in place, so the two returns
+    have to be rebuilt rather than reassigned. The errors themselves are shared, not deep
+    copied - nothing ever mutates one.
+
+    Args:
+        collected: The wrapper the batch collects into while it runs.
+        published: The wrapper `batch.failed_objects` and friends read from.
+    """
+    objs, refs = collected.results.objs, collected.results.refs
+    results = BatchResult()
+    results.objs = BatchObjectReturn(
+        _all_responses=list(objs._all_responses),
+        elapsed_seconds=objs.elapsed_seconds,
+        errors=dict(objs.errors),
+        uuids=dict(objs.uuids),
+        has_errors=objs.has_errors,
+    )
+    results.refs = BatchReferenceReturn(
+        elapsed_seconds=refs.elapsed_seconds,
+        errors=dict(refs.errors),
+        has_errors=refs.has_errors,
+    )
+    published.results = results
+    published.failed_objects = list(collected.failed_objects)
+    published.failed_references = list(collected.failed_references)
+    published.imported_shards = set(collected.imported_shards)
+
+
 @dataclass
 class _DynamicBatching:
     pass
@@ -384,22 +418,24 @@ class _BatchBase:
 
     def _shutdown(self) -> None:
         """Shutdown the current batch and wait for all requests to be finished."""
-        self.flush()
+        try:
+            self.flush()
 
-        # we are done, shut bg threads down and end the event loop
-        self.__shut_background_thread_down.set()
-        while self.__bg_threads.is_alive():
-            time.sleep(0.01)
-
-        # copy the results to the public results
-        self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
-        self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
-        self.__results_for_wrapper_backup.failed_references = (
-            self.__results_for_wrapper.failed_references
-        )
-        self.__results_for_wrapper_backup.imported_shards = (
-            self.__results_for_wrapper.imported_shards
-        )
+            # we are done, shut bg threads down and end the event loop
+            self.__shut_background_thread_down.set()
+            while self.__bg_threads.is_alive():
+                time.sleep(0.01)
+        finally:
+            # an interrupt (e.g. Ctrl-C in a notebook) unwinds out of flush() before the line
+            # above, so ask the daemon threads to stop here too: otherwise they keep uploading
+            # the batch the user just aborted, and one pair of them leaks per attempt
+            self.__shut_background_thread_down.set()
+            # publish the results, also when the wait above was cut short by that interrupt:
+            # the errors gathered so far are the only record of what did not make it into
+            # Weaviate, and the batch has already told the user to inspect
+            # `batch.failed_objects` for them
+            with self.__results_lock:
+                _publish_results(self.__results_for_wrapper, self.__results_for_wrapper_backup)
 
     def __batch_send(self) -> None:
         refresh_time: float = 0.01
