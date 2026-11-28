@@ -27,6 +27,7 @@ from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.logger import logger
 from weaviate.types import UUID, VECTORS
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
+from weaviate.warnings import _Warnings
 
 
 class _BatchWrapper:
@@ -517,6 +518,7 @@ Q = TypeVar("Q", bound=Union[BatchClientProtocolAsync, BatchCollectionProtocolAs
 
 class _ContextManagerSync(Generic[T, P]):
     def __init__(self, current_batch: T):
+        self.__entered = False
         self.__current_batch: T = current_batch
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
@@ -524,12 +526,19 @@ class _ContextManagerSync(Generic[T, P]):
         self.__current_batch._wait()
 
     def __enter__(self) -> P:
+        self.__entered = True
         self.__current_batch._start()
         return self.__current_batch  # pyright: ignore[reportReturnType]
+
+    def __del__(self) -> None:
+        # Mode methods read like setters; warn if one is called without `with`.
+        if not self.__entered:
+            _Warnings.batch_context_manager_not_entered()
 
 
 class _ContextManagerAsync(Generic[Q]):
     def __init__(self, current_batch: _BatchBaseAsync):
+        self.__entered = False
         self.__current_batch = current_batch
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
@@ -537,5 +546,10 @@ class _ContextManagerAsync(Generic[Q]):
         await self.__current_batch._wait()
 
     async def __aenter__(self) -> Q:
+        self.__entered = True
         await self.__current_batch._start()
         return self.__current_batch  # pyright: ignore[reportReturnType]
+
+    def __del__(self) -> None:
+        if not self.__entered:
+            _Warnings.batch_context_manager_not_entered()

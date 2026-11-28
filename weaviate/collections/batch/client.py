@@ -210,7 +210,7 @@ class _BatchClientWrapper(_BatchWrapper):
     def dynamic(
         self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> ClientBatchingContextManager:
-        """Configure dynamic batching.
+        """Return a context manager that sizes batches dynamically.
 
         When you exit the context manager, the final batch will be sent automatically.
 
@@ -227,7 +227,7 @@ class _BatchClientWrapper(_BatchWrapper):
         concurrent_requests: int = 2,
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> ClientBatchingContextManager:
-        """Configure fixed size batches. Note that the default is dynamic batching.
+        """Return a context manager that sends fixed-size batches. Note that the default is dynamic batching.
 
         When you exit the context manager, the final batch will be sent automatically.
 
@@ -247,7 +247,7 @@ class _BatchClientWrapper(_BatchWrapper):
         requests_per_minute: int,
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> ClientBatchingContextManager:
-        """Configure batches with a rate limited vectorizer.
+        """Return a context manager that rate-limits batches. It cannot be combined with other batching modes.
 
         When you exit the context manager, the final batch will be sent automatically.
 

@@ -253,7 +253,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         )
 
     def dynamic(self) -> CollectionBatchingContextManager[Properties]:
-        """Configure dynamic batching.
+        """Return a context manager that sizes batches dynamically.
 
         When you exit the context manager, the final batch will be sent automatically.
         """
@@ -263,7 +263,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
     def fixed_size(
         self, batch_size: int = 100, concurrent_requests: int = 2
     ) -> CollectionBatchingContextManager[Properties]:
-        """Configure fixed size batches. Note that the default is dynamic batching.
+        """Return a context manager that sends fixed-size batches. Note that the default is dynamic batching.
 
         When you exit the context manager, the final batch will be sent automatically.
 
@@ -276,7 +276,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         return self.__create_batch_and_reset(_BatchCollection)
 
     def rate_limit(self, requests_per_minute: int) -> CollectionBatchingContextManager[Properties]:
-        """Configure batches with a rate limited vectorizer.
+        """Return a context manager that rate-limits batches. It cannot be combined with other batching modes.
 
         When you exit the context manager, the final batch will be sent automatically.
 
